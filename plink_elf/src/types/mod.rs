@@ -3,7 +3,7 @@ mod string_table;
 pub use self::string_table::StringTable;
 
 use crate::errors::LoadError;
-use crate::reader::ObjectReader;
+use crate::reader::{read_object, Cursor};
 use crate::utils::{render_hex, ReadSeek};
 use std::num::NonZeroU64;
 use std::ops::Deref;
@@ -23,8 +23,8 @@ pub struct Object {
 
 impl Object {
     pub fn load(reader: &mut dyn ReadSeek) -> Result<Self, LoadError> {
-        let reader = ObjectReader::new(reader);
-        reader.read()
+        let mut cursor = Cursor::new(reader);
+        read_object(&mut cursor)
     }
 }
 

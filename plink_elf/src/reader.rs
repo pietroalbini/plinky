@@ -2,11 +2,12 @@ use crate::errors::LoadError;
 use crate::utils::ReadSeek;
 use crate::{
     Class, Endian, Machine, NoteSection, Object, ProgramSection, RawBytes, Section, SectionContent,
-    Segment, SegmentContent, StringTable, Type, UnknownSection, ABI,
+    Segment, SegmentContent, StringTable, Symbol, SymbolDefinition, SymbolTable, Type,
+    UnknownSection, ABI,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::io::SeekFrom;
+use std::io::{Cursor, SeekFrom};
 use std::num::NonZeroU64;
 
 pub(crate) struct ObjectReader<'a> {
@@ -195,6 +196,11 @@ impl<'a> ObjectReader<'a> {
         };
         for section in &sections {
             resolve_str(&section.name)?;
+            if let SectionContent::SymbolTable(table) = &section.content {
+                for symbol in &table.symbols {
+                    resolve_str(&symbol.name)?;
+                }
+            }
         }
 
         let remove_pending_str = |pending: RefCell<PendingString>| -> String {
@@ -211,7 +217,26 @@ impl<'a> ObjectReader<'a> {
                 allocated: s.allocated,
                 executable: s.executable,
                 memory_address: s.memory_address,
-                content: s.content,
+                content: match s.content {
+                    SectionContent::Null => SectionContent::Null,
+                    SectionContent::Program(p) => SectionContent::Program(p),
+                    SectionContent::SymbolTable(s) => SectionContent::SymbolTable(SymbolTable {
+                        symbols: s
+                            .symbols
+                            .into_iter()
+                            .map(|s| Symbol {
+                                name: remove_pending_str(s.name),
+                                info: s.info,
+                                definition: s.definition,
+                                value: s.value,
+                                size: s.size,
+                            })
+                            .collect(),
+                    }),
+                    SectionContent::StringTable(s) => SectionContent::StringTable(s),
+                    SectionContent::Note(n) => SectionContent::Note(n),
+                    SectionContent::Unknown(u) => SectionContent::Unknown(u),
+                },
             })
             .collect())
     }
@@ -226,7 +251,7 @@ impl<'a> ObjectReader<'a> {
         let memory_address = self.read_usize()?;
         let offset = self.read_usize()?;
         let size = self.read_usize()?;
-        let _link = self.read_u32()?;
+        let link = self.read_u32()?;
         let _info = self.read_u32()?;
         let _addr_align = self.read_usize()?;
         let _entries_size = self.read_usize()?;
@@ -237,6 +262,7 @@ impl<'a> ObjectReader<'a> {
             1 => SectionContent::Program(ProgramSection {
                 raw: RawBytes(raw_content),
             }),
+            2 => self.read_symbol_table(&raw_content, link as _)?,
             3 => self.read_string_table(&raw_content)?,
             7 => SectionContent::Note(NoteSection {
                 raw: RawBytes(raw_content),
@@ -260,9 +286,11 @@ impl<'a> ObjectReader<'a> {
         })
     }
 
-    fn read_string_table(&mut self, raw_content: &[u8]) -> Result<SectionContent, LoadError> {
+    fn read_string_table(
+        &mut self,
+        raw_content: &[u8],
+    ) -> Result<SectionContent<RefCell<PendingString>>, LoadError> {
         let mut strings = BTreeMap::new();
-
         let mut offset: usize = 0;
         while offset < raw_content.len() {
             let terminator = raw_content
@@ -277,8 +305,58 @@ impl<'a> ObjectReader<'a> {
 
             offset += terminator + 1;
         }
-
         Ok(SectionContent::StringTable(StringTable::new(strings)))
+    }
+
+    fn read_symbol_table(
+        &mut self,
+        raw_content: &[u8],
+        strings_table: u16,
+    ) -> Result<SectionContent<RefCell<PendingString>>, LoadError> {
+        let mut cursor = Cursor::new(raw_content);
+        let mut raw_content_reader = ObjectReader {
+            reader: &mut cursor,
+            class: self.class,
+            endian: self.endian,
+        };
+
+        let mut symbols = Vec::new();
+        loop {
+            if raw_content_reader.current_position()? == raw_content.len() as u64 {
+                break;
+            }
+            symbols.push(raw_content_reader.read_symbol(strings_table)?);
+        }
+
+        Ok(SectionContent::SymbolTable(SymbolTable { symbols }))
+    }
+
+    fn read_symbol(
+        &mut self,
+        strings_table: u16,
+    ) -> Result<Symbol<RefCell<PendingString>>, LoadError> {
+        let name_offset = self.read_u32()?;
+        let info = self.read_u8()?;
+        let _ = self.read_u8()?; // Reserved
+        let definition = self.read_u16()?;
+        let value = self.read_usize()?;
+        let size = self.read_usize()?;
+
+        Ok(Symbol {
+            name: RefCell::new(PendingString::Ref {
+                section: strings_table,
+                offset: name_offset,
+            }),
+            info,
+            definition: match definition {
+                0x0000 => SymbolDefinition::Undefined, // SHN_UNDEF
+                0xFFF1 => SymbolDefinition::Absolute,  // SHN_ABS
+                0xFFF2 => SymbolDefinition::Common,    // SHN_COMMON
+                other => SymbolDefinition::Section(other),
+            },
+            value,
+            size,
+        })
     }
 
     fn read_program_header(&mut self) -> Result<Segment, LoadError> {
@@ -371,8 +449,13 @@ impl<'a> ObjectReader<'a> {
         self.reader.read_exact(&mut contents)?;
         Ok(contents)
     }
+
+    fn current_position(&mut self) -> Result<u64, LoadError> {
+        Ok(self.reader.seek(SeekFrom::Current(0))?)
+    }
 }
 
+#[derive(Debug)]
 enum PendingString {
     Ref { section: u16, offset: u32 },
     Resolved(String),

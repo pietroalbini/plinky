@@ -484,46 +484,310 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x2,
-                    raw: RawBytes {
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 | .........................
-                         00 00 00 04 00 f1 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 09 00 | .........................
-                         00 00 01 00 04 00 8c 03 00 00 00 00 00 00 20 00 00 00 00 00 00 00 13 00 00 | .............. ..........
-                         00 04 00 f1 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 1e 00 00 00 | .........................
-                         02 00 10 00 90 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 02 | .................... ....
-                         00 10 00 c0 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 33 00 00 00 02 00 | ...................3.....
-                         10 00 00 11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 49 00 00 00 01 00 1a | ..................I......
-                         00 10 40 00 00 00 00 00 00 01 00 00 00 00 00 00 00 55 00 00 00 01 00 16 00 | ..@..............U.......
-                         c0 3d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7c 00 00 00 02 00 10 00 40 | .=..............|.......@
-                         11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 88 00 00 00 01 00 15 00 b8 3d | ........................=
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 a7 00 00 00 04 00 f1 ff 00 00 00 | .........................
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 13 00 00 00 04 00 f1 ff 00 00 00 00 | .........................
-                         00 00 00 00 00 00 00 00 00 00 00 00 b1 00 00 00 01 00 14 00 f0 20 00 00 00 | ..................... ...
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 00 f1 ff 00 00 00 00 00 00 | .........................
-                         00 00 00 00 00 00 00 00 00 00 bf 00 00 00 01 00 17 00 c8 3d 00 00 00 00 00 | ...................=.....
-                         00 00 00 00 00 00 00 00 00 c8 00 00 00 00 00 13 00 10 20 00 00 00 00 00 00 | .................. ......
-                         00 00 00 00 00 00 00 00 db 00 00 00 01 00 18 00 b8 3f 00 00 00 00 00 00 00 | .................?.......
-                         00 00 00 00 00 00 00 f1 00 00 00 12 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
-                         00 00 00 00 00 00 0e 01 00 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .......... ..............
-                         00 00 00 00 00 4a 01 00 00 20 00 19 00 00 40 00 00 00 00 00 00 00 00 00 00 | .....J... ....@..........
-                         00 00 00 00 2a 01 00 00 12 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | ....*....................
-                         00 00 00 3b 01 00 00 10 00 19 00 10 40 00 00 00 00 00 00 00 00 00 00 00 00 | ...;........@............
-                         00 00 42 01 00 00 12 02 11 00 74 11 00 00 00 00 00 00 00 00 00 00 00 00 00 | ..B.......t..............
-                         00 48 01 00 00 10 00 19 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .H........@..............
-                         55 01 00 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 64 | U... ...................d
-                         01 00 00 11 02 19 00 08 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 71 01 | ........@..............q.
-                         00 00 11 00 12 00 00 20 00 00 00 00 00 00 04 00 00 00 00 00 00 00 80 01 00 | ....... .................
-                         00 10 00 1a 00 18 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 4e 01 00 00 | ......@..............N...
-                         12 00 10 00 60 10 00 00 00 00 00 00 26 00 00 00 00 00 00 00 85 01 00 00 10 | ....`.......&............
-                         00 1a 00 10 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 91 01 00 00 12 00 | ....@....................
-                         10 00 49 11 00 00 00 00 00 00 29 00 00 00 00 00 00 00 96 01 00 00 11 02 19 | ..I.......)..............
-                         00 10 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 a2 01 00 00 20 00 00 00 | ..@.................. ...
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 bc 01 00 00 22 00 00 00 00 | ...................."....
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 d7 01 00 00 12 02 0c 00 00 10 | .........................
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00                                  | ..............
-                    },
+            content: SymbolTable(
+                SymbolTable {
+                    symbols: [
+                        Symbol {
+                            name: "",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "Scrt1.o",
+                            info: 0x4,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__abi_tag",
+                            info: 0x1,
+                            definition: Section(
+                                0x4,
+                            ),
+                            value: 0x38c,
+                            size: 0x20,
+                        },
+                        Symbol {
+                            name: "crtstuff.c",
+                            info: 0x4,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "deregister_tm_clones",
+                            info: 0x2,
+                            definition: Section(
+                                0x10,
+                            ),
+                            value: 0x1090,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "register_tm_clones",
+                            info: 0x2,
+                            definition: Section(
+                                0x10,
+                            ),
+                            value: 0x10c0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__do_global_dtors_aux",
+                            info: 0x2,
+                            definition: Section(
+                                0x10,
+                            ),
+                            value: 0x1100,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "completed.0",
+                            info: 0x1,
+                            definition: Section(
+                                0x1a,
+                            ),
+                            value: 0x4010,
+                            size: 0x1,
+                        },
+                        Symbol {
+                            name: "__do_global_dtors_aux_fini_array_entry",
+                            info: 0x1,
+                            definition: Section(
+                                0x16,
+                            ),
+                            value: 0x3dc0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "frame_dummy",
+                            info: 0x2,
+                            definition: Section(
+                                0x10,
+                            ),
+                            value: 0x1140,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__frame_dummy_init_array_entry",
+                            info: 0x1,
+                            definition: Section(
+                                0x15,
+                            ),
+                            value: 0x3db8,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "hello_c.c",
+                            info: 0x4,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "crtstuff.c",
+                            info: 0x4,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__FRAME_END__",
+                            info: 0x1,
+                            definition: Section(
+                                0x14,
+                            ),
+                            value: 0x20f0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "",
+                            info: 0x4,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_DYNAMIC",
+                            info: 0x1,
+                            definition: Section(
+                                0x17,
+                            ),
+                            value: 0x3dc8,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__GNU_EH_FRAME_HDR",
+                            info: 0x0,
+                            definition: Section(
+                                0x13,
+                            ),
+                            value: 0x2010,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_GLOBAL_OFFSET_TABLE_",
+                            info: 0x1,
+                            definition: Section(
+                                0x18,
+                            ),
+                            value: 0x3fb8,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__libc_start_main@GLIBC_2.34",
+                            info: 0x12,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_ITM_deregisterTMCloneTable",
+                            info: 0x20,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "data_start",
+                            info: 0x20,
+                            definition: Section(
+                                0x19,
+                            ),
+                            value: 0x4000,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "puts@GLIBC_2.2.5",
+                            info: 0x12,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_edata",
+                            info: 0x10,
+                            definition: Section(
+                                0x19,
+                            ),
+                            value: 0x4010,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_fini",
+                            info: 0x12,
+                            definition: Section(
+                                0x11,
+                            ),
+                            value: 0x1174,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__data_start",
+                            info: 0x10,
+                            definition: Section(
+                                0x19,
+                            ),
+                            value: 0x4000,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__gmon_start__",
+                            info: 0x20,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__dso_handle",
+                            info: 0x11,
+                            definition: Section(
+                                0x19,
+                            ),
+                            value: 0x4008,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_IO_stdin_used",
+                            info: 0x11,
+                            definition: Section(
+                                0x12,
+                            ),
+                            value: 0x2000,
+                            size: 0x4,
+                        },
+                        Symbol {
+                            name: "_end",
+                            info: 0x10,
+                            definition: Section(
+                                0x1a,
+                            ),
+                            value: 0x4018,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_start",
+                            info: 0x12,
+                            definition: Section(
+                                0x10,
+                            ),
+                            value: 0x1060,
+                            size: 0x26,
+                        },
+                        Symbol {
+                            name: "__bss_start",
+                            info: 0x10,
+                            definition: Section(
+                                0x1a,
+                            ),
+                            value: 0x4010,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "main",
+                            info: 0x12,
+                            definition: Section(
+                                0x10,
+                            ),
+                            value: 0x1149,
+                            size: 0x29,
+                        },
+                        Symbol {
+                            name: "__TMC_END__",
+                            info: 0x11,
+                            definition: Section(
+                                0x19,
+                            ),
+                            value: 0x4010,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_ITM_registerTMCloneTable",
+                            info: 0x20,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "__cxa_finalize@GLIBC_2.2.5",
+                            info: 0x22,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_init",
+                            info: 0x12,
+                            definition: Section(
+                                0xc,
+                            ),
+                            value: 0x1000,
+                            size: 0x0,
+                        },
+                    ],
                 },
             ),
         },

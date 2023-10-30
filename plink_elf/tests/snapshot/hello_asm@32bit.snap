@@ -73,16 +73,59 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x2,
-                    raw: RawBytes {
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 | .........................
-                         00 00 00 04 00 f1 ff 00 00 00 00 00 00 00 00 00 00 00 00 03 00 01 00 00 00 | .........................
-                         00 00 00 00 00 00 00 00 00 00 03 00 02 00 1c 00 00 00 00 00 00 00 00 00 00 | .........................
-                         00 00 00 01 00 20 00 00 00 0d 00 00 00 00 00 00 00 00 00 f1 ff 24 00 00 00 | ..... ...............$...
-                         00 00 00 00 00 00 00 00 10 00 02 00                                        | ............
-                    },
+            content: SymbolTable(
+                SymbolTable {
+                    symbols: [
+                        Symbol {
+                            name: "",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "tests/snapshot/hello_asm.S",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0xfff10004,
+                        },
+                        Symbol {
+                            name: "",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x10003,
+                        },
+                        Symbol {
+                            name: "",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x20003,
+                        },
+                        Symbol {
+                            name: "msg",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x10000,
+                        },
+                        Symbol {
+                            name: "len",
+                            info: 0xd,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0xfff10000,
+                        },
+                        Symbol {
+                            name: "_start",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x20010,
+                        },
+                    ],
                 },
             ),
         },

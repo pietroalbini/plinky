@@ -1,8 +1,8 @@
-use std::path::Path;
 use plink_elf::errors::LoadError;
+use plink_elf::Object;
 use std::error::Error;
 use std::fs::File;
-use plink_elf::Object;
+use std::path::Path;
 
 fn actual_main(path: &Path) -> Result<(), LoadError> {
     let mut file = File::open(path)?;

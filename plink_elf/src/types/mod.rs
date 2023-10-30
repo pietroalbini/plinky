@@ -66,13 +66,14 @@ pub struct Section<S = String> {
     pub allocated: bool,
     pub executable: bool,
     pub memory_address: u64,
-    pub content: SectionContent,
+    pub content: SectionContent<S>,
 }
 
 #[derive(Debug)]
-pub enum SectionContent {
+pub enum SectionContent<S = String> {
     Null,
     Program(ProgramSection),
+    SymbolTable(SymbolTable<S>),
     StringTable(StringTable),
     Note(NoteSection),
     Unknown(UnknownSection),
@@ -88,11 +89,32 @@ pub struct NoteSection {
     pub raw: RawBytes,
 }
 
-
 #[derive(Debug)]
 pub struct UnknownSection {
     pub id: u32,
     pub raw: RawBytes,
+}
+
+#[derive(Debug)]
+pub struct SymbolTable<S = String> {
+    pub symbols: Vec<Symbol<S>>,
+}
+
+#[derive(Debug)]
+pub struct Symbol<S = String> {
+    pub name: S,
+    pub info: u8,
+    pub definition: SymbolDefinition,
+    pub value: u64,
+    pub size: u64,
+}
+
+#[derive(Debug)]
+pub enum SymbolDefinition {
+    Undefined,
+    Absolute,
+    Common,
+    Section(u16),
 }
 
 #[derive(Debug)]

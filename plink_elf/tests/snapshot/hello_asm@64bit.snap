@@ -73,18 +73,67 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x2,
-                    raw: RawBytes {
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 | .........................
-                         00 00 00 04 00 f1 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
-                         00 00 03 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
-                         00 03 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 1c 00 00 00 | .........................
-                         00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 00 | .................... ....
-                         00 f1 ff 0d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 24 00 00 00 10 00 | ...................$.....
-                         02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00                      | ..................
-                    },
+            content: SymbolTable(
+                SymbolTable {
+                    symbols: [
+                        Symbol {
+                            name: "",
+                            info: 0x0,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "tests/snapshot/hello_asm.S",
+                            info: 0x4,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "",
+                            info: 0x3,
+                            definition: Section(
+                                0x1,
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "",
+                            info: 0x3,
+                            definition: Section(
+                                0x2,
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "msg",
+                            info: 0x0,
+                            definition: Section(
+                                0x1,
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "len",
+                            info: 0x0,
+                            definition: Absolute,
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "_start",
+                            info: 0x10,
+                            definition: Section(
+                                0x2,
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                    ],
                 },
             ),
         },

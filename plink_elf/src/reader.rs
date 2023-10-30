@@ -255,17 +255,24 @@ impl<'a> ObjectReader<'a> {
     }
 
     fn read_program_header(&mut self) -> Result<Segment, LoadError> {
+        // The position of the `flags` field changes depending on whether it's a 32-bit or 64-bit
+        // ELF binary.
+        let mut _flags = 0;
+
         let type_ = self.read_u32()?;
-        let _flags = self.read_u32()?;
-        let _offset = self.read_usize()?;
+        if let Some(Class::Elf64) = &self.class {
+            _flags = self.read_u32()?;
+        }
+        let offset = self.read_usize()?;
         let _virtual_address = self.read_usize()?;
         let _reserved = self.read_usize()?;
         let file_size = self.read_usize()?;
         let _memory_size = self.read_usize()?;
+        if let Some(Class::Elf32) = &self.class {
+            _flags = self.read_u32()?;
+        }
         let _align = self.read_usize()?;
-
-        let mut contents = vec![0; file_size as _];
-        self.reader.read_exact(&mut contents)?;
+        let contents = self.read_vec_at(offset, file_size)?;
 
         Ok(Segment {
             content: SegmentContent::Unknown {

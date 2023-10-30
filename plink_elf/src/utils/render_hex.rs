@@ -3,6 +3,7 @@ use std::fmt::Formatter;
 const BYTES_PER_COLUMN: usize = 25;
 
 pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> std::fmt::Result {
+    let mut multiline = false;
     let mut pending_as_ascii = Vec::new();
     for byte in bytes {
         if pending_as_ascii.is_empty() {
@@ -14,16 +15,19 @@ pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> s
 
         if pending_as_ascii.len() >= BYTES_PER_COLUMN {
             render_ascii(f, &mut pending_as_ascii)?;
+            multiline = true;
         }
     }
 
     // Handle remaining bytes by filling in whitespace and rendering that.
     if !pending_as_ascii.is_empty() {
-        f.write_str(
-            &std::iter::repeat("   ")
-                .take(BYTES_PER_COLUMN - pending_as_ascii.len())
-                .collect::<String>(),
-        )?;
+        if multiline {
+            f.write_str(
+                &std::iter::repeat("   ")
+                    .take(BYTES_PER_COLUMN - pending_as_ascii.len())
+                    .collect::<String>(),
+            )?;
+        }
         render_ascii(f, &mut pending_as_ascii)?;
     }
 

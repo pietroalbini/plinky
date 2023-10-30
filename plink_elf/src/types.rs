@@ -56,20 +56,12 @@ pub enum Machine {
 
 #[derive(Debug)]
 pub struct Segment {
-    pub type_: SegmentType,
-    pub flags: u32,
-    pub contents: RawBytes,
+    pub content: SegmentContent,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum SegmentType {
-    Null,
-    Loadable,
-    DynamicLinkingTables,
-    ProgramInterpreter,
-    Note,
-    ProgramHeaderTable,
-    Unknown(u32),
+#[derive(Debug)]
+pub enum SegmentContent {
+    Unknown { id: u32, raw: RawBytes },
 }
 
 pub struct RawBytes(pub Vec<u8>);

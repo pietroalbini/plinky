@@ -1,6 +1,6 @@
 use crate::errors::LoadError;
 use crate::utils::ReadSeek;
-use crate::{Class, Endian, Machine, Object, RawBytes, Segment, SegmentType, Type, ABI};
+use crate::{Class, Endian, Machine, Object, RawBytes, Segment, SegmentContent, Type, ABI};
 use std::io::SeekFrom;
 use std::num::NonZeroU64;
 
@@ -146,8 +146,8 @@ impl<'a> ObjectReader<'a> {
     }
 
     fn read_program_header(&mut self) -> Result<Segment, LoadError> {
-        let type_ = self.read_segment_type()?;
-        let flags = self.read_u32()?;
+        let type_ = self.read_u32()?;
+        let _flags = self.read_u32()?;
         let _offset = self.read_usize()?;
         let _virtual_address = self.read_usize()?;
         let _reserved = self.read_usize()?;
@@ -158,25 +158,12 @@ impl<'a> ObjectReader<'a> {
         let mut contents = vec![0; file_size as _];
         self.reader.read_exact(&mut contents)?;
 
-        dbg!(type_);
-
         Ok(Segment {
-            type_,
-            flags,
-            contents: RawBytes(contents),
+            content: SegmentContent::Unknown {
+                id: type_,
+                raw: RawBytes(contents),
+            },
         })
-    }
-
-    fn read_segment_type(&mut self) -> Result<SegmentType, LoadError> {
-        match self.read_u32()? {
-            0 => Ok(SegmentType::Null),
-            1 => Ok(SegmentType::Loadable),
-            2 => Ok(SegmentType::DynamicLinkingTables),
-            3 => Ok(SegmentType::ProgramInterpreter),
-            4 => Ok(SegmentType::Note),
-            6 => Ok(SegmentType::ProgramHeaderTable),
-            other => Ok(SegmentType::Unknown(other)),
-        }
     }
 
     fn read_u8(&mut self) -> Result<u8, LoadError> {

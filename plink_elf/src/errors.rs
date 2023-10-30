@@ -11,7 +11,6 @@ pub enum LoadError {
     BadAbiVersion(ABI, u8),
     BadType(u16),
     BadMachine(u16),
-    BadSegmentType(u32),
     MisalignedFile { current: usize, expected: usize },
 }
 
@@ -29,9 +28,6 @@ impl std::fmt::Display for LoadError {
             }
             LoadError::BadType(type_) => write!(f, "bad ELF type: {type_}"),
             LoadError::BadMachine(machine) => write!(f, "bad ELF machine: {machine}"),
-            LoadError::BadSegmentType(segment_type) => {
-                write!(f, "bad ELF segment type: {segment_type}")
-            }
             LoadError::MisalignedFile { current, expected } => write!(
                 f,
                 "misaligned file: parsed until {current:#x}, expected to be at {expected:#x}"

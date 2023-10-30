@@ -1,0 +1,11 @@
+[package]
+name = "plink_elf"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[dev-dependencies]
+anyhow = "1.0.71"
+insta = "1.30.0"
+tempfile = "3.6.0"

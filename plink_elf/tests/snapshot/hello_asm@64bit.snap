@@ -1,0 +1,13 @@
+---
+source: plink_elf/tests/snapshot.rs
+---
+Object {
+    class: Elf64,
+    endian: Little,
+    abi: SystemV,
+    type_: Relocatable,
+    machine: X86_64,
+    entry: None,
+    flags: 0x0,
+    segments: [],
+}

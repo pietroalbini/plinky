@@ -13,9 +13,9 @@ pub enum LoadError {
     BadMachine(u16),
     UnterminatedString,
     NonUtf8String(std::string::FromUtf8Error),
-    MissingSectionNamesTable,
-    WrongSectionNamesTableType,
-    MissingSectionName(u32),
+    MissingStringTable(u16),
+    WrongStringTableType(u16),
+    MissingString(u16, u32),
     MisalignedFile { current: usize, expected: usize },
 }
 
@@ -35,13 +35,15 @@ impl std::fmt::Display for LoadError {
             LoadError::BadMachine(machine) => write!(f, "bad ELF machine: {machine}"),
             LoadError::UnterminatedString => write!(f, "unterminated string"),
             LoadError::NonUtf8String(..) => write!(f, "non-UTF-8 string"),
-            LoadError::MissingSectionNamesTable => {
-                write!(f, "the table of section names is missing")
+            LoadError::MissingStringTable(table) => {
+                write!(f, "there is no string table in section {table}")
             }
-            LoadError::WrongSectionNamesTableType => {
-                write!(f, "the type of the section names table is not correct")
+            LoadError::WrongStringTableType(table) => {
+                write!(f, "the type of section {table} is not a string table")
             }
-            LoadError::MissingSectionName(id) => write!(f, "missing section name with id {id:#x}"),
+            LoadError::MissingString(table, id) => {
+                write!(f, "missing string with offset {id:#x} in table {table}")
+            }
             LoadError::MisalignedFile { current, expected } => write!(
                 f,
                 "misaligned file: parsed until {current:#x}, expected to be at {expected:#x}"

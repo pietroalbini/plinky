@@ -60,8 +60,8 @@ pub enum Machine {
 }
 
 #[derive(Debug)]
-pub struct Section {
-    pub name: String,
+pub struct Section<S = String> {
+    pub name: S,
     pub writeable: bool,
     pub allocated: bool,
     pub executable: bool,

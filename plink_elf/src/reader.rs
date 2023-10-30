@@ -4,6 +4,7 @@ use crate::{
     Class, Endian, Machine, Object, RawBytes, Section, SectionContent, Segment, SegmentContent,
     StringTable, Type, ABI,
 };
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io::SeekFrom;
 use std::num::NonZeroU64;
@@ -63,9 +64,7 @@ impl<'a> ObjectReader<'a> {
         let mut segments = Vec::new();
         if program_headers_offset != 0 {
             for idx in 0..program_header_count {
-                self.reader.seek(SeekFrom::Start(
-                    program_headers_offset + (program_header_size as u64 * idx as u64),
-                ))?;
+                self.seek_to(program_headers_offset + (program_header_size as u64 * idx as u64))?;
                 segments.push(self.read_program_header()?);
             }
         }
@@ -168,41 +167,59 @@ impl<'a> ObjectReader<'a> {
             return Ok(Vec::new());
         }
 
-        let mut raw_sections = Vec::new();
-        for idx in 0..count {
-            self.reader
-                .seek(SeekFrom::Start(offset + (size as u64 * idx as u64)))?;
-            raw_sections.push(self.read_raw_section()?);
-        }
-
-        let names = match raw_sections
-            .get(section_names_table_index as usize)
-            .map(|s| &s.content)
-        {
-            Some(SectionContent::StringTable(names)) => names.clone(),
-            Some(_) => return Err(LoadError::WrongSectionNamesTableType),
-            None => return Err(LoadError::MissingSectionNamesTable),
-        };
-
         let mut sections = Vec::new();
-        for raw in raw_sections {
-            sections.push(Section {
-                name: names
-                    .get(raw.name_offset)
-                    .map(|s| s.to_string())
-                    .ok_or(LoadError::MissingSectionName(raw.name_offset))?,
-                writeable: raw.writeable,
-                allocated: raw.allocated,
-                executable: raw.executable,
-                memory_address: raw.memory_address,
-                content: raw.content,
-            });
+        for idx in 0..count {
+            self.seek_to(offset + (size as u64 * idx as u64))?;
+            sections.push(self.read_section(section_names_table_index)?);
         }
 
-        Ok(sections)
+        let resolve_str = |pending: &RefCell<PendingString>| -> Result<(), LoadError> {
+            let mut mutable = pending.borrow_mut();
+            if let PendingString::Ref { section, offset } = &mut *mutable {
+                match sections.get(*section as usize).map(|s| &s.content) {
+                    Some(SectionContent::StringTable(table)) => {
+                        *mutable = PendingString::Resolved(
+                            table
+                                .get(*offset)
+                                .ok_or(LoadError::MissingString(*section, *offset))?
+                                .to_string(),
+                        );
+                        Ok(())
+                    }
+                    Some(_) => Err(LoadError::WrongStringTableType(*section)),
+                    None => Err(LoadError::MissingStringTable(*section)),
+                }
+            } else {
+                Ok(())
+            }
+        };
+        for section in &sections {
+            resolve_str(&section.name)?;
+        }
+
+        let remove_pending_str = |pending: RefCell<PendingString>| -> String {
+            match pending.into_inner() {
+                PendingString::Ref { .. } => unreachable!("unresolved string"),
+                PendingString::Resolved(inner) => inner,
+            }
+        };
+        Ok(sections
+            .into_iter()
+            .map(|s| Section {
+                name: remove_pending_str(s.name),
+                writeable: s.writeable,
+                allocated: s.allocated,
+                executable: s.executable,
+                memory_address: s.memory_address,
+                content: s.content,
+            })
+            .collect())
     }
 
-    fn read_raw_section(&mut self) -> Result<RawSection, LoadError> {
+    fn read_section(
+        &mut self,
+        section_names_table_index: u16,
+    ) -> Result<Section<RefCell<PendingString>>, LoadError> {
         let name_offset = self.read_u32()?;
         let type_ = self.read_u32()?;
         let flags = self.read_usize()?;
@@ -223,8 +240,11 @@ impl<'a> ObjectReader<'a> {
             },
         };
 
-        Ok(RawSection {
-            name_offset,
+        Ok(Section {
+            name: RefCell::new(PendingString::Ref {
+                section: section_names_table_index,
+                offset: name_offset,
+            }),
             writeable: flags & 0x1 > 0,
             allocated: flags & 0x2 > 0,
             executable: flags & 0x4 > 0,
@@ -282,6 +302,11 @@ impl<'a> ObjectReader<'a> {
         })
     }
 
+    fn seek_to(&mut self, position: u64) -> Result<(), LoadError> {
+        self.reader.seek(SeekFrom::Start(position))?;
+        Ok(())
+    }
+
     fn read_u8(&mut self) -> Result<u8, LoadError> {
         let bytes = self.read_bytes::<1>()?;
         Ok(bytes[0])
@@ -334,19 +359,14 @@ impl<'a> ObjectReader<'a> {
     }
 
     fn read_vec_at(&mut self, offset: u64, size: u64) -> Result<Vec<u8>, LoadError> {
-        self.reader.seek(SeekFrom::Start(offset))?;
+        self.seek_to(offset)?;
         let mut contents = vec![0; size as _];
         self.reader.read_exact(&mut contents)?;
         Ok(contents)
     }
 }
 
-#[derive(Debug)]
-struct RawSection {
-    name_offset: u32,
-    writeable: bool,
-    allocated: bool,
-    executable: bool,
-    memory_address: u64,
-    content: SectionContent,
+enum PendingString {
+    Ref { section: u16, offset: u32 },
+    Resolved(String),
 }

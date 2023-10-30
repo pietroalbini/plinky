@@ -18,12 +18,7 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x0,
-                    raw: RawBytes {},
-                },
-            ),
+            content: Null,
         },
         Section {
             name: ".interp",
@@ -31,9 +26,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x194,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          2f 6c 69 62 2f 6c 64 2d 6c 69 6e 75 78 2e 73 6f 2e 32 00 | /lib/ld-linux.so.2.
                     },
@@ -46,9 +40,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x1a8,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x7,
+            content: Note(
+                NoteSection {
                     raw: RawBytes {
                          04 00 00 00 14 00 00 00 03 00 00 00 47 4e 55 00 0d 4e 72 5b 83 ee f3 cd 2c | ............GNU..Nr[....,
                          3a 03 76 a2 5c a8 1b 9d aa f3 ed                                           | :.v.\......
@@ -62,9 +55,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x1cc,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x7,
+            content: Note(
+                NoteSection {
                     raw: RawBytes {
                          04 00 00 00 10 00 00 00 01 00 00 00 47 4e 55 00 00 00 00 00 03 00 00 00 02 | ............GNU..........
                          00 00 00 00 00 00 00                                                       | .......
@@ -203,9 +195,8 @@ Object {
             allocated: true,
             executable: true,
             memory_address: 0x1000,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          f3 0f 1e fb 53 83 ec 08 e8 93 00 00 00 81 c3 cb 2f 00 00 8b 83 1c 00 00 00 | ....S.........../........
                          85 c0 74 02 ff d0 83 c4 08 5b c3                                           | ..t......[.
@@ -219,9 +210,8 @@ Object {
             allocated: true,
             executable: true,
             memory_address: 0x1030,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          ff b3 04 00 00 00 ff a3 08 00 00 00 00 00 00 00 ff a3 0c 00 00 00 68 00 00 | ......................h..
                          00 00 e9 e0 ff ff ff ff a3 10 00 00 00 68 08 00 00 00 e9 d0 ff ff ff       | .............h.........
@@ -235,9 +225,8 @@ Object {
             allocated: true,
             executable: true,
             memory_address: 0x1060,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          ff a3 18 00 00 00 66 90 | ......f.
                     },
@@ -250,9 +239,8 @@ Object {
             allocated: true,
             executable: true,
             memory_address: 0x1070,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          f3 0f 1e fb 31 ed 5e 89 e1 83 e4 f0 50 54 52 e8 18 00 00 00 81 c3 54 2f 00 | ....1.^.....PTR.......T/.
                          00 6a 00 6a 00 51 56 ff b3 20 00 00 00 e8 a5 ff ff ff f4 8b 1c 24 c3 8b 1c | .j.j.QV.. ...........$...
@@ -279,9 +267,8 @@ Object {
             allocated: true,
             executable: true,
             memory_address: 0x11e0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          f3 0f 1e fb 53 83 ec 08 e8 b3 fe ff ff 81 c3 eb 2d 00 00 83 c4 08 5b c3 | ....S...........-.....[.
                     },
@@ -294,9 +281,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x2000,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          03 00 00 00 01 00 02 00 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | ........Hello world.
                     },
@@ -309,9 +295,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x2014,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          01 1b 03 3b 30 00 00 00 05 00 00 00 1c f0 ff ff 60 00 00 00 4c f0 ff ff 84 | ...;0...........`...L....
                          00 00 00 5c f0 ff ff 4c 00 00 00 89 f1 ff ff 98 00 00 00 c5 f1 ff ff cc 00 | ...\...L.................
@@ -326,9 +311,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x2048,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 10 | .........zR..|...........
                          00 00 00 1c 00 00 00 08 f0 ff ff 30 00 00 00 00 44 07 08 20 00 00 00 30 00 | ...........0....D.. ...0.
@@ -402,9 +386,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x3fd8,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          e0 3e 00 00 00 00 00 00 00 00 00 00 46 10 00 00 56 10 00 00 00 00 00 00 00 | .>..........F...V........
                          00 00 00 00 00 00 00 9d 11 00 00 00 00 00 00                               | ...............
@@ -418,9 +401,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x4000,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          00 00 00 00 04 40 00 00 | .....@..
                     },
@@ -448,9 +430,8 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 2e 34 2e 30 2d 31 75 62 75 6e | GCC: (Ubuntu 11.4.0-1ubun
                          74 75 31 7e 32 32 2e 30 34 29 20 31 31 2e 34 2e 30 00                      | tu1~22.04) 11.4.0.

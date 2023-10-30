@@ -71,9 +71,23 @@ pub struct Section<S = String> {
 
 #[derive(Debug)]
 pub enum SectionContent {
+    Null,
+    Program(ProgramSection),
     StringTable(StringTable),
+    Note(NoteSection),
     Unknown(UnknownSection),
 }
+
+#[derive(Debug)]
+pub struct ProgramSection {
+    pub raw: RawBytes,
+}
+
+#[derive(Debug)]
+pub struct NoteSection {
+    pub raw: RawBytes,
+}
+
 
 #[derive(Debug)]
 pub struct UnknownSection {

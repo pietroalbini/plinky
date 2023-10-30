@@ -16,12 +16,7 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x0,
-                    raw: RawBytes {},
-                },
-            ),
+            content: Null,
         },
         Section {
             name: ".data",
@@ -29,9 +24,8 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
                     },
@@ -44,9 +38,8 @@ Object {
             allocated: true,
             executable: true,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x1,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
                          b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b0 01 bb | .........................
                          00 00 00 00 cd 80                                                          | ......

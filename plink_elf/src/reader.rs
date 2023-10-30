@@ -1,8 +1,8 @@
 use crate::errors::LoadError;
 use crate::utils::ReadSeek;
 use crate::{
-    Class, Endian, Machine, Object, RawBytes, Section, SectionContent, Segment, SegmentContent,
-    StringTable, Type, UnknownSection, ABI,
+    Class, Endian, Machine, NoteSection, Object, ProgramSection, RawBytes, Section, SectionContent,
+    Segment, SegmentContent, StringTable, Type, UnknownSection, ABI,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -233,7 +233,14 @@ impl<'a> ObjectReader<'a> {
 
         let raw_content = self.read_vec_at(offset, size)?;
         let content = match type_ {
+            0 => SectionContent::Null,
+            1 => SectionContent::Program(ProgramSection {
+                raw: RawBytes(raw_content),
+            }),
             3 => self.read_string_table(&raw_content)?,
+            7 => SectionContent::Note(NoteSection {
+                raw: RawBytes(raw_content),
+            }),
             other => SectionContent::Unknown(UnknownSection {
                 id: other,
                 raw: RawBytes(raw_content),

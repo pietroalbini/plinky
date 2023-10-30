@@ -11,6 +11,11 @@ pub enum LoadError {
     BadAbiVersion(ABI, u8),
     BadType(u16),
     BadMachine(u16),
+    UnterminatedString,
+    NonUtf8String(std::string::FromUtf8Error),
+    MissingSectionNamesTable,
+    WrongSectionNamesTableType,
+    MissingSectionName(u32),
     MisalignedFile { current: usize, expected: usize },
 }
 
@@ -28,6 +33,15 @@ impl std::fmt::Display for LoadError {
             }
             LoadError::BadType(type_) => write!(f, "bad ELF type: {type_}"),
             LoadError::BadMachine(machine) => write!(f, "bad ELF machine: {machine}"),
+            LoadError::UnterminatedString => write!(f, "unterminated string"),
+            LoadError::NonUtf8String(..) => write!(f, "non-UTF-8 string"),
+            LoadError::MissingSectionNamesTable => {
+                write!(f, "the table of section names is missing")
+            }
+            LoadError::WrongSectionNamesTableType => {
+                write!(f, "the type of the section names table is not correct")
+            }
+            LoadError::MissingSectionName(id) => write!(f, "missing section name with id {id:#x}"),
             LoadError::MisalignedFile { current, expected } => write!(
                 f,
                 "misaligned file: parsed until {current:#x}, expected to be at {expected:#x}"
@@ -40,6 +54,7 @@ impl std::error::Error for LoadError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             LoadError::IO(err) => Some(err),
+            LoadError::NonUtf8String(err) => Some(err),
             _ => None,
         }
     }
@@ -48,5 +63,11 @@ impl std::error::Error for LoadError {
 impl From<std::io::Error> for LoadError {
     fn from(value: std::io::Error) -> Self {
         LoadError::IO(value)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for LoadError {
+    fn from(value: std::string::FromUtf8Error) -> Self {
+        LoadError::NonUtf8String(value)
     }
 }

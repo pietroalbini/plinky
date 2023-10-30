@@ -1,3 +1,7 @@
+mod string_table;
+
+pub use self::string_table::StringTable;
+
 use crate::errors::LoadError;
 use crate::reader::ObjectReader;
 use crate::utils::{render_hex, ReadSeek};
@@ -13,6 +17,7 @@ pub struct Object {
     pub machine: Machine,
     pub entry: Option<NonZeroU64>,
     pub flags: u32,
+    pub sections: Vec<Section>,
     pub segments: Vec<Segment>,
 }
 
@@ -52,6 +57,22 @@ pub enum Type {
 pub enum Machine {
     X86,
     X86_64,
+}
+
+#[derive(Debug)]
+pub struct Section {
+    pub name: String,
+    pub writeable: bool,
+    pub allocated: bool,
+    pub executable: bool,
+    pub memory_address: u64,
+    pub content: SectionContent,
+}
+
+#[derive(Debug)]
+pub enum SectionContent {
+    StringTable(StringTable),
+    Unknown { id: u32, raw: RawBytes },
 }
 
 #[derive(Debug)]

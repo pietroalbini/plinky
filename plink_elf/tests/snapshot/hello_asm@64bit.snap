@@ -9,5 +9,115 @@ Object {
     machine: X86_64,
     entry: None,
     flags: 0x0,
+    sections: [
+        Section {
+            name: "",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: Unknown {
+                id: 0x0,
+                raw: RawBytes {},
+            },
+        },
+        Section {
+            name: ".data",
+            writeable: true,
+            allocated: true,
+            executable: false,
+            memory_address: 0x0,
+            content: Unknown {
+                id: 0x1,
+                raw: RawBytes {
+                     48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                },
+            },
+        },
+        Section {
+            name: ".text",
+            writeable: false,
+            allocated: true,
+            executable: true,
+            memory_address: 0x0,
+            content: Unknown {
+                id: 0x1,
+                raw: RawBytes {
+                     b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b0 01 bb | .........................
+                     00 00 00 00 cd 80                                                          | ......
+                },
+            },
+        },
+        Section {
+            name: ".shstrtab",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: ".data",
+                        0x7: ".text",
+                        0xd: ".shstrtab",
+                        0x17: ".symtab",
+                        0x1f: ".strtab",
+                        0x27: ".rela.text",
+                    },
+                },
+            ),
+        },
+        Section {
+            name: ".symtab",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: Unknown {
+                id: 0x2,
+                raw: RawBytes {
+                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 | .........................
+                     00 00 00 04 00 f1 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
+                     00 00 03 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
+                     00 03 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 1c 00 00 00 | .........................
+                     00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 00 | .................... ....
+                     00 f1 ff 0d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 24 00 00 00 10 00 | ...................$.....
+                     02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00                      | ..................
+                },
+            },
+        },
+        Section {
+            name: ".strtab",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "tests/snapshot/hello_asm.S",
+                        0x1c: "msg",
+                        0x20: "len",
+                        0x24: "_start",
+                    },
+                },
+            ),
+        },
+        Section {
+            name: ".rela.text",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: Unknown {
+                id: 0x4,
+                raw: RawBytes {
+                     0b 00 00 00 00 00 00 00 0a 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 | ........................
+                },
+            },
+        },
+    ],
     segments: [],
 }

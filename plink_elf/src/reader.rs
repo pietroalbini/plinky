@@ -1,6 +1,10 @@
 use crate::errors::LoadError;
 use crate::utils::ReadSeek;
-use crate::{Class, Endian, Machine, Object, RawBytes, Segment, SegmentContent, Type, ABI};
+use crate::{
+    Class, Endian, Machine, Object, RawBytes, Section, SectionContent, Segment, SegmentContent,
+    StringTable, Type, ABI,
+};
+use std::collections::BTreeMap;
 use std::io::SeekFrom;
 use std::num::NonZeroU64;
 
@@ -38,16 +42,23 @@ impl<'a> ObjectReader<'a> {
         let entry = self.read_usize()?;
 
         let program_headers_offset = self.read_usize()?;
-        let _section_headers_offset = self.read_usize()?;
+        let section_headers_offset = self.read_usize()?;
 
         let flags = self.read_u32()?;
 
         let _elf_header_size = self.read_u16()?;
         let program_header_size = self.read_u16()?;
         let program_header_count = self.read_u16()?;
-        let _section_header_size = self.read_u16()?;
-        let _section_header_count = self.read_u16()?;
-        let _string_table_index = self.read_u16()?;
+        let section_header_size = self.read_u16()?;
+        let section_header_count = self.read_u16()?;
+        let section_names_table_index = self.read_u16()?;
+
+        let sections = self.read_sections(
+            section_headers_offset,
+            section_header_count,
+            section_header_size,
+            section_names_table_index,
+        )?;
 
         let mut segments = Vec::new();
         if program_headers_offset != 0 {
@@ -67,6 +78,7 @@ impl<'a> ObjectReader<'a> {
             machine,
             entry: NonZeroU64::new(entry),
             flags,
+            sections,
             segments,
         })
     }
@@ -145,6 +157,103 @@ impl<'a> ObjectReader<'a> {
         }
     }
 
+    fn read_sections(
+        &mut self,
+        offset: u64,
+        count: u16,
+        size: u16,
+        section_names_table_index: u16,
+    ) -> Result<Vec<Section>, LoadError> {
+        if offset == 0 {
+            return Ok(Vec::new());
+        }
+
+        let mut raw_sections = Vec::new();
+        for idx in 0..count {
+            self.reader
+                .seek(SeekFrom::Start(offset + (size as u64 * idx as u64)))?;
+            raw_sections.push(self.read_raw_section()?);
+        }
+
+        let names = match raw_sections
+            .get(section_names_table_index as usize)
+            .map(|s| &s.content)
+        {
+            Some(SectionContent::StringTable(names)) => names.clone(),
+            Some(_) => return Err(LoadError::WrongSectionNamesTableType),
+            None => return Err(LoadError::MissingSectionNamesTable),
+        };
+
+        let mut sections = Vec::new();
+        for raw in raw_sections {
+            sections.push(Section {
+                name: names
+                    .get(raw.name_offset)
+                    .map(|s| s.to_string())
+                    .ok_or(LoadError::MissingSectionName(raw.name_offset))?,
+                writeable: raw.writeable,
+                allocated: raw.allocated,
+                executable: raw.executable,
+                memory_address: raw.memory_address,
+                content: raw.content,
+            });
+        }
+
+        Ok(sections)
+    }
+
+    fn read_raw_section(&mut self) -> Result<RawSection, LoadError> {
+        let name_offset = self.read_u32()?;
+        let type_ = self.read_u32()?;
+        let flags = self.read_usize()?;
+        let memory_address = self.read_usize()?;
+        let offset = self.read_usize()?;
+        let size = self.read_usize()?;
+        let _link = self.read_u32()?;
+        let _info = self.read_u32()?;
+        let _addr_align = self.read_usize()?;
+        let _entries_size = self.read_usize()?;
+
+        let raw_content = self.read_vec_at(offset, size)?;
+        let content = match type_ {
+            3 => self.read_string_table(&raw_content)?,
+            other => SectionContent::Unknown {
+                id: other,
+                raw: RawBytes(raw_content),
+            },
+        };
+
+        Ok(RawSection {
+            name_offset,
+            writeable: flags & 0x1 > 0,
+            allocated: flags & 0x2 > 0,
+            executable: flags & 0x4 > 0,
+            memory_address,
+            content,
+        })
+    }
+
+    fn read_string_table(&mut self, raw_content: &[u8]) -> Result<SectionContent, LoadError> {
+        let mut strings = BTreeMap::new();
+
+        let mut offset: usize = 0;
+        while offset < raw_content.len() {
+            let terminator = raw_content
+                .iter()
+                .skip(offset as _)
+                .position(|&byte| byte == 0)
+                .ok_or(LoadError::UnterminatedString)?;
+            strings.insert(
+                offset as u32,
+                String::from_utf8(raw_content[offset..(offset + terminator)].to_vec())?,
+            );
+
+            offset += terminator + 1;
+        }
+
+        Ok(SectionContent::StringTable(StringTable::new(strings)))
+    }
+
     fn read_program_header(&mut self) -> Result<Segment, LoadError> {
         let type_ = self.read_u32()?;
         let _flags = self.read_u32()?;
@@ -216,4 +325,21 @@ impl<'a> ObjectReader<'a> {
         self.reader.read_exact(&mut buf)?;
         Ok(buf)
     }
+
+    fn read_vec_at(&mut self, offset: u64, size: u64) -> Result<Vec<u8>, LoadError> {
+        self.reader.seek(SeekFrom::Start(offset))?;
+        let mut contents = vec![0; size as _];
+        self.reader.read_exact(&mut contents)?;
+        Ok(contents)
+    }
+}
+
+#[derive(Debug)]
+struct RawSection {
+    name_offset: u32,
+    writeable: bool,
+    allocated: bool,
+    executable: bool,
+    memory_address: u64,
+    content: SectionContent,
 }

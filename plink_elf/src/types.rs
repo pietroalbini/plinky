@@ -1,6 +1,6 @@
 use crate::errors::LoadError;
 use crate::reader::ObjectReader;
-use crate::utils::{ReadSeek, render_hex};
+use crate::utils::{render_hex, ReadSeek};
 use std::num::NonZeroU64;
 use std::ops::Deref;
 

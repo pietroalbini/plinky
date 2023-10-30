@@ -72,7 +72,13 @@ pub struct Section<S = String> {
 #[derive(Debug)]
 pub enum SectionContent {
     StringTable(StringTable),
-    Unknown { id: u32, raw: RawBytes },
+    Unknown(UnknownSection),
+}
+
+#[derive(Debug)]
+pub struct UnknownSection {
+    pub id: u32,
+    pub raw: RawBytes,
 }
 
 #[derive(Debug)]

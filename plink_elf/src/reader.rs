@@ -2,7 +2,7 @@ use crate::errors::LoadError;
 use crate::utils::ReadSeek;
 use crate::{
     Class, Endian, Machine, Object, RawBytes, Section, SectionContent, Segment, SegmentContent,
-    StringTable, Type, ABI,
+    StringTable, Type, UnknownSection, ABI,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -234,10 +234,10 @@ impl<'a> ObjectReader<'a> {
         let raw_content = self.read_vec_at(offset, size)?;
         let content = match type_ {
             3 => self.read_string_table(&raw_content)?,
-            other => SectionContent::Unknown {
+            other => SectionContent::Unknown(UnknownSection {
                 id: other,
                 raw: RawBytes(raw_content),
-            },
+            }),
         };
 
         Ok(Section {

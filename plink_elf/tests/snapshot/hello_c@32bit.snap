@@ -5,11 +5,9 @@ Object {
     class: Elf32,
     endian: Little,
     abi: SystemV,
-    type_: SharedObject,
+    type_: Relocatable,
     machine: X86,
-    entry: Some(
-        0x1070,
-    ),
+    entry: None,
     flags: 0x0,
     sections: [
         Section {
@@ -21,262 +19,16 @@ Object {
             content: Null,
         },
         Section {
-            name: ".interp",
+            name: ".group",
             writeable: false,
-            allocated: true,
+            allocated: false,
             executable: false,
-            memory_address: 0x194,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         2f 6c 69 62 2f 6c 64 2d 6c 69 6e 75 78 2e 73 6f 2e 32 00 | /lib/ld-linux.so.2.
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".note.gnu.build-id",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x1a8,
-            content: Note(
-                NoteSection {
-                    raw: RawBytes {
-                         04 00 00 00 14 00 00 00 03 00 00 00 47 4e 55 00 0d 4e 72 5b 83 ee f3 cd 2c | ............GNU..Nr[....,
-                         3a 03 76 a2 5c a8 1b 9d aa f3 ed                                           | :.v.\......
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".note.ABI-tag",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x1cc,
-            content: Note(
-                NoteSection {
-                    raw: RawBytes {
-                         04 00 00 00 10 00 00 00 01 00 00 00 47 4e 55 00 00 00 00 00 03 00 00 00 02 | ............GNU..........
-                         00 00 00 00 00 00 00                                                       | .......
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".gnu.hash",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x1ec,
+            memory_address: 0x0,
             content: Unknown(
                 UnknownSection {
-                    id: 0x6ffffff6,
+                    id: 0x11,
                     raw: RawBytes {
-                         02 00 00 00 07 00 00 00 01 00 00 00 05 00 00 00 00 20 00 20 00 00 00 00 07 | ................. . .....
-                         00 00 00 ad 4b e3 c0                                                       | ....K..
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".dynsym",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x20c,
-            content: Unknown(
-                UnknownSection {
-                    id: 0xb,
-                    raw: RawBytes {
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 1f 00 00 00 00 00 00 00 00 | .........................
-                         00 00 00 12 00 00 00 61 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 10 00 | .......a........... .....
-                         00 00 00 00 00 00 00 00 00 00 22 00 00 00 31 00 00 00 00 00 00 00 00 00 00 | .........."...1..........
-                         00 12 00 00 00 7d 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 8c 00 00 00 | .....}........... .......
-                         00 00 00 00 00 00 00 00 20 00 00 00 01 00 00 00 04 20 00 00 04 00 00 00 11 | ........ ........ .......
-                         00 10 00                                                                   | ...
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".dynstr",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x28c,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "_IO_stdin_used",
-                        0x10: "__cxa_finalize",
-                        0x1f: "__libc_start_main",
-                        0x31: "puts",
-                        0x36: "libc.so.6",
-                        0x40: "GLIBC_2.0",
-                        0x4a: "GLIBC_2.1.3",
-                        0x56: "GLIBC_2.34",
-                        0x61: "_ITM_deregisterTMCloneTable",
-                        0x7d: "__gmon_start__",
-                        0x8c: "_ITM_registerTMCloneTable",
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".gnu.version",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x332,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x6fffffff,
-                    raw: RawBytes {
-                         00 00 02 00 01 00 03 00 04 00 01 00 01 00 01 00 | ................
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".gnu.version_r",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x344,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x6ffffffe,
-                    raw: RawBytes {
-                         01 00 03 00 36 00 00 00 10 00 00 00 00 00 00 00 10 69 69 0d 00 00 04 00 40 | ....6............ii.....@
-                         00 00 00 10 00 00 00 73 1f 69 09 00 00 03 00 4a 00 00 00 10 00 00 00 b4 91 | .......s.i.....J.........
-                         96 06 00 00 02 00 56 00 00 00 00 00 00 00                                  | ......V.......
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".rel.dyn",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x384,
-            content: RelocationsTable(
-                RelocationsTable {
-                    symbol_table: ".dynsym",
-                    applies_to_section: "",
-                    relocations: [
-                        Relocation {
-                            offset: 0x3ed8,
-                            info: 0x8,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3edc,
-                            info: 0x8,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3ff8,
-                            info: 0x8,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x4004,
-                            info: 0x8,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3fec,
-                            info: 0x206,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3ff0,
-                            info: 0x306,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3ff4,
-                            info: 0x506,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3ffc,
-                            info: 0x606,
-                            addend: None,
-                        },
-                    ],
-                },
-            ),
-        },
-        Section {
-            name: ".rel.plt",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x3c4,
-            content: RelocationsTable(
-                RelocationsTable {
-                    symbol_table: ".dynsym",
-                    applies_to_section: ".got",
-                    relocations: [
-                        Relocation {
-                            offset: 0x3fe4,
-                            info: 0x107,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x3fe8,
-                            info: 0x407,
-                            addend: None,
-                        },
-                    ],
-                },
-            ),
-        },
-        Section {
-            name: ".init",
-            writeable: false,
-            allocated: true,
-            executable: true,
-            memory_address: 0x1000,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         f3 0f 1e fb 53 83 ec 08 e8 93 00 00 00 81 c3 cb 2f 00 00 8b 83 1c 00 00 00 | ....S.........../........
-                         85 c0 74 02 ff d0 83 c4 08 5b c3                                           | ..t......[.
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".plt",
-            writeable: false,
-            allocated: true,
-            executable: true,
-            memory_address: 0x1030,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         ff b3 04 00 00 00 ff a3 08 00 00 00 00 00 00 00 ff a3 0c 00 00 00 68 00 00 | ......................h..
-                         00 00 e9 e0 ff ff ff ff a3 10 00 00 00 68 08 00 00 00 e9 d0 ff ff ff       | .............h.........
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".plt.got",
-            writeable: false,
-            allocated: true,
-            executable: true,
-            memory_address: 0x1060,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         ff a3 18 00 00 00 66 90 | ......f.
+                         01 00 00 00 07 00 00 00 | ........
                     },
                 },
             ),
@@ -286,160 +38,49 @@ Object {
             writeable: false,
             allocated: true,
             executable: true,
-            memory_address: 0x1070,
+            memory_address: 0x0,
             content: Program(
                 ProgramSection {
                     raw: RawBytes {
-                         f3 0f 1e fb 31 ed 5e 89 e1 83 e4 f0 50 54 52 e8 18 00 00 00 81 c3 54 2f 00 | ....1.^.....PTR.......T/.
-                         00 6a 00 6a 00 51 56 ff b3 20 00 00 00 e8 a5 ff ff ff f4 8b 1c 24 c3 8b 1c | .j.j.QV.. ...........$...
-                         24 c3 66 90 66 90 66 90 66 90 66 90 66 90 e8 e4 00 00 00 81 c2 23 2f 00 00 | $.f.f.f.f.f.f........#/..
-                         8d 8a 30 00 00 00 8d 82 30 00 00 00 39 c8 74 1d 8b 82 14 00 00 00 85 c0 74 | ..0.....0...9.t.........t
-                         13 55 89 e5 83 ec 14 51 ff d0 83 c4 10 c9 c3 8d 74 26 00 90 c3 8d b4 26 00 | .U.....Q........t&.....&.
-                         00 00 00 e8 a4 00 00 00 81 c2 e3 2e 00 00 55 89 e5 53 8d 8a 30 00 00 00 8d | ..............U..S..0....
-                         82 30 00 00 00 83 ec 04 29 c8 89 c3 c1 e8 1f c1 fb 02 01 d8 d1 f8 74 14 8b | .0......).............t..
-                         92 24 00 00 00 85 d2 74 0a 83 ec 08 50 51 ff d2 83 c4 10 8b 5d fc c9 c3 8d | .$.....t....PQ......]....
-                         b4 26 00 00 00 00 66 90 f3 0f 1e fb 55 89 e5 53 e8 53 ff ff ff 81 c3 8b 2e | .&....f.....U..S.S.......
-                         00 00 83 ec 04 80 bb 30 00 00 00 00 75 27 8b 83 18 00 00 00 85 c0 74 11 83 | .......0....u'........t..
-                         ec 0c ff b3 2c 00 00 00 e8 e9 fe ff ff 83 c4 10 e8 31 ff ff ff c6 83 30 00 | ....,............1.....0.
-                         00 00 01 8b 5d fc c9 c3 8d 74 26 00 90 f3 0f 1e fb e9 57 ff ff ff 8b 14 24 | ....]....t&.......W.....$
-                         c3 8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 28 00 00 00 05 27 2e 00 | ..L$.....q.U..SQ.(....'..
-                         00 83 ec 0c 8d 90 30 e0 ff ff 52 89 c3 e8 89 fe ff ff 83 c4 10 b8 00 00 00 | ......0...R..............
-                         00 8d 65 f8 59 5b 5d 8d 61 fc c3 8b 04 24 c3                               | ..e.Y[].a....$.
+                         8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 fc ff ff ff 05 01 00 00 00 | .L$.....q.U..SQ..........
+                         83 ec 0c 8d 90 00 00 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 00 00 | .........R...............
+                         8d 65 f8 59 5b 5d 8d 61 fc c3                                              | .e.Y[].a..
                     },
                 },
             ),
         },
         Section {
-            name: ".fini",
+            name: ".rel.text",
             writeable: false,
-            allocated: true,
-            executable: true,
-            memory_address: 0x11e0,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         f3 0f 1e fb 53 83 ec 08 e8 b3 fe ff ff 81 c3 eb 2d 00 00 83 c4 08 5b c3 | ....S...........-.....[.
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".rodata",
-            writeable: false,
-            allocated: true,
+            allocated: false,
             executable: false,
-            memory_address: 0x2000,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         03 00 00 00 01 00 02 00 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | ........Hello world.
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".eh_frame_hdr",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x2014,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         01 1b 03 3b 30 00 00 00 05 00 00 00 1c f0 ff ff 60 00 00 00 4c f0 ff ff 84 | ...;0...........`...L....
-                         00 00 00 5c f0 ff ff 4c 00 00 00 89 f1 ff ff 98 00 00 00 c5 f1 ff ff cc 00 | ...\...L.................
-                         00 00                                                                      | ..
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".eh_frame",
-            writeable: false,
-            allocated: true,
-            executable: false,
-            memory_address: 0x2048,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 10 | .........zR..|...........
-                         00 00 00 1c 00 00 00 08 f0 ff ff 30 00 00 00 00 44 07 08 20 00 00 00 30 00 | ...........0....D.. ...0.
-                         00 00 b4 ef ff ff 30 00 00 00 00 0e 08 46 0e 0c 4a 0f 0b 74 04 78 00 3f 1a | ......0......F..J..t.x.?.
-                         3b 2a 32 24 22 10 00 00 00 54 00 00 00 c0 ef ff ff 08 00 00 00 00 00 00 00 | ;*2$"....T...............
-                         30 00 00 00 68 00 00 00 e9 f0 ff ff 3c 00 00 00 00 44 0c 01 00 49 10 05 02 | 0...h.......<....D...I...
-                         75 00 42 0f 03 75 78 06 10 03 02 75 7c 67 c1 0c 01 00 41 c3 41 c5 43 0c 04 | u.B..ux....u|g....A.A.C..
-                         04 00 10 00 00 00 9c 00 00 00 f1 f0 ff ff 04 00 00 00 00 00 00 00 00 00 00 | .........................
-                         00                                                                         | .
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".init_array",
-            writeable: true,
-            allocated: true,
-            executable: false,
-            memory_address: 0x3ed8,
-            content: Unknown(
-                UnknownSection {
-                    id: 0xe,
-                    raw: RawBytes {
-                         90 11 00 00 | ....
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".fini_array",
-            writeable: true,
-            allocated: true,
-            executable: false,
-            memory_address: 0x3edc,
-            content: Unknown(
-                UnknownSection {
-                    id: 0xf,
-                    raw: RawBytes {
-                         40 11 00 00 | @...
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".dynamic",
-            writeable: true,
-            allocated: true,
-            executable: false,
-            memory_address: 0x3ee0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x6,
-                    raw: RawBytes {
-                         01 00 00 00 36 00 00 00 0c 00 00 00 00 10 00 00 0d 00 00 00 e0 11 00 00 19 | ....6....................
-                         00 00 00 d8 3e 00 00 1b 00 00 00 04 00 00 00 1a 00 00 00 dc 3e 00 00 1c 00 | ....>...............>....
-                         00 00 04 00 00 00 f5 fe ff 6f ec 01 00 00 05 00 00 00 8c 02 00 00 06 00 00 | .........o...............
-                         00 0c 02 00 00 0a 00 00 00 a6 00 00 00 0b 00 00 00 10 00 00 00 15 00 00 00 | .........................
-                         00 00 00 00 03 00 00 00 d8 3f 00 00 02 00 00 00 10 00 00 00 14 00 00 00 11 | .........?...............
-                         00 00 00 17 00 00 00 c4 03 00 00 11 00 00 00 84 03 00 00 12 00 00 00 40 00 | .......................@.
-                         00 00 13 00 00 00 08 00 00 00 1e 00 00 00 08 00 00 00 fb ff ff 6f 01 00 00 | .....................o...
-                         08 fe ff ff 6f 44 03 00 00 ff ff ff 6f 01 00 00 00 f0 ff ff 6f 32 03 00 00 | ....oD......o.......o2...
-                         fa ff ff 6f 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | ...o.....................
-                         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00       | .......................
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".got",
-            writeable: true,
-            allocated: true,
-            executable: false,
-            memory_address: 0x3fd8,
-            content: Program(
-                ProgramSection {
-                    raw: RawBytes {
-                         e0 3e 00 00 00 00 00 00 00 00 00 00 46 10 00 00 56 10 00 00 00 00 00 00 00 | .>..........F...V........
-                         00 00 00 00 00 00 00 9d 11 00 00 00 00 00 00                               | ...............
-                    },
+            memory_address: 0x0,
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: ".symtab",
+                    applies_to_section: ".text",
+                    relocations: [
+                        Relocation {
+                            offset: 0x10,
+                            info: 0x602,
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x15,
+                            info: 0x70a,
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x1e,
+                            info: 0x309,
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x26,
+                            info: 0x804,
+                            addend: None,
+                        },
+                    ],
                 },
             ),
         },
@@ -448,12 +89,10 @@ Object {
             writeable: true,
             allocated: true,
             executable: false,
-            memory_address: 0x4000,
+            memory_address: 0x0,
             content: Program(
                 ProgramSection {
-                    raw: RawBytes {
-                         00 00 00 00 04 40 00 00 | .....@..
-                    },
+                    raw: RawBytes {},
                 },
             ),
         },
@@ -462,12 +101,38 @@ Object {
             writeable: true,
             allocated: true,
             executable: false,
-            memory_address: 0x4008,
+            memory_address: 0x0,
             content: Unknown(
                 UnknownSection {
                     id: 0x8,
+                    raw: RawBytes {},
+                },
+            ),
+        },
+        Section {
+            name: ".rodata",
+            writeable: false,
+            allocated: true,
+            executable: false,
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
                     raw: RawBytes {
-                         47 43 43 3a | GCC:
+                         48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
+                    },
+                },
+            ),
+        },
+        Section {
+            name: ".text.__x86.get_pc_thunk.ax",
+            writeable: false,
+            allocated: true,
+            executable: true,
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    raw: RawBytes {
+                         8b 04 24 c3 | ..$.
                     },
                 },
             ),
@@ -481,9 +146,63 @@ Object {
             content: Program(
                 ProgramSection {
                     raw: RawBytes {
-                         47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 2e 34 2e 30 2d 31 75 62 75 6e | GCC: (Ubuntu 11.4.0-1ubun
-                         74 75 31 7e 32 32 2e 30 34 29 20 31 31 2e 34 2e 30 00                      | tu1~22.04) 11.4.0.
+                         00 47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 2e 34 2e 30 2d 31 75 62 75 | .GCC: (Ubuntu 11.4.0-1ubu
+                         6e 74 75 31 7e 32 32 2e 30 34 29 20 31 31 2e 34 2e 30 00                   | ntu1~22.04) 11.4.0.
                     },
+                },
+            ),
+        },
+        Section {
+            name: ".note.GNU-stack",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    raw: RawBytes {},
+                },
+            ),
+        },
+        Section {
+            name: ".eh_frame",
+            writeable: false,
+            allocated: true,
+            executable: false,
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    raw: RawBytes {
+                         14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 30 | .........zR..|..........0
+                         00 00 00 1c 00 00 00 00 00 00 00 3c 00 00 00 00 44 0c 01 00 49 10 05 02 75 | ...........<....D...I...u
+                         00 42 0f 03 75 78 06 10 03 02 75 7c 67 c1 0c 01 00 41 c3 41 c5 43 0c 04 04 | .B..ux....u|g....A.A.C...
+                         00 10 00 00 00 50 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00             | .....P...............
+                    },
+                },
+            ),
+        },
+        Section {
+            name: ".rel.eh_frame",
+            writeable: false,
+            allocated: false,
+            executable: false,
+            memory_address: 0x0,
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: ".symtab",
+                    applies_to_section: ".eh_frame",
+                    relocations: [
+                        Relocation {
+                            offset: 0x20,
+                            info: 0x202,
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x54,
+                            info: 0x402,
+                            addend: None,
+                        },
+                    ],
                 },
             ),
         },
@@ -505,108 +224,6 @@ Object {
                             size: 0x0,
                         },
                         Symbol {
-                            name: "Scrt1.o",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xfff10004,
-                        },
-                        Symbol {
-                            name: "__abi_tag",
-                            binding: Unknown(
-                                0xc,
-                            ),
-                            type_: Unknown(
-                                0xc,
-                            ),
-                            definition: Undefined,
-                            value: 0x20,
-                            size: 0x30001,
-                        },
-                        Symbol {
-                            name: "crtstuff.c",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xfff10004,
-                        },
-                        Symbol {
-                            name: "deregister_tm_clones",
-                            binding: Unknown(
-                                0xb,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xe0002,
-                        },
-                        Symbol {
-                            name: "register_tm_clones",
-                            binding: Unknown(
-                                0xf,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xe0002,
-                        },
-                        Symbol {
-                            name: "__do_global_dtors_aux",
-                            binding: Unknown(
-                                0x4,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xe0002,
-                        },
-                        Symbol {
-                            name: "completed.0",
-                            binding: Local,
-                            type_: Unknown(
-                                0x8,
-                            ),
-                            definition: Undefined,
-                            value: 0x1,
-                            size: 0x180001,
-                        },
-                        Symbol {
-                            name: "__do_global_dtors_aux_fini_array_entry",
-                            binding: Unknown(
-                                0xd,
-                            ),
-                            type_: Unknown(
-                                0xc,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x140001,
-                        },
-                        Symbol {
-                            name: "frame_dummy",
-                            binding: Unknown(
-                                0x9,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xe0002,
-                        },
-                        Symbol {
-                            name: "__frame_dummy_init_array_entry",
-                            binding: Unknown(
-                                0xd,
-                            ),
-                            type_: Unknown(
-                                0x8,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x130001,
-                        },
-                        Symbol {
                             name: "hello_c.c",
                             binding: Local,
                             type_: NoType,
@@ -615,22 +232,12 @@ Object {
                             size: 0xfff10004,
                         },
                         Symbol {
-                            name: "crtstuff.c",
+                            name: "",
                             binding: Local,
                             type_: NoType,
                             definition: Undefined,
                             value: 0x0,
-                            size: 0xfff10004,
-                        },
-                        Symbol {
-                            name: "__FRAME_END__",
-                            binding: Unknown(
-                                0xf,
-                            ),
-                            type_: File,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x120001,
+                            size: 0x20003,
                         },
                         Symbol {
                             name: "",
@@ -638,239 +245,47 @@ Object {
                             type_: NoType,
                             definition: Undefined,
                             value: 0x0,
-                            size: 0xfff10004,
+                            size: 0x60003,
                         },
                         Symbol {
-                            name: "_DYNAMIC",
-                            binding: Unknown(
-                                0xe,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x150001,
-                        },
-                        Symbol {
-                            name: "__GNU_EH_FRAME_HDR",
-                            binding: Global,
-                            type_: File,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x110000,
-                        },
-                        Symbol {
-                            name: "_GLOBAL_OFFSET_TABLE_",
-                            binding: Unknown(
-                                0xd,
-                            ),
-                            type_: Unknown(
-                                0x8,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x160001,
-                        },
-                        Symbol {
-                            name: "__libc_start_main@GLIBC_2.34",
+                            name: "",
                             binding: Local,
                             type_: NoType,
                             definition: Undefined,
                             value: 0x0,
-                            size: 0x12,
-                        },
-                        Symbol {
-                            name: "_ITM_deregisterTMCloneTable",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x20,
-                        },
-                        Symbol {
-                            name: "__x86.get_pc_thunk.bx",
-                            binding: Unknown(
-                                0xa,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x4,
-                            size: 0xe0212,
-                        },
-                        Symbol {
-                            name: "data_start",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x170020,
-                        },
-                        Symbol {
-                            name: "_edata",
-                            binding: Local,
-                            type_: Unknown(
-                                0x8,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x170010,
-                        },
-                        Symbol {
-                            name: "_fini",
-                            binding: Unknown(
-                                0xe,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xf0212,
-                        },
-                        Symbol {
-                            name: "__x86.get_pc_thunk.dx",
-                            binding: Unknown(
-                                0x9,
-                            ),
-                            type_: Unknown(
-                                0x9,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xe0212,
-                        },
-                        Symbol {
-                            name: "__cxa_finalize@GLIBC_2.1.3",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x22,
-                        },
-                        Symbol {
-                            name: "__data_start",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x170010,
-                        },
-                        Symbol {
-                            name: "puts@GLIBC_2.0",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x12,
-                        },
-                        Symbol {
-                            name: "__gmon_start__",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x20,
-                        },
-                        Symbol {
-                            name: "__dso_handle",
-                            binding: Local,
-                            type_: File,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x170211,
-                        },
-                        Symbol {
-                            name: "_IO_stdin_used",
-                            binding: Local,
-                            type_: File,
-                            definition: Undefined,
-                            value: 0x4,
-                            size: 0x100011,
-                        },
-                        Symbol {
-                            name: "_end",
-                            binding: Local,
-                            type_: Unknown(
-                                0xc,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x180010,
-                        },
-                        Symbol {
-                            name: "_start",
-                            binding: Unknown(
-                                0x7,
-                            ),
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x30,
-                            size: 0xe0012,
-                        },
-                        Symbol {
-                            name: "_fp_hw",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x4,
-                            size: 0x100011,
-                        },
-                        Symbol {
-                            name: "__bss_start",
-                            binding: Local,
-                            type_: Unknown(
-                                0x8,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x180010,
+                            size: 0x70003,
                         },
                         Symbol {
                             name: "main",
-                            binding: Unknown(
-                                0x9,
-                            ),
-                            type_: Unknown(
-                                0xd,
-                            ),
+                            binding: Local,
+                            type_: NoType,
                             definition: Undefined,
                             value: 0x3c,
-                            size: 0xe0012,
+                            size: 0x20012,
                         },
                         Symbol {
                             name: "__x86.get_pc_thunk.ax",
-                            binding: Unknown(
-                                0xd,
-                            ),
-                            type_: Unknown(
-                                0x9,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0xe0212,
-                        },
-                        Symbol {
-                            name: "__TMC_END__",
-                            binding: Local,
-                            type_: Unknown(
-                                0x8,
-                            ),
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x170211,
-                        },
-                        Symbol {
-                            name: "_ITM_registerTMCloneTable",
                             binding: Local,
                             type_: NoType,
                             definition: Undefined,
                             value: 0x0,
-                            size: 0x20,
+                            size: 0x70212,
                         },
                         Symbol {
-                            name: "_init",
+                            name: "_GLOBAL_OFFSET_TABLE_",
                             binding: Local,
                             type_: NoType,
                             definition: Undefined,
                             value: 0x0,
-                            size: 0xb0212,
+                            size: 0x10,
+                        },
+                        Symbol {
+                            name: "puts",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x10,
                         },
                     ],
                 },
@@ -886,40 +301,11 @@ Object {
                 StringTable {
                     strings: {
                         0x0: "",
-                        0x1: "Scrt1.o",
-                        0x9: "__abi_tag",
-                        0x13: "crtstuff.c",
-                        0x1e: "deregister_tm_clones",
-                        0x33: "__do_global_dtors_aux",
-                        0x49: "completed.0",
-                        0x55: "__do_global_dtors_aux_fini_array_entry",
-                        0x7c: "frame_dummy",
-                        0x88: "__frame_dummy_init_array_entry",
-                        0xa7: "hello_c.c",
-                        0xb1: "__FRAME_END__",
-                        0xbf: "_DYNAMIC",
-                        0xc8: "__GNU_EH_FRAME_HDR",
-                        0xdb: "_GLOBAL_OFFSET_TABLE_",
-                        0xf1: "__libc_start_main@GLIBC_2.34",
-                        0x10e: "_ITM_deregisterTMCloneTable",
-                        0x12a: "__x86.get_pc_thunk.bx",
-                        0x140: "_edata",
-                        0x147: "_fini",
-                        0x14d: "__x86.get_pc_thunk.dx",
-                        0x163: "__cxa_finalize@GLIBC_2.1.3",
-                        0x17e: "__data_start",
-                        0x18b: "puts@GLIBC_2.0",
-                        0x19a: "__gmon_start__",
-                        0x1a9: "__dso_handle",
-                        0x1b6: "_IO_stdin_used",
-                        0x1c5: "_end",
-                        0x1ca: "_fp_hw",
-                        0x1d1: "__bss_start",
-                        0x1dd: "main",
-                        0x1e2: "__x86.get_pc_thunk.ax",
-                        0x1f8: "__TMC_END__",
-                        0x204: "_ITM_registerTMCloneTable",
-                        0x21e: "_init",
+                        0x1: "hello_c.c",
+                        0xb: "main",
+                        0x10: "__x86.get_pc_thunk.ax",
+                        0x26: "_GLOBAL_OFFSET_TABLE_",
+                        0x3c: "puts",
                     },
                 },
             ),
@@ -937,238 +323,19 @@ Object {
                         0x1: ".symtab",
                         0x9: ".strtab",
                         0x11: ".shstrtab",
-                        0x1b: ".interp",
-                        0x23: ".note.gnu.build-id",
-                        0x36: ".note.ABI-tag",
-                        0x44: ".gnu.hash",
-                        0x4e: ".dynsym",
-                        0x56: ".dynstr",
-                        0x5e: ".gnu.version",
-                        0x6b: ".gnu.version_r",
-                        0x7a: ".rel.dyn",
-                        0x83: ".rel.plt",
-                        0x8c: ".init",
-                        0x92: ".plt.got",
-                        0x9b: ".text",
-                        0xa1: ".fini",
-                        0xa7: ".rodata",
-                        0xaf: ".eh_frame_hdr",
-                        0xbd: ".eh_frame",
-                        0xc7: ".init_array",
-                        0xd3: ".fini_array",
-                        0xdf: ".dynamic",
-                        0xe8: ".data",
-                        0xee: ".bss",
-                        0xf3: ".comment",
+                        0x1b: ".rel.text",
+                        0x25: ".data",
+                        0x2b: ".bss",
+                        0x30: ".rodata",
+                        0x38: ".text.__x86.get_pc_thunk.ax",
+                        0x54: ".comment",
+                        0x5d: ".note.GNU-stack",
+                        0x6d: ".rel.eh_frame",
+                        0x7b: ".group",
                     },
                 },
             ),
         },
     ],
-    segments: [
-        Segment {
-            content: Unknown {
-                id: 0x6,
-                raw: RawBytes {
-                     06 00 00 00 34 00 00 00 34 00 00 00 34 00 00 00 60 01 00 00 60 01 00 00 04 | ....4...4...4...`...`....
-                     00 00 00 04 00 00 00 03 00 00 00 94 01 00 00 94 01 00 00 94 01 00 00 13 00 | .........................
-                     00 00 13 00 00 00 04 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00 00 00 00 | .........................
-                     00 00 00 00 00 d4 03 00 00 d4 03 00 00 04 00 00 00 00 10 00 00 01 00 00 00 | .........................
-                     00 10 00 00 00 10 00 00 00 10 00 00 f8 01 00 00 f8 01 00 00 05 00 00 00 00 | .........................
-                     10 00 00 01 00 00 00 00 20 00 00 00 20 00 00 00 20 00 00 f8 00 00 00 f8 00 | ........ ... ... ........
-                     00 00 04 00 00 00 00 10 00 00 01 00 00 00 d8 2e 00 00 d8 3e 00 00 d8 3e 00 | ...................>...>.
-                     00 30 01 00 00 34 01 00 00 06 00 00 00 00 10 00 00 02 00 00 00 e0 2e 00 00 | .0...4...................
-                     e0 3e 00 00 e0 3e 00 00 f8 00 00 00 f8 00 00 00 06 00 00 00 04 00 00 00 04 | .>...>...................
-                     00 00 00 a8 01 00 00 a8 01 00 00 a8 01 00 00 44 00 00 00 44 00 00 00 04 00 | ...............D...D.....
-                     00 00 04 00 00 00 50 e5 74 64 14 20 00 00 14 20 00 00 14 20 00 00 34 00 00 | ......P.td. ... ... ..4..
-                     00 34 00 00 00 04 00 00 00 04 00 00 00 51 e5 74 64 00 00 00 00 00 00 00 00 | .4...........Q.td........
-                     00 00 00 00 00 00 00 00 00 00 00 00 06 00 00 00 10 00 00 00 52 e5 74 64 d8 | ....................R.td.
-                     2e 00 00 d8 3e 00 00 d8 3e 00 00 28 01 00 00 28 01 00 00 04 00 00 00 01 00 | ....>...>..(...(.........
-                     00 00                                                                      | ..
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x3,
-                raw: RawBytes {
-                     2f 6c 69 62 2f 6c 64 2d 6c 69 6e 75 78 2e 73 6f 2e 32 00 | /lib/ld-linux.so.2.
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                     7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 03 00 03 00 01 00 00 00 70 | .ELF....................p
-                     10 00 00 34 00 00 00 d4 35 00 00 00 00 00 00 34 00 20 00 0b 00 28 00 1d 00 | ...4....5......4. ...(...
-                     1c 00 06 00 00 00 34 00 00 00 34 00 00 00 34 00 00 00 60 01 00 00 60 01 00 | ......4...4...4...`...`..
-                     00 04 00 00 00 04 00 00 00 03 00 00 00 94 01 00 00 94 01 00 00 94 01 00 00 | .........................
-                     13 00 00 00 13 00 00 00 04 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00 00 | .........................
-                     00 00 00 00 00 00 00 d4 03 00 00 d4 03 00 00 04 00 00 00 00 10 00 00 01 00 | .........................
-                     00 00 00 10 00 00 00 10 00 00 00 10 00 00 f8 01 00 00 f8 01 00 00 05 00 00 | .........................
-                     00 00 10 00 00 01 00 00 00 00 20 00 00 00 20 00 00 00 20 00 00 f8 00 00 00 | .......... ... ... ......
-                     f8 00 00 00 04 00 00 00 00 10 00 00 01 00 00 00 d8 2e 00 00 d8 3e 00 00 d8 | .....................>...
-                     3e 00 00 30 01 00 00 34 01 00 00 06 00 00 00 00 10 00 00 02 00 00 00 e0 2e | >..0...4.................
-                     00 00 e0 3e 00 00 e0 3e 00 00 f8 00 00 00 f8 00 00 00 06 00 00 00 04 00 00 | ...>...>.................
-                     00 04 00 00 00 a8 01 00 00 a8 01 00 00 a8 01 00 00 44 00 00 00 44 00 00 00 | .................D...D...
-                     04 00 00 00 04 00 00 00 50 e5 74 64 14 20 00 00 14 20 00 00 14 20 00 00 34 | ........P.td. ... ... ..4
-                     00 00 00 34 00 00 00 04 00 00 00 04 00 00 00 51 e5 74 64 00 00 00 00 00 00 | ...4...........Q.td......
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 06 00 00 00 10 00 00 00 52 e5 74 | ......................R.t
-                     64 d8 2e 00 00 d8 3e 00 00 d8 3e 00 00 28 01 00 00 28 01 00 00 04 00 00 00 | d.....>...>..(...(.......
-                     01 00 00 00 2f 6c 69 62 2f 6c 64 2d 6c 69 6e 75 78 2e 73 6f 2e 32 00 00 04 | ..../lib/ld-linux.so.2...
-                     00 00 00 14 00 00 00 03 00 00 00 47 4e 55 00 0d 4e 72 5b 83 ee f3 cd 2c 3a | ...........GNU..Nr[....,:
-                     03 76 a2 5c a8 1b 9d aa f3 ed 04 00 00 00 10 00 00 00 01 00 00 00 47 4e 55 | .v.\..................GNU
-                     00 00 00 00 00 03 00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 07 00 00 00 | .........................
-                     01 00 00 00 05 00 00 00 00 20 00 20 00 00 00 00 07 00 00 00 ad 4b e3 c0 00 | ......... . .........K...
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 1f 00 00 00 00 00 00 00 00 00 | .........................
-                     00 00 12 00 00 00 61 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 10 00 00 | ......a........... ......
-                     00 00 00 00 00 00 00 00 00 22 00 00 00 31 00 00 00 00 00 00 00 00 00 00 00 | ........."...1...........
-                     12 00 00 00 7d 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 8c 00 00 00 00 | ....}........... ........
-                     00 00 00 00 00 00 00 20 00 00 00 01 00 00 00 04 20 00 00 04 00 00 00 11 00 | ....... ........ ........
-                     10 00 00 5f 49 4f 5f 73 74 64 69 6e 5f 75 73 65 64 00 5f 5f 63 78 61 5f 66 | ..._IO_stdin_used.__cxa_f
-                     69 6e 61 6c 69 7a 65 00 5f 5f 6c 69 62 63 5f 73 74 61 72 74 5f 6d 61 69 6e | inalize.__libc_start_main
-                     00 70 75 74 73 00 6c 69 62 63 2e 73 6f 2e 36 00 47 4c 49 42 43 5f 32 2e 30 | .puts.libc.so.6.GLIBC_2.0
-                     00 47 4c 49 42 43 5f 32 2e 31 2e 33 00 47 4c 49 42 43 5f 32 2e 33 34 00 5f | .GLIBC_2.1.3.GLIBC_2.34._
-                     49 54 4d 5f 64 65 72 65 67 69 73 74 65 72 54 4d 43 6c 6f 6e 65 54 61 62 6c | ITM_deregisterTMCloneTabl
-                     65 00 5f 5f 67 6d 6f 6e 5f 73 74 61 72 74 5f 5f 00 5f 49 54 4d 5f 72 65 67 | e.__gmon_start__._ITM_reg
-                     69 73 74 65 72 54 4d 43 6c 6f 6e 65 54 61 62 6c 65 00 00 00 02 00 01 00 03 | isterTMCloneTable........
-                     00 04 00 01 00 01 00 01 00 00 00 01 00 03 00 36 00 00 00 10 00 00 00 00 00 | ...............6.........
-                     00 00 10 69 69 0d 00 00 04 00 40 00 00 00 10 00 00 00 73 1f 69 09 00 00 03 | ...ii.....@.......s.i....
-                     00 4a 00 00 00 10 00 00 00 b4 91 96 06 00 00 02 00 56 00 00 00 00 00 00 00 | .J...............V.......
-                     d8 3e 00 00 08 00 00 00 dc 3e 00 00 08 00 00 00 f8 3f 00 00 08 00 00 00 04 | .>.......>.......?.......
-                     40 00 00 08 00 00 00 ec 3f 00 00 06 02 00 00 f0 3f 00 00 06 03 00 00 f4 3f | @.......?.......?.......?
-                     00 00 06 05 00 00 fc 3f 00 00 06 06 00 00 e4 3f 00 00 07 01 00 00 e8 3f 00 | .......?.......?.......?.
-                     00 07 04 00 00                                                             | .....
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                     f3 0f 1e fb 53 83 ec 08 e8 93 00 00 00 81 c3 cb 2f 00 00 8b 83 1c 00 00 00 | ....S.........../........
-                     85 c0 74 02 ff d0 83 c4 08 5b c3 00 00 00 00 00 00 00 00 00 00 00 00 ff b3 | ..t......[...............
-                     04 00 00 00 ff a3 08 00 00 00 00 00 00 00 ff a3 0c 00 00 00 68 00 00 00 00 | ....................h....
-                     e9 e0 ff ff ff ff a3 10 00 00 00 68 08 00 00 00 e9 d0 ff ff ff ff a3 18 00 | ...........h.............
-                     00 00 66 90 00 00 00 00 00 00 00 00 f3 0f 1e fb 31 ed 5e 89 e1 83 e4 f0 50 | ..f.............1.^.....P
-                     54 52 e8 18 00 00 00 81 c3 54 2f 00 00 6a 00 6a 00 51 56 ff b3 20 00 00 00 | TR.......T/..j.j.QV.. ...
-                     e8 a5 ff ff ff f4 8b 1c 24 c3 8b 1c 24 c3 66 90 66 90 66 90 66 90 66 90 66 | ........$...$.f.f.f.f.f.f
-                     90 e8 e4 00 00 00 81 c2 23 2f 00 00 8d 8a 30 00 00 00 8d 82 30 00 00 00 39 | ........#/....0.....0...9
-                     c8 74 1d 8b 82 14 00 00 00 85 c0 74 13 55 89 e5 83 ec 14 51 ff d0 83 c4 10 | .t.........t.U.....Q.....
-                     c9 c3 8d 74 26 00 90 c3 8d b4 26 00 00 00 00 e8 a4 00 00 00 81 c2 e3 2e 00 | ...t&.....&..............
-                     00 55 89 e5 53 8d 8a 30 00 00 00 8d 82 30 00 00 00 83 ec 04 29 c8 89 c3 c1 | .U..S..0.....0......)....
-                     e8 1f c1 fb 02 01 d8 d1 f8 74 14 8b 92 24 00 00 00 85 d2 74 0a 83 ec 08 50 | .........t...$.....t....P
-                     51 ff d2 83 c4 10 8b 5d fc c9 c3 8d b4 26 00 00 00 00 66 90 f3 0f 1e fb 55 | Q......].....&....f.....U
-                     89 e5 53 e8 53 ff ff ff 81 c3 8b 2e 00 00 83 ec 04 80 bb 30 00 00 00 00 75 | ..S.S..............0....u
-                     27 8b 83 18 00 00 00 85 c0 74 11 83 ec 0c ff b3 2c 00 00 00 e8 e9 fe ff ff | '........t......,........
-                     83 c4 10 e8 31 ff ff ff c6 83 30 00 00 00 01 8b 5d fc c9 c3 8d 74 26 00 90 | ....1.....0.....]....t&..
-                     f3 0f 1e fb e9 57 ff ff ff 8b 14 24 c3 8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 | .....W.....$..L$.....q.U.
-                     e5 53 51 e8 28 00 00 00 05 27 2e 00 00 83 ec 0c 8d 90 30 e0 ff ff 52 89 c3 | .SQ.(....'........0...R..
-                     e8 89 fe ff ff 83 c4 10 b8 00 00 00 00 8d 65 f8 59 5b 5d 8d 61 fc c3 8b 04 | ..............e.Y[].a....
-                     24 c3 00 00 00 f3 0f 1e fb 53 83 ec 08 e8 b3 fe ff ff 81 c3 eb 2d 00 00 83 | $........S...........-...
-                     c4 08 5b c3                                                                | ..[.
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                     03 00 00 00 01 00 02 00 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 01 1b 03 3b 30 | ........Hello world....;0
-                     00 00 00 05 00 00 00 1c f0 ff ff 60 00 00 00 4c f0 ff ff 84 00 00 00 5c f0 | ...........`...L.......\.
-                     ff ff 4c 00 00 00 89 f1 ff ff 98 00 00 00 c5 f1 ff ff cc 00 00 00 14 00 00 | ..L......................
-                     00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 10 00 00 00 | ......zR..|..............
-                     1c 00 00 00 08 f0 ff ff 30 00 00 00 00 44 07 08 20 00 00 00 30 00 00 00 b4 | ........0....D.. ...0....
-                     ef ff ff 30 00 00 00 00 0e 08 46 0e 0c 4a 0f 0b 74 04 78 00 3f 1a 3b 2a 32 | ...0......F..J..t.x.?.;*2
-                     24 22 10 00 00 00 54 00 00 00 c0 ef ff ff 08 00 00 00 00 00 00 00 30 00 00 | $"....T...............0..
-                     00 68 00 00 00 e9 f0 ff ff 3c 00 00 00 00 44 0c 01 00 49 10 05 02 75 00 42 | .h.......<....D...I...u.B
-                     0f 03 75 78 06 10 03 02 75 7c 67 c1 0c 01 00 41 c3 41 c5 43 0c 04 04 00 10 | ..ux....u|g....A.A.C.....
-                     00 00 00 9c 00 00 00 f1 f0 ff ff 04 00 00 00 00 00 00 00 00 00 00 00       | .......................
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                     90 11 00 00 40 11 00 00 01 00 00 00 36 00 00 00 0c 00 00 00 00 10 00 00 0d | ....@.......6............
-                     00 00 00 e0 11 00 00 19 00 00 00 d8 3e 00 00 1b 00 00 00 04 00 00 00 1a 00 | ............>............
-                     00 00 dc 3e 00 00 1c 00 00 00 04 00 00 00 f5 fe ff 6f ec 01 00 00 05 00 00 | ...>.............o.......
-                     00 8c 02 00 00 06 00 00 00 0c 02 00 00 0a 00 00 00 a6 00 00 00 0b 00 00 00 | .........................
-                     10 00 00 00 15 00 00 00 00 00 00 00 03 00 00 00 d8 3f 00 00 02 00 00 00 10 | .................?.......
-                     00 00 00 14 00 00 00 11 00 00 00 17 00 00 00 c4 03 00 00 11 00 00 00 84 03 | .........................
-                     00 00 12 00 00 00 40 00 00 00 13 00 00 00 08 00 00 00 1e 00 00 00 08 00 00 | ......@..................
-                     00 fb ff ff 6f 01 00 00 08 fe ff ff 6f 44 03 00 00 ff ff ff 6f 01 00 00 00 | ....o.......oD......o....
-                     f0 ff ff 6f 32 03 00 00 fa ff ff 6f 04 00 00 00 00 00 00 00 00 00 00 00 00 | ...o2......o.............
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
-                     00 00 00 00 00 00 e0 3e 00 00 00 00 00 00 00 00 00 00 46 10 00 00 56 10 00 | .......>..........F...V..
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 9d 11 00 00 00 00 00 00 00 00 00 00 | .........................
-                     04 40 00 00                                                                | .@..
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x2,
-                raw: RawBytes {
-                     01 00 00 00 36 00 00 00 0c 00 00 00 00 10 00 00 0d 00 00 00 e0 11 00 00 19 | ....6....................
-                     00 00 00 d8 3e 00 00 1b 00 00 00 04 00 00 00 1a 00 00 00 dc 3e 00 00 1c 00 | ....>...............>....
-                     00 00 04 00 00 00 f5 fe ff 6f ec 01 00 00 05 00 00 00 8c 02 00 00 06 00 00 | .........o...............
-                     00 0c 02 00 00 0a 00 00 00 a6 00 00 00 0b 00 00 00 10 00 00 00 15 00 00 00 | .........................
-                     00 00 00 00 03 00 00 00 d8 3f 00 00 02 00 00 00 10 00 00 00 14 00 00 00 11 | .........?...............
-                     00 00 00 17 00 00 00 c4 03 00 00 11 00 00 00 84 03 00 00 12 00 00 00 40 00 | .......................@.
-                     00 00 13 00 00 00 08 00 00 00 1e 00 00 00 08 00 00 00 fb ff ff 6f 01 00 00 | .....................o...
-                     08 fe ff ff 6f 44 03 00 00 ff ff ff 6f 01 00 00 00 f0 ff ff 6f 32 03 00 00 | ....oD......o.......o2...
-                     fa ff ff 6f 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | ...o.....................
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00       | .......................
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x4,
-                raw: RawBytes {
-                     04 00 00 00 14 00 00 00 03 00 00 00 47 4e 55 00 0d 4e 72 5b 83 ee f3 cd 2c | ............GNU..Nr[....,
-                     3a 03 76 a2 5c a8 1b 9d aa f3 ed 04 00 00 00 10 00 00 00 01 00 00 00 47 4e | :.v.\..................GN
-                     55 00 00 00 00 00 03 00 00 00 02 00 00 00 00 00 00 00                      | U.................
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x6474e550,
-                raw: RawBytes {
-                     01 1b 03 3b 30 00 00 00 05 00 00 00 1c f0 ff ff 60 00 00 00 4c f0 ff ff 84 | ...;0...........`...L....
-                     00 00 00 5c f0 ff ff 4c 00 00 00 89 f1 ff ff 98 00 00 00 c5 f1 ff ff cc 00 | ...\...L.................
-                     00 00                                                                      | ..
-                },
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x6474e551,
-                raw: RawBytes {},
-            },
-        },
-        Segment {
-            content: Unknown {
-                id: 0x6474e552,
-                raw: RawBytes {
-                     90 11 00 00 40 11 00 00 01 00 00 00 36 00 00 00 0c 00 00 00 00 10 00 00 0d | ....@.......6............
-                     00 00 00 e0 11 00 00 19 00 00 00 d8 3e 00 00 1b 00 00 00 04 00 00 00 1a 00 | ............>............
-                     00 00 dc 3e 00 00 1c 00 00 00 04 00 00 00 f5 fe ff 6f ec 01 00 00 05 00 00 | ...>.............o.......
-                     00 8c 02 00 00 06 00 00 00 0c 02 00 00 0a 00 00 00 a6 00 00 00 0b 00 00 00 | .........................
-                     10 00 00 00 15 00 00 00 00 00 00 00 03 00 00 00 d8 3f 00 00 02 00 00 00 10 | .................?.......
-                     00 00 00 14 00 00 00 11 00 00 00 17 00 00 00 c4 03 00 00 11 00 00 00 84 03 | .........................
-                     00 00 12 00 00 00 40 00 00 00 13 00 00 00 08 00 00 00 1e 00 00 00 08 00 00 | ......@..................
-                     00 fb ff ff 6f 01 00 00 08 fe ff ff 6f 44 03 00 00 ff ff ff 6f 01 00 00 00 | ....o.......oD......o....
-                     f0 ff ff 6f 32 03 00 00 fa ff ff 6f 04 00 00 00 00 00 00 00 00 00 00 00 00 | ...o2......o.............
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | .........................
-                     00 00 00 00 00 00 e0 3e 00 00 00 00 00 00 00 00 00 00 46 10 00 00 56 10 00 | .......>..........F...V..
-                     00 00 00 00 00 00 00 00 00 00 00 00 00 9d 11 00 00 00 00 00 00             | .....................
-                },
-            },
-        },
-    ],
+    segments: [],
 }

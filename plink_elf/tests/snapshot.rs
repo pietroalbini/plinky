@@ -85,6 +85,7 @@ fn compile_asm(source: &str, variant: Variant) -> Result<NamedTempFile, Error> {
 fn compile_c(source: &str, variant: Variant) -> Result<NamedTempFile, Error> {
     let dest = NamedTempFile::new()?;
     let status = Command::new("gcc")
+        .arg("-c")
         .arg("-o")
         .arg(dest.path())
         .arg(source)

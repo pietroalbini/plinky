@@ -175,7 +175,8 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0xb,
-                            info: 0x20000000a,
+                            symbol: 0x2,
+                            relocation_type: X86_64_32,
                             addend: Some(
                                 0x0,
                             ),

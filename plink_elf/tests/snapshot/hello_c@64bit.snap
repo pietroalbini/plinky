@@ -46,14 +46,16 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x16,
-                            info: 0x300000002,
+                            symbol: 0x3,
+                            relocation_type: X86_64_PC32,
                             addend: Some(
                                 0xfffffffffffffffc,
                             ),
                         },
                         Relocation {
                             offset: 0x1e,
-                            info: 0x500000004,
+                            symbol: 0x5,
+                            relocation_type: X86_64_PLT32,
                             addend: Some(
                                 0xfffffffffffffffc,
                             ),
@@ -172,7 +174,8 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x20,
-                            info: 0x200000002,
+                            symbol: 0x2,
+                            relocation_type: X86_64_PC32,
                             addend: Some(
                                 0x0,
                             ),

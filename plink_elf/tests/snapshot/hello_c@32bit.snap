@@ -62,22 +62,32 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x10,
-                            info: 0x602,
+                            symbol: 0x6,
+                            relocation_type: X86_PC32,
                             addend: None,
                         },
                         Relocation {
                             offset: 0x15,
-                            info: 0x70a,
+                            symbol: 0x7,
+                            relocation_type: Unknown(
+                                0xa,
+                            ),
                             addend: None,
                         },
                         Relocation {
                             offset: 0x1e,
-                            info: 0x309,
+                            symbol: 0x3,
+                            relocation_type: Unknown(
+                                0x9,
+                            ),
                             addend: None,
                         },
                         Relocation {
                             offset: 0x26,
-                            info: 0x804,
+                            symbol: 0x8,
+                            relocation_type: Unknown(
+                                0x4,
+                            ),
                             addend: None,
                         },
                     ],
@@ -194,12 +204,14 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x20,
-                            info: 0x202,
+                            symbol: 0x2,
+                            relocation_type: X86_PC32,
                             addend: None,
                         },
                         Relocation {
                             offset: 0x54,
-                            info: 0x402,
+                            symbol: 0x4,
+                            relocation_type: X86_PC32,
                             addend: None,
                         },
                     ],

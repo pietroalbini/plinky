@@ -1,8 +1,9 @@
 use crate::errors::LoadError;
 use crate::reader::Cursor;
 use crate::{
-    NoteSection, ProgramSection, RawBytes, Relocation, RelocationsTable, Section, SectionContent,
-    StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType, UnknownSection,
+    Class, NoteSection, ProgramSection, RawBytes, Relocation, RelocationType, RelocationsTable,
+    Section, SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable,
+    SymbolType, UnknownSection,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -272,6 +273,57 @@ fn read_relocations_table(
 fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, LoadError> {
     let offset = cursor.read_usize()?;
     let info = cursor.read_usize()?;
+    let (symbol, relocation_type) = match cursor.class {
+        Some(Class::Elf32) => (
+            (info >> 8) as u32,
+            match info & 0xF {
+                0 => RelocationType::X86_None,
+                1 => RelocationType::X86_32,
+                2 => RelocationType::X86_PC32,
+                other => RelocationType::Unknown(other as _),
+            },
+        ),
+        Some(Class::Elf64) => (
+            (info >> 32) as u32,
+            match info & 0xFFFF_FFFF {
+                0 => RelocationType::X86_64_None,
+                1 => RelocationType::X86_64_64,
+                2 => RelocationType::X86_64_PC32,
+                3 => RelocationType::X86_64_GOT32,
+                4 => RelocationType::X86_64_PLT32,
+                5 => RelocationType::X86_64_Copy,
+                6 => RelocationType::X86_64_GlobDat,
+                7 => RelocationType::X86_64_JumpSlot,
+                8 => RelocationType::X86_64_Relative,
+                9 => RelocationType::X86_64_GOTPCRel,
+                10 => RelocationType::X86_64_32,
+                11 => RelocationType::X86_64_32S,
+                12 => RelocationType::X86_64_16,
+                13 => RelocationType::X86_64_PC16,
+                14 => RelocationType::X86_64_8,
+                15 => RelocationType::X86_64_PC8,
+                16 => RelocationType::X86_64_DTPMod64,
+                17 => RelocationType::X86_64_DTPOff64,
+                18 => RelocationType::X86_64_TPOff64,
+                19 => RelocationType::X86_64_TLSGD,
+                20 => RelocationType::X86_64_TLSLD,
+                21 => RelocationType::X86_64_DTPOff32,
+                22 => RelocationType::X86_64_GOTTPOff,
+                23 => RelocationType::X86_64_TPOff32,
+                24 => RelocationType::X86_64_PC64,
+                25 => RelocationType::X86_64_GOTOff64,
+                26 => RelocationType::X86_64_GOTPC32,
+                32 => RelocationType::X86_64_Size32,
+                33 => RelocationType::X86_64_Size64,
+                34 => RelocationType::X86_64_GOTPC32_TLSDesc,
+                35 => RelocationType::X86_64_TLSDescCall,
+                36 => RelocationType::X86_64_TLSDesc,
+                37 => RelocationType::X86_64_IRelative,
+                other => RelocationType::Unknown(other as _),
+            },
+        ),
+        None => panic!("must call after the elf class is determined"),
+    };
     let addend = if rela {
         Some(cursor.read_isize()?)
     } else {
@@ -280,7 +332,8 @@ fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, Lo
 
     Ok(Relocation {
         offset,
-        info,
+        symbol,
+        relocation_type,
         addend,
     })
 }

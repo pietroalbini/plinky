@@ -147,8 +147,54 @@ pub struct RelocationsTable<S = String> {
 #[derive(Debug)]
 pub struct Relocation {
     pub offset: u64,
-    pub info: u64,
+    pub symbol: u32,
+    pub relocation_type: RelocationType,
     pub addend: Option<i64>,
+}
+
+#[derive(Debug)]
+#[allow(non_camel_case_types)]
+pub enum RelocationType {
+    // x86
+    X86_None,
+    X86_32,
+    X86_PC32,
+    // x86_64
+    X86_64_None,
+    X86_64_64,
+    X86_64_PC32,
+    X86_64_GOT32,
+    X86_64_PLT32,
+    X86_64_Copy,
+    X86_64_GlobDat,
+    X86_64_JumpSlot,
+    X86_64_Relative,
+    X86_64_GOTPCRel,
+    X86_64_32,
+    X86_64_32S,
+    X86_64_16,
+    X86_64_PC16,
+    X86_64_8,
+    X86_64_PC8,
+    X86_64_DTPMod64,
+    X86_64_DTPOff64,
+    X86_64_TPOff64,
+    X86_64_TLSGD,
+    X86_64_TLSLD,
+    X86_64_DTPOff32,
+    X86_64_GOTTPOff,
+    X86_64_TPOff32,
+    X86_64_PC64,
+    X86_64_GOTOff64,
+    X86_64_GOTPC32,
+    X86_64_Size32,
+    X86_64_Size64,
+    X86_64_GOTPC32_TLSDesc,
+    X86_64_TLSDescCall,
+    X86_64_TLSDesc,
+    X86_64_IRelative,
+    // Other:
+    Unknown(u32),
 }
 
 #[derive(Debug)]

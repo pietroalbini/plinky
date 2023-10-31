@@ -489,21 +489,24 @@ Object {
                     symbols: [
                         Symbol {
                             name: "",
-                            info: 0x0,
+                            binding: Local,
+                            type_: NoType,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "Scrt1.o",
-                            info: 0x4,
+                            binding: Local,
+                            type_: File,
                             definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "__abi_tag",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x4,
                             ),
@@ -512,14 +515,16 @@ Object {
                         },
                         Symbol {
                             name: "crtstuff.c",
-                            info: 0x4,
+                            binding: Local,
+                            type_: File,
                             definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "deregister_tm_clones",
-                            info: 0x2,
+                            binding: Local,
+                            type_: Function,
                             definition: Section(
                                 0x10,
                             ),
@@ -528,7 +533,8 @@ Object {
                         },
                         Symbol {
                             name: "register_tm_clones",
-                            info: 0x2,
+                            binding: Local,
+                            type_: Function,
                             definition: Section(
                                 0x10,
                             ),
@@ -537,7 +543,8 @@ Object {
                         },
                         Symbol {
                             name: "__do_global_dtors_aux",
-                            info: 0x2,
+                            binding: Local,
+                            type_: Function,
                             definition: Section(
                                 0x10,
                             ),
@@ -546,7 +553,8 @@ Object {
                         },
                         Symbol {
                             name: "completed.0",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x1a,
                             ),
@@ -555,7 +563,8 @@ Object {
                         },
                         Symbol {
                             name: "__do_global_dtors_aux_fini_array_entry",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x16,
                             ),
@@ -564,7 +573,8 @@ Object {
                         },
                         Symbol {
                             name: "frame_dummy",
-                            info: 0x2,
+                            binding: Local,
+                            type_: Function,
                             definition: Section(
                                 0x10,
                             ),
@@ -573,7 +583,8 @@ Object {
                         },
                         Symbol {
                             name: "__frame_dummy_init_array_entry",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x15,
                             ),
@@ -582,21 +593,24 @@ Object {
                         },
                         Symbol {
                             name: "hello_c.c",
-                            info: 0x4,
+                            binding: Local,
+                            type_: File,
                             definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "crtstuff.c",
-                            info: 0x4,
+                            binding: Local,
+                            type_: File,
                             definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "__FRAME_END__",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x14,
                             ),
@@ -605,14 +619,16 @@ Object {
                         },
                         Symbol {
                             name: "",
-                            info: 0x4,
+                            binding: Local,
+                            type_: File,
                             definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "_DYNAMIC",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x17,
                             ),
@@ -621,7 +637,8 @@ Object {
                         },
                         Symbol {
                             name: "__GNU_EH_FRAME_HDR",
-                            info: 0x0,
+                            binding: Local,
+                            type_: NoType,
                             definition: Section(
                                 0x13,
                             ),
@@ -630,7 +647,8 @@ Object {
                         },
                         Symbol {
                             name: "_GLOBAL_OFFSET_TABLE_",
-                            info: 0x1,
+                            binding: Local,
+                            type_: Object,
                             definition: Section(
                                 0x18,
                             ),
@@ -639,21 +657,24 @@ Object {
                         },
                         Symbol {
                             name: "__libc_start_main@GLIBC_2.34",
-                            info: 0x12,
+                            binding: Global,
+                            type_: Function,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "_ITM_deregisterTMCloneTable",
-                            info: 0x20,
+                            binding: Weak,
+                            type_: NoType,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "data_start",
-                            info: 0x20,
+                            binding: Weak,
+                            type_: NoType,
                             definition: Section(
                                 0x19,
                             ),
@@ -662,14 +683,16 @@ Object {
                         },
                         Symbol {
                             name: "puts@GLIBC_2.2.5",
-                            info: 0x12,
+                            binding: Global,
+                            type_: Function,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "_edata",
-                            info: 0x10,
+                            binding: Global,
+                            type_: NoType,
                             definition: Section(
                                 0x19,
                             ),
@@ -678,7 +701,8 @@ Object {
                         },
                         Symbol {
                             name: "_fini",
-                            info: 0x12,
+                            binding: Global,
+                            type_: Function,
                             definition: Section(
                                 0x11,
                             ),
@@ -687,7 +711,8 @@ Object {
                         },
                         Symbol {
                             name: "__data_start",
-                            info: 0x10,
+                            binding: Global,
+                            type_: NoType,
                             definition: Section(
                                 0x19,
                             ),
@@ -696,14 +721,16 @@ Object {
                         },
                         Symbol {
                             name: "__gmon_start__",
-                            info: 0x20,
+                            binding: Weak,
+                            type_: NoType,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "__dso_handle",
-                            info: 0x11,
+                            binding: Global,
+                            type_: Object,
                             definition: Section(
                                 0x19,
                             ),
@@ -712,7 +739,8 @@ Object {
                         },
                         Symbol {
                             name: "_IO_stdin_used",
-                            info: 0x11,
+                            binding: Global,
+                            type_: Object,
                             definition: Section(
                                 0x12,
                             ),
@@ -721,7 +749,8 @@ Object {
                         },
                         Symbol {
                             name: "_end",
-                            info: 0x10,
+                            binding: Global,
+                            type_: NoType,
                             definition: Section(
                                 0x1a,
                             ),
@@ -730,7 +759,8 @@ Object {
                         },
                         Symbol {
                             name: "_start",
-                            info: 0x12,
+                            binding: Global,
+                            type_: Function,
                             definition: Section(
                                 0x10,
                             ),
@@ -739,7 +769,8 @@ Object {
                         },
                         Symbol {
                             name: "__bss_start",
-                            info: 0x10,
+                            binding: Global,
+                            type_: NoType,
                             definition: Section(
                                 0x1a,
                             ),
@@ -748,7 +779,8 @@ Object {
                         },
                         Symbol {
                             name: "main",
-                            info: 0x12,
+                            binding: Global,
+                            type_: Function,
                             definition: Section(
                                 0x10,
                             ),
@@ -757,7 +789,8 @@ Object {
                         },
                         Symbol {
                             name: "__TMC_END__",
-                            info: 0x11,
+                            binding: Global,
+                            type_: Object,
                             definition: Section(
                                 0x19,
                             ),
@@ -766,21 +799,24 @@ Object {
                         },
                         Symbol {
                             name: "_ITM_registerTMCloneTable",
-                            info: 0x20,
+                            binding: Weak,
+                            type_: NoType,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "__cxa_finalize@GLIBC_2.2.5",
-                            info: 0x22,
+                            binding: Weak,
+                            type_: Function,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "_init",
-                            info: 0x12,
+                            binding: Global,
+                            type_: Function,
                             definition: Section(
                                 0xc,
                             ),

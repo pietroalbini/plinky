@@ -103,10 +103,29 @@ pub struct SymbolTable<S = String> {
 #[derive(Debug)]
 pub struct Symbol<S = String> {
     pub name: S,
-    pub info: u8,
+    pub binding: SymbolBinding,
+    pub type_: SymbolType,
     pub definition: SymbolDefinition,
     pub value: u64,
     pub size: u64,
+}
+
+#[derive(Debug)]
+pub enum SymbolBinding {
+    Local,
+    Global,
+    Weak,
+    Unknown(u8),
+}
+
+#[derive(Debug)]
+pub enum SymbolType {
+    NoType,
+    Object,
+    Function,
+    Section,
+    File,
+    Unknown(u8),
 }
 
 #[derive(Debug)]

@@ -2,7 +2,7 @@ use crate::errors::LoadError;
 use crate::reader::Cursor;
 use crate::{
     NoteSection, ProgramSection, RawBytes, Section, SectionContent, StringTable, Symbol,
-    SymbolDefinition, SymbolTable, UnknownSection,
+    SymbolBinding, SymbolDefinition, SymbolTable, SymbolType, UnknownSection,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -76,7 +76,8 @@ pub(super) fn read_sections(
                         .into_iter()
                         .map(|s| Symbol {
                             name: remove_pending_str(s.name),
-                            info: s.info,
+                            binding: s.binding,
+                            type_: s.type_,
                             definition: s.definition,
                             value: s.value,
                             size: s.size,
@@ -192,7 +193,20 @@ fn read_symbol(
             section: strings_table,
             offset: name_offset,
         }),
-        info,
+        binding: match (info & 0b11110000) >> 4 {
+            0 => SymbolBinding::Local,
+            1 => SymbolBinding::Global,
+            2 => SymbolBinding::Weak,
+            other => SymbolBinding::Unknown(other),
+        },
+        type_: match info & 0b1111 {
+            0 => SymbolType::NoType,
+            1 => SymbolType::Object,
+            2 => SymbolType::Function,
+            3 => SymbolType::Section,
+            4 => SymbolType::File,
+            other => SymbolType::Unknown(other),
+        },
         definition: match definition {
             0x0000 => SymbolDefinition::Undefined, // SHN_UNDEF
             0xFFF1 => SymbolDefinition::Absolute,  // SHN_ABS

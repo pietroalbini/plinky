@@ -78,21 +78,24 @@ Object {
                     symbols: [
                         Symbol {
                             name: "",
-                            info: 0x0,
+                            binding: Local,
+                            type_: NoType,
                             definition: Undefined,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "tests/snapshot/hello_asm.S",
-                            info: 0x4,
+                            binding: Local,
+                            type_: File,
                             definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
                         Symbol {
                             name: "",
-                            info: 0x3,
+                            binding: Local,
+                            type_: Section,
                             definition: Section(
                                 0x1,
                             ),
@@ -101,7 +104,8 @@ Object {
                         },
                         Symbol {
                             name: "",
-                            info: 0x3,
+                            binding: Local,
+                            type_: Section,
                             definition: Section(
                                 0x2,
                             ),
@@ -110,7 +114,8 @@ Object {
                         },
                         Symbol {
                             name: "msg",
-                            info: 0x0,
+                            binding: Local,
+                            type_: NoType,
                             definition: Section(
                                 0x1,
                             ),
@@ -119,14 +124,16 @@ Object {
                         },
                         Symbol {
                             name: "len",
-                            info: 0x0,
+                            binding: Local,
+                            type_: NoType,
                             definition: Absolute,
                             value: 0xd,
                             size: 0x0,
                         },
                         Symbol {
                             name: "_start",
-                            info: 0x10,
+                            binding: Global,
+                            type_: NoType,
                             definition: Section(
                                 0x2,
                             ),

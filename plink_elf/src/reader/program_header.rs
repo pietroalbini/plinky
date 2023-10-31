@@ -20,7 +20,8 @@ pub(super) fn read_program_header(cursor: &mut Cursor<'_>) -> Result<Segment, Lo
         _flags = cursor.read_u32()?;
     }
     let _align = cursor.read_usize()?;
-    let contents = cursor.read_vec_at(offset, file_size)?;
+    cursor.seek_to(offset)?;
+    let contents = cursor.read_vec(file_size)?;
 
     Ok(Segment {
         content: SegmentContent::Unknown {

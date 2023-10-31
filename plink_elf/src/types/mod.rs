@@ -73,7 +73,7 @@ pub enum SectionContent<S = String> {
     SymbolTable(SymbolTable<S>),
     StringTable(StringTable),
     RelocationsTable(RelocationsTable<S>),
-    Note(NoteSection),
+    Note(NotesTable),
     Unknown(UnknownSection),
 }
 
@@ -86,8 +86,15 @@ pub struct ProgramSection {
 }
 
 #[derive(Debug)]
-pub struct NoteSection {
-    pub raw: RawBytes,
+pub struct NotesTable {
+    pub notes: Vec<Note>,
+}
+
+#[derive(Debug)]
+pub struct Note {
+    pub name: String,
+    pub value: RawBytes,
+    pub type_: u32,
 }
 
 #[derive(Debug)]

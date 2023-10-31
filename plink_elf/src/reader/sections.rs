@@ -1,9 +1,10 @@
 use crate::errors::LoadError;
+use crate::reader::notes::read_notes;
 use crate::reader::Cursor;
 use crate::{
-    Class, NoteSection, ProgramSection, RawBytes, Relocation, RelocationType, RelocationsTable,
-    Section, SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable,
-    SymbolType, UnknownSection,
+    Class, ProgramSection, RawBytes, Relocation, RelocationType, RelocationsTable, Section,
+    SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType,
+    UnknownSection,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -131,7 +132,8 @@ fn read_section(
     let _addr_align = cursor.read_usize()?;
     let _entries_size = cursor.read_usize()?;
 
-    let raw_content = cursor.read_vec_at(offset, size)?;
+    cursor.seek_to(offset)?;
+    let raw_content = cursor.read_vec(size)?;
     let content = match type_ {
         0 => SectionContent::Null,
         1 => SectionContent::Program(ProgramSection {
@@ -143,9 +145,7 @@ fn read_section(
         2 => read_symbol_table(cursor, &raw_content, link as _)?,
         3 => read_string_table(&raw_content)?,
         4 => read_relocations_table(cursor, &raw_content, link as _, info as _, true)?,
-        7 => SectionContent::Note(NoteSection {
-            raw: RawBytes(raw_content),
-        }),
+        7 => SectionContent::Note(read_notes(cursor, &raw_content)?),
         9 => read_relocations_table(cursor, &raw_content, link as _, info as _, false)?,
         other => SectionContent::Unknown(UnknownSection {
             id: other,

@@ -1,4 +1,5 @@
 mod cursor;
+mod notes;
 mod object;
 mod program_header;
 mod sections;

@@ -125,11 +125,16 @@ Object {
             name: ".note.gnu.property",
             memory_address: 0x0,
             content: Note(
-                NoteSection {
-                    raw: RawBytes {
-                         04 00 00 00 10 00 00 00 05 00 00 00 47 4e 55 00 02 00 00 c0 04 00 00 00 03 | ............GNU..........
-                         00 00 00 00 00 00 00                                                       | .......
-                    },
+                NotesTable {
+                    notes: [
+                        Note {
+                            name: "GNU",
+                            value: RawBytes {
+                                 02 00 00 c0 04 00 00 00 03 00 00 00 00 00 00 00 | ................
+                            },
+                            type_: 0x5,
+                        },
+                    ],
                 },
             ),
         },

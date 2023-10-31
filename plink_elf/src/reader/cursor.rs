@@ -100,11 +100,20 @@ impl<'a> Cursor<'a> {
         Ok(buf)
     }
 
-    pub(super) fn read_vec_at(&mut self, offset: u64, size: u64) -> Result<Vec<u8>, LoadError> {
-        self.seek_to(offset)?;
+    pub(super) fn read_vec(&mut self, size: u64) -> Result<Vec<u8>, LoadError> {
         let mut contents = vec![0; size as _];
         self.reader.read_exact(&mut contents)?;
         Ok(contents)
+    }
+
+    pub(super) fn align_with_padding(&mut self, align: u64) -> Result<(), LoadError> {
+        let current = self.current_position()?;
+        if current % align == 0 {
+            return Ok(());
+        }
+        let bytes_to_pad = align - current % align;
+        self.reader.seek(SeekFrom::Current(bytes_to_pad as _))?;
+        Ok(())
     }
 
     pub(super) fn current_position(&mut self) -> Result<u64, LoadError> {

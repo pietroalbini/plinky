@@ -12,20 +12,17 @@ Object {
     sections: [
         Section {
             name: "",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: Null,
         },
         Section {
             name: ".data",
-            writeable: true,
-            allocated: true,
-            executable: false,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: true,
+                    allocated: true,
+                    executable: false,
                     raw: RawBytes {
                          48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
                     },
@@ -34,12 +31,12 @@ Object {
         },
         Section {
             name: ".text",
-            writeable: false,
-            allocated: true,
-            executable: true,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
                     raw: RawBytes {
                          b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b0 01 bb | .........................
                          00 00 00 00 cd 80                                                          | ......
@@ -49,9 +46,6 @@ Object {
         },
         Section {
             name: ".shstrtab",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: StringTable(
                 StringTable {
@@ -69,9 +63,6 @@ Object {
         },
         Section {
             name: ".symtab",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: SymbolTable(
                 SymbolTable {
@@ -140,9 +131,6 @@ Object {
         },
         Section {
             name: ".strtab",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: StringTable(
                 StringTable {
@@ -158,9 +146,6 @@ Object {
         },
         Section {
             name: ".rel.text",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: RelocationsTable(
                 RelocationsTable {

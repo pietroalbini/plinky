@@ -83,9 +83,6 @@ pub(super) fn read_sections(
         .into_iter()
         .map(|s| Section {
             name: remove_pending_str(s.name),
-            writeable: s.writeable,
-            allocated: s.allocated,
-            executable: s.executable,
             memory_address: s.memory_address,
             content: match s.content {
                 SectionContent::Null => SectionContent::Null,
@@ -138,6 +135,9 @@ fn read_section(
     let content = match type_ {
         0 => SectionContent::Null,
         1 => SectionContent::Program(ProgramSection {
+            writeable: flags & 0x1 > 0,
+            allocated: flags & 0x2 > 0,
+            executable: flags & 0x4 > 0,
             raw: RawBytes(raw_content),
         }),
         2 => read_symbol_table(cursor, &raw_content, link as _)?,
@@ -158,9 +158,6 @@ fn read_section(
             section: section_names_table_index,
             offset: name_offset,
         }),
-        writeable: flags & 0x1 > 0,
-        allocated: flags & 0x2 > 0,
-        executable: flags & 0x4 > 0,
         memory_address,
         content,
     })

@@ -12,17 +12,11 @@ Object {
     sections: [
         Section {
             name: "",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: Null,
         },
         Section {
             name: ".group",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: Unknown(
                 UnknownSection {
@@ -35,12 +29,12 @@ Object {
         },
         Section {
             name: ".text",
-            writeable: false,
-            allocated: true,
-            executable: true,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
                     raw: RawBytes {
                          8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 fc ff ff ff 05 01 00 00 00 | .L$.....q.U..SQ..........
                          83 ec 0c 8d 90 00 00 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 00 00 | .........R...............
@@ -51,9 +45,6 @@ Object {
         },
         Section {
             name: ".rel.text",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: RelocationsTable(
                 RelocationsTable {
@@ -96,21 +87,18 @@ Object {
         },
         Section {
             name: ".data",
-            writeable: true,
-            allocated: true,
-            executable: false,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: true,
+                    allocated: true,
+                    executable: false,
                     raw: RawBytes {},
                 },
             ),
         },
         Section {
             name: ".bss",
-            writeable: true,
-            allocated: true,
-            executable: false,
             memory_address: 0x0,
             content: Unknown(
                 UnknownSection {
@@ -121,12 +109,12 @@ Object {
         },
         Section {
             name: ".rodata",
-            writeable: false,
-            allocated: true,
-            executable: false,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: false,
                     raw: RawBytes {
                          48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
                     },
@@ -135,12 +123,12 @@ Object {
         },
         Section {
             name: ".text.__x86.get_pc_thunk.ax",
-            writeable: false,
-            allocated: true,
-            executable: true,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
                     raw: RawBytes {
                          8b 04 24 c3 | ..$.
                     },
@@ -149,12 +137,12 @@ Object {
         },
         Section {
             name: ".comment",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: false,
+                    executable: false,
                     raw: RawBytes {
                          00 47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 2e 34 2e 30 2d 31 75 62 75 | .GCC: (Ubuntu 11.4.0-1ubu
                          6e 74 75 31 7e 32 32 2e 30 34 29 20 31 31 2e 34 2e 30 00                   | ntu1~22.04) 11.4.0.
@@ -164,24 +152,24 @@ Object {
         },
         Section {
             name: ".note.GNU-stack",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: false,
+                    executable: false,
                     raw: RawBytes {},
                 },
             ),
         },
         Section {
             name: ".eh_frame",
-            writeable: false,
-            allocated: true,
-            executable: false,
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: false,
                     raw: RawBytes {
                          14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 30 | .........zR..|..........0
                          00 00 00 1c 00 00 00 00 00 00 00 3c 00 00 00 00 44 0c 01 00 49 10 05 02 75 | ...........<....D...I...u
@@ -193,9 +181,6 @@ Object {
         },
         Section {
             name: ".rel.eh_frame",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: RelocationsTable(
                 RelocationsTable {
@@ -220,9 +205,6 @@ Object {
         },
         Section {
             name: ".symtab",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: SymbolTable(
                 SymbolTable {
@@ -305,9 +287,6 @@ Object {
         },
         Section {
             name: ".strtab",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: StringTable(
                 StringTable {
@@ -324,9 +303,6 @@ Object {
         },
         Section {
             name: ".shstrtab",
-            writeable: false,
-            allocated: false,
-            executable: false,
             memory_address: 0x0,
             content: StringTable(
                 StringTable {

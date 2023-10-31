@@ -62,9 +62,6 @@ pub enum Machine {
 #[derive(Debug)]
 pub struct Section<S = String> {
     pub name: S,
-    pub writeable: bool,
-    pub allocated: bool,
-    pub executable: bool,
     pub memory_address: u64,
     pub content: SectionContent<S>,
 }
@@ -82,6 +79,9 @@ pub enum SectionContent<S = String> {
 
 #[derive(Debug)]
 pub struct ProgramSection {
+    pub writeable: bool,
+    pub allocated: bool,
+    pub executable: bool,
     pub raw: RawBytes,
 }
 

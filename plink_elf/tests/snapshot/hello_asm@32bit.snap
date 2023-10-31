@@ -164,8 +164,8 @@ Object {
             memory_address: 0x0,
             content: RelocationsTable(
                 RelocationsTable {
-                    symbol_table: 0x4,
-                    applies_to_section: 0x2,
+                    symbol_table: ".symtab",
+                    applies_to_section: ".text",
                     relocations: [
                         Relocation {
                             offset: 0xb,

@@ -16,6 +16,7 @@ pub enum LoadError {
     MissingStringTable(u16),
     WrongStringTableType(u16),
     MissingString(u16, u32),
+    MissingSection(u16),
     MisalignedFile { current: usize, expected: usize },
 }
 
@@ -44,6 +45,7 @@ impl std::fmt::Display for LoadError {
             LoadError::MissingString(table, id) => {
                 write!(f, "missing string with offset {id:#x} in table {table}")
             }
+            LoadError::MissingSection(id) => write!(f, "missing section with id {id:#x}"),
             LoadError::MisalignedFile { current, expected } => write!(
                 f,
                 "misaligned file: parsed until {current:#x}, expected to be at {expected:#x}"

@@ -26,22 +26,34 @@ pub(super) fn read_sections(
 
     let resolve_str = |pending: &RefCell<PendingString>| -> Result<(), LoadError> {
         let mut mutable = pending.borrow_mut();
-        if let PendingString::Ref { section, offset } = &mut *mutable {
-            match sections.get(*section as usize).map(|s| &s.content) {
-                Some(SectionContent::StringTable(table)) => {
-                    *mutable = PendingString::Resolved(
-                        table
-                            .get(*offset)
-                            .ok_or(LoadError::MissingString(*section, *offset))?
-                            .to_string(),
-                    );
-                    Ok(())
+        match &mut *mutable {
+            PendingString::String { section, offset } => {
+                match sections.get(*section as usize).map(|s| &s.content) {
+                    Some(SectionContent::StringTable(table)) => {
+                        *mutable = PendingString::Resolved(
+                            table
+                                .get(*offset)
+                                .ok_or(LoadError::MissingString(*section, *offset))?
+                                .to_string(),
+                        );
+                        Ok(())
+                    }
+                    Some(_) => Err(LoadError::WrongStringTableType(*section)),
+                    None => Err(LoadError::MissingStringTable(*section)),
                 }
-                Some(_) => Err(LoadError::WrongStringTableType(*section)),
-                None => Err(LoadError::MissingStringTable(*section)),
             }
-        } else {
-            Ok(())
+            PendingString::SectionName { section } => {
+                let name_ref = sections.get(*section as usize).map(|s| s.name.borrow());
+                match name_ref.as_deref() {
+                    Some(PendingString::Resolved(name)) => {
+                        *mutable = PendingString::Resolved(name.clone());
+                        Ok(())
+                    }
+                    Some(_) => unreachable!("unresolved section name"),
+                    None => Err(LoadError::MissingSection(*section)),
+                }
+            }
+            PendingString::Resolved(_) => Ok(()),
         }
     };
     for section in &sections {
@@ -52,10 +64,17 @@ pub(super) fn read_sections(
             }
         }
     }
+    for section in &sections {
+        if let SectionContent::RelocationsTable(table) = &section.content {
+            resolve_str(&table.symbol_table)?;
+            resolve_str(&table.applies_to_section)?;
+        }
+    }
 
     let remove_pending_str = |pending: RefCell<PendingString>| -> String {
         match pending.into_inner() {
-            PendingString::Ref { .. } => unreachable!("unresolved string"),
+            PendingString::String { .. } => unreachable!("unresolved string"),
+            PendingString::SectionName { .. } => unreachable!("unresolved section name"),
             PendingString::Resolved(inner) => inner,
         }
     };
@@ -85,7 +104,13 @@ pub(super) fn read_sections(
                         .collect(),
                 }),
                 SectionContent::StringTable(s) => SectionContent::StringTable(s),
-                SectionContent::RelocationsTable(r) => SectionContent::RelocationsTable(r),
+                SectionContent::RelocationsTable(r) => {
+                    SectionContent::RelocationsTable(RelocationsTable {
+                        symbol_table: remove_pending_str(r.symbol_table),
+                        applies_to_section: remove_pending_str(r.applies_to_section),
+                        relocations: r.relocations,
+                    })
+                }
                 SectionContent::Note(n) => SectionContent::Note(n),
                 SectionContent::Unknown(u) => SectionContent::Unknown(u),
             },
@@ -128,7 +153,7 @@ fn read_section(
     };
 
     Ok(Section {
-        name: RefCell::new(PendingString::Ref {
+        name: RefCell::new(PendingString::String {
             section: section_names_table_index,
             offset: name_offset,
         }),
@@ -189,7 +214,7 @@ fn read_symbol(
     let size = cursor.read_usize()?;
 
     Ok(Symbol {
-        name: RefCell::new(PendingString::Ref {
+        name: RefCell::new(PendingString::String {
             section: strings_table,
             offset: name_offset,
         }),
@@ -234,8 +259,12 @@ fn read_relocations_table(
     }
 
     Ok(SectionContent::RelocationsTable(RelocationsTable {
-        symbol_table,
-        applies_to_section,
+        symbol_table: RefCell::new(PendingString::SectionName {
+            section: symbol_table,
+        }),
+        applies_to_section: RefCell::new(PendingString::SectionName {
+            section: applies_to_section,
+        }),
         relocations,
     }))
 }
@@ -258,6 +287,7 @@ fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, Lo
 
 #[derive(Debug)]
 enum PendingString {
-    Ref { section: u16, offset: u32 },
+    String { section: u16, offset: u32 },
+    SectionName { section: u16 },
     Resolved(String),
 }

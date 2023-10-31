@@ -165,8 +165,8 @@ Object {
             memory_address: 0x384,
             content: RelocationsTable(
                 RelocationsTable {
-                    symbol_table: 0x5,
-                    applies_to_section: 0x0,
+                    symbol_table: ".dynsym",
+                    applies_to_section: "",
                     relocations: [
                         Relocation {
                             offset: 0x3ed8,
@@ -220,8 +220,8 @@ Object {
             memory_address: 0x3c4,
             content: RelocationsTable(
                 RelocationsTable {
-                    symbol_table: 0x5,
-                    applies_to_section: 0x16,
+                    symbol_table: ".dynsym",
+                    applies_to_section: ".got",
                     relocations: [
                         Relocation {
                             offset: 0x3fe4,

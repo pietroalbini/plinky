@@ -26,8 +26,9 @@ Object {
                     allocated: true,
                     executable: true,
                     raw: RawBytes {
-                         b8 04 00 00 00 bb 01 00 00 00 b9 00 20 40 00 ba 0d 00 00 00 cd 80 b0 01 bb | ............ @...........
-                         00 00 00 00 cd 80                                                          | ......
+                         b8 04 00 00 00 bb 01 00 00 00 b9 00 20 40 00 ba 0d 00 00 00 cd 80 b8 04 00 | ............ @...........
+                         00 00 bb 01 00 00 00 b9 0d 20 40 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | ......... @..............
+                         00 cd 80                                                                   | ...
                     },
                 },
             ),
@@ -41,7 +42,8 @@ Object {
                     allocated: true,
                     executable: false,
                     raw: RawBytes {
-                         48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                         48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a 47 6f 6f 64 62 79 65 20 77 6f 72 6c | Hello world!.Goodbye worl
+                         64 21 0a                                                                   | d!.
                     },
                 },
             ),
@@ -69,7 +71,7 @@ Object {
                             size: 0x0,
                         },
                         Symbol {
-                            name: "msg",
+                            name: "msg_hello",
                             binding: Local,
                             type_: NoType,
                             definition: Section(
@@ -79,11 +81,29 @@ Object {
                             size: 0x0,
                         },
                         Symbol {
-                            name: "len",
+                            name: "len_hello",
                             binding: Local,
                             type_: NoType,
                             definition: Absolute,
                             value: 0xd,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "msg_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                0x2,
+                            ),
+                            value: 0x40200d,
+                            size: 0x0,
+                        },
+                        Symbol {
+                            name: "len_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xf,
                             size: 0x0,
                         },
                         Symbol {
@@ -103,7 +123,7 @@ Object {
                             definition: Section(
                                 0x2,
                             ),
-                            value: 0x40200d,
+                            value: 0x40201c,
                             size: 0x0,
                         },
                         Symbol {
@@ -113,7 +133,7 @@ Object {
                             definition: Section(
                                 0x2,
                             ),
-                            value: 0x40200d,
+                            value: 0x40201c,
                             size: 0x0,
                         },
                         Symbol {
@@ -123,7 +143,7 @@ Object {
                             definition: Section(
                                 0x2,
                             ),
-                            value: 0x402010,
+                            value: 0x402020,
                             size: 0x0,
                         },
                     ],
@@ -138,11 +158,13 @@ Object {
                     strings: {
                         0x0: "",
                         0x1: "tests/snapshot/hello_asm.S",
-                        0x1c: "msg",
-                        0x20: "len",
-                        0x24: "__bss_start",
-                        0x30: "_edata",
-                        0x37: "_end",
+                        0x1c: "msg_hello",
+                        0x26: "len_hello",
+                        0x30: "msg_goodbye",
+                        0x3c: "len_goodbye",
+                        0x48: "__bss_start",
+                        0x54: "_edata",
+                        0x5b: "_end",
                     },
                 },
             ),
@@ -170,14 +192,14 @@ Object {
                 id: 0x1,
                 raw: RawBytes {
                      7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 02 00 3e 00 01 00 00 00 00 | .ELF..............>......
-                     10 40 00 00 00 00 00 40 00 00 00 00 00 00 00 38 21 00 00 00 00 00 00 00 00 | .@.....@.......8!........
+                     10 40 00 00 00 00 00 40 00 00 00 00 00 00 00 98 21 00 00 00 00 00 00 00 00 | .@.....@........!........
                      00 00 40 00 38 00 03 00 40 00 06 00 05 00 01 00 00 00 04 00 00 00 00 00 00 | ..@.8...@................
                      00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 40 00 00 00 00 00 e8 00 00 00 | .......@.......@.........
                      00 00 00 00 e8 00 00 00 00 00 00 00 00 10 00 00 00 00 00 00 01 00 00 00 05 | .........................
                      00 00 00 00 10 00 00 00 00 00 00 00 10 40 00 00 00 00 00 00 10 40 00 00 00 | .............@.......@...
-                     00 00 1f 00 00 00 00 00 00 00 1f 00 00 00 00 00 00 00 00 10 00 00 00 00 00 | .........................
+                     00 00 35 00 00 00 00 00 00 00 35 00 00 00 00 00 00 00 00 10 00 00 00 00 00 | ..5.......5..............
                      00 01 00 00 00 06 00 00 00 00 20 00 00 00 00 00 00 00 20 40 00 00 00 00 00 | .......... ....... @.....
-                     00 20 40 00 00 00 00 00 0d 00 00 00 00 00 00 00 0d 00 00 00 00 00 00 00 00 | . @......................
+                     00 20 40 00 00 00 00 00 1c 00 00 00 00 00 00 00 1c 00 00 00 00 00 00 00 00 | . @......................
                      10 00 00 00 00 00 00                                                       | .......
                 },
             },
@@ -186,8 +208,9 @@ Object {
             content: Unknown {
                 id: 0x1,
                 raw: RawBytes {
-                     b8 04 00 00 00 bb 01 00 00 00 b9 00 20 40 00 ba 0d 00 00 00 cd 80 b0 01 bb | ............ @...........
-                     00 00 00 00 cd 80                                                          | ......
+                     b8 04 00 00 00 bb 01 00 00 00 b9 00 20 40 00 ba 0d 00 00 00 cd 80 b8 04 00 | ............ @...........
+                     00 00 bb 01 00 00 00 b9 0d 20 40 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | ......... @..............
+                     00 cd 80                                                                   | ...
                 },
             },
         },
@@ -195,7 +218,8 @@ Object {
             content: Unknown {
                 id: 0x1,
                 raw: RawBytes {
-                     48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                     48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a 47 6f 6f 64 62 79 65 20 77 6f 72 6c | Hello world!.Goodbye worl
+                     64 21 0a                                                                   | d!.
                 },
             },
         },

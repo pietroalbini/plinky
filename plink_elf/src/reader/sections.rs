@@ -1,8 +1,8 @@
 use crate::errors::LoadError;
 use crate::reader::Cursor;
 use crate::{
-    NoteSection, ProgramSection, RawBytes, Section, SectionContent, StringTable, Symbol,
-    SymbolBinding, SymbolDefinition, SymbolTable, SymbolType, UnknownSection,
+    NoteSection, ProgramSection, RawBytes, Relocation, RelocationsTable, Section, SectionContent,
+    StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType, UnknownSection,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -85,6 +85,7 @@ pub(super) fn read_sections(
                         .collect(),
                 }),
                 SectionContent::StringTable(s) => SectionContent::StringTable(s),
+                SectionContent::RelocationsTable(r) => SectionContent::RelocationsTable(r),
                 SectionContent::Note(n) => SectionContent::Note(n),
                 SectionContent::Unknown(u) => SectionContent::Unknown(u),
             },
@@ -103,7 +104,7 @@ fn read_section(
     let offset = cursor.read_usize()?;
     let size = cursor.read_usize()?;
     let link = cursor.read_u32()?;
-    let _info = cursor.read_u32()?;
+    let info = cursor.read_u32()?;
     let _addr_align = cursor.read_usize()?;
     let _entries_size = cursor.read_usize()?;
 
@@ -115,9 +116,11 @@ fn read_section(
         }),
         2 => read_symbol_table(cursor, &raw_content, link as _)?,
         3 => read_string_table(&raw_content)?,
+        4 => read_relocations_table(cursor, &raw_content, link as _, info as _, true)?,
         7 => SectionContent::Note(NoteSection {
             raw: RawBytes(raw_content),
         }),
+        9 => read_relocations_table(cursor, &raw_content, link as _, info as _, false)?,
         other => SectionContent::Unknown(UnknownSection {
             id: other,
             raw: RawBytes(raw_content),
@@ -167,10 +170,7 @@ fn read_symbol_table(
     let mut cursor = cursor.duplicate(&mut inner);
 
     let mut symbols = Vec::new();
-    loop {
-        if cursor.current_position()? == raw_content.len() as u64 {
-            break;
-        }
+    while cursor.current_position()? != raw_content.len() as u64 {
         symbols.push(read_symbol(&mut cursor, strings_table)?);
     }
 
@@ -215,6 +215,44 @@ fn read_symbol(
         },
         value,
         size,
+    })
+}
+
+fn read_relocations_table(
+    cursor: &mut Cursor<'_>,
+    raw_content: &[u8],
+    symbol_table: u16,
+    applies_to_section: u16,
+    rela: bool,
+) -> Result<SectionContent<RefCell<PendingString>>, LoadError> {
+    let mut inner = std::io::Cursor::new(raw_content);
+    let mut cursor = cursor.duplicate(&mut inner);
+
+    let mut relocations = Vec::new();
+    while cursor.current_position()? != raw_content.len() as u64 {
+        relocations.push(read_relocation(&mut cursor, rela)?);
+    }
+
+    Ok(SectionContent::RelocationsTable(RelocationsTable {
+        symbol_table,
+        applies_to_section,
+        relocations,
+    }))
+}
+
+fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, LoadError> {
+    let offset = cursor.read_usize()?;
+    let info = cursor.read_usize()?;
+    let addend = if rela {
+        Some(cursor.read_isize()?)
+    } else {
+        None
+    };
+
+    Ok(Relocation {
+        offset,
+        info,
+        addend,
     })
 }
 

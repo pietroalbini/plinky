@@ -75,6 +75,7 @@ pub enum SectionContent<S = String> {
     Program(ProgramSection),
     SymbolTable(SymbolTable<S>),
     StringTable(StringTable),
+    RelocationsTable(RelocationsTable),
     Note(NoteSection),
     Unknown(UnknownSection),
 }
@@ -134,6 +135,20 @@ pub enum SymbolDefinition {
     Absolute,
     Common,
     Section(u16),
+}
+
+#[derive(Debug)]
+pub struct RelocationsTable {
+    pub symbol_table: u16,
+    pub applies_to_section: u16,
+    pub relocations: Vec<Relocation>,
+}
+
+#[derive(Debug)]
+pub struct Relocation {
+    pub offset: u64,
+    pub info: u64,
+    pub addend: Option<i64>,
 }
 
 #[derive(Debug)]

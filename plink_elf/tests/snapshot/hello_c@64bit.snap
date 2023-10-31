@@ -177,19 +177,68 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x550,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x4,
-                    raw: RawBytes {
-                         b8 3d 00 00 00 00 00 00 08 00 00 00 00 00 00 00 40 11 00 00 00 00 00 00 c0 | .=..............@........
-                         3d 00 00 00 00 00 00 08 00 00 00 00 00 00 00 00 11 00 00 00 00 00 00 08 40 | =.......................@
-                         00 00 00 00 00 00 08 00 00 00 00 00 00 00 08 40 00 00 00 00 00 00 d8 3f 00 | ...............@.......?.
-                         00 00 00 00 00 06 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 e0 3f 00 00 | ......................?..
-                         00 00 00 00 06 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 e8 3f 00 00 00 | .....................?...
-                         00 00 00 06 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 f0 3f 00 00 00 00 | ....................?....
-                         00 00 06 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 f8 3f 00 00 00 00 00 | ...................?.....
-                         00 06 00 00 00 06 00 00 00 00 00 00 00 00 00 00 00                         | .................
-                    },
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: 0x6,
+                    applies_to_section: 0x0,
+                    relocations: [
+                        Relocation {
+                            offset: 0x3db8,
+                            info: 0x8,
+                            addend: Some(
+                                0x1140,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x3dc0,
+                            info: 0x8,
+                            addend: Some(
+                                0x1100,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x4008,
+                            info: 0x8,
+                            addend: Some(
+                                0x4008,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x3fd8,
+                            info: 0x100000006,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x3fe0,
+                            info: 0x200000006,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x3fe8,
+                            info: 0x400000006,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x3ff0,
+                            info: 0x500000006,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x3ff8,
+                            info: 0x600000006,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                    ],
                 },
             ),
         },
@@ -199,12 +248,19 @@ Object {
             allocated: true,
             executable: false,
             memory_address: 0x610,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x4,
-                    raw: RawBytes {
-                         d0 3f 00 00 00 00 00 00 07 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 | .?......................
-                    },
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: 0x6,
+                    applies_to_section: 0x18,
+                    relocations: [
+                        Relocation {
+                            offset: 0x3fd0,
+                            info: 0x300000007,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                    ],
                 },
             ),
         },

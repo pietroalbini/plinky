@@ -168,12 +168,19 @@ Object {
             allocated: false,
             executable: false,
             memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x4,
-                    raw: RawBytes {
-                         0b 00 00 00 00 00 00 00 0a 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 | ........................
-                    },
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: 0x4,
+                    applies_to_section: 0x2,
+                    relocations: [
+                        Relocation {
+                            offset: 0xb,
+                            info: 0x20000000a,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                    ],
                 },
             ),
         },

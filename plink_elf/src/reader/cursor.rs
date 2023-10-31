@@ -51,7 +51,25 @@ impl<'a> Cursor<'a> {
         match self.endian {
             Some(Endian::Big) => Ok(u64::from_be_bytes(bytes)),
             Some(Endian::Little) => Ok(u64::from_le_bytes(bytes)),
-            None => todo!(),
+            None => panic!("parsing non-u8 without setting endian"),
+        }
+    }
+
+    pub(super) fn read_i32(&mut self) -> Result<i32, LoadError> {
+        let bytes = self.read_bytes()?;
+        match self.endian {
+            Some(Endian::Big) => Ok(i32::from_be_bytes(bytes)),
+            Some(Endian::Little) => Ok(i32::from_le_bytes(bytes)),
+            None => panic!("parsing non-u8 without setting endian"),
+        }
+    }
+
+    pub(super) fn read_i64(&mut self) -> Result<i64, LoadError> {
+        let bytes = self.read_bytes()?;
+        match self.endian {
+            Some(Endian::Big) => Ok(i64::from_be_bytes(bytes)),
+            Some(Endian::Little) => Ok(i64::from_le_bytes(bytes)),
+            None => panic!("parsing non-u8 without setting endian"),
         }
     }
 
@@ -60,6 +78,14 @@ impl<'a> Cursor<'a> {
             Some(Class::Elf32) => Ok(self.read_u32()? as _),
             Some(Class::Elf64) => Ok(self.read_u64()?),
             None => panic!("parsing usize without setting class"),
+        }
+    }
+
+    pub(super) fn read_isize(&mut self) -> Result<i64, LoadError> {
+        match self.class {
+            Some(Class::Elf32) => Ok(self.read_i32()? as _),
+            Some(Class::Elf64) => Ok(self.read_i64()?),
+            None => panic!("parsing isize without setting class"),
         }
     }
 

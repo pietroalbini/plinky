@@ -12,12 +12,68 @@ Object {
     entry: None,
     flags: 0x0,
     sections: {
-        "": Section {
+        "#00 ": Section {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        ".bss": Section {
+        "#01 .text": Section {
+            name: ".text",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        f3 0f 1e fa 55 48 89 e5 48 83 ec 10 89 7d fc 48 89 75 f0 48 8d 05 00 00 00 | ....UH..H....}.H.u.H.....
+                        00 48 89 c7 e8 00 00 00 00 b8 00 00 00 00 c9 c3                            | .H..............
+                        (len: 0x29)
+                    },
+                },
+            ),
+        },
+        "#02 .rela.text": Section {
+            name: ".rela.text",
+            memory_address: 0x0,
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: "#11 .symtab",
+                    applies_to_section: "#01 .text",
+                    relocations: [
+                        Relocation {
+                            offset: 0x16,
+                            symbol: "#3 <empty>",
+                            relocation_type: X86_64_PC32,
+                            addend: Some(
+                                0xfffffffffffffffc,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x1e,
+                            symbol: "#5 puts",
+                            relocation_type: X86_64_PLT32,
+                            addend: Some(
+                                0xfffffffffffffffc,
+                            ),
+                        },
+                    ],
+                },
+            ),
+        },
+        "#03 .data": Section {
+            name: ".data",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: true,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {},
+                },
+            ),
+        },
+        "#04 .bss": Section {
             name: ".bss",
             memory_address: 0x0,
             content: Unknown(
@@ -27,7 +83,22 @@ Object {
                 },
             ),
         },
-        ".comment": Section {
+        "#05 .rodata": Section {
+            name: ".rodata",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {
+                        48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
+                        (len: 0xc)
+                    },
+                },
+            ),
+        },
+        "#06 .comment": Section {
             name: ".comment",
             memory_address: 0x0,
             content: Program(
@@ -43,36 +114,7 @@ Object {
                 },
             ),
         },
-        ".data": Section {
-            name: ".data",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: true,
-                    allocated: true,
-                    executable: false,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        ".eh_frame": Section {
-            name: ".eh_frame",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: false,
-                    raw: RawBytes {
-                        14 00 00 00 00 00 00 00 01 7a 52 00 01 78 10 01 1b 0c 07 08 90 01 00 00 1c | .........zR..x...........
-                        00 00 00 1c 00 00 00 00 00 00 00 29 00 00 00 00 45 0e 10 86 02 43 0d 06 60 | ...........)....E....C..`
-                        0c 07 08 00 00 00                                                          | ......
-                        (len: 0x38)
-                    },
-                },
-            ),
-        },
-        ".note.GNU-stack": Section {
+        "#07 .note.GNU-stack": Section {
             name: ".note.GNU-stack",
             memory_address: 0x0,
             content: Program(
@@ -84,7 +126,7 @@ Object {
                 },
             ),
         },
-        ".note.gnu.property": Section {
+        "#08 .note.gnu.property": Section {
             name: ".note.gnu.property",
             memory_address: 0x0,
             content: Note(
@@ -102,17 +144,34 @@ Object {
                 },
             ),
         },
-        ".rela.eh_frame": Section {
+        "#09 .eh_frame": Section {
+            name: ".eh_frame",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {
+                        14 00 00 00 00 00 00 00 01 7a 52 00 01 78 10 01 1b 0c 07 08 90 01 00 00 1c | .........zR..x...........
+                        00 00 00 1c 00 00 00 00 00 00 00 29 00 00 00 00 45 0e 10 86 02 43 0d 06 60 | ...........)....E....C..`
+                        0c 07 08 00 00 00                                                          | ......
+                        (len: 0x38)
+                    },
+                },
+            ),
+        },
+        "#10 .rela.eh_frame": Section {
             name: ".rela.eh_frame",
             memory_address: 0x0,
             content: RelocationsTable(
                 RelocationsTable {
-                    symbol_table: ".symtab",
-                    applies_to_section: ".eh_frame",
+                    symbol_table: "#11 .symtab",
+                    applies_to_section: "#09 .eh_frame",
                     relocations: [
                         Relocation {
                             offset: 0x20,
-                            symbol: "",
+                            symbol: "#2 <empty>",
                             relocation_type: X86_64_PC32,
                             addend: Some(
                                 0x0,
@@ -122,50 +181,85 @@ Object {
                 },
             ),
         },
-        ".rela.text": Section {
-            name: ".rela.text",
+        "#11 .symtab": Section {
+            name: ".symtab",
             memory_address: 0x0,
-            content: RelocationsTable(
-                RelocationsTable {
-                    symbol_table: ".symtab",
-                    applies_to_section: ".text",
-                    relocations: [
-                        Relocation {
-                            offset: 0x16,
-                            symbol: "",
-                            relocation_type: X86_64_PC32,
-                            addend: Some(
-                                0xfffffffffffffffc,
-                            ),
+            content: SymbolTable(
+                SymbolTable {
+                    symbols: {
+                        "#0 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
                         },
-                        Relocation {
-                            offset: 0x1e,
-                            symbol: "puts",
-                            relocation_type: X86_64_PLT32,
-                            addend: Some(
-                                0xfffffffffffffffc,
-                            ),
+                        "#1 hello_c.c": Symbol {
+                            name: "hello_c.c",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
                         },
-                    ],
-                },
-            ),
-        },
-        ".rodata": Section {
-            name: ".rodata",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: false,
-                    raw: RawBytes {
-                        48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
-                        (len: 0xc)
+                        "#2 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#01 .text",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#3 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#05 .rodata",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#4 main": Symbol {
+                            name: "main",
+                            binding: Global,
+                            type_: Function,
+                            definition: Section(
+                                "#01 .text",
+                            ),
+                            value: 0x0,
+                            size: 0x29,
+                        },
+                        "#5 puts": Symbol {
+                            name: "puts",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
                     },
                 },
             ),
         },
-        ".shstrtab": Section {
+        "#12 .strtab": Section {
+            name: ".strtab",
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "hello_c.c",
+                        0xb: "main",
+                        0x10: "puts",
+                    },
+                },
+            ),
+        },
+        "#13 .shstrtab": Section {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
@@ -183,82 +277,6 @@ Object {
                         0x42: ".note.GNU-stack",
                         0x52: ".note.gnu.property",
                         0x65: ".rela.eh_frame",
-                    },
-                },
-            ),
-        },
-        ".strtab": Section {
-            name: ".strtab",
-            memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "hello_c.c",
-                        0xb: "main",
-                        0x10: "puts",
-                    },
-                },
-            ),
-        },
-        ".symtab": Section {
-            name: ".symtab",
-            memory_address: 0x0,
-            content: SymbolTable(
-                SymbolTable {
-                    symbols: {
-                        "": Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                ".rodata",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "hello_c.c": Symbol {
-                            name: "hello_c.c",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "main": Symbol {
-                            name: "main",
-                            binding: Global,
-                            type_: Function,
-                            definition: Section(
-                                ".text",
-                            ),
-                            value: 0x0,
-                            size: 0x29,
-                        },
-                        "puts": Symbol {
-                            name: "puts",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                    },
-                },
-            ),
-        },
-        ".text": Section {
-            name: ".text",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        f3 0f 1e fa 55 48 89 e5 48 83 ec 10 89 7d fc 48 89 75 f0 48 8d 05 00 00 00 | ....UH..H....}.H.u.H.....
-                        00 48 89 c7 e8 00 00 00 00 b8 00 00 00 00 c9 c3                            | .H..............
-                        (len: 0x29)
                     },
                 },
             ),

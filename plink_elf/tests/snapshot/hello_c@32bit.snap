@@ -12,12 +12,96 @@ Object {
     entry: None,
     flags: 0x0,
     sections: {
-        "": Section {
+        "#00 ": Section {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        ".bss": Section {
+        "#01 .group": Section {
+            name: ".group",
+            memory_address: 0x0,
+            content: Unknown(
+                UnknownSection {
+                    id: 0x11,
+                    raw: RawBytes {
+                        01 00 00 00 07 00 00 00 | ........
+                        (len: 0x8)
+                    },
+                },
+            ),
+        },
+        "#02 .text": Section {
+            name: ".text",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 fc ff ff ff 05 01 00 00 00 | .L$.....q.U..SQ..........
+                        83 ec 0c 8d 90 00 00 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 00 00 | .........R...............
+                        8d 65 f8 59 5b 5d 8d 61 fc c3                                              | .e.Y[].a..
+                        (len: 0x3c)
+                    },
+                },
+            ),
+        },
+        "#03 .rel.text": Section {
+            name: ".rel.text",
+            memory_address: 0x0,
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: "#12 .symtab",
+                    applies_to_section: "#02 .text",
+                    relocations: [
+                        Relocation {
+                            offset: 0x10,
+                            symbol: "#6 __x86.get_pc_thunk.ax",
+                            relocation_type: X86_PC32,
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x15,
+                            symbol: "#7 _GLOBAL_OFFSET_TABLE_",
+                            relocation_type: Unknown(
+                                0xa,
+                            ),
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x1e,
+                            symbol: "#3 <empty>",
+                            relocation_type: Unknown(
+                                0x9,
+                            ),
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x26,
+                            symbol: "#8 puts",
+                            relocation_type: Unknown(
+                                0x4,
+                            ),
+                            addend: None,
+                        },
+                    ],
+                },
+            ),
+        },
+        "#04 .data": Section {
+            name: ".data",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: true,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {},
+                },
+            ),
+        },
+        "#05 .bss": Section {
             name: ".bss",
             memory_address: 0x0,
             content: Unknown(
@@ -27,7 +111,37 @@ Object {
                 },
             ),
         },
-        ".comment": Section {
+        "#06 .rodata": Section {
+            name: ".rodata",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {
+                        48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
+                        (len: 0xc)
+                    },
+                },
+            ),
+        },
+        "#07 .text.__x86.get_pc_thunk.ax": Section {
+            name: ".text.__x86.get_pc_thunk.ax",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        8b 04 24 c3 | ..$.
+                        (len: 0x4)
+                    },
+                },
+            ),
+        },
+        "#08 .comment": Section {
             name: ".comment",
             memory_address: 0x0,
             content: Program(
@@ -43,19 +157,19 @@ Object {
                 },
             ),
         },
-        ".data": Section {
-            name: ".data",
+        "#09 .note.GNU-stack": Section {
+            name: ".note.GNU-stack",
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
-                    writeable: true,
-                    allocated: true,
+                    writeable: false,
+                    allocated: false,
                     executable: false,
                     raw: RawBytes {},
                 },
             ),
         },
-        ".eh_frame": Section {
+        "#10 .eh_frame": Section {
             name: ".eh_frame",
             memory_address: 0x0,
             content: Program(
@@ -73,48 +187,23 @@ Object {
                 },
             ),
         },
-        ".group": Section {
-            name: ".group",
-            memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x11,
-                    raw: RawBytes {
-                        01 00 00 00 07 00 00 00 | ........
-                        (len: 0x8)
-                    },
-                },
-            ),
-        },
-        ".note.GNU-stack": Section {
-            name: ".note.GNU-stack",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: false,
-                    executable: false,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        ".rel.eh_frame": Section {
+        "#11 .rel.eh_frame": Section {
             name: ".rel.eh_frame",
             memory_address: 0x0,
             content: RelocationsTable(
                 RelocationsTable {
-                    symbol_table: ".symtab",
-                    applies_to_section: ".eh_frame",
+                    symbol_table: "#12 .symtab",
+                    applies_to_section: "#10 .eh_frame",
                     relocations: [
                         Relocation {
                             offset: 0x20,
-                            symbol: "",
+                            symbol: "#2 <empty>",
                             relocation_type: X86_PC32,
                             addend: None,
                         },
                         Relocation {
                             offset: 0x54,
-                            symbol: "",
+                            symbol: "#4 <empty>",
                             relocation_type: X86_PC32,
                             addend: None,
                         },
@@ -122,64 +211,115 @@ Object {
                 },
             ),
         },
-        ".rel.text": Section {
-            name: ".rel.text",
+        "#12 .symtab": Section {
+            name: ".symtab",
             memory_address: 0x0,
-            content: RelocationsTable(
-                RelocationsTable {
-                    symbol_table: ".symtab",
-                    applies_to_section: ".text",
-                    relocations: [
-                        Relocation {
-                            offset: 0x10,
-                            symbol: "__x86.get_pc_thunk.ax",
-                            relocation_type: X86_PC32,
-                            addend: None,
+            content: SymbolTable(
+                SymbolTable {
+                    symbols: {
+                        "#0 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
                         },
-                        Relocation {
-                            offset: 0x15,
-                            symbol: "_GLOBAL_OFFSET_TABLE_",
-                            relocation_type: Unknown(
-                                0xa,
+                        "#1 hello_c.c": Symbol {
+                            name: "hello_c.c",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#2 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#02 .text",
                             ),
-                            addend: None,
+                            value: 0x0,
+                            size: 0x0,
                         },
-                        Relocation {
-                            offset: 0x1e,
-                            symbol: "",
-                            relocation_type: Unknown(
-                                0x9,
+                        "#3 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#06 .rodata",
                             ),
-                            addend: None,
+                            value: 0x0,
+                            size: 0x0,
                         },
-                        Relocation {
-                            offset: 0x26,
-                            symbol: "puts",
-                            relocation_type: Unknown(
-                                0x4,
+                        "#4 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#07 .text.__x86.get_pc_thunk.ax",
                             ),
-                            addend: None,
+                            value: 0x0,
+                            size: 0x0,
                         },
-                    ],
-                },
-            ),
-        },
-        ".rodata": Section {
-            name: ".rodata",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: false,
-                    raw: RawBytes {
-                        48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
-                        (len: 0xc)
+                        "#5 main": Symbol {
+                            name: "main",
+                            binding: Global,
+                            type_: Function,
+                            definition: Section(
+                                "#02 .text",
+                            ),
+                            value: 0x0,
+                            size: 0x3c,
+                        },
+                        "#6 __x86.get_pc_thunk.ax": Symbol {
+                            name: "__x86.get_pc_thunk.ax",
+                            binding: Global,
+                            type_: Function,
+                            definition: Section(
+                                "#07 .text.__x86.get_pc_thunk.ax",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#7 _GLOBAL_OFFSET_TABLE_": Symbol {
+                            name: "_GLOBAL_OFFSET_TABLE_",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#8 puts": Symbol {
+                            name: "puts",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
                     },
                 },
             ),
         },
-        ".shstrtab": Section {
+        "#13 .strtab": Section {
+            name: ".strtab",
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "hello_c.c",
+                        0xb: "main",
+                        0x10: "__x86.get_pc_thunk.ax",
+                        0x26: "_GLOBAL_OFFSET_TABLE_",
+                        0x3c: "puts",
+                    },
+                },
+            ),
+        },
+        "#14 .shstrtab": Section {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
@@ -198,118 +338,6 @@ Object {
                         0x5d: ".note.GNU-stack",
                         0x6d: ".rel.eh_frame",
                         0x7b: ".group",
-                    },
-                },
-            ),
-        },
-        ".strtab": Section {
-            name: ".strtab",
-            memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "hello_c.c",
-                        0xb: "main",
-                        0x10: "__x86.get_pc_thunk.ax",
-                        0x26: "_GLOBAL_OFFSET_TABLE_",
-                        0x3c: "puts",
-                    },
-                },
-            ),
-        },
-        ".symtab": Section {
-            name: ".symtab",
-            memory_address: 0x0,
-            content: SymbolTable(
-                SymbolTable {
-                    symbols: {
-                        "": Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                ".text.__x86.get_pc_thunk.ax",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "_GLOBAL_OFFSET_TABLE_": Symbol {
-                            name: "_GLOBAL_OFFSET_TABLE_",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "__x86.get_pc_thunk.ax": Symbol {
-                            name: "__x86.get_pc_thunk.ax",
-                            binding: Global,
-                            type_: Function,
-                            definition: Section(
-                                ".text.__x86.get_pc_thunk.ax",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "hello_c.c": Symbol {
-                            name: "hello_c.c",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "main": Symbol {
-                            name: "main",
-                            binding: Global,
-                            type_: Function,
-                            definition: Section(
-                                ".text",
-                            ),
-                            value: 0x0,
-                            size: 0x3c,
-                        },
-                        "puts": Symbol {
-                            name: "puts",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                    },
-                },
-            ),
-        },
-        ".text": Section {
-            name: ".text",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 fc ff ff ff 05 01 00 00 00 | .L$.....q.U..SQ..........
-                        83 ec 0c 8d 90 00 00 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 00 00 | .........R...............
-                        8d 65 f8 59 5b 5d 8d 61 fc c3                                              | .e.Y[].a..
-                        (len: 0x3c)
-                    },
-                },
-            ),
-        },
-        ".text.__x86.get_pc_thunk.ax": Section {
-            name: ".text.__x86.get_pc_thunk.ax",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        8b 04 24 c3 | ..$.
-                        (len: 0x4)
                     },
                 },
             ),

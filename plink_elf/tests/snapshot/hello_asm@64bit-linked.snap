@@ -14,12 +14,29 @@ Object {
     ),
     flags: 0x0,
     sections: {
-        "": Section {
+        "#0 ": Section {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        ".data": Section {
+        "#1 .text": Section {
+            name: ".text",
+            memory_address: 0x401000,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        b8 04 00 00 00 bb 01 00 00 00 b9 00 20 40 00 ba 0d 00 00 00 cd 80 b8 04 00 | ............ @...........
+                        00 00 bb 01 00 00 00 b9 0d 20 40 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | ......... @..............
+                        00 cd 80                                                                   | ...
+                        (len: 0x35)
+                    },
+                },
+            ),
+        },
+        "#2 .data": Section {
             name: ".data",
             memory_address: 0x402000,
             content: Program(
@@ -35,23 +52,109 @@ Object {
                 },
             ),
         },
-        ".shstrtab": Section {
-            name: ".shstrtab",
+        "#3 .symtab": Section {
+            name: ".symtab",
             memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: ".symtab",
-                        0x9: ".strtab",
-                        0x11: ".shstrtab",
-                        0x1b: ".text",
-                        0x21: ".data",
+            content: SymbolTable(
+                SymbolTable {
+                    symbols: {
+                        "#00 <empty>": Symbol {
+                            name: "",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#01 tests/snapshot/hello_asm.S": Symbol {
+                            name: "tests/snapshot/hello_asm.S",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#02 msg_hello": Symbol {
+                            name: "msg_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                "#2 .data",
+                            ),
+                            value: 0x402000,
+                            size: 0x0,
+                        },
+                        "#03 len_hello": Symbol {
+                            name: "len_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        "#04 msg_goodbye": Symbol {
+                            name: "msg_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                "#2 .data",
+                            ),
+                            value: 0x40200d,
+                            size: 0x0,
+                        },
+                        "#05 len_goodbye": Symbol {
+                            name: "len_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xf,
+                            size: 0x0,
+                        },
+                        "#06 _start": Symbol {
+                            name: "_start",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Section(
+                                "#1 .text",
+                            ),
+                            value: 0x401000,
+                            size: 0x0,
+                        },
+                        "#07 __bss_start": Symbol {
+                            name: "__bss_start",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Section(
+                                "#2 .data",
+                            ),
+                            value: 0x40201c,
+                            size: 0x0,
+                        },
+                        "#08 _edata": Symbol {
+                            name: "_edata",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Section(
+                                "#2 .data",
+                            ),
+                            value: 0x40201c,
+                            size: 0x0,
+                        },
+                        "#09 _end": Symbol {
+                            name: "_end",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Section(
+                                "#2 .data",
+                            ),
+                            value: 0x402020,
+                            size: 0x0,
+                        },
                     },
                 },
             ),
         },
-        ".strtab": Section {
+        "#4 .strtab": Section {
             name: ".strtab",
             memory_address: 0x0,
             content: StringTable(
@@ -70,121 +173,18 @@ Object {
                 },
             ),
         },
-        ".symtab": Section {
-            name: ".symtab",
+        "#5 .shstrtab": Section {
+            name: ".shstrtab",
             memory_address: 0x0,
-            content: SymbolTable(
-                SymbolTable {
-                    symbols: {
-                        "": Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "__bss_start": Symbol {
-                            name: "__bss_start",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x40201c,
-                            size: 0x0,
-                        },
-                        "_edata": Symbol {
-                            name: "_edata",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x40201c,
-                            size: 0x0,
-                        },
-                        "_end": Symbol {
-                            name: "_end",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x402020,
-                            size: 0x0,
-                        },
-                        "_start": Symbol {
-                            name: "_start",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Section(
-                                ".text",
-                            ),
-                            value: 0x401000,
-                            size: 0x0,
-                        },
-                        "len_goodbye": Symbol {
-                            name: "len_goodbye",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Absolute,
-                            value: 0xf,
-                            size: 0x0,
-                        },
-                        "len_hello": Symbol {
-                            name: "len_hello",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Absolute,
-                            value: 0xd,
-                            size: 0x0,
-                        },
-                        "msg_goodbye": Symbol {
-                            name: "msg_goodbye",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x40200d,
-                            size: 0x0,
-                        },
-                        "msg_hello": Symbol {
-                            name: "msg_hello",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x402000,
-                            size: 0x0,
-                        },
-                        "tests/snapshot/hello_asm.S": Symbol {
-                            name: "tests/snapshot/hello_asm.S",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                    },
-                },
-            ),
-        },
-        ".text": Section {
-            name: ".text",
-            memory_address: 0x401000,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        b8 04 00 00 00 bb 01 00 00 00 b9 00 20 40 00 ba 0d 00 00 00 cd 80 b8 04 00 | ............ @...........
-                        00 00 bb 01 00 00 00 b9 0d 20 40 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | ......... @..............
-                        00 cd 80                                                                   | ...
-                        (len: 0x35)
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: ".symtab",
+                        0x9: ".strtab",
+                        0x11: ".shstrtab",
+                        0x1b: ".text",
+                        0x21: ".data",
                     },
                 },
             ),

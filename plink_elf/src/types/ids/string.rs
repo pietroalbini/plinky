@@ -24,13 +24,31 @@ impl ConvertibleElfIds for StringIds {
     {
         let mut map = IdConversionMap::new();
 
-        for (id, section) in &object.sections {
-            map.section_ids.insert(id.clone(), section.name.clone());
+        for (i, (id, section)) in object.sections.iter().enumerate() {
+            map.section_ids.insert(
+                id.clone(),
+                format!(
+                    "{} {}",
+                    format_number(i, object.sections.len()),
+                    section.name
+                ),
+            );
 
             match &section.content {
                 SectionContent::SymbolTable(table) => {
-                    for (id, symbol) in &table.symbols {
-                        map.symbol_ids.insert(id.clone(), symbol.name.clone());
+                    for (i, (id, symbol)) in table.symbols.iter().enumerate() {
+                        map.symbol_ids.insert(
+                            id.clone(),
+                            format!(
+                                "{} {}",
+                                format_number(i, table.symbols.len()),
+                                if symbol.name.is_empty() {
+                                    "<empty>"
+                                } else {
+                                    &symbol.name
+                                }
+                            ),
+                        );
                     }
                 }
                 _ => {}
@@ -39,4 +57,9 @@ impl ConvertibleElfIds for StringIds {
 
         map
     }
+}
+
+fn format_number(number: usize, total: usize) -> String {
+    let total_len = total.to_string().len();
+    format!("#{number:0>total_len$}")
 }

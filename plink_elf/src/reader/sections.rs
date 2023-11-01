@@ -212,12 +212,21 @@ fn read_symbol(
     cursor: &mut Cursor<'_>,
     strings_table: u16,
 ) -> Result<Symbol<PendingIds, RefCell<PendingString>>, LoadError> {
+    let mut value = 0;
+    let mut size = 0;
+
     let name_offset = cursor.read_u32()?;
+    if let Some(Class::Elf32) = cursor.class {
+        value = cursor.read_usize()?;
+        size = cursor.read_usize()?;
+    }
     let info = cursor.read_u8()?;
     let _ = cursor.read_u8()?; // Reserved
     let definition = cursor.read_u16()?;
-    let value = cursor.read_usize()?;
-    let size = cursor.read_usize()?;
+    if let Some(Class::Elf64) = cursor.class {
+        value = cursor.read_usize()?;
+        size = cursor.read_usize()?;
+    }
 
     Ok(Symbol {
         name: RefCell::new(PendingString::String {

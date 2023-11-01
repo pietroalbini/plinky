@@ -1,5 +1,7 @@
 use crate::ids::ElfIds;
-use crate::{Object, Section, SectionContent, Symbol, SymbolDefinition, SymbolTable};
+use crate::{
+    Object, RelocationsTable, Section, SectionContent, Symbol, SymbolDefinition, SymbolTable,
+};
 use std::collections::BTreeMap;
 
 pub trait ConvertibleElfIds: ElfIds {
@@ -52,9 +54,9 @@ where
                         content: match section.content {
                             SectionContent::Null => SectionContent::Null,
                             SectionContent::Program(p) => SectionContent::Program(p),
-                            SectionContent::SymbolTable(symbol_table) => {
+                            SectionContent::SymbolTable(table) => {
                                 SectionContent::SymbolTable(SymbolTable {
-                                    symbols: symbol_table
+                                    symbols: table
                                         .symbols
                                         .into_iter()
                                         .map(|symbol| Symbol {
@@ -84,8 +86,12 @@ where
                                 })
                             }
                             SectionContent::StringTable(s) => SectionContent::StringTable(s),
-                            SectionContent::RelocationsTable(r) => {
-                                SectionContent::RelocationsTable(r)
+                            SectionContent::RelocationsTable(table) => {
+                                SectionContent::RelocationsTable(RelocationsTable {
+                                    symbol_table: map.section_id(&table.symbol_table),
+                                    applies_to_section: map.section_id(&table.applies_to_section),
+                                    relocations: table.relocations,
+                                })
                             }
                             SectionContent::Note(n) => SectionContent::Note(n),
                             SectionContent::Unknown(u) => SectionContent::Unknown(u),

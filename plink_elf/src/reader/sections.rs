@@ -44,17 +44,6 @@ pub(super) fn read_sections(
                     None => Err(LoadError::MissingStringTable(*section)),
                 }
             }
-            PendingString::SectionName { section } => {
-                let name_ref = sections.get(*section as usize).map(|s| s.name.borrow());
-                match name_ref.as_deref() {
-                    Some(PendingString::Resolved(name)) => {
-                        *mutable = PendingString::Resolved(name.clone());
-                        Ok(())
-                    }
-                    Some(_) => unreachable!("unresolved section name"),
-                    None => Err(LoadError::MissingSection(*section)),
-                }
-            }
             PendingString::Resolved(_) => Ok(()),
         }
     };
@@ -66,17 +55,10 @@ pub(super) fn read_sections(
             }
         }
     }
-    for section in &sections {
-        if let SectionContent::RelocationsTable(table) = &section.content {
-            resolve_str(&table.symbol_table)?;
-            resolve_str(&table.applies_to_section)?;
-        }
-    }
 
     let remove_pending_str = |pending: RefCell<PendingString>| -> String {
         match pending.into_inner() {
             PendingString::String { .. } => unreachable!("unresolved string"),
-            PendingString::SectionName { .. } => unreachable!("unresolved section name"),
             PendingString::Resolved(inner) => inner,
         }
     };
@@ -109,13 +91,7 @@ pub(super) fn read_sections(
                             })
                         }
                         SectionContent::StringTable(s) => SectionContent::StringTable(s),
-                        SectionContent::RelocationsTable(r) => {
-                            SectionContent::RelocationsTable(RelocationsTable {
-                                symbol_table: remove_pending_str(r.symbol_table),
-                                applies_to_section: remove_pending_str(r.applies_to_section),
-                                relocations: r.relocations,
-                            })
-                        }
+                        SectionContent::RelocationsTable(r) => SectionContent::RelocationsTable(r),
                         SectionContent::Note(n) => SectionContent::Note(n),
                         SectionContent::Unknown(u) => SectionContent::Unknown(u),
                     },
@@ -274,12 +250,8 @@ fn read_relocations_table(
     }
 
     Ok(SectionContent::RelocationsTable(RelocationsTable {
-        symbol_table: RefCell::new(PendingString::SectionName {
-            section: symbol_table,
-        }),
-        applies_to_section: RefCell::new(PendingString::SectionName {
-            section: applies_to_section,
-        }),
+        symbol_table: PendingSectionId(symbol_table as _),
+        applies_to_section: PendingSectionId(applies_to_section as _),
         relocations,
     }))
 }
@@ -355,6 +327,5 @@ fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, Lo
 #[derive(Debug)]
 enum PendingString {
     String { section: u16, offset: u32 },
-    SectionName { section: u16 },
     Resolved(String),
 }

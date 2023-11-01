@@ -82,7 +82,7 @@ pub enum SectionContent<I: ElfIds, S = String> {
     Program(ProgramSection),
     SymbolTable(SymbolTable<I, S>),
     StringTable(StringTable),
-    RelocationsTable(RelocationsTable<S>),
+    RelocationsTable(RelocationsTable<I>),
     Note(NotesTable),
     Unknown(UnknownSection),
 }
@@ -155,9 +155,9 @@ pub enum SymbolDefinition<I: ElfIds> {
 }
 
 #[derive(Debug)]
-pub struct RelocationsTable<S = String> {
-    pub symbol_table: S,
-    pub applies_to_section: S,
+pub struct RelocationsTable<I: ElfIds> {
+    pub symbol_table: I::SectionId,
+    pub applies_to_section: I::SectionId,
     pub relocations: Vec<Relocation>,
 }
 

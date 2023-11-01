@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CliOptions {
-    pub(crate) input: PathBuf,
+    pub(crate) inputs: Vec<PathBuf>,
     pub(crate) output: PathBuf,
 }
 
@@ -12,16 +12,13 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let args = args.map(|s| s.into()).collect::<Vec<_>>();
     let mut lexer = CliLexer::new(&args);
 
-    let mut input = None;
+    let mut inputs = Vec::new();
     let mut output = None;
 
     let mut previous_token: Option<CliToken<'_>> = None;
     while let Some(token) = lexer.next() {
         match token {
-            CliToken::StandaloneValue(val) => match input {
-                Some(_) => return Err(CliError::MultipleInputs),
-                None => input = Some(val.to_string()),
-            },
+            CliToken::StandaloneValue(val) => inputs.push(val.into()),
 
             CliToken::LongFlag("output") | CliToken::ShortFlag("o") => match output {
                 Some(_) => return Err(CliError::DuplicateFlag(token.to_string())),
@@ -43,8 +40,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         previous_token = Some(token);
     }
 
+    if inputs.is_empty() {
+        return Err(CliError::MissingInput);
+    }
+
     Ok(CliOptions {
-        input: input.ok_or(CliError::MissingInput)?.into(),
+        inputs,
         output: output.unwrap_or("a.out").into(),
     })
 }
@@ -52,7 +53,6 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum CliError {
     MissingInput,
-    MultipleInputs,
     UnsupportedFlag(String),
     DuplicateFlag(String),
     FlagDoesNotAcceptValues(String),
@@ -65,7 +65,6 @@ impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CliError::MissingInput => f.write_str("missing input file"),
-            CliError::MultipleInputs => f.write_str("multiple input files are not yet supported"),
             CliError::UnsupportedFlag(flag) => write!(f, "flag {flag} is not supported"),
             CliError::DuplicateFlag(flag) => write!(f, "flag {flag} provided multiple times"),
             CliError::FlagDoesNotAcceptValues(flag) => {
@@ -208,7 +207,7 @@ mod tests {
     fn test_one_input() {
         assert_eq!(
             Ok(CliOptions {
-                input: "foo".into(),
+                inputs: vec!["foo".into()],
                 output: "a.out".into()
             }),
             parse(["foo"].into_iter())
@@ -218,7 +217,10 @@ mod tests {
     #[test]
     fn test_two_inputs() {
         assert_eq!(
-            Err(CliError::MultipleInputs),
+            Ok(CliOptions {
+                inputs: vec!["foo".into(), "bar".into()],
+                output: "a.out".into()
+            }),
             parse(["foo", "bar"].into_iter())
         )
     }
@@ -235,7 +237,7 @@ mod tests {
         for flags in VARIANTS {
             assert_eq!(
                 Ok(CliOptions {
-                    input: "foo".into(),
+                    inputs: vec!["foo".into()],
                     output: "bar".into(),
                 }),
                 parse(flags.into_iter().copied())

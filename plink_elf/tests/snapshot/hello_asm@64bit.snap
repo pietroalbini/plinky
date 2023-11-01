@@ -11,13 +11,13 @@ Object {
     type_: Relocatable,
     entry: None,
     flags: 0x0,
-    sections: [
-        Section {
+    sections: {
+        "": Section {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        Section {
+        ".data": Section {
             name: ".data",
             memory_address: 0x0,
             content: Program(
@@ -33,24 +33,35 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".text",
+        ".rela.text": Section {
+            name: ".rela.text",
             memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b8 04 00 | .........................
-                        00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | .........................
-                        00 cd 80                                                                   | ...
-                        (len: 0x35)
-                    },
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: ".symtab",
+                    applies_to_section: ".text",
+                    relocations: [
+                        Relocation {
+                            offset: 0xb,
+                            symbol: 0x2,
+                            relocation_type: X86_64_32,
+                            addend: Some(
+                                0x0,
+                            ),
+                        },
+                        Relocation {
+                            offset: 0x21,
+                            symbol: 0x2,
+                            relocation_type: X86_64_32,
+                            addend: Some(
+                                0xd,
+                            ),
+                        },
+                    ],
                 },
             ),
         },
-        Section {
+        ".shstrtab": Section {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
@@ -67,7 +78,24 @@ Object {
                 },
             ),
         },
-        Section {
+        ".strtab": Section {
+            name: ".strtab",
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "tests/snapshot/hello_asm.S",
+                        0x1c: "msg_hello",
+                        0x26: "len_hello",
+                        0x30: "msg_goodbye",
+                        0x3c: "len_goodbye",
+                        0x48: "_start",
+                    },
+                },
+            ),
+        },
+        ".symtab": Section {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
@@ -159,51 +187,23 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".strtab",
+        ".text": Section {
+            name: ".text",
             memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "tests/snapshot/hello_asm.S",
-                        0x1c: "msg_hello",
-                        0x26: "len_hello",
-                        0x30: "msg_goodbye",
-                        0x3c: "len_goodbye",
-                        0x48: "_start",
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b8 04 00 | .........................
+                        00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | .........................
+                        00 cd 80                                                                   | ...
+                        (len: 0x35)
                     },
                 },
             ),
         },
-        Section {
-            name: ".rela.text",
-            memory_address: 0x0,
-            content: RelocationsTable(
-                RelocationsTable {
-                    symbol_table: ".symtab",
-                    applies_to_section: ".text",
-                    relocations: [
-                        Relocation {
-                            offset: 0xb,
-                            symbol: 0x2,
-                            relocation_type: X86_64_32,
-                            addend: Some(
-                                0x0,
-                            ),
-                        },
-                        Relocation {
-                            offset: 0x21,
-                            symbol: 0x2,
-                            relocation_type: X86_64_32,
-                            addend: Some(
-                                0xd,
-                            ),
-                        },
-                    ],
-                },
-            ),
-        },
-    ],
+    },
     segments: [],
 }

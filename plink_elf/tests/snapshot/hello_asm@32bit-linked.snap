@@ -13,30 +13,13 @@ Object {
         0x8049000,
     ),
     flags: 0x0,
-    sections: [
-        Section {
+    sections: {
+        "": Section {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        Section {
-            name: ".text",
-            memory_address: 0x8049000,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        b8 04 00 00 00 bb 01 00 00 00 b9 00 a0 04 08 ba 0d 00 00 00 cd 80 b8 04 00 | .........................
-                        00 00 bb 01 00 00 00 b9 0d a0 04 08 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | .........................
-                        00 cd 80                                                                   | ...
-                        (len: 0x35)
-                    },
-                },
-            ),
-        },
-        Section {
+        ".data": Section {
             name: ".data",
             memory_address: 0x804a000,
             content: Program(
@@ -52,7 +35,42 @@ Object {
                 },
             ),
         },
-        Section {
+        ".shstrtab": Section {
+            name: ".shstrtab",
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: ".symtab",
+                        0x9: ".strtab",
+                        0x11: ".shstrtab",
+                        0x1b: ".text",
+                        0x21: ".data",
+                    },
+                },
+            ),
+        },
+        ".strtab": Section {
+            name: ".strtab",
+            memory_address: 0x0,
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "tests/snapshot/hello_asm.S",
+                        0x1c: "msg_hello",
+                        0x26: "len_hello",
+                        0x30: "msg_goodbye",
+                        0x3c: "len_goodbye",
+                        0x48: "__bss_start",
+                        0x54: "_edata",
+                        0x5b: "_end",
+                    },
+                },
+            ),
+        },
+        ".symtab": Section {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
@@ -166,42 +184,24 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".strtab",
-            memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "tests/snapshot/hello_asm.S",
-                        0x1c: "msg_hello",
-                        0x26: "len_hello",
-                        0x30: "msg_goodbye",
-                        0x3c: "len_goodbye",
-                        0x48: "__bss_start",
-                        0x54: "_edata",
-                        0x5b: "_end",
+        ".text": Section {
+            name: ".text",
+            memory_address: 0x8049000,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        b8 04 00 00 00 bb 01 00 00 00 b9 00 a0 04 08 ba 0d 00 00 00 cd 80 b8 04 00 | .........................
+                        00 00 bb 01 00 00 00 b9 0d a0 04 08 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | .........................
+                        00 cd 80                                                                   | ...
+                        (len: 0x35)
                     },
                 },
             ),
         },
-        Section {
-            name: ".shstrtab",
-            memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: ".symtab",
-                        0x9: ".strtab",
-                        0x11: ".shstrtab",
-                        0x1b: ".text",
-                        0x21: ".data",
-                    },
-                },
-            ),
-        },
-    ],
+    },
     segments: [
         Segment {
             content: Unknown {

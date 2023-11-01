@@ -1,27 +1,32 @@
+pub mod ids;
 mod string_table;
 
 pub use self::string_table::StringTable;
 
 use crate::errors::LoadError;
 use crate::reader::{read_object, Cursor};
+use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
 use std::num::NonZeroU64;
 use std::ops::Deref;
+use std::collections::BTreeMap;
+use crate::ids::{ConvertibleElfIds, convert};
 
 #[derive(Debug)]
-pub struct Object {
+pub struct Object<I: ElfIds> {
     pub env: Environment,
     pub type_: Type,
     pub entry: Option<NonZeroU64>,
     pub flags: u32,
-    pub sections: Vec<Section>,
+    pub sections: BTreeMap<I::SectionId, Section>,
     pub segments: Vec<Segment>,
 }
 
-impl Object {
-    pub fn load(reader: &mut dyn ReadSeek) -> Result<Self, LoadError> {
+impl<I: ConvertibleElfIds> Object<I> {
+    pub fn load(reader: &mut dyn ReadSeek, ids: &mut I) -> Result<Self, LoadError> {
         let mut cursor = Cursor::new(reader);
-        read_object(&mut cursor)
+        let object = read_object(&mut cursor)?;
+        Ok(convert(ids, object))
     }
 }
 

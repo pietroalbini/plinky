@@ -7,6 +7,7 @@ use std::io::BufReader;
 use std::path::Path;
 use std::process::Command;
 use tempfile::NamedTempFile;
+use plink_elf::ids::StringIds;
 
 macro_rules! test {
     ($name:ident, $source:expr $(, $variant:ident)*) => {
@@ -54,7 +55,7 @@ fn implement_test(source: &str, variant: &str) -> Result<(), Error> {
     }
     let mut file = BufReader::new(File::open(object_file.path())?);
 
-    let parsed = Object::load(&mut file)?;
+    let parsed = Object::load(&mut file, &mut StringIds::new())?;
 
     let mut settings = insta::Settings::clone_current();
     settings.set_omit_expression(true);

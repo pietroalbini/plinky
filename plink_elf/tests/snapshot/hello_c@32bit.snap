@@ -11,13 +11,69 @@ Object {
     type_: Relocatable,
     entry: None,
     flags: 0x0,
-    sections: [
-        Section {
+    sections: {
+        "": Section {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        Section {
+        ".bss": Section {
+            name: ".bss",
+            memory_address: 0x0,
+            content: Unknown(
+                UnknownSection {
+                    id: 0x8,
+                    raw: RawBytes {},
+                },
+            ),
+        },
+        ".comment": Section {
+            name: ".comment",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: false,
+                    executable: false,
+                    raw: RawBytes {
+                        00 47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 2e 34 2e 30 2d 31 75 62 75 | .GCC: (Ubuntu 11.4.0-1ubu
+                        6e 74 75 31 7e 32 32 2e 30 34 29 20 31 31 2e 34 2e 30 00                   | ntu1~22.04) 11.4.0.
+                        (len: 0x2c)
+                    },
+                },
+            ),
+        },
+        ".data": Section {
+            name: ".data",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: true,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {},
+                },
+            ),
+        },
+        ".eh_frame": Section {
+            name: ".eh_frame",
+            memory_address: 0x0,
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: false,
+                    raw: RawBytes {
+                        14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 30 | .........zR..|..........0
+                        00 00 00 1c 00 00 00 00 00 00 00 3c 00 00 00 00 44 0c 01 00 49 10 05 02 75 | ...........<....D...I...u
+                        00 42 0f 03 75 78 06 10 03 02 75 7c 67 c1 0c 01 00 41 c3 41 c5 43 0c 04 04 | .B..ux....u|g....A.A.C...
+                        00 10 00 00 00 50 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00             | .....P...............
+                        (len: 0x60)
+                    },
+                },
+            ),
+        },
+        ".group": Section {
             name: ".group",
             memory_address: 0x0,
             content: Unknown(
@@ -30,24 +86,43 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".text",
+        ".note.GNU-stack": Section {
+            name: ".note.GNU-stack",
             memory_address: 0x0,
             content: Program(
                 ProgramSection {
                     writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 fc ff ff ff 05 01 00 00 00 | .L$.....q.U..SQ..........
-                        83 ec 0c 8d 90 00 00 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 00 00 | .........R...............
-                        8d 65 f8 59 5b 5d 8d 61 fc c3                                              | .e.Y[].a..
-                        (len: 0x3c)
-                    },
+                    allocated: false,
+                    executable: false,
+                    raw: RawBytes {},
                 },
             ),
         },
-        Section {
+        ".rel.eh_frame": Section {
+            name: ".rel.eh_frame",
+            memory_address: 0x0,
+            content: RelocationsTable(
+                RelocationsTable {
+                    symbol_table: ".symtab",
+                    applies_to_section: ".eh_frame",
+                    relocations: [
+                        Relocation {
+                            offset: 0x20,
+                            symbol: 0x2,
+                            relocation_type: X86_PC32,
+                            addend: None,
+                        },
+                        Relocation {
+                            offset: 0x54,
+                            symbol: 0x4,
+                            relocation_type: X86_PC32,
+                            addend: None,
+                        },
+                    ],
+                },
+            ),
+        },
+        ".rel.text": Section {
             name: ".rel.text",
             memory_address: 0x0,
             content: RelocationsTable(
@@ -89,29 +164,7 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".data",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: true,
-                    allocated: true,
-                    executable: false,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        Section {
-            name: ".bss",
-            memory_address: 0x0,
-            content: Unknown(
-                UnknownSection {
-                    id: 0x8,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        Section {
+        ".rodata": Section {
             name: ".rodata",
             memory_address: 0x0,
             content: Program(
@@ -126,92 +179,46 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".text.__x86.get_pc_thunk.ax",
+        ".shstrtab": Section {
+            name: ".shstrtab",
             memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
-                    raw: RawBytes {
-                        8b 04 24 c3 | ..$.
-                        (len: 0x4)
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: ".symtab",
+                        0x9: ".strtab",
+                        0x11: ".shstrtab",
+                        0x1b: ".rel.text",
+                        0x25: ".data",
+                        0x2b: ".bss",
+                        0x30: ".rodata",
+                        0x38: ".text.__x86.get_pc_thunk.ax",
+                        0x54: ".comment",
+                        0x5d: ".note.GNU-stack",
+                        0x6d: ".rel.eh_frame",
+                        0x7b: ".group",
                     },
                 },
             ),
         },
-        Section {
-            name: ".comment",
+        ".strtab": Section {
+            name: ".strtab",
             memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: false,
-                    executable: false,
-                    raw: RawBytes {
-                        00 47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 2e 34 2e 30 2d 31 75 62 75 | .GCC: (Ubuntu 11.4.0-1ubu
-                        6e 74 75 31 7e 32 32 2e 30 34 29 20 31 31 2e 34 2e 30 00                   | ntu1~22.04) 11.4.0.
-                        (len: 0x2c)
+            content: StringTable(
+                StringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "hello_c.c",
+                        0xb: "main",
+                        0x10: "__x86.get_pc_thunk.ax",
+                        0x26: "_GLOBAL_OFFSET_TABLE_",
+                        0x3c: "puts",
                     },
                 },
             ),
         },
-        Section {
-            name: ".note.GNU-stack",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: false,
-                    executable: false,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        Section {
-            name: ".eh_frame",
-            memory_address: 0x0,
-            content: Program(
-                ProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: false,
-                    raw: RawBytes {
-                        14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 1b 0c 04 04 88 01 00 00 30 | .........zR..|..........0
-                        00 00 00 1c 00 00 00 00 00 00 00 3c 00 00 00 00 44 0c 01 00 49 10 05 02 75 | ...........<....D...I...u
-                        00 42 0f 03 75 78 06 10 03 02 75 7c 67 c1 0c 01 00 41 c3 41 c5 43 0c 04 04 | .B..ux....u|g....A.A.C...
-                        00 10 00 00 00 50 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00             | .....P...............
-                        (len: 0x60)
-                    },
-                },
-            ),
-        },
-        Section {
-            name: ".rel.eh_frame",
-            memory_address: 0x0,
-            content: RelocationsTable(
-                RelocationsTable {
-                    symbol_table: ".symtab",
-                    applies_to_section: ".eh_frame",
-                    relocations: [
-                        Relocation {
-                            offset: 0x20,
-                            symbol: 0x2,
-                            relocation_type: X86_PC32,
-                            addend: None,
-                        },
-                        Relocation {
-                            offset: 0x54,
-                            symbol: 0x4,
-                            relocation_type: X86_PC32,
-                            addend: None,
-                        },
-                    ],
-                },
-            ),
-        },
-        Section {
+        ".symtab": Section {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
@@ -293,45 +300,38 @@ Object {
                 },
             ),
         },
-        Section {
-            name: ".strtab",
+        ".text": Section {
+            name: ".text",
             memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "hello_c.c",
-                        0xb: "main",
-                        0x10: "__x86.get_pc_thunk.ax",
-                        0x26: "_GLOBAL_OFFSET_TABLE_",
-                        0x3c: "puts",
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 fc ff ff ff 05 01 00 00 00 | .L$.....q.U..SQ..........
+                        83 ec 0c 8d 90 00 00 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 00 00 | .........R...............
+                        8d 65 f8 59 5b 5d 8d 61 fc c3                                              | .e.Y[].a..
+                        (len: 0x3c)
                     },
                 },
             ),
         },
-        Section {
-            name: ".shstrtab",
+        ".text.__x86.get_pc_thunk.ax": Section {
+            name: ".text.__x86.get_pc_thunk.ax",
             memory_address: 0x0,
-            content: StringTable(
-                StringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: ".symtab",
-                        0x9: ".strtab",
-                        0x11: ".shstrtab",
-                        0x1b: ".rel.text",
-                        0x25: ".data",
-                        0x2b: ".bss",
-                        0x30: ".rodata",
-                        0x38: ".text.__x86.get_pc_thunk.ax",
-                        0x54: ".comment",
-                        0x5d: ".note.GNU-stack",
-                        0x6d: ".rel.eh_frame",
-                        0x7b: ".group",
+            content: Program(
+                ProgramSection {
+                    writeable: false,
+                    allocated: true,
+                    executable: true,
+                    raw: RawBytes {
+                        8b 04 24 c3 | ..$.
+                        (len: 0x4)
                     },
                 },
             ),
         },
-    ],
+    },
     segments: [],
 }

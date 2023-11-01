@@ -3,10 +3,11 @@ use plink_elf::Object;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
+use plink_elf::ids::StringIds;
 
 fn actual_main(path: &Path) -> Result<(), LoadError> {
     let mut file = File::open(path)?;
-    let object = Object::load(&mut file)?;
+    let object = Object::load(&mut file, &mut StringIds::new())?;
 
     println!("{object:#x?}");
 

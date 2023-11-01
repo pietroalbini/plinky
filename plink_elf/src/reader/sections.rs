@@ -1,6 +1,6 @@
 use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
-use crate::reader::Cursor;
+use crate::reader::{Cursor, PendingSectionId};
 use crate::{
     Class, ProgramSection, RawBytes, Relocation, RelocationType, RelocationsTable, Section,
     SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType,
@@ -15,9 +15,9 @@ pub(super) fn read_sections(
     count: u16,
     size: u16,
     section_names_table_index: u16,
-) -> Result<Vec<Section>, LoadError> {
+) -> Result<BTreeMap<PendingSectionId, Section>, LoadError> {
     if offset == 0 {
-        return Ok(Vec::new());
+        return Ok(BTreeMap::new());
     }
 
     let mut sections = Vec::new();
@@ -82,37 +82,45 @@ pub(super) fn read_sections(
     };
     Ok(sections
         .into_iter()
-        .map(|s| Section {
-            name: remove_pending_str(s.name),
-            memory_address: s.memory_address,
-            content: match s.content {
-                SectionContent::Null => SectionContent::Null,
-                SectionContent::Program(p) => SectionContent::Program(p),
-                SectionContent::SymbolTable(s) => SectionContent::SymbolTable(SymbolTable {
-                    symbols: s
-                        .symbols
-                        .into_iter()
-                        .map(|s| Symbol {
-                            name: remove_pending_str(s.name),
-                            binding: s.binding,
-                            type_: s.type_,
-                            definition: s.definition,
-                            value: s.value,
-                            size: s.size,
-                        })
-                        .collect(),
-                }),
-                SectionContent::StringTable(s) => SectionContent::StringTable(s),
-                SectionContent::RelocationsTable(r) => {
-                    SectionContent::RelocationsTable(RelocationsTable {
-                        symbol_table: remove_pending_str(r.symbol_table),
-                        applies_to_section: remove_pending_str(r.applies_to_section),
-                        relocations: r.relocations,
-                    })
-                }
-                SectionContent::Note(n) => SectionContent::Note(n),
-                SectionContent::Unknown(u) => SectionContent::Unknown(u),
-            },
+        .enumerate()
+        .map(|(i, s)| {
+            (
+                PendingSectionId(i as _),
+                Section {
+                    name: remove_pending_str(s.name),
+                    memory_address: s.memory_address,
+                    content: match s.content {
+                        SectionContent::Null => SectionContent::Null,
+                        SectionContent::Program(p) => SectionContent::Program(p),
+                        SectionContent::SymbolTable(s) => {
+                            SectionContent::SymbolTable(SymbolTable {
+                                symbols: s
+                                    .symbols
+                                    .into_iter()
+                                    .map(|s| Symbol {
+                                        name: remove_pending_str(s.name),
+                                        binding: s.binding,
+                                        type_: s.type_,
+                                        definition: s.definition,
+                                        value: s.value,
+                                        size: s.size,
+                                    })
+                                    .collect(),
+                            })
+                        }
+                        SectionContent::StringTable(s) => SectionContent::StringTable(s),
+                        SectionContent::RelocationsTable(r) => {
+                            SectionContent::RelocationsTable(RelocationsTable {
+                                symbol_table: remove_pending_str(r.symbol_table),
+                                applies_to_section: remove_pending_str(r.applies_to_section),
+                                relocations: r.relocations,
+                            })
+                        }
+                        SectionContent::Note(n) => SectionContent::Note(n),
+                        SectionContent::Unknown(u) => SectionContent::Unknown(u),
+                    },
+                },
+            )
         })
         .collect())
 }

@@ -2,11 +2,13 @@
 source: plink_elf/tests/snapshot.rs
 ---
 Object {
-    class: Elf64,
-    endian: Little,
-    abi: SystemV,
+    env: Environment {
+        class: Elf64,
+        endian: Little,
+        abi: SystemV,
+        machine: X86_64,
+    },
     type_: Executable,
-    machine: X86_64,
     entry: Some(
         0x401000,
     ),

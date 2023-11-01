@@ -10,11 +10,8 @@ use std::ops::Deref;
 
 #[derive(Debug)]
 pub struct Object {
-    pub class: Class,
-    pub endian: Endian,
-    pub abi: ABI,
+    pub env: Environment,
     pub type_: Type,
-    pub machine: Machine,
     pub entry: Option<NonZeroU64>,
     pub flags: u32,
     pub sections: Vec<Section>,
@@ -28,24 +25,32 @@ impl Object {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Environment {
+    pub class: Class,
+    pub endian: Endian,
+    pub abi: ABI,
+    pub machine: Machine,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
     Elf32,
     Elf64,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ABI {
     SystemV,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Endian {
     Little,
     Big,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Type {
     Relocatable,
     Executable,
@@ -53,7 +58,7 @@ pub enum Type {
     Core,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Machine {
     X86,
     X86_64,

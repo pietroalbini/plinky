@@ -2,7 +2,7 @@ use crate::errors::LoadError;
 use crate::reader::program_header::read_program_header;
 use crate::reader::sections::read_sections;
 use crate::reader::Cursor;
-use crate::{Class, Endian, Machine, Object, Type, ABI};
+use crate::{Class, Endian, Environment, Machine, Object, Type, ABI};
 use std::num::NonZeroU64;
 
 pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<Object, LoadError> {
@@ -52,11 +52,13 @@ pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<Object, LoadError> 
     }
 
     Ok(Object {
-        class,
-        endian,
-        abi,
+        env: Environment {
+            class,
+            endian,
+            abi,
+            machine,
+        },
         type_,
-        machine,
         entry: NonZeroU64::new(entry),
         flags,
         sections,

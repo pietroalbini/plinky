@@ -97,7 +97,7 @@ Object {
                             binding: Local,
                             type_: NoType,
                             definition: Section(
-                                0x2,
+                                ".data",
                             ),
                             value: 0x402000,
                             size: 0x0,
@@ -115,7 +115,7 @@ Object {
                             binding: Local,
                             type_: NoType,
                             definition: Section(
-                                0x2,
+                                ".data",
                             ),
                             value: 0x40200d,
                             size: 0x0,
@@ -133,7 +133,7 @@ Object {
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                0x1,
+                                ".text",
                             ),
                             value: 0x401000,
                             size: 0x0,
@@ -143,7 +143,7 @@ Object {
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                0x2,
+                                ".data",
                             ),
                             value: 0x40201c,
                             size: 0x0,
@@ -153,7 +153,7 @@ Object {
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                0x2,
+                                ".data",
                             ),
                             value: 0x40201c,
                             size: 0x0,
@@ -163,7 +163,7 @@ Object {
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                0x2,
+                                ".data",
                             ),
                             value: 0x402020,
                             size: 0x0,

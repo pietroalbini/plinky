@@ -1,6 +1,6 @@
 use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
-use crate::reader::{Cursor, PendingSectionId};
+use crate::reader::{Cursor, PendingSectionId, PendingIds};
 use crate::{
     Class, ProgramSection, RawBytes, Relocation, RelocationType, RelocationsTable, Section,
     SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType,
@@ -15,7 +15,7 @@ pub(super) fn read_sections(
     count: u16,
     size: u16,
     section_names_table_index: u16,
-) -> Result<BTreeMap<PendingSectionId, Section>, LoadError> {
+) -> Result<BTreeMap<PendingSectionId, Section<PendingIds>>, LoadError> {
     if offset == 0 {
         return Ok(BTreeMap::new());
     }
@@ -128,7 +128,7 @@ pub(super) fn read_sections(
 fn read_section(
     cursor: &mut Cursor<'_>,
     section_names_table_index: u16,
-) -> Result<Section<RefCell<PendingString>>, LoadError> {
+) -> Result<Section<PendingIds, RefCell<PendingString>>, LoadError> {
     let name_offset = cursor.read_u32()?;
     let type_ = cursor.read_u32()?;
     let flags = cursor.read_usize()?;
@@ -173,7 +173,7 @@ fn read_section(
 
 fn read_string_table(
     raw_content: &[u8],
-) -> Result<SectionContent<RefCell<PendingString>>, LoadError> {
+) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
     let mut strings = BTreeMap::new();
     let mut offset: usize = 0;
     while offset < raw_content.len() {
@@ -196,7 +196,7 @@ fn read_symbol_table(
     cursor: &mut Cursor<'_>,
     raw_content: &[u8],
     strings_table: u16,
-) -> Result<SectionContent<RefCell<PendingString>>, LoadError> {
+) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -211,7 +211,7 @@ fn read_symbol_table(
 fn read_symbol(
     cursor: &mut Cursor<'_>,
     strings_table: u16,
-) -> Result<Symbol<RefCell<PendingString>>, LoadError> {
+) -> Result<Symbol<PendingIds, RefCell<PendingString>>, LoadError> {
     let name_offset = cursor.read_u32()?;
     let info = cursor.read_u8()?;
     let _ = cursor.read_u8()?; // Reserved
@@ -242,7 +242,7 @@ fn read_symbol(
             0x0000 => SymbolDefinition::Undefined, // SHN_UNDEF
             0xFFF1 => SymbolDefinition::Absolute,  // SHN_ABS
             0xFFF2 => SymbolDefinition::Common,    // SHN_COMMON
-            other => SymbolDefinition::Section(other),
+            other => SymbolDefinition::Section(PendingSectionId(other as _)),
         },
         value,
         size,
@@ -255,7 +255,7 @@ fn read_relocations_table(
     symbol_table: u16,
     applies_to_section: u16,
     rela: bool,
-) -> Result<SectionContent<RefCell<PendingString>>, LoadError> {
+) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 

@@ -122,7 +122,7 @@ Object {
                             binding: Local,
                             type_: Section,
                             definition: Section(
-                                0x1,
+                                ".data",
                             ),
                             value: 0x0,
                             size: 0x0,
@@ -132,7 +132,7 @@ Object {
                             binding: Local,
                             type_: Section,
                             definition: Section(
-                                0x2,
+                                ".text",
                             ),
                             value: 0x0,
                             size: 0x0,
@@ -142,7 +142,7 @@ Object {
                             binding: Local,
                             type_: NoType,
                             definition: Section(
-                                0x1,
+                                ".data",
                             ),
                             value: 0x0,
                             size: 0x0,
@@ -160,7 +160,7 @@ Object {
                             binding: Local,
                             type_: NoType,
                             definition: Section(
-                                0x1,
+                                ".data",
                             ),
                             value: 0xd,
                             size: 0x0,
@@ -178,7 +178,7 @@ Object {
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                0x2,
+                                ".text",
                             ),
                             value: 0x0,
                             size: 0x0,

@@ -228,7 +228,7 @@ Object {
                             binding: Local,
                             type_: Section,
                             definition: Section(
-                                0x1,
+                                ".text",
                             ),
                             value: 0x0,
                             size: 0x0,
@@ -238,7 +238,7 @@ Object {
                             binding: Local,
                             type_: Section,
                             definition: Section(
-                                0x5,
+                                ".rodata",
                             ),
                             value: 0x0,
                             size: 0x0,
@@ -248,7 +248,7 @@ Object {
                             binding: Global,
                             type_: Function,
                             definition: Section(
-                                0x1,
+                                ".text",
                             ),
                             value: 0x0,
                             size: 0x29,

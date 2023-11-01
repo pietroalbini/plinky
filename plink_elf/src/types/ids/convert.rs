@@ -1,5 +1,5 @@
 use crate::ids::ElfIds;
-use crate::Object;
+use crate::{Object, Section, SectionContent, Symbol, SymbolDefinition, SymbolTable};
 use std::collections::BTreeMap;
 
 pub trait ConvertibleElfIds: ElfIds {
@@ -43,7 +43,56 @@ where
         sections: object
             .sections
             .into_iter()
-            .map(|(id, section)| (map.section_id(&id), section))
+            .map(|(id, section)| {
+                (
+                    map.section_id(&id),
+                    Section {
+                        name: section.name,
+                        memory_address: section.memory_address,
+                        content: match section.content {
+                            SectionContent::Null => SectionContent::Null,
+                            SectionContent::Program(p) => SectionContent::Program(p),
+                            SectionContent::SymbolTable(symbol_table) => {
+                                SectionContent::SymbolTable(SymbolTable {
+                                    symbols: symbol_table
+                                        .symbols
+                                        .into_iter()
+                                        .map(|symbol| Symbol {
+                                            name: symbol.name,
+                                            binding: symbol.binding,
+                                            type_: symbol.type_,
+                                            definition: match symbol.definition {
+                                                SymbolDefinition::Undefined => {
+                                                    SymbolDefinition::Undefined
+                                                }
+                                                SymbolDefinition::Absolute => {
+                                                    SymbolDefinition::Absolute
+                                                }
+                                                SymbolDefinition::Common => {
+                                                    SymbolDefinition::Common
+                                                }
+                                                SymbolDefinition::Section(section_id) => {
+                                                    SymbolDefinition::Section(
+                                                        map.section_id(&section_id),
+                                                    )
+                                                }
+                                            },
+                                            value: symbol.value,
+                                            size: symbol.size,
+                                        })
+                                        .collect(),
+                                })
+                            }
+                            SectionContent::StringTable(s) => SectionContent::StringTable(s),
+                            SectionContent::RelocationsTable(r) => {
+                                SectionContent::RelocationsTable(r)
+                            }
+                            SectionContent::Note(n) => SectionContent::Note(n),
+                            SectionContent::Unknown(u) => SectionContent::Unknown(u),
+                        },
+                    },
+                )
+            })
             .collect(),
         segments: object.segments,
     }

@@ -18,7 +18,7 @@ pub struct Object<I: ElfIds> {
     pub type_: Type,
     pub entry: Option<NonZeroU64>,
     pub flags: u32,
-    pub sections: BTreeMap<I::SectionId, Section>,
+    pub sections: BTreeMap<I::SectionId, Section<I>>,
     pub segments: Vec<Segment>,
 }
 
@@ -70,17 +70,17 @@ pub enum Machine {
 }
 
 #[derive(Debug)]
-pub struct Section<S = String> {
+pub struct Section<I: ElfIds, S = String> {
     pub name: S,
     pub memory_address: u64,
-    pub content: SectionContent<S>,
+    pub content: SectionContent<I, S>,
 }
 
 #[derive(Debug)]
-pub enum SectionContent<S = String> {
+pub enum SectionContent<I: ElfIds, S = String> {
     Null,
     Program(ProgramSection),
-    SymbolTable(SymbolTable<S>),
+    SymbolTable(SymbolTable<I, S>),
     StringTable(StringTable),
     RelocationsTable(RelocationsTable<S>),
     Note(NotesTable),
@@ -114,16 +114,16 @@ pub struct UnknownSection {
 }
 
 #[derive(Debug)]
-pub struct SymbolTable<S = String> {
-    pub symbols: Vec<Symbol<S>>,
+pub struct SymbolTable<I: ElfIds, S = String> {
+    pub symbols: Vec<Symbol<I, S>>,
 }
 
 #[derive(Debug)]
-pub struct Symbol<S = String> {
+pub struct Symbol<I: ElfIds, S = String> {
     pub name: S,
     pub binding: SymbolBinding,
     pub type_: SymbolType,
-    pub definition: SymbolDefinition,
+    pub definition: SymbolDefinition<I>,
     pub value: u64,
     pub size: u64,
 }
@@ -147,11 +147,11 @@ pub enum SymbolType {
 }
 
 #[derive(Debug)]
-pub enum SymbolDefinition {
+pub enum SymbolDefinition<I: ElfIds> {
     Undefined,
     Absolute,
     Common,
-    Section(u16),
+    Section(I::SectionId),
 }
 
 #[derive(Debug)]

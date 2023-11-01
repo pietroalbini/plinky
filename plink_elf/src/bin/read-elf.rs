@@ -8,7 +8,7 @@ fn actual_main(path: &Path) -> Result<(), LoadError> {
     let mut file = File::open(path)?;
     let object = Object::load(&mut file)?;
 
-    println!("{object:#?}");
+    println!("{object:#x?}");
 
     Ok(())
 }

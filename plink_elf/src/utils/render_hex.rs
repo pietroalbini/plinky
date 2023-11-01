@@ -9,8 +9,10 @@ pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> s
         if pending_as_ascii.is_empty() {
             f.write_str("\n")?;
             f.write_str(prefix)?;
+        } else {
+            f.write_str(" ")?;
         }
-        f.write_fmt(format_args!(" {byte:0>2x}"))?;
+        f.write_fmt(format_args!("{byte:0>2x}"))?;
         pending_as_ascii.push(*byte);
 
         if pending_as_ascii.len() >= BYTES_PER_COLUMN {
@@ -31,7 +33,7 @@ pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> s
         render_ascii(f, &mut pending_as_ascii)?;
     }
 
-    f.write_str("\n")?;
+    f.write_fmt(format_args!("\n{prefix}(len: {:#x})\n", bytes.len()))?;
     Ok(())
 }
 

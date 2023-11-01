@@ -24,8 +24,9 @@ Object {
                     allocated: true,
                     executable: false,
                     raw: RawBytes {
-                         48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a 47 6f 6f 64 62 79 65 20 77 6f 72 6c | Hello world!.Goodbye worl
-                         64 21 0a                                                                   | d!.
+                        48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a 47 6f 6f 64 62 79 65 20 77 6f 72 6c | Hello world!.Goodbye worl
+                        64 21 0a                                                                   | d!.
+                        (len: 0x1c)
                     },
                 },
             ),
@@ -39,9 +40,10 @@ Object {
                     allocated: true,
                     executable: true,
                     raw: RawBytes {
-                         b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b8 04 00 | .........................
-                         00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | .........................
-                         00 cd 80                                                                   | ...
+                        b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b8 04 00 | .........................
+                        00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 00 00 | .........................
+                        00 cd 80                                                                   | ...
+                        (len: 0x35)
                     },
                 },
             ),

@@ -1,6 +1,7 @@
+use super::PendingSymbolId;
 use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
-use crate::reader::{Cursor, PendingSectionId, PendingIds};
+use crate::reader::{Cursor, PendingIds, PendingSectionId};
 use crate::{
     Class, ProgramSection, RawBytes, Relocation, RelocationType, RelocationsTable, Section,
     SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType,
@@ -23,7 +24,11 @@ pub(super) fn read_sections(
     let mut sections = Vec::new();
     for idx in 0..count {
         cursor.seek_to(offset + (size as u64 * idx as u64))?;
-        sections.push(read_section(cursor, section_names_table_index)?);
+        sections.push(read_section(
+            cursor,
+            section_names_table_index,
+            PendingSectionId(idx as _),
+        )?);
     }
 
     let resolve_str = |pending: &RefCell<PendingString>| -> Result<(), LoadError> {
@@ -50,7 +55,7 @@ pub(super) fn read_sections(
     for section in &sections {
         resolve_str(&section.name)?;
         if let SectionContent::SymbolTable(table) = &section.content {
-            for symbol in &table.symbols {
+            for symbol in table.symbols.values() {
                 resolve_str(&symbol.name)?;
             }
         }
@@ -79,13 +84,18 @@ pub(super) fn read_sections(
                                 symbols: s
                                     .symbols
                                     .into_iter()
-                                    .map(|s| Symbol {
-                                        name: remove_pending_str(s.name),
-                                        binding: s.binding,
-                                        type_: s.type_,
-                                        definition: s.definition,
-                                        value: s.value,
-                                        size: s.size,
+                                    .map(|(id, s)| {
+                                        (
+                                            id,
+                                            Symbol {
+                                                name: remove_pending_str(s.name),
+                                                binding: s.binding,
+                                                type_: s.type_,
+                                                definition: s.definition,
+                                                value: s.value,
+                                                size: s.size,
+                                            },
+                                        )
                                     })
                                     .collect(),
                             })
@@ -104,6 +114,7 @@ pub(super) fn read_sections(
 fn read_section(
     cursor: &mut Cursor<'_>,
     section_names_table_index: u16,
+    current_section: PendingSectionId,
 ) -> Result<Section<PendingIds, RefCell<PendingString>>, LoadError> {
     let name_offset = cursor.read_u32()?;
     let type_ = cursor.read_u32()?;
@@ -126,11 +137,23 @@ fn read_section(
             executable: flags & 0x4 > 0,
             raw: RawBytes(raw_content),
         }),
-        2 => read_symbol_table(cursor, &raw_content, link as _)?,
+        2 => read_symbol_table(cursor, &raw_content, link as _, current_section)?,
         3 => read_string_table(&raw_content)?,
-        4 => read_relocations_table(cursor, &raw_content, link as _, info as _, true)?,
+        4 => read_relocations_table(
+            cursor,
+            &raw_content,
+            PendingSectionId(link),
+            PendingSectionId(info),
+            true,
+        )?,
         7 => SectionContent::Note(read_notes(cursor, &raw_content)?),
-        9 => read_relocations_table(cursor, &raw_content, link as _, info as _, false)?,
+        9 => read_relocations_table(
+            cursor,
+            &raw_content,
+            PendingSectionId(link),
+            PendingSectionId(info),
+            false,
+        )?,
         other => SectionContent::Unknown(UnknownSection {
             id: other,
             raw: RawBytes(raw_content),
@@ -172,13 +195,17 @@ fn read_symbol_table(
     cursor: &mut Cursor<'_>,
     raw_content: &[u8],
     strings_table: u16,
+    current_section: PendingSectionId,
 ) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
-    let mut symbols = Vec::new();
+    let mut symbols = BTreeMap::new();
     while cursor.current_position()? != raw_content.len() as u64 {
-        symbols.push(read_symbol(&mut cursor, strings_table)?);
+        symbols.insert(
+            PendingSymbolId(current_section, symbols.len() as _),
+            read_symbol(&mut cursor, strings_table)?,
+        );
     }
 
     Ok(SectionContent::SymbolTable(SymbolTable { symbols }))
@@ -237,8 +264,8 @@ fn read_symbol(
 fn read_relocations_table(
     cursor: &mut Cursor<'_>,
     raw_content: &[u8],
-    symbol_table: u16,
-    applies_to_section: u16,
+    symbol_table: PendingSectionId,
+    applies_to_section: PendingSectionId,
     rela: bool,
 ) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
@@ -246,17 +273,21 @@ fn read_relocations_table(
 
     let mut relocations = Vec::new();
     while cursor.current_position()? != raw_content.len() as u64 {
-        relocations.push(read_relocation(&mut cursor, rela)?);
+        relocations.push(read_relocation(&mut cursor, symbol_table, rela)?);
     }
 
     Ok(SectionContent::RelocationsTable(RelocationsTable {
-        symbol_table: PendingSectionId(symbol_table as _),
-        applies_to_section: PendingSectionId(applies_to_section as _),
+        symbol_table,
+        applies_to_section,
         relocations,
     }))
 }
 
-fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, LoadError> {
+fn read_relocation(
+    cursor: &mut Cursor<'_>,
+    symbol_table: PendingSectionId,
+    rela: bool,
+) -> Result<Relocation<PendingIds>, LoadError> {
     let offset = cursor.read_usize()?;
     let info = cursor.read_usize()?;
     let (symbol, relocation_type) = match cursor.class {
@@ -318,7 +349,7 @@ fn read_relocation(cursor: &mut Cursor<'_>, rela: bool) -> Result<Relocation, Lo
 
     Ok(Relocation {
         offset,
-        symbol,
+        symbol: PendingSymbolId(symbol_table, symbol),
         relocation_type,
         addend,
     })

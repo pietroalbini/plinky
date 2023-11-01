@@ -112,7 +112,7 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x20,
-                            symbol: 0x2,
+                            symbol: "",
                             relocation_type: X86_64_PC32,
                             addend: Some(
                                 0x0,
@@ -132,7 +132,7 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x16,
-                            symbol: 0x3,
+                            symbol: "",
                             relocation_type: X86_64_PC32,
                             addend: Some(
                                 0xfffffffffffffffc,
@@ -140,7 +140,7 @@ Object {
                         },
                         Relocation {
                             offset: 0x1e,
-                            symbol: 0x5,
+                            symbol: "puts",
                             relocation_type: X86_64_PLT32,
                             addend: Some(
                                 0xfffffffffffffffc,
@@ -206,34 +206,8 @@ Object {
             memory_address: 0x0,
             content: SymbolTable(
                 SymbolTable {
-                    symbols: [
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "hello_c.c",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                ".text",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
+                    symbols: {
+                        "": Symbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -243,7 +217,15 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        Symbol {
+                        "hello_c.c": Symbol {
+                            name: "hello_c.c",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "main": Symbol {
                             name: "main",
                             binding: Global,
                             type_: Function,
@@ -253,7 +235,7 @@ Object {
                             value: 0x0,
                             size: 0x29,
                         },
-                        Symbol {
+                        "puts": Symbol {
                             name: "puts",
                             binding: Global,
                             type_: NoType,
@@ -261,7 +243,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                    ],
+                    },
                 },
             ),
         },

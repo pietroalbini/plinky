@@ -75,8 +75,8 @@ Object {
             memory_address: 0x0,
             content: SymbolTable(
                 SymbolTable {
-                    symbols: [
-                        Symbol {
+                    symbols: {
+                        "": Symbol {
                             name: "",
                             binding: Local,
                             type_: NoType,
@@ -84,61 +84,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        Symbol {
-                            name: "tests/snapshot/hello_asm.S",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "msg_hello",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x402000,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "len_hello",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Absolute,
-                            value: 0xd,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "msg_goodbye",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x40200d,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "len_goodbye",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Absolute,
-                            value: 0xf,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "_start",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Section(
-                                ".text",
-                            ),
-                            value: 0x401000,
-                            size: 0x0,
-                        },
-                        Symbol {
+                        "__bss_start": Symbol {
                             name: "__bss_start",
                             binding: Global,
                             type_: NoType,
@@ -148,7 +94,7 @@ Object {
                             value: 0x40201c,
                             size: 0x0,
                         },
-                        Symbol {
+                        "_edata": Symbol {
                             name: "_edata",
                             binding: Global,
                             type_: NoType,
@@ -158,7 +104,7 @@ Object {
                             value: 0x40201c,
                             size: 0x0,
                         },
-                        Symbol {
+                        "_end": Symbol {
                             name: "_end",
                             binding: Global,
                             type_: NoType,
@@ -168,7 +114,61 @@ Object {
                             value: 0x402020,
                             size: 0x0,
                         },
-                    ],
+                        "_start": Symbol {
+                            name: "_start",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Section(
+                                ".text",
+                            ),
+                            value: 0x401000,
+                            size: 0x0,
+                        },
+                        "len_goodbye": Symbol {
+                            name: "len_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xf,
+                            size: 0x0,
+                        },
+                        "len_hello": Symbol {
+                            name: "len_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        "msg_goodbye": Symbol {
+                            name: "msg_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                ".data",
+                            ),
+                            value: 0x40200d,
+                            size: 0x0,
+                        },
+                        "msg_hello": Symbol {
+                            name: "msg_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                ".data",
+                            ),
+                            value: 0x402000,
+                            size: 0x0,
+                        },
+                        "tests/snapshot/hello_asm.S": Symbol {
+                            name: "tests/snapshot/hello_asm.S",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                    },
                 },
             ),
         },

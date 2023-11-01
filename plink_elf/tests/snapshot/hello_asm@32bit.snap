@@ -43,13 +43,13 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0xb,
-                            symbol: 0x2,
+                            symbol: "",
                             relocation_type: X86_32,
                             addend: None,
                         },
                         Relocation {
                             offset: 0x21,
-                            symbol: 0x2,
+                            symbol: "",
                             relocation_type: X86_32,
                             addend: None,
                         },
@@ -96,34 +96,8 @@ Object {
             memory_address: 0x0,
             content: SymbolTable(
                 SymbolTable {
-                    symbols: [
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "tests/snapshot/hello_asm.S",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
+                    symbols: {
+                        "": Symbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -133,43 +107,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        Symbol {
-                            name: "msg_hello",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "len_hello",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Absolute,
-                            value: 0xd,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "msg_goodbye",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Section(
-                                ".data",
-                            ),
-                            value: 0xd,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "len_goodbye",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Absolute,
-                            value: 0xf,
-                            size: 0x0,
-                        },
-                        Symbol {
+                        "_start": Symbol {
                             name: "_start",
                             binding: Global,
                             type_: NoType,
@@ -179,7 +117,51 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                    ],
+                        "len_goodbye": Symbol {
+                            name: "len_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xf,
+                            size: 0x0,
+                        },
+                        "len_hello": Symbol {
+                            name: "len_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        "msg_goodbye": Symbol {
+                            name: "msg_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                ".data",
+                            ),
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        "msg_hello": Symbol {
+                            name: "msg_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                ".data",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "tests/snapshot/hello_asm.S": Symbol {
+                            name: "tests/snapshot/hello_asm.S",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                    },
                 },
             ),
         },

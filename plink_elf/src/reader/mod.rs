@@ -14,7 +14,11 @@ struct PendingIds;
 
 impl ElfIds for PendingIds {
     type SectionId = PendingSectionId;
+    type SymbolId = PendingSymbolId;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct PendingSectionId(u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct PendingSymbolId(PendingSectionId, u32);

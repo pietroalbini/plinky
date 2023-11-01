@@ -1,6 +1,6 @@
 use super::IdConversionMap;
 use crate::ids::{ConvertibleElfIds, ElfIds};
-use crate::Object;
+use crate::{Object, SectionContent};
 
 #[derive(Debug)]
 pub struct StringIds(());
@@ -13,6 +13,7 @@ impl StringIds {
 
 impl ElfIds for StringIds {
     type SectionId = String;
+    type SymbolId = String;
 }
 
 impl ConvertibleElfIds for StringIds {
@@ -25,6 +26,15 @@ impl ConvertibleElfIds for StringIds {
 
         for (id, section) in &object.sections {
             map.section_ids.insert(id.clone(), section.name.clone());
+
+            match &section.content {
+                SectionContent::SymbolTable(table) => {
+                    for (id, symbol) in &table.symbols {
+                        map.symbol_ids.insert(id.clone(), symbol.name.clone());
+                    }
+                }
+                _ => {}
+            }
         }
 
         map

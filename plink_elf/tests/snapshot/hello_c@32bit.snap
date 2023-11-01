@@ -108,13 +108,13 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x20,
-                            symbol: 0x2,
+                            symbol: "",
                             relocation_type: X86_PC32,
                             addend: None,
                         },
                         Relocation {
                             offset: 0x54,
-                            symbol: 0x4,
+                            symbol: "",
                             relocation_type: X86_PC32,
                             addend: None,
                         },
@@ -132,13 +132,13 @@ Object {
                     relocations: [
                         Relocation {
                             offset: 0x10,
-                            symbol: 0x6,
+                            symbol: "__x86.get_pc_thunk.ax",
                             relocation_type: X86_PC32,
                             addend: None,
                         },
                         Relocation {
                             offset: 0x15,
-                            symbol: 0x7,
+                            symbol: "_GLOBAL_OFFSET_TABLE_",
                             relocation_type: Unknown(
                                 0xa,
                             ),
@@ -146,7 +146,7 @@ Object {
                         },
                         Relocation {
                             offset: 0x1e,
-                            symbol: 0x3,
+                            symbol: "",
                             relocation_type: Unknown(
                                 0x9,
                             ),
@@ -154,7 +154,7 @@ Object {
                         },
                         Relocation {
                             offset: 0x26,
-                            symbol: 0x8,
+                            symbol: "puts",
                             relocation_type: Unknown(
                                 0x4,
                             ),
@@ -223,44 +223,8 @@ Object {
             memory_address: 0x0,
             content: SymbolTable(
                 SymbolTable {
-                    symbols: [
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "hello_c.c",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                ".text",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                ".rodata",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        Symbol {
+                    symbols: {
+                        "": Symbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -270,17 +234,15 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        Symbol {
-                            name: "main",
+                        "_GLOBAL_OFFSET_TABLE_": Symbol {
+                            name: "_GLOBAL_OFFSET_TABLE_",
                             binding: Global,
-                            type_: Function,
-                            definition: Section(
-                                ".text",
-                            ),
+                            type_: NoType,
+                            definition: Undefined,
                             value: 0x0,
-                            size: 0x3c,
+                            size: 0x0,
                         },
-                        Symbol {
+                        "__x86.get_pc_thunk.ax": Symbol {
                             name: "__x86.get_pc_thunk.ax",
                             binding: Global,
                             type_: Function,
@@ -290,15 +252,25 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        Symbol {
-                            name: "_GLOBAL_OFFSET_TABLE_",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Undefined,
+                        "hello_c.c": Symbol {
+                            name: "hello_c.c",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
                             value: 0x0,
                             size: 0x0,
                         },
-                        Symbol {
+                        "main": Symbol {
+                            name: "main",
+                            binding: Global,
+                            type_: Function,
+                            definition: Section(
+                                ".text",
+                            ),
+                            value: 0x0,
+                            size: 0x3c,
+                        },
+                        "puts": Symbol {
                             name: "puts",
                             binding: Global,
                             type_: NoType,
@@ -306,7 +278,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                    ],
+                    },
                 },
             ),
         },

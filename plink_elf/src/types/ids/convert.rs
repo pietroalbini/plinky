@@ -1,6 +1,7 @@
 use crate::ids::ElfIds;
 use crate::{
-    Object, RelocationsTable, Section, SectionContent, Symbol, SymbolDefinition, SymbolTable,
+    Object, Relocation, RelocationsTable, Section, SectionContent, Symbol, SymbolDefinition,
+    SymbolTable,
 };
 use std::collections::BTreeMap;
 
@@ -13,12 +14,14 @@ pub trait ConvertibleElfIds: ElfIds {
 
 pub struct IdConversionMap<F: ElfIds, T: ElfIds> {
     pub section_ids: BTreeMap<F::SectionId, T::SectionId>,
+    pub symbol_ids: BTreeMap<F::SymbolId, T::SymbolId>,
 }
 
 impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
     pub fn new() -> Self {
         Self {
             section_ids: BTreeMap::new(),
+            symbol_ids: BTreeMap::new(),
         }
     }
 
@@ -26,6 +29,13 @@ impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
         match self.section_ids.get(old) {
             Some(id) => id.clone(),
             None => panic!("bug: section id {old:?} not in conversion map"),
+        }
+    }
+
+    fn symbol_id(&self, old: &F::SymbolId) -> T::SymbolId {
+        match self.symbol_ids.get(old) {
+            Some(id) => id.clone(),
+            None => panic!("bug: symbol id {old:?} not in conversion map"),
         }
     }
 }
@@ -59,28 +69,33 @@ where
                                     symbols: table
                                         .symbols
                                         .into_iter()
-                                        .map(|symbol| Symbol {
-                                            name: symbol.name,
-                                            binding: symbol.binding,
-                                            type_: symbol.type_,
-                                            definition: match symbol.definition {
-                                                SymbolDefinition::Undefined => {
-                                                    SymbolDefinition::Undefined
-                                                }
-                                                SymbolDefinition::Absolute => {
-                                                    SymbolDefinition::Absolute
-                                                }
-                                                SymbolDefinition::Common => {
-                                                    SymbolDefinition::Common
-                                                }
-                                                SymbolDefinition::Section(section_id) => {
-                                                    SymbolDefinition::Section(
-                                                        map.section_id(&section_id),
-                                                    )
-                                                }
-                                            },
-                                            value: symbol.value,
-                                            size: symbol.size,
+                                        .map(|(id, symbol)| {
+                                            (
+                                                map.symbol_id(&id),
+                                                Symbol {
+                                                    name: symbol.name,
+                                                    binding: symbol.binding,
+                                                    type_: symbol.type_,
+                                                    definition: match symbol.definition {
+                                                        SymbolDefinition::Undefined => {
+                                                            SymbolDefinition::Undefined
+                                                        }
+                                                        SymbolDefinition::Absolute => {
+                                                            SymbolDefinition::Absolute
+                                                        }
+                                                        SymbolDefinition::Common => {
+                                                            SymbolDefinition::Common
+                                                        }
+                                                        SymbolDefinition::Section(section_id) => {
+                                                            SymbolDefinition::Section(
+                                                                map.section_id(&section_id),
+                                                            )
+                                                        }
+                                                    },
+                                                    value: symbol.value,
+                                                    size: symbol.size,
+                                                },
+                                            )
                                         })
                                         .collect(),
                                 })
@@ -90,7 +105,16 @@ where
                                 SectionContent::RelocationsTable(RelocationsTable {
                                     symbol_table: map.section_id(&table.symbol_table),
                                     applies_to_section: map.section_id(&table.applies_to_section),
-                                    relocations: table.relocations,
+                                    relocations: table
+                                        .relocations
+                                        .into_iter()
+                                        .map(|relocation| Relocation {
+                                            offset: relocation.offset,
+                                            symbol: map.symbol_id(&relocation.symbol),
+                                            relocation_type: relocation.relocation_type,
+                                            addend: relocation.addend,
+                                        })
+                                        .collect(),
                                 })
                             }
                             SectionContent::Note(n) => SectionContent::Note(n),

@@ -11,4 +11,5 @@ use std::fmt::Debug;
 
 pub trait ElfIds: Debug {
     type SectionId: Debug + Clone + Hash + PartialEq + Eq + PartialOrd + Ord;
+    type SymbolId: Debug + Clone + Hash + PartialEq + Eq + PartialOrd + Ord;
 }

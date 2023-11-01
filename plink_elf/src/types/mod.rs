@@ -115,7 +115,7 @@ pub struct UnknownSection {
 
 #[derive(Debug)]
 pub struct SymbolTable<I: ElfIds, S = String> {
-    pub symbols: Vec<Symbol<I, S>>,
+    pub symbols: BTreeMap<I::SymbolId, Symbol<I, S>>,
 }
 
 #[derive(Debug)]
@@ -158,13 +158,13 @@ pub enum SymbolDefinition<I: ElfIds> {
 pub struct RelocationsTable<I: ElfIds> {
     pub symbol_table: I::SectionId,
     pub applies_to_section: I::SectionId,
-    pub relocations: Vec<Relocation>,
+    pub relocations: Vec<Relocation<I>>,
 }
 
 #[derive(Debug)]
-pub struct Relocation {
+pub struct Relocation<I: ElfIds> {
     pub offset: u64,
-    pub symbol: u32,
+    pub symbol: I::SymbolId,
     pub relocation_type: RelocationType,
     pub addend: Option<i64>,
 }

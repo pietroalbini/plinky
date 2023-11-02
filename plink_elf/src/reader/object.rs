@@ -2,12 +2,10 @@ use crate::errors::LoadError;
 use crate::reader::program_header::read_program_header;
 use crate::reader::sections::read_sections;
 use crate::reader::{Cursor, PendingIds, PendingSectionId};
-use crate::{Class, Endian, Environment, Machine, Object, Type, ABI};
+use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfObject, ElfType};
 use std::num::NonZeroU64;
 
-pub(crate) fn read_object(
-    cursor: &mut Cursor<'_>,
-) -> Result<Object<PendingIds>, LoadError> {
+pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<ElfObject<PendingIds>, LoadError> {
     read_magic(cursor)?;
     let class = read_class(cursor)?;
     let endian = read_endian(cursor)?;
@@ -53,8 +51,8 @@ pub(crate) fn read_object(
         }
     }
 
-    Ok(Object::<PendingIds> {
-        env: Environment {
+    Ok(ElfObject::<PendingIds> {
+        env: ElfEnvironment {
             class,
             endian,
             abi,
@@ -77,18 +75,18 @@ fn read_magic(cursor: &mut Cursor<'_>) -> Result<(), LoadError> {
     }
 }
 
-fn read_class(cursor: &mut Cursor<'_>) -> Result<Class, LoadError> {
+fn read_class(cursor: &mut Cursor<'_>) -> Result<ElfClass, LoadError> {
     match cursor.read_u8()? {
-        1 => Ok(Class::Elf32),
-        2 => Ok(Class::Elf64),
+        1 => Ok(ElfClass::Elf32),
+        2 => Ok(ElfClass::Elf64),
         other => Err(LoadError::BadClass(other)),
     }
 }
 
-fn read_endian(cursor: &mut Cursor<'_>) -> Result<Endian, LoadError> {
+fn read_endian(cursor: &mut Cursor<'_>) -> Result<ElfEndian, LoadError> {
     match cursor.read_u8()? {
-        1 => Ok(Endian::Little),
-        2 => Ok(Endian::Big),
+        1 => Ok(ElfEndian::Little),
+        2 => Ok(ElfEndian::Big),
         other => Err(LoadError::BadEndian(other)),
     }
 }
@@ -107,37 +105,37 @@ fn read_version_u32(cursor: &mut Cursor<'_>) -> Result<(), LoadError> {
     }
 }
 
-fn read_abi(cursor: &mut Cursor<'_>) -> Result<ABI, LoadError> {
+fn read_abi(cursor: &mut Cursor<'_>) -> Result<ElfABI, LoadError> {
     match cursor.read_u8()? {
-        0 => Ok(ABI::SystemV),
+        0 => Ok(ElfABI::SystemV),
         other => Err(LoadError::BadAbi(other)),
     }
 }
 
-fn read_abi_version(cursor: &mut Cursor<'_>, abi: ABI) -> Result<(), LoadError> {
+fn read_abi_version(cursor: &mut Cursor<'_>, abi: ElfABI) -> Result<(), LoadError> {
     let version = cursor.read_u8()?;
     match abi {
-        ABI::SystemV => match version {
+        ElfABI::SystemV => match version {
             0 => Ok(()),
             other => Err(LoadError::BadAbiVersion(abi, other)),
         },
     }
 }
 
-fn read_type(cursor: &mut Cursor<'_>) -> Result<Type, LoadError> {
+fn read_type(cursor: &mut Cursor<'_>) -> Result<ElfType, LoadError> {
     match cursor.read_u16()? {
-        1 => Ok(Type::Relocatable),
-        2 => Ok(Type::Executable),
-        3 => Ok(Type::SharedObject),
-        4 => Ok(Type::Core),
+        1 => Ok(ElfType::Relocatable),
+        2 => Ok(ElfType::Executable),
+        3 => Ok(ElfType::SharedObject),
+        4 => Ok(ElfType::Core),
         other => Err(LoadError::BadType(other)),
     }
 }
 
-fn read_machine(cursor: &mut Cursor<'_>) -> Result<Machine, LoadError> {
+fn read_machine(cursor: &mut Cursor<'_>) -> Result<ElfMachine, LoadError> {
     match cursor.read_u16()? {
-        3 => Ok(Machine::X86),
-        62 => Ok(Machine::X86_64),
+        3 => Ok(ElfMachine::X86),
+        62 => Ok(ElfMachine::X86_64),
         other => Err(LoadError::BadMachine(other)),
     }
 }

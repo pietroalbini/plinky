@@ -1,6 +1,6 @@
 use super::IdConversionMap;
 use crate::ids::{ConvertibleElfIds, ElfIds, StringIdGetters};
-use crate::{Object, SectionContent};
+use crate::{ElfObject, ElfSectionContent};
 
 #[derive(Debug)]
 pub struct StringIds(());
@@ -24,7 +24,7 @@ where
 {
     fn create_conversion_map(
         &mut self,
-        object: &Object<F>,
+        object: &ElfObject<F>,
         string_ids: &[F::StringId],
     ) -> IdConversionMap<F, Self>
     where
@@ -34,7 +34,7 @@ where
         let mut map = IdConversionMap::<F, Self>::new();
 
         for string_id in string_ids {
-            let SectionContent::StringTable(ref table) = object
+            let ElfSectionContent::StringTable(ref table) = object
                 .sections
                 .get(string_id.section())
                 .expect("missing string table")
@@ -60,7 +60,7 @@ where
             );
 
             match &section.content {
-                SectionContent::SymbolTable(table) => {
+                ElfSectionContent::SymbolTable(table) => {
                     for (i, (id, symbol)) in table.symbols.iter().enumerate() {
                         let symbol_name = map.string_ids.get(&symbol.name).unwrap().to_string();
                         map.symbol_ids.insert(

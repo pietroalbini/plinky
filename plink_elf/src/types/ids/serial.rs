@@ -1,7 +1,7 @@
 use super::convert::IdConversionMap;
 use crate::ids::convert::ConvertibleElfIds;
 use crate::ids::{ElfIds, StringIdGetters};
-use crate::{Object, SectionContent};
+use crate::{ElfObject, ElfSectionContent};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SectionId(usize);
@@ -41,7 +41,7 @@ where
 {
     fn create_conversion_map(
         &mut self,
-        object: &Object<F>,
+        object: &ElfObject<F>,
         string_ids: &[F::StringId],
     ) -> IdConversionMap<F, Self> {
         let mut map = IdConversionMap::<F, Self>::new();
@@ -51,7 +51,7 @@ where
                 .insert(old_id.clone(), self.allocate_section_id());
 
             match &section.content {
-                SectionContent::SymbolTable(table) => {
+                ElfSectionContent::SymbolTable(table) => {
                     for (id, _) in &table.symbols {
                         map.symbol_ids.insert(id.clone(), self.allocate_symbol_id());
                     }

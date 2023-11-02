@@ -1,13 +1,13 @@
 use plink_elf::errors::LoadError;
-use plink_elf::Object;
+use plink_elf::ids::StringIds;
+use plink_elf::ElfObject;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
-use plink_elf::ids::StringIds;
 
 fn actual_main(path: &Path) -> Result<(), LoadError> {
     let mut file = File::open(path)?;
-    let object = Object::load(&mut file, &mut StringIds::new())?;
+    let object = ElfObject::load(&mut file, &mut StringIds::new())?;
 
     println!("{object:#x?}");
 

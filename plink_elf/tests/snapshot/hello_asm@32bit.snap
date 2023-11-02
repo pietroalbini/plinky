@@ -1,8 +1,8 @@
 ---
 source: plink_elf/tests/snapshot.rs
 ---
-Object {
-    env: Environment {
+ElfObject {
+    env: ElfEnvironment {
         class: Elf32,
         endian: Little,
         abi: SystemV,
@@ -12,16 +12,16 @@ Object {
     entry: None,
     flags: 0x0,
     sections: {
-        "#0 ": Section {
+        "#0 ": ElfSection {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        "#1 .data": Section {
+        "#1 .data": ElfSection {
             name: ".data",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: true,
                     allocated: true,
                     executable: false,
@@ -33,11 +33,11 @@ Object {
                 },
             ),
         },
-        "#2 .text": Section {
+        "#2 .text": ElfSection {
             name: ".text",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: true,
                     executable: true,
@@ -50,11 +50,11 @@ Object {
                 },
             ),
         },
-        "#3 .shstrtab": Section {
+        "#3 .shstrtab": ElfSection {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
-                StringTable {
+                ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: ".data",
@@ -67,13 +67,13 @@ Object {
                 },
             ),
         },
-        "#4 .symtab": Section {
+        "#4 .symtab": ElfSection {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
-                SymbolTable {
+                ElfSymbolTable {
                     symbols: {
-                        "#0 <empty>": Symbol {
+                        "#0 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: NoType,
@@ -81,7 +81,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#1 tests/snapshot/hello_asm.S": Symbol {
+                        "#1 tests/snapshot/hello_asm.S": ElfSymbol {
                             name: "tests/snapshot/hello_asm.S",
                             binding: Local,
                             type_: File,
@@ -89,7 +89,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#2 <empty>": Symbol {
+                        "#2 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -99,7 +99,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#3 <empty>": Symbol {
+                        "#3 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -109,7 +109,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#4 msg_hello": Symbol {
+                        "#4 msg_hello": ElfSymbol {
                             name: "msg_hello",
                             binding: Local,
                             type_: NoType,
@@ -119,7 +119,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#5 len_hello": Symbol {
+                        "#5 len_hello": ElfSymbol {
                             name: "len_hello",
                             binding: Local,
                             type_: NoType,
@@ -127,7 +127,7 @@ Object {
                             value: 0xd,
                             size: 0x0,
                         },
-                        "#6 msg_goodbye": Symbol {
+                        "#6 msg_goodbye": ElfSymbol {
                             name: "msg_goodbye",
                             binding: Local,
                             type_: NoType,
@@ -137,7 +137,7 @@ Object {
                             value: 0xd,
                             size: 0x0,
                         },
-                        "#7 len_goodbye": Symbol {
+                        "#7 len_goodbye": ElfSymbol {
                             name: "len_goodbye",
                             binding: Local,
                             type_: NoType,
@@ -145,7 +145,7 @@ Object {
                             value: 0xf,
                             size: 0x0,
                         },
-                        "#8 _start": Symbol {
+                        "#8 _start": ElfSymbol {
                             name: "_start",
                             binding: Global,
                             type_: NoType,
@@ -159,11 +159,11 @@ Object {
                 },
             ),
         },
-        "#5 .strtab": Section {
+        "#5 .strtab": ElfSection {
             name: ".strtab",
             memory_address: 0x0,
             content: StringTable(
-                StringTable {
+                ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: "tests/snapshot/hello_asm.S",
@@ -176,21 +176,21 @@ Object {
                 },
             ),
         },
-        "#6 .rel.text": Section {
+        "#6 .rel.text": ElfSection {
             name: ".rel.text",
             memory_address: 0x0,
             content: RelocationsTable(
-                RelocationsTable {
+                ElfRelocationsTable {
                     symbol_table: "#4 .symtab",
                     applies_to_section: "#2 .text",
                     relocations: [
-                        Relocation {
+                        ElfRelocation {
                             offset: 0xb,
                             symbol: "#2 <empty>",
                             relocation_type: X86_32,
                             addend: None,
                         },
-                        Relocation {
+                        ElfRelocation {
                             offset: 0x21,
                             symbol: "#2 <empty>",
                             relocation_type: X86_32,

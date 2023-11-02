@@ -18,7 +18,13 @@ fn main() {
             if file.is_dir() {
                 panic!("dir {file:?} inside of test");
             }
-            files.push(std::fs::canonicalize(file).unwrap().to_str().unwrap().to_string());
+            files.push(
+                std::fs::canonicalize(file)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            );
         }
 
         let files = files

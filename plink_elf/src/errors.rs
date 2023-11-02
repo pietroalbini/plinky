@@ -1,4 +1,4 @@
-use crate::ABI;
+use crate::ElfABI;
 
 #[derive(Debug)]
 pub enum LoadError {
@@ -8,7 +8,7 @@ pub enum LoadError {
     BadEndian(u8),
     BadVersion(u32),
     BadAbi(u8),
-    BadAbiVersion(ABI, u8),
+    BadAbiVersion(ElfABI, u8),
     BadType(u16),
     BadMachine(u16),
     UnterminatedString,

@@ -1,7 +1,7 @@
 pub mod ids;
 mod string_table;
 
-pub use self::string_table::StringTable;
+pub use self::string_table::ElfStringTable;
 
 use crate::errors::LoadError;
 use crate::ids::{convert, ConvertibleElfIds};
@@ -13,16 +13,16 @@ use std::num::NonZeroU64;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub struct Object<I: ElfIds> {
-    pub env: Environment,
-    pub type_: Type,
+pub struct ElfObject<I: ElfIds> {
+    pub env: ElfEnvironment,
+    pub type_: ElfType,
     pub entry: Option<NonZeroU64>,
     pub flags: u32,
-    pub sections: BTreeMap<I::SectionId, Section<I>>,
-    pub segments: Vec<Segment>,
+    pub sections: BTreeMap<I::SectionId, ElfSection<I>>,
+    pub segments: Vec<ElfSegment>,
 }
 
-impl<I: ElfIds> Object<I> {
+impl<I: ElfIds> ElfObject<I> {
     pub fn load(reader: &mut dyn ReadSeek, ids: &mut I) -> Result<Self, LoadError>
     where
         I: ConvertibleElfIds<PendingIds>,
@@ -34,32 +34,32 @@ impl<I: ElfIds> Object<I> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Environment {
-    pub class: Class,
-    pub endian: Endian,
-    pub abi: ABI,
-    pub machine: Machine,
+pub struct ElfEnvironment {
+    pub class: ElfClass,
+    pub endian: ElfEndian,
+    pub abi: ElfABI,
+    pub machine: ElfMachine,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Class {
+pub enum ElfClass {
     Elf32,
     Elf64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ABI {
+pub enum ElfABI {
     SystemV,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Endian {
+pub enum ElfEndian {
     Little,
     Big,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Type {
+pub enum ElfType {
     Relocatable,
     Executable,
     SharedObject,
@@ -67,31 +67,31 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Machine {
+pub enum ElfMachine {
     X86,
     X86_64,
 }
 
 #[derive(Debug)]
-pub struct Section<I: ElfIds> {
+pub struct ElfSection<I: ElfIds> {
     pub name: I::StringId,
     pub memory_address: u64,
-    pub content: SectionContent<I>,
+    pub content: ElfSectionContent<I>,
 }
 
 #[derive(Debug)]
-pub enum SectionContent<I: ElfIds> {
+pub enum ElfSectionContent<I: ElfIds> {
     Null,
-    Program(ProgramSection),
-    SymbolTable(SymbolTable<I>),
-    StringTable(StringTable),
-    RelocationsTable(RelocationsTable<I>),
-    Note(NotesTable),
-    Unknown(UnknownSection),
+    Program(ElfProgramSection),
+    SymbolTable(ElfSymbolTable<I>),
+    StringTable(ElfStringTable),
+    RelocationsTable(ElfRelocationsTable<I>),
+    Note(ElfNotesTable),
+    Unknown(ElfUnknownSection),
 }
 
 #[derive(Debug)]
-pub struct ProgramSection {
+pub struct ElfProgramSection {
     pub writeable: bool,
     pub allocated: bool,
     pub executable: bool,
@@ -99,40 +99,40 @@ pub struct ProgramSection {
 }
 
 #[derive(Debug)]
-pub struct NotesTable {
-    pub notes: Vec<Note>,
+pub struct ElfNotesTable {
+    pub notes: Vec<ElfNote>,
 }
 
 #[derive(Debug)]
-pub struct Note {
+pub struct ElfNote {
     pub name: String,
     pub value: RawBytes,
     pub type_: u32,
 }
 
 #[derive(Debug)]
-pub struct UnknownSection {
+pub struct ElfUnknownSection {
     pub id: u32,
     pub raw: RawBytes,
 }
 
 #[derive(Debug)]
-pub struct SymbolTable<I: ElfIds> {
-    pub symbols: BTreeMap<I::SymbolId, Symbol<I>>,
+pub struct ElfSymbolTable<I: ElfIds> {
+    pub symbols: BTreeMap<I::SymbolId, ElfSymbol<I>>,
 }
 
 #[derive(Debug)]
-pub struct Symbol<I: ElfIds> {
+pub struct ElfSymbol<I: ElfIds> {
     pub name: I::StringId,
-    pub binding: SymbolBinding,
-    pub type_: SymbolType,
-    pub definition: SymbolDefinition<I>,
+    pub binding: ElfSymbolBinding,
+    pub type_: ElfSymbolType,
+    pub definition: ElfSymbolDefinition<I>,
     pub value: u64,
     pub size: u64,
 }
 
 #[derive(Debug)]
-pub enum SymbolBinding {
+pub enum ElfSymbolBinding {
     Local,
     Global,
     Weak,
@@ -140,7 +140,7 @@ pub enum SymbolBinding {
 }
 
 #[derive(Debug)]
-pub enum SymbolType {
+pub enum ElfSymbolType {
     NoType,
     Object,
     Function,
@@ -150,7 +150,7 @@ pub enum SymbolType {
 }
 
 #[derive(Debug)]
-pub enum SymbolDefinition<I: ElfIds> {
+pub enum ElfSymbolDefinition<I: ElfIds> {
     Undefined,
     Absolute,
     Common,
@@ -158,23 +158,23 @@ pub enum SymbolDefinition<I: ElfIds> {
 }
 
 #[derive(Debug)]
-pub struct RelocationsTable<I: ElfIds> {
+pub struct ElfRelocationsTable<I: ElfIds> {
     pub symbol_table: I::SectionId,
     pub applies_to_section: I::SectionId,
-    pub relocations: Vec<Relocation<I>>,
+    pub relocations: Vec<ElfRelocation<I>>,
 }
 
 #[derive(Debug)]
-pub struct Relocation<I: ElfIds> {
+pub struct ElfRelocation<I: ElfIds> {
     pub offset: u64,
     pub symbol: I::SymbolId,
-    pub relocation_type: RelocationType,
+    pub relocation_type: ElfRelocationType,
     pub addend: Option<i64>,
 }
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
-pub enum RelocationType {
+pub enum ElfRelocationType {
     // x86
     X86_None,
     X86_32,
@@ -218,12 +218,12 @@ pub enum RelocationType {
 }
 
 #[derive(Debug)]
-pub struct Segment {
-    pub content: SegmentContent,
+pub struct ElfSegment {
+    pub content: ElfSegmentContent,
 }
 
 #[derive(Debug)]
-pub enum SegmentContent {
+pub enum ElfSegmentContent {
     Unknown { id: u32, raw: RawBytes },
 }
 

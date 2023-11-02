@@ -1,8 +1,8 @@
 ---
 source: plink_elf/tests/snapshot.rs
 ---
-Object {
-    env: Environment {
+ElfObject {
+    env: ElfEnvironment {
         class: Elf32,
         endian: Little,
         abi: SystemV,
@@ -14,16 +14,16 @@ Object {
     ),
     flags: 0x0,
     sections: {
-        "#0 ": Section {
+        "#0 ": ElfSection {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        "#1 .text": Section {
+        "#1 .text": ElfSection {
             name: ".text",
             memory_address: 0x8049000,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: true,
                     executable: true,
@@ -36,11 +36,11 @@ Object {
                 },
             ),
         },
-        "#2 .data": Section {
+        "#2 .data": ElfSection {
             name: ".data",
             memory_address: 0x804a000,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: true,
                     allocated: true,
                     executable: false,
@@ -52,13 +52,13 @@ Object {
                 },
             ),
         },
-        "#3 .symtab": Section {
+        "#3 .symtab": ElfSection {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
-                SymbolTable {
+                ElfSymbolTable {
                     symbols: {
-                        "#00 <empty>": Symbol {
+                        "#00 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: NoType,
@@ -66,7 +66,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#01 tests/snapshot/hello_asm.S": Symbol {
+                        "#01 tests/snapshot/hello_asm.S": ElfSymbol {
                             name: "tests/snapshot/hello_asm.S",
                             binding: Local,
                             type_: File,
@@ -74,7 +74,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#02 msg_hello": Symbol {
+                        "#02 msg_hello": ElfSymbol {
                             name: "msg_hello",
                             binding: Local,
                             type_: NoType,
@@ -84,7 +84,7 @@ Object {
                             value: 0x804a000,
                             size: 0x0,
                         },
-                        "#03 len_hello": Symbol {
+                        "#03 len_hello": ElfSymbol {
                             name: "len_hello",
                             binding: Local,
                             type_: NoType,
@@ -92,7 +92,7 @@ Object {
                             value: 0xd,
                             size: 0x0,
                         },
-                        "#04 msg_goodbye": Symbol {
+                        "#04 msg_goodbye": ElfSymbol {
                             name: "msg_goodbye",
                             binding: Local,
                             type_: NoType,
@@ -102,7 +102,7 @@ Object {
                             value: 0x804a00d,
                             size: 0x0,
                         },
-                        "#05 len_goodbye": Symbol {
+                        "#05 len_goodbye": ElfSymbol {
                             name: "len_goodbye",
                             binding: Local,
                             type_: NoType,
@@ -110,7 +110,7 @@ Object {
                             value: 0xf,
                             size: 0x0,
                         },
-                        "#06 _start": Symbol {
+                        "#06 _start": ElfSymbol {
                             name: "_start",
                             binding: Global,
                             type_: NoType,
@@ -120,7 +120,7 @@ Object {
                             value: 0x8049000,
                             size: 0x0,
                         },
-                        "#07 __bss_start": Symbol {
+                        "#07 __bss_start": ElfSymbol {
                             name: "__bss_start",
                             binding: Global,
                             type_: NoType,
@@ -130,7 +130,7 @@ Object {
                             value: 0x804a01c,
                             size: 0x0,
                         },
-                        "#08 _edata": Symbol {
+                        "#08 _edata": ElfSymbol {
                             name: "_edata",
                             binding: Global,
                             type_: NoType,
@@ -140,7 +140,7 @@ Object {
                             value: 0x804a01c,
                             size: 0x0,
                         },
-                        "#09 _end": Symbol {
+                        "#09 _end": ElfSymbol {
                             name: "_end",
                             binding: Global,
                             type_: NoType,
@@ -154,11 +154,11 @@ Object {
                 },
             ),
         },
-        "#4 .strtab": Section {
+        "#4 .strtab": ElfSection {
             name: ".strtab",
             memory_address: 0x0,
             content: StringTable(
-                StringTable {
+                ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: "tests/snapshot/hello_asm.S",
@@ -173,11 +173,11 @@ Object {
                 },
             ),
         },
-        "#5 .shstrtab": Section {
+        "#5 .shstrtab": ElfSection {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
-                StringTable {
+                ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: ".symtab",
@@ -191,7 +191,7 @@ Object {
         },
     },
     segments: [
-        Segment {
+        ElfSegment {
             content: Unknown {
                 id: 0x1,
                 raw: RawBytes {
@@ -205,7 +205,7 @@ Object {
                 },
             },
         },
-        Segment {
+        ElfSegment {
             content: Unknown {
                 id: 0x1,
                 raw: RawBytes {
@@ -216,7 +216,7 @@ Object {
                 },
             },
         },
-        Segment {
+        ElfSegment {
             content: Unknown {
                 id: 0x1,
                 raw: RawBytes {

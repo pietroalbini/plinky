@@ -1,11 +1,11 @@
 use crate::errors::LoadError;
 use crate::reader::Cursor;
-use crate::{Note, NotesTable, RawBytes};
+use crate::{ElfNote, ElfNotesTable, RawBytes};
 
 pub(super) fn read_notes(
     cursor: &mut Cursor<'_>,
     raw_content: &[u8],
-) -> Result<NotesTable, LoadError> {
+) -> Result<ElfNotesTable, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -14,10 +14,10 @@ pub(super) fn read_notes(
         notes.push(read_note(&mut cursor)?);
     }
 
-    Ok(NotesTable { notes })
+    Ok(ElfNotesTable { notes })
 }
 
-fn read_note(cursor: &mut Cursor<'_>) -> Result<Note, LoadError> {
+fn read_note(cursor: &mut Cursor<'_>) -> Result<ElfNote, LoadError> {
     let name_size = cursor.read_u32()?;
     let value_size = cursor.read_u32()?;
     let type_ = cursor.read_u32()?;
@@ -29,7 +29,7 @@ fn read_note(cursor: &mut Cursor<'_>) -> Result<Note, LoadError> {
     let value_bytes = cursor.read_vec(value_size as _)?;
     cursor.align_with_padding(8)?;
 
-    Ok(Note {
+    Ok(ElfNote {
         name: String::from_utf8(name_bytes)?,
         value: RawBytes(value_bytes),
         type_,

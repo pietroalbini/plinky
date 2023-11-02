@@ -1,7 +1,7 @@
 use crate::ids::ElfIds;
 use crate::{
-    Object, Relocation, RelocationsTable, Section, SectionContent, Symbol, SymbolDefinition,
-    SymbolTable,
+    ElfObject, ElfRelocation, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSymbol,
+    ElfSymbolDefinition, ElfSymbolTable,
 };
 use std::collections::BTreeMap;
 
@@ -12,7 +12,7 @@ where
 {
     fn create_conversion_map(
         &mut self,
-        object: &Object<F>,
+        object: &ElfObject<F>,
         string_ids: &[F::StringId],
     ) -> IdConversionMap<F, Self>;
 }
@@ -54,7 +54,7 @@ impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
     }
 }
 
-pub(crate) fn convert<F, T>(ids: &mut T, object: Object<F>) -> Object<T>
+pub(crate) fn convert<F, T>(ids: &mut T, object: ElfObject<F>) -> ElfObject<T>
 where
     F: ElfIds,
     T: ConvertibleElfIds<F>,
@@ -62,7 +62,7 @@ where
     let string_ids = collect_string_ids(&object);
     let map = ids.create_conversion_map(&object, &string_ids);
 
-    Object {
+    ElfObject {
         env: object.env,
         type_: object.type_,
         entry: object.entry,
@@ -73,39 +73,39 @@ where
             .map(|(id, section)| {
                 (
                     map.section_id(&id),
-                    Section {
+                    ElfSection {
                         name: map.string_id(&section.name),
                         memory_address: section.memory_address,
                         content: match section.content {
-                            SectionContent::Null => SectionContent::Null,
-                            SectionContent::Program(p) => SectionContent::Program(p),
-                            SectionContent::SymbolTable(table) => {
-                                SectionContent::SymbolTable(SymbolTable {
+                            ElfSectionContent::Null => ElfSectionContent::Null,
+                            ElfSectionContent::Program(p) => ElfSectionContent::Program(p),
+                            ElfSectionContent::SymbolTable(table) => {
+                                ElfSectionContent::SymbolTable(ElfSymbolTable {
                                     symbols: table
                                         .symbols
                                         .into_iter()
                                         .map(|(id, symbol)| {
                                             (
                                                 map.symbol_id(&id),
-                                                Symbol {
+                                                ElfSymbol {
                                                     name: map.string_id(&symbol.name),
                                                     binding: symbol.binding,
                                                     type_: symbol.type_,
                                                     definition: match symbol.definition {
-                                                        SymbolDefinition::Undefined => {
-                                                            SymbolDefinition::Undefined
+                                                        ElfSymbolDefinition::Undefined => {
+                                                            ElfSymbolDefinition::Undefined
                                                         }
-                                                        SymbolDefinition::Absolute => {
-                                                            SymbolDefinition::Absolute
+                                                        ElfSymbolDefinition::Absolute => {
+                                                            ElfSymbolDefinition::Absolute
                                                         }
-                                                        SymbolDefinition::Common => {
-                                                            SymbolDefinition::Common
+                                                        ElfSymbolDefinition::Common => {
+                                                            ElfSymbolDefinition::Common
                                                         }
-                                                        SymbolDefinition::Section(section_id) => {
-                                                            SymbolDefinition::Section(
-                                                                map.section_id(&section_id),
-                                                            )
-                                                        }
+                                                        ElfSymbolDefinition::Section(
+                                                            section_id,
+                                                        ) => ElfSymbolDefinition::Section(
+                                                            map.section_id(&section_id),
+                                                        ),
                                                     },
                                                     value: symbol.value,
                                                     size: symbol.size,
@@ -115,15 +115,15 @@ where
                                         .collect(),
                                 })
                             }
-                            SectionContent::StringTable(s) => SectionContent::StringTable(s),
-                            SectionContent::RelocationsTable(table) => {
-                                SectionContent::RelocationsTable(RelocationsTable {
+                            ElfSectionContent::StringTable(s) => ElfSectionContent::StringTable(s),
+                            ElfSectionContent::RelocationsTable(table) => {
+                                ElfSectionContent::RelocationsTable(ElfRelocationsTable {
                                     symbol_table: map.section_id(&table.symbol_table),
                                     applies_to_section: map.section_id(&table.applies_to_section),
                                     relocations: table
                                         .relocations
                                         .into_iter()
-                                        .map(|relocation| Relocation {
+                                        .map(|relocation| ElfRelocation {
                                             offset: relocation.offset,
                                             symbol: map.symbol_id(&relocation.symbol),
                                             relocation_type: relocation.relocation_type,
@@ -132,8 +132,8 @@ where
                                         .collect(),
                                 })
                             }
-                            SectionContent::Note(n) => SectionContent::Note(n),
-                            SectionContent::Unknown(u) => SectionContent::Unknown(u),
+                            ElfSectionContent::Note(n) => ElfSectionContent::Note(n),
+                            ElfSectionContent::Unknown(u) => ElfSectionContent::Unknown(u),
                         },
                     },
                 )
@@ -143,11 +143,11 @@ where
     }
 }
 
-fn collect_string_ids<I: ElfIds>(object: &Object<I>) -> Vec<I::StringId> {
+fn collect_string_ids<I: ElfIds>(object: &ElfObject<I>) -> Vec<I::StringId> {
     let mut ids = Vec::new();
     for section in object.sections.values() {
         ids.push(section.name.clone());
-        if let SectionContent::SymbolTable(table) = &section.content {
+        if let ElfSectionContent::SymbolTable(table) = &section.content {
             for symbol in table.symbols.values() {
                 ids.push(symbol.name.clone());
             }

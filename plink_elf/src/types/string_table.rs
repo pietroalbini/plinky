@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
-pub struct StringTable {
+pub struct ElfStringTable {
     strings: BTreeMap<u32, String>,
 }
 
-impl StringTable {
+impl ElfStringTable {
     pub(crate) fn new(strings: BTreeMap<u32, String>) -> Self {
         Self { strings }
     }
@@ -40,7 +40,7 @@ mod tests {
         btree.insert(20, "Foo".into());
         btree.insert(30, "Bar".into());
         btree.insert(33, "Baz".into());
-        let strings = StringTable::new(btree);
+        let strings = ElfStringTable::new(btree);
 
         assert_eq!("Hello world", strings.get(0).unwrap());
         assert_eq!("Foo", strings.get(20).unwrap());

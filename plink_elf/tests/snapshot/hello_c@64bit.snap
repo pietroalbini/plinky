@@ -1,8 +1,8 @@
 ---
 source: plink_elf/tests/snapshot.rs
 ---
-Object {
-    env: Environment {
+ElfObject {
+    env: ElfEnvironment {
         class: Elf64,
         endian: Little,
         abi: SystemV,
@@ -12,16 +12,16 @@ Object {
     entry: None,
     flags: 0x0,
     sections: {
-        "#00 ": Section {
+        "#00 ": ElfSection {
             name: "",
             memory_address: 0x0,
             content: Null,
         },
-        "#01 .text": Section {
+        "#01 .text": ElfSection {
             name: ".text",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: true,
                     executable: true,
@@ -33,15 +33,15 @@ Object {
                 },
             ),
         },
-        "#02 .rela.text": Section {
+        "#02 .rela.text": ElfSection {
             name: ".rela.text",
             memory_address: 0x0,
             content: RelocationsTable(
-                RelocationsTable {
+                ElfRelocationsTable {
                     symbol_table: "#11 .symtab",
                     applies_to_section: "#01 .text",
                     relocations: [
-                        Relocation {
+                        ElfRelocation {
                             offset: 0x16,
                             symbol: "#3 <empty>",
                             relocation_type: X86_64_PC32,
@@ -49,7 +49,7 @@ Object {
                                 0xfffffffffffffffc,
                             ),
                         },
-                        Relocation {
+                        ElfRelocation {
                             offset: 0x1e,
                             symbol: "#5 puts",
                             relocation_type: X86_64_PLT32,
@@ -61,11 +61,11 @@ Object {
                 },
             ),
         },
-        "#03 .data": Section {
+        "#03 .data": ElfSection {
             name: ".data",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: true,
                     allocated: true,
                     executable: false,
@@ -73,21 +73,21 @@ Object {
                 },
             ),
         },
-        "#04 .bss": Section {
+        "#04 .bss": ElfSection {
             name: ".bss",
             memory_address: 0x0,
             content: Unknown(
-                UnknownSection {
+                ElfUnknownSection {
                     id: 0x8,
                     raw: RawBytes {},
                 },
             ),
         },
-        "#05 .rodata": Section {
+        "#05 .rodata": ElfSection {
             name: ".rodata",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: true,
                     executable: false,
@@ -98,11 +98,11 @@ Object {
                 },
             ),
         },
-        "#06 .comment": Section {
+        "#06 .comment": ElfSection {
             name: ".comment",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: false,
                     executable: false,
@@ -114,11 +114,11 @@ Object {
                 },
             ),
         },
-        "#07 .note.GNU-stack": Section {
+        "#07 .note.GNU-stack": ElfSection {
             name: ".note.GNU-stack",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: false,
                     executable: false,
@@ -126,13 +126,13 @@ Object {
                 },
             ),
         },
-        "#08 .note.gnu.property": Section {
+        "#08 .note.gnu.property": ElfSection {
             name: ".note.gnu.property",
             memory_address: 0x0,
             content: Note(
-                NotesTable {
+                ElfNotesTable {
                     notes: [
-                        Note {
+                        ElfNote {
                             name: "GNU",
                             value: RawBytes {
                                 02 00 00 c0 04 00 00 00 03 00 00 00 00 00 00 00 | ................
@@ -144,11 +144,11 @@ Object {
                 },
             ),
         },
-        "#09 .eh_frame": Section {
+        "#09 .eh_frame": ElfSection {
             name: ".eh_frame",
             memory_address: 0x0,
             content: Program(
-                ProgramSection {
+                ElfProgramSection {
                     writeable: false,
                     allocated: true,
                     executable: false,
@@ -161,15 +161,15 @@ Object {
                 },
             ),
         },
-        "#10 .rela.eh_frame": Section {
+        "#10 .rela.eh_frame": ElfSection {
             name: ".rela.eh_frame",
             memory_address: 0x0,
             content: RelocationsTable(
-                RelocationsTable {
+                ElfRelocationsTable {
                     symbol_table: "#11 .symtab",
                     applies_to_section: "#09 .eh_frame",
                     relocations: [
-                        Relocation {
+                        ElfRelocation {
                             offset: 0x20,
                             symbol: "#2 <empty>",
                             relocation_type: X86_64_PC32,
@@ -181,13 +181,13 @@ Object {
                 },
             ),
         },
-        "#11 .symtab": Section {
+        "#11 .symtab": ElfSection {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
-                SymbolTable {
+                ElfSymbolTable {
                     symbols: {
-                        "#0 <empty>": Symbol {
+                        "#0 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: NoType,
@@ -195,7 +195,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#1 hello_c.c": Symbol {
+                        "#1 hello_c.c": ElfSymbol {
                             name: "hello_c.c",
                             binding: Local,
                             type_: File,
@@ -203,7 +203,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#2 <empty>": Symbol {
+                        "#2 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -213,7 +213,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#3 <empty>": Symbol {
+                        "#3 <empty>": ElfSymbol {
                             name: "",
                             binding: Local,
                             type_: Section,
@@ -223,7 +223,7 @@ Object {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#4 main": Symbol {
+                        "#4 main": ElfSymbol {
                             name: "main",
                             binding: Global,
                             type_: Function,
@@ -233,7 +233,7 @@ Object {
                             value: 0x0,
                             size: 0x29,
                         },
-                        "#5 puts": Symbol {
+                        "#5 puts": ElfSymbol {
                             name: "puts",
                             binding: Global,
                             type_: NoType,
@@ -245,11 +245,11 @@ Object {
                 },
             ),
         },
-        "#12 .strtab": Section {
+        "#12 .strtab": ElfSection {
             name: ".strtab",
             memory_address: 0x0,
             content: StringTable(
-                StringTable {
+                ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: "hello_c.c",
@@ -259,11 +259,11 @@ Object {
                 },
             ),
         },
-        "#13 .shstrtab": Section {
+        "#13 .shstrtab": ElfSection {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
-                StringTable {
+                ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: ".symtab",

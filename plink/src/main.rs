@@ -1,6 +1,6 @@
+use crate::linker::Linker;
 use std::error::Error;
 use std::process::ExitCode;
-use crate::linker::Linker;
 
 mod cli;
 mod linker;

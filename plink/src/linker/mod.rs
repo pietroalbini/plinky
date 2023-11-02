@@ -1,6 +1,6 @@
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
-use plink_elf::{Environment, Object};
+use plink_elf::{ElfEnvironment, ElfObject};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -18,7 +18,7 @@ impl Linker {
     }
 
     pub(crate) fn load_file(&mut self, path: &Path) -> Result<(), LinkerError> {
-        let object = Object::load(
+        let object = ElfObject::load(
             &mut File::open(path)
                 .map_err(|e| LinkerError::LoadElfFailed(path.into(), LoadError::IO(e)))?,
             &mut self.ids,
@@ -53,7 +53,7 @@ impl Linker {
 
 #[derive(Debug, Clone)]
 pub(crate) struct EnvironmentAndPath {
-    env: Environment,
+    env: ElfEnvironment,
     path: PathBuf,
 }
 

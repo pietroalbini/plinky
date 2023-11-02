@@ -1,6 +1,7 @@
 use crate::linker::Linker;
 use std::error::Error;
 use std::process::ExitCode;
+use crate::cli::DebugPrint;
 
 mod cli;
 mod linker;
@@ -11,6 +12,11 @@ fn app() -> Result<(), Box<dyn Error>> {
     let mut linker = Linker::new();
     for input in &options.inputs {
         linker.load_file(input)?;
+    }
+
+    if let Some(DebugPrint::MergedObject) = options.debug_print {
+        println!("{:#?}", linker.loaded_object_for_debug_print());
+        return Ok(());
     }
 
     Ok(())

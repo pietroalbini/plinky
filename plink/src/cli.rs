@@ -4,6 +4,12 @@ use std::path::PathBuf;
 pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<PathBuf>,
     pub(crate) output: PathBuf,
+    pub(crate) debug_print: Option<DebugPrint>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum DebugPrint {
+    MergedObject,
 }
 
 pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
@@ -14,16 +20,25 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
     let mut inputs = Vec::new();
     let mut output = None;
+    let mut debug_print = None;
 
     let mut previous_token: Option<CliToken<'_>> = None;
     while let Some(token) = lexer.next() {
         match token {
             CliToken::StandaloneValue(val) => inputs.push(val.into()),
 
-            CliToken::LongFlag("output") | CliToken::ShortFlag("o") => match output {
-                Some(_) => return Err(CliError::DuplicateFlag(token.to_string())),
-                None => output = Some(lexer.expect_flag_value(&token)?),
-            },
+            CliToken::LongFlag("output") | CliToken::ShortFlag("o") => {
+                reject_duplicate(&token, &mut output, || lexer.expect_flag_value(&token))?;
+            }
+
+            CliToken::LongFlag("debug-print") => {
+                reject_duplicate(&token, &mut debug_print, || {
+                    Ok(match lexer.expect_flag_value(&token)? {
+                        "merged-object" => DebugPrint::MergedObject,
+                        other => return Err(CliError::UnsupportedDebugPrint(other.into())),
+                    })
+                })?;
+            }
 
             // If the flag value was not consumed in the previous iteration when the flag itself
             // was parsed, it means the flag didn't accept a value and we should error out.
@@ -47,12 +62,28 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     Ok(CliOptions {
         inputs,
         output: output.unwrap_or("a.out").into(),
+        debug_print,
     })
+}
+
+fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
+    token: &CliToken<'_>,
+    storage: &mut Option<T>,
+    f: F,
+) -> Result<(), CliError> {
+    match storage {
+        Some(_) => Err(CliError::DuplicateFlag(token.to_string())),
+        None => {
+            *storage = Some(f()?);
+            Ok(())
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum CliError {
     MissingInput,
+    UnsupportedDebugPrint(String),
     UnsupportedFlag(String),
     DuplicateFlag(String),
     FlagDoesNotAcceptValues(String),
@@ -65,6 +96,7 @@ impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CliError::MissingInput => f.write_str("missing input file"),
+            CliError::UnsupportedDebugPrint(print) => write!(f, "unsupported debug print: {print}"),
             CliError::UnsupportedFlag(flag) => write!(f, "flag {flag} is not supported"),
             CliError::DuplicateFlag(flag) => write!(f, "flag {flag} provided multiple times"),
             CliError::FlagDoesNotAcceptValues(flag) => {
@@ -208,7 +240,8 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                output: "a.out".into()
+                output: "a.out".into(),
+                debug_print: None,
             }),
             parse(["foo"].into_iter())
         )
@@ -219,7 +252,8 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into(), "bar".into()],
-                output: "a.out".into()
+                output: "a.out".into(),
+                debug_print: None,
             }),
             parse(["foo", "bar"].into_iter())
         )
@@ -239,6 +273,7 @@ mod tests {
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
                     output: "bar".into(),
+                    debug_print: None,
                 }),
                 parse(flags.into_iter().copied())
             );
@@ -260,6 +295,49 @@ mod tests {
                 parse(flags.into_iter().copied())
             );
         }
+    }
+
+    #[test]
+    fn test_debug_print() {
+        const VARIANTS: &[(DebugPrint, &[&str])] = &[(
+            DebugPrint::MergedObject,
+            &["foo", "--debug-print", "merged-object"],
+        )];
+        for (expected, flags) in VARIANTS {
+            assert_eq!(
+                Ok(CliOptions {
+                    inputs: vec!["foo".into()],
+                    output: "a.out".into(),
+                    debug_print: Some(*expected),
+                }),
+                parse(flags.into_iter().copied())
+            )
+        }
+    }
+
+    #[test]
+    fn test_unsupported_debug_print() {
+        assert_eq!(
+            Err(CliError::UnsupportedDebugPrint("foo".into())),
+            parse(["input_file", "--debug-print", "foo"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_duplicate_debug_print() {
+        assert_eq!(
+            Err(CliError::DuplicateFlag("--debug-print".into())),
+            parse(
+                [
+                    "input_file",
+                    "--debug-print",
+                    "merged-object",
+                    "--debug-print",
+                    "merged-object"
+                ]
+                .into_iter()
+            )
+        );
     }
 
     #[test]

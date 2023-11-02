@@ -58,6 +58,10 @@ impl Linker {
         }
         Ok(())
     }
+
+    pub(crate) fn loaded_object_for_debug_print(&self) -> &dyn std::fmt::Debug {
+        &self.object
+    }
 }
 
 #[derive(Debug, Clone)]

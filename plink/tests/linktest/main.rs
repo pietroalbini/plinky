@@ -36,10 +36,27 @@ impl Test {
     }
 
     fn link_and_snapshot(&self, settings: &TestSettings, root: &Path) -> Result<ExitStatus, Error> {
-        let output = Command::new(env!("CARGO_BIN_EXE_plink"))
-            .current_dir(root)
-            .args(&settings.cmd)
-            .output()?;
+        for debug_print in &settings.debug_print {
+            let outcome = self.link_and_snapshot_inner(settings, root, Some(&debug_print))?;
+            if !outcome.success() {
+                anyhow::bail!("debug printing {debug_print} failed, but should always succeed");
+            }
+        }
+        self.link_and_snapshot_inner(settings, root, None)
+    }
+
+    fn link_and_snapshot_inner(
+        &self,
+        settings: &TestSettings,
+        root: &Path,
+        debug_print: Option<&str>,
+    ) -> Result<ExitStatus, Error> {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_plink"));
+        command.current_dir(root).args(&settings.cmd);
+        if let Some(debug_print) = debug_print {
+            command.args(["--debug-print", debug_print]);
+        }
+        let output = command.output()?;
 
         let mut output_repr = format!("linking exited with {}\n", output.status);
         for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
@@ -62,6 +79,9 @@ impl Test {
                 .join("linktest")
                 .join(self.name),
         )?);
+        if let Some(suffix) = debug_print {
+            insta_settings.set_snapshot_suffix(suffix);
+        }
 
         insta_settings.bind(|| {
             insta::assert_snapshot!("linker", output_repr);
@@ -106,10 +126,12 @@ impl Test {
 }
 
 #[derive(serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 struct TestSettings {
     cmd: Vec<String>,
     kind: TestKind,
+    #[serde(default)]
+    debug_print: Vec<String>,
     #[serde(default)]
     asm: Vec<AsmFile>,
 }

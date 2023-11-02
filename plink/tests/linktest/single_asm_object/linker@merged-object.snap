@@ -1,0 +1,199 @@
+---
+source: plink/tests/linktest/main.rs
+---
+linking exited with exit status: 0
+
+=== stdout ===
+Object {
+    program_sections: {
+        ".data": ProgramSection {
+            program: ElfProgramSection {
+                writeable: true,
+                allocated: true,
+                executable: false,
+                raw: RawBytes {
+                    48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                    (len: 0xd)
+                },
+            },
+            relocations: [],
+        },
+        ".text": ProgramSection {
+            program: ElfProgramSection {
+                writeable: false,
+                allocated: true,
+                executable: true,
+                raw: RawBytes {
+                    b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 b0 01 bb | .........................
+                    00 00 00 00 cd 80                                                          | ......
+                    (len: 0x1f)
+                },
+            },
+            relocations: [
+                ElfRelocation {
+                    offset: 11,
+                    symbol: SymbolId(
+                        2,
+                    ),
+                    relocation_type: X86_64_32,
+                    addend: Some(
+                        0,
+                    ),
+                },
+            ],
+        },
+    },
+    string_tables: {
+        SectionId(
+            3,
+        ): ElfStringTable {
+            strings: {
+                0: "",
+                1: ".data",
+                7: ".text",
+                13: ".shstrtab",
+                23: ".symtab",
+                31: ".strtab",
+                39: ".rela.text",
+            },
+        },
+        SectionId(
+            5,
+        ): ElfStringTable {
+            strings: {
+                0: "",
+                1: "hello.S",
+                9: "msg",
+                13: "len",
+                17: "_start",
+            },
+        },
+    },
+    symbols: {
+        SymbolId(
+            0,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                0,
+            ),
+            binding: Local,
+            type_: NoType,
+            definition: Undefined,
+            value: 0,
+            size: 0,
+        },
+        SymbolId(
+            1,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                1,
+            ),
+            binding: Local,
+            type_: File,
+            definition: Absolute,
+            value: 0,
+            size: 0,
+        },
+        SymbolId(
+            2,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                0,
+            ),
+            binding: Local,
+            type_: Section,
+            definition: Section(
+                SectionId(
+                    1,
+                ),
+            ),
+            value: 0,
+            size: 0,
+        },
+        SymbolId(
+            3,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                0,
+            ),
+            binding: Local,
+            type_: Section,
+            definition: Section(
+                SectionId(
+                    2,
+                ),
+            ),
+            value: 0,
+            size: 0,
+        },
+        SymbolId(
+            4,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                9,
+            ),
+            binding: Local,
+            type_: NoType,
+            definition: Section(
+                SectionId(
+                    1,
+                ),
+            ),
+            value: 0,
+            size: 0,
+        },
+        SymbolId(
+            5,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                13,
+            ),
+            binding: Local,
+            type_: NoType,
+            definition: Absolute,
+            value: 13,
+            size: 0,
+        },
+        SymbolId(
+            6,
+        ): ElfSymbol {
+            name: StringId(
+                SectionId(
+                    5,
+                ),
+                17,
+            ),
+            binding: Global,
+            type_: NoType,
+            definition: Section(
+                SectionId(
+                    2,
+                ),
+            ),
+            value: 0,
+            size: 0,
+        },
+    },
+}
+
+
+no stderr present
+

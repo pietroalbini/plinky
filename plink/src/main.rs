@@ -19,7 +19,7 @@ fn app() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    Ok(())
+    todo!();
 }
 
 fn main() -> ExitCode {

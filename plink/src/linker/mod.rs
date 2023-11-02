@@ -1,10 +1,14 @@
+mod object;
+
+use crate::linker::object::{Object, ObjectLoadError};
 use plink_elf::errors::LoadError;
-use plink_elf::ids::serial::SerialIds;
+use plink_elf::ids::serial::{SerialIds, StringId};
 use plink_elf::{ElfEnvironment, ElfObject};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
 pub(crate) struct Linker {
+    object: Object,
     ids: SerialIds,
     first_environment: Option<EnvironmentAndPath>,
 }
@@ -12,6 +16,7 @@ pub(crate) struct Linker {
 impl Linker {
     pub(crate) fn new() -> Self {
         Linker {
+            object: Object::new(),
             ids: SerialIds::new(),
             first_environment: None,
         }
@@ -20,15 +25,19 @@ impl Linker {
     pub(crate) fn load_file(&mut self, path: &Path) -> Result<(), LinkerError> {
         let object = ElfObject::load(
             &mut File::open(path)
-                .map_err(|e| LinkerError::LoadElfFailed(path.into(), LoadError::IO(e)))?,
+                .map_err(|e| LinkerError::ReadElfFailed(path.into(), LoadError::IO(e)))?,
             &mut self.ids,
         )
-        .map_err(|e| LinkerError::LoadElfFailed(path.into(), e))?;
+        .map_err(|e| LinkerError::ReadElfFailed(path.into(), e))?;
 
         self.check_matching_environment(EnvironmentAndPath {
             env: object.env,
             path: path.into(),
         })?;
+
+        self.object
+            .merge_elf(object)
+            .map_err(|e| LinkerError::ObjectLoadFailed(path.into(), e))?;
 
         Ok(())
     }
@@ -59,15 +68,19 @@ pub(crate) struct EnvironmentAndPath {
 
 #[derive(Debug)]
 pub(crate) enum LinkerError {
-    LoadElfFailed(PathBuf, LoadError),
+    ReadElfFailed(PathBuf, LoadError),
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
+    MissingString(StringId),
+    ObjectLoadFailed(PathBuf, ObjectLoadError),
 }
 
 impl std::error::Error for LinkerError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            LinkerError::LoadElfFailed(_, err) => Some(err),
+            LinkerError::ReadElfFailed(_, err) => Some(err),
             LinkerError::MismatchedEnv(_, _) => None,
+            LinkerError::MissingString(_) => None,
+            LinkerError::ObjectLoadFailed(_, err) => Some(err),
         }
     }
 }
@@ -75,8 +88,8 @@ impl std::error::Error for LinkerError {
 impl std::fmt::Display for LinkerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LinkerError::LoadElfFailed(path, _) => {
-                write!(f, "failed to load ELF file at {}", path.display())
+            LinkerError::ReadElfFailed(path, _) => {
+                write!(f, "failed to read ELF file at {}", path.display())
             }
             LinkerError::MismatchedEnv(first, second) => {
                 write!(
@@ -88,6 +101,10 @@ impl std::fmt::Display for LinkerError {
                     second.env
                 )
             }
+            LinkerError::ObjectLoadFailed(path, _) => {
+                write!(f, "failed to load ELF object at {}", path.display())
+            }
+            LinkerError::MissingString(id) => write!(f, "missing string: {id:?}"),
         }
     }
 }

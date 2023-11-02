@@ -2,6 +2,14 @@
 name = "plink"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 plink_elf = { path = "../plink_elf" }
+
+[dev-dependencies]
+anyhow = "1.0.71"
+insta = "1.30.0"
+serde = { version = "1.0.190", features = ["derive"] }
+tempfile = "3.8.1"
+toml = "0.8.6"

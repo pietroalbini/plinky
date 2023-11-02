@@ -1,0 +1,11 @@
+---
+source: plink/tests/linktest/main.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: environment of sample32.o is Environment { class: Elf32, endian: Little, abi: SystemV, machine: X86 }, while environment of sample64.o is Environment { class: Elf64, endian: Little, abi: SystemV, machine: X86_64 }
+
+

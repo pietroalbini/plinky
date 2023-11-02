@@ -1,0 +1,12 @@
+cmd = ["sample32.o", "sample64.o"]
+kind = "link-fail"
+
+[[asm]]
+source = "sample.S"
+format = "elf32"
+output = "sample32.o"
+
+[[asm]]
+source = "sample.S"
+format = "elf64"
+output = "sample64.o"

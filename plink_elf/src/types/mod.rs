@@ -4,13 +4,13 @@ mod string_table;
 pub use self::string_table::StringTable;
 
 use crate::errors::LoadError;
-use crate::reader::{read_object, Cursor};
+use crate::ids::{convert, ConvertibleElfIds};
+use crate::reader::{read_object, Cursor, PendingIds};
 use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
+use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 use std::ops::Deref;
-use std::collections::BTreeMap;
-use crate::ids::{ConvertibleElfIds, convert};
 
 #[derive(Debug)]
 pub struct Object<I: ElfIds> {
@@ -22,8 +22,11 @@ pub struct Object<I: ElfIds> {
     pub segments: Vec<Segment>,
 }
 
-impl<I: ConvertibleElfIds> Object<I> {
-    pub fn load(reader: &mut dyn ReadSeek, ids: &mut I) -> Result<Self, LoadError> {
+impl<I: ElfIds> Object<I> {
+    pub fn load(reader: &mut dyn ReadSeek, ids: &mut I) -> Result<Self, LoadError>
+    where
+        I: ConvertibleElfIds<PendingIds>,
+    {
         let mut cursor = Cursor::new(reader);
         let object = read_object(&mut cursor)?;
         Ok(convert(ids, object))
@@ -70,17 +73,17 @@ pub enum Machine {
 }
 
 #[derive(Debug)]
-pub struct Section<I: ElfIds, S = String> {
-    pub name: S,
+pub struct Section<I: ElfIds> {
+    pub name: I::StringId,
     pub memory_address: u64,
-    pub content: SectionContent<I, S>,
+    pub content: SectionContent<I>,
 }
 
 #[derive(Debug)]
-pub enum SectionContent<I: ElfIds, S = String> {
+pub enum SectionContent<I: ElfIds> {
     Null,
     Program(ProgramSection),
-    SymbolTable(SymbolTable<I, S>),
+    SymbolTable(SymbolTable<I>),
     StringTable(StringTable),
     RelocationsTable(RelocationsTable<I>),
     Note(NotesTable),
@@ -114,13 +117,13 @@ pub struct UnknownSection {
 }
 
 #[derive(Debug)]
-pub struct SymbolTable<I: ElfIds, S = String> {
-    pub symbols: BTreeMap<I::SymbolId, Symbol<I, S>>,
+pub struct SymbolTable<I: ElfIds> {
+    pub symbols: BTreeMap<I::SymbolId, Symbol<I>>,
 }
 
 #[derive(Debug)]
-pub struct Symbol<I: ElfIds, S = String> {
-    pub name: S,
+pub struct Symbol<I: ElfIds> {
+    pub name: I::StringId,
     pub binding: SymbolBinding,
     pub type_: SymbolType,
     pub definition: SymbolDefinition<I>,

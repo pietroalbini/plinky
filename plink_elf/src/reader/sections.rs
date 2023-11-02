@@ -1,4 +1,4 @@
-use super::PendingSymbolId;
+use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
 use crate::reader::{Cursor, PendingIds, PendingSectionId};
@@ -7,7 +7,6 @@ use crate::{
     SectionContent, StringTable, Symbol, SymbolBinding, SymbolDefinition, SymbolTable, SymbolType,
     UnknownSection,
 };
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 pub(super) fn read_sections(
@@ -15,107 +14,29 @@ pub(super) fn read_sections(
     offset: u64,
     count: u16,
     size: u16,
-    section_names_table_index: u16,
+    section_names_table: PendingSectionId,
 ) -> Result<BTreeMap<PendingSectionId, Section<PendingIds>>, LoadError> {
     if offset == 0 {
         return Ok(BTreeMap::new());
     }
 
-    let mut sections = Vec::new();
+    let mut sections = BTreeMap::new();
     for idx in 0..count {
         cursor.seek_to(offset + (size as u64 * idx as u64))?;
-        sections.push(read_section(
-            cursor,
-            section_names_table_index,
+        sections.insert(
             PendingSectionId(idx as _),
-        )?);
+            read_section(cursor, section_names_table, PendingSectionId(idx as _))?,
+        );
     }
 
-    let resolve_str = |pending: &RefCell<PendingString>| -> Result<(), LoadError> {
-        let mut mutable = pending.borrow_mut();
-        match &mut *mutable {
-            PendingString::String { section, offset } => {
-                match sections.get(*section as usize).map(|s| &s.content) {
-                    Some(SectionContent::StringTable(table)) => {
-                        *mutable = PendingString::Resolved(
-                            table
-                                .get(*offset)
-                                .ok_or(LoadError::MissingString(*section, *offset))?
-                                .to_string(),
-                        );
-                        Ok(())
-                    }
-                    Some(_) => Err(LoadError::WrongStringTableType(*section)),
-                    None => Err(LoadError::MissingStringTable(*section)),
-                }
-            }
-            PendingString::Resolved(_) => Ok(()),
-        }
-    };
-    for section in &sections {
-        resolve_str(&section.name)?;
-        if let SectionContent::SymbolTable(table) = &section.content {
-            for symbol in table.symbols.values() {
-                resolve_str(&symbol.name)?;
-            }
-        }
-    }
-
-    let remove_pending_str = |pending: RefCell<PendingString>| -> String {
-        match pending.into_inner() {
-            PendingString::String { .. } => unreachable!("unresolved string"),
-            PendingString::Resolved(inner) => inner,
-        }
-    };
-    Ok(sections
-        .into_iter()
-        .enumerate()
-        .map(|(i, s)| {
-            (
-                PendingSectionId(i as _),
-                Section {
-                    name: remove_pending_str(s.name),
-                    memory_address: s.memory_address,
-                    content: match s.content {
-                        SectionContent::Null => SectionContent::Null,
-                        SectionContent::Program(p) => SectionContent::Program(p),
-                        SectionContent::SymbolTable(s) => {
-                            SectionContent::SymbolTable(SymbolTable {
-                                symbols: s
-                                    .symbols
-                                    .into_iter()
-                                    .map(|(id, s)| {
-                                        (
-                                            id,
-                                            Symbol {
-                                                name: remove_pending_str(s.name),
-                                                binding: s.binding,
-                                                type_: s.type_,
-                                                definition: s.definition,
-                                                value: s.value,
-                                                size: s.size,
-                                            },
-                                        )
-                                    })
-                                    .collect(),
-                            })
-                        }
-                        SectionContent::StringTable(s) => SectionContent::StringTable(s),
-                        SectionContent::RelocationsTable(r) => SectionContent::RelocationsTable(r),
-                        SectionContent::Note(n) => SectionContent::Note(n),
-                        SectionContent::Unknown(u) => SectionContent::Unknown(u),
-                    },
-                },
-            )
-        })
-        .collect())
+    Ok(sections)
 }
 
 fn read_section(
     cursor: &mut Cursor<'_>,
-    section_names_table_index: u16,
+    section_names_table: PendingSectionId,
     current_section: PendingSectionId,
-) -> Result<Section<PendingIds, RefCell<PendingString>>, LoadError> {
+) -> Result<Section<PendingIds>, LoadError> {
     let name_offset = cursor.read_u32()?;
     let type_ = cursor.read_u32()?;
     let flags = cursor.read_usize()?;
@@ -137,7 +58,12 @@ fn read_section(
             executable: flags & 0x4 > 0,
             raw: RawBytes(raw_content),
         }),
-        2 => read_symbol_table(cursor, &raw_content, link as _, current_section)?,
+        2 => read_symbol_table(
+            cursor,
+            &raw_content,
+            PendingSectionId(link),
+            current_section,
+        )?,
         3 => read_string_table(&raw_content)?,
         4 => read_relocations_table(
             cursor,
@@ -161,18 +87,13 @@ fn read_section(
     };
 
     Ok(Section {
-        name: RefCell::new(PendingString::String {
-            section: section_names_table_index,
-            offset: name_offset,
-        }),
+        name: PendingStringId(section_names_table, name_offset),
         memory_address,
         content,
     })
 }
 
-fn read_string_table(
-    raw_content: &[u8],
-) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
+fn read_string_table(raw_content: &[u8]) -> Result<SectionContent<PendingIds>, LoadError> {
     let mut strings = BTreeMap::new();
     let mut offset: usize = 0;
     while offset < raw_content.len() {
@@ -194,9 +115,9 @@ fn read_string_table(
 fn read_symbol_table(
     cursor: &mut Cursor<'_>,
     raw_content: &[u8],
-    strings_table: u16,
+    strings_table: PendingSectionId,
     current_section: PendingSectionId,
-) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
+) -> Result<SectionContent<PendingIds>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -213,8 +134,8 @@ fn read_symbol_table(
 
 fn read_symbol(
     cursor: &mut Cursor<'_>,
-    strings_table: u16,
-) -> Result<Symbol<PendingIds, RefCell<PendingString>>, LoadError> {
+    strings_table: PendingSectionId,
+) -> Result<Symbol<PendingIds>, LoadError> {
     let mut value = 0;
     let mut size = 0;
 
@@ -232,10 +153,7 @@ fn read_symbol(
     }
 
     Ok(Symbol {
-        name: RefCell::new(PendingString::String {
-            section: strings_table,
-            offset: name_offset,
-        }),
+        name: PendingStringId(strings_table, name_offset),
         binding: match (info & 0b11110000) >> 4 {
             0 => SymbolBinding::Local,
             1 => SymbolBinding::Global,
@@ -267,7 +185,7 @@ fn read_relocations_table(
     symbol_table: PendingSectionId,
     applies_to_section: PendingSectionId,
     rela: bool,
-) -> Result<SectionContent<PendingIds, RefCell<PendingString>>, LoadError> {
+) -> Result<SectionContent<PendingIds>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -353,10 +271,4 @@ fn read_relocation(
         relocation_type,
         addend,
     })
-}
-
-#[derive(Debug)]
-enum PendingString {
-    String { section: u16, offset: u32 },
-    Resolved(String),
 }

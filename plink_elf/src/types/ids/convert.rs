@@ -5,16 +5,22 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-pub trait ConvertibleElfIds: ElfIds {
-    fn create_conversion_map<F>(&mut self, object: &Object<F>) -> IdConversionMap<F, Self>
-    where
-        F: ElfIds,
-        Self: Sized;
+pub trait ConvertibleElfIds<F>
+where
+    F: ElfIds,
+    Self: ElfIds + Sized,
+{
+    fn create_conversion_map(
+        &mut self,
+        object: &Object<F>,
+        string_ids: &[F::StringId],
+    ) -> IdConversionMap<F, Self>;
 }
 
 pub struct IdConversionMap<F: ElfIds, T: ElfIds> {
     pub section_ids: BTreeMap<F::SectionId, T::SectionId>,
     pub symbol_ids: BTreeMap<F::SymbolId, T::SymbolId>,
+    pub string_ids: BTreeMap<F::StringId, T::StringId>,
 }
 
 impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
@@ -22,6 +28,7 @@ impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
         Self {
             section_ids: BTreeMap::new(),
             symbol_ids: BTreeMap::new(),
+            string_ids: BTreeMap::new(),
         }
     }
 
@@ -38,14 +45,22 @@ impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
             None => panic!("bug: symbol id {old:?} not in conversion map"),
         }
     }
+
+    fn string_id(&self, old: &F::StringId) -> T::StringId {
+        match self.string_ids.get(old) {
+            Some(id) => id.clone(),
+            None => panic!("bug: string id {old:?} not in conversion map"),
+        }
+    }
 }
 
 pub(crate) fn convert<F, T>(ids: &mut T, object: Object<F>) -> Object<T>
 where
     F: ElfIds,
-    T: ConvertibleElfIds,
+    T: ConvertibleElfIds<F>,
 {
-    let map = ids.create_conversion_map(&object);
+    let string_ids = collect_string_ids(&object);
+    let map = ids.create_conversion_map(&object, &string_ids);
 
     Object {
         env: object.env,
@@ -59,7 +74,7 @@ where
                 (
                     map.section_id(&id),
                     Section {
-                        name: section.name,
+                        name: map.string_id(&section.name),
                         memory_address: section.memory_address,
                         content: match section.content {
                             SectionContent::Null => SectionContent::Null,
@@ -73,7 +88,7 @@ where
                                             (
                                                 map.symbol_id(&id),
                                                 Symbol {
-                                                    name: symbol.name,
+                                                    name: map.string_id(&symbol.name),
                                                     binding: symbol.binding,
                                                     type_: symbol.type_,
                                                     definition: match symbol.definition {
@@ -126,4 +141,17 @@ where
             .collect(),
         segments: object.segments,
     }
+}
+
+fn collect_string_ids<I: ElfIds>(object: &Object<I>) -> Vec<I::StringId> {
+    let mut ids = Vec::new();
+    for section in object.sections.values() {
+        ids.push(section.name.clone());
+        if let SectionContent::SymbolTable(table) = &section.content {
+            for symbol in table.symbols.values() {
+                ids.push(symbol.name.clone());
+            }
+        }
+    }
+    ids
 }

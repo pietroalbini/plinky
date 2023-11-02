@@ -1,14 +1,13 @@
 use crate::errors::LoadError;
-use crate::ids::ElfIds;
 use crate::reader::program_header::read_program_header;
 use crate::reader::sections::read_sections;
-use crate::reader::{Cursor, PendingIds};
+use crate::reader::{Cursor, PendingIds, PendingSectionId};
 use crate::{Class, Endian, Environment, Machine, Object, Type, ABI};
 use std::num::NonZeroU64;
 
 pub(crate) fn read_object(
     cursor: &mut Cursor<'_>,
-) -> Result<Object<impl ElfIds>, LoadError> {
+) -> Result<Object<PendingIds>, LoadError> {
     read_magic(cursor)?;
     let class = read_class(cursor)?;
     let endian = read_endian(cursor)?;
@@ -43,7 +42,7 @@ pub(crate) fn read_object(
         section_headers_offset,
         section_header_count,
         section_header_size,
-        section_names_table_index,
+        PendingSectionId(section_names_table_index as _),
     )?;
 
     let mut segments = Vec::new();

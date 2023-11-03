@@ -10,6 +10,7 @@ pub(crate) struct CliOptions {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum DebugPrint {
     MergedObject,
+    Layout,
 }
 
 pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
@@ -35,6 +36,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 reject_duplicate(&token, &mut debug_print, || {
                     Ok(match lexer.expect_flag_value(&token)? {
                         "merged-object" => DebugPrint::MergedObject,
+                        "layout" => DebugPrint::Layout,
                         other => return Err(CliError::UnsupportedDebugPrint(other.into())),
                     })
                 })?;

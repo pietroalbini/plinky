@@ -18,6 +18,7 @@ Object {
                 },
             },
             relocations: [],
+            layout: (),
         },
         section#2: ProgramSection {
             name: section#3:string#9,
@@ -41,6 +42,7 @@ Object {
                     ),
                 },
             ],
+            layout: (),
         },
         section#8: ProgramSection {
             name: section#10:string#1,
@@ -54,6 +56,7 @@ Object {
                 },
             },
             relocations: [],
+            layout: (),
         },
         section#9: ProgramSection {
             name: section#10:string#9,
@@ -85,6 +88,7 @@ Object {
                     ),
                 },
             ],
+            layout: (),
         },
     },
     strings: Strings {

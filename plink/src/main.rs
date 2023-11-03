@@ -19,6 +19,21 @@ fn app() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    let linker = linker.calculate_layout()?;
+
+    if let Some(DebugPrint::Layout) = options.debug_print {
+        println!("Section addresses");
+        println!("-----------------");
+        println!("{:#x?}", linker.section_addresses_for_debug_print());
+        println!();
+        println!("Section merges");
+        println!("--------------");
+        for merge in linker.section_merges_for_debug_print() {
+            println!("{merge:#x?}");
+        }
+        return Ok(());
+    }
+
     todo!();
 }
 

@@ -1,3 +1,4 @@
+use crate::linker::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::linker::strings::{MissingStringError, Strings};
 use crate::linker::symbols::Symbols;
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
@@ -5,13 +6,13 @@ use plink_elf::{ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-pub(super) struct Object {
-    program_sections: BTreeMap<SectionId, ProgramSection>,
+pub(super) struct Object<L> {
+    program_sections: BTreeMap<SectionId, ProgramSection<L>>,
     strings: Strings,
     symbols: Symbols,
 }
 
-impl Object {
+impl Object<()> {
     pub(super) fn new() -> Self {
         Self {
             program_sections: BTreeMap::new(),
@@ -62,19 +63,62 @@ impl Object {
                     name,
                     program,
                     relocations,
+                    layout: (),
                 },
             );
         }
 
         Ok(())
     }
+
+    pub(super) fn calculate_layout(
+        mut self,
+    ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
+        let mut calculator = LayoutCalculator::new(&self.strings);
+        for (id, section) in &self.program_sections {
+            calculator.learn_section(*id, section.name, section.program.raw.len())?;
+        }
+
+        let mut layout = calculator.calculate();
+        let object = Object {
+            program_sections: self
+                .program_sections
+                .into_iter()
+                .map(|(id, section)| {
+                    (
+                        id,
+                        ProgramSection {
+                            name: section.name,
+                            program: section.program,
+                            relocations: section.relocations,
+                            layout: layout.sections.remove(&id).unwrap(),
+                        },
+                    )
+                })
+                .collect(),
+            strings: self.strings,
+            symbols: self.symbols,
+        };
+
+        Ok((object, layout.merges))
+    }
+}
+
+impl Object<SectionLayout> {
+    pub(super) fn section_addresses_for_debug_print(&self) -> BTreeMap<SectionId, u64> {
+        self.program_sections
+            .iter()
+            .map(|(id, section)| (*id, section.layout.address))
+            .collect()
+    }
 }
 
 #[derive(Debug)]
-struct ProgramSection {
+pub(crate) struct ProgramSection<L> {
     name: StringId,
     program: ElfProgramSection,
     relocations: Vec<ElfRelocation<SerialIds>>,
+    layout: L,
 }
 
 #[derive(Debug)]
@@ -93,7 +137,7 @@ impl std::error::Error for ObjectLoadError {
             ObjectLoadError::UnsupportedUnknownSection => None,
             ObjectLoadError::UnsupportedUnknownSymbolBinding => None,
             ObjectLoadError::MissingSymbolName(_, err) => Some(err),
-            ObjectLoadError::DuplicateGlobalSymbol(_) => todo!(),
+            ObjectLoadError::DuplicateGlobalSymbol(_) => None,
         }
     }
 }

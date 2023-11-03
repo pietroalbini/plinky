@@ -1,6 +1,6 @@
 cmd = ["hello.o"]
 kind = "link-fail"
-debug-print = ["merged-object"]
+debug-print = ["merged-object", "layout"]
 
 [[asm]]
 source = "hello.S"

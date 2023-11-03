@@ -1,26 +1,30 @@
+mod layout;
 mod object;
+mod strings;
 mod symbols;
 
-mod strings;
+use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::linker::object::{Object, ObjectLoadError};
 use plink_elf::errors::LoadError;
-use plink_elf::ids::serial::SerialIds;
+use plink_elf::ids::serial::{SerialIds, SectionId};
 use plink_elf::{ElfEnvironment, ElfObject};
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::collections::BTreeMap;
 
-pub(crate) struct Linker {
-    object: Object,
-    ids: SerialIds,
-    first_environment: Option<EnvironmentAndPath>,
+pub(crate) struct Linker<S: LinkerStage> {
+    object: Object<S::LayoutInformation>,
+    stage: S,
 }
 
-impl Linker {
+impl Linker<InitialStage> {
     pub(crate) fn new() -> Self {
         Linker {
             object: Object::new(),
-            ids: SerialIds::new(),
-            first_environment: None,
+            stage: InitialStage {
+                ids: SerialIds::new(),
+                first_environment: None,
+            },
         }
     }
 
@@ -28,7 +32,7 @@ impl Linker {
         let object = ElfObject::load(
             &mut File::open(path)
                 .map_err(|e| LinkerError::ReadElfFailed(path.into(), LoadError::IO(e)))?,
-            &mut self.ids,
+            &mut self.stage.ids,
         )
         .map_err(|e| LinkerError::ReadElfFailed(path.into(), e))?;
 
@@ -48,14 +52,14 @@ impl Linker {
         &mut self,
         new_env: EnvironmentAndPath,
     ) -> Result<(), LinkerError> {
-        match &self.first_environment {
+        match &self.stage.first_environment {
             Some(first_env) => {
                 if first_env.env != new_env.env {
                     return Err(LinkerError::MismatchedEnv(first_env.clone(), new_env));
                 }
             }
             None => {
-                self.first_environment = Some(new_env);
+                self.stage.first_environment = Some(new_env);
             }
         }
         Ok(())
@@ -64,6 +68,45 @@ impl Linker {
     pub(crate) fn loaded_object_for_debug_print(&self) -> &dyn std::fmt::Debug {
         &self.object
     }
+
+    pub(crate) fn calculate_layout(self) -> Result<Linker<LayoutStage>, LinkerError> {
+        let (object, section_merges) = self.object.calculate_layout()?;
+        Ok(Linker {
+            object,
+            stage: LayoutStage { section_merges },
+        })
+    }
+}
+
+impl Linker<LayoutStage> {
+    pub(crate) fn section_addresses_for_debug_print(&self) -> impl std::fmt::Debug {
+        self.object.section_addresses_for_debug_print()
+    }
+
+    pub(crate) fn section_merges_for_debug_print(&self) -> &[impl std::fmt::Debug] {
+        &self.stage.section_merges
+    }
+}
+
+pub(crate) trait LinkerStage {
+    type LayoutInformation;
+}
+
+pub(crate) struct InitialStage {
+    ids: SerialIds,
+    first_environment: Option<EnvironmentAndPath>,
+}
+
+impl LinkerStage for InitialStage {
+    type LayoutInformation = ();
+}
+
+pub(crate) struct LayoutStage {
+    section_merges: Vec<SectionMerge>,
+}
+
+impl LinkerStage for LayoutStage {
+    type LayoutInformation = SectionLayout;
 }
 
 #[derive(Debug, Clone)]
@@ -77,6 +120,7 @@ pub(crate) enum LinkerError {
     ReadElfFailed(PathBuf, LoadError),
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
     ObjectLoadFailed(PathBuf, ObjectLoadError),
+    LayoutCalculationFailed(LayoutCalculatorError),
 }
 
 impl std::error::Error for LinkerError {
@@ -85,6 +129,7 @@ impl std::error::Error for LinkerError {
             LinkerError::ReadElfFailed(_, err) => Some(err),
             LinkerError::MismatchedEnv(_, _) => None,
             LinkerError::ObjectLoadFailed(_, err) => Some(err),
+            LinkerError::LayoutCalculationFailed(err) => Some(err),
         }
     }
 }
@@ -108,6 +153,15 @@ impl std::fmt::Display for LinkerError {
             LinkerError::ObjectLoadFailed(path, _) => {
                 write!(f, "failed to load ELF object at {}", path.display())
             }
+            LinkerError::LayoutCalculationFailed(_) => {
+                f.write_str("failed to calculate the resulting layout")
+            }
         }
+    }
+}
+
+impl From<LayoutCalculatorError> for LinkerError {
+    fn from(value: LayoutCalculatorError) -> Self {
+        LinkerError::LayoutCalculationFailed(value)
     }
 }

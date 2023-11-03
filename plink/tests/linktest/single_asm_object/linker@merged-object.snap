@@ -18,6 +18,7 @@ Object {
                 },
             },
             relocations: [],
+            layout: (),
         },
         section#2: ProgramSection {
             name: section#3:string#7,
@@ -41,6 +42,7 @@ Object {
                     ),
                 },
             ],
+            layout: (),
         },
     },
     strings: Strings {

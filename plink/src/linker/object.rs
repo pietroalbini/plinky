@@ -1,15 +1,14 @@
-use crate::linker::LinkerError;
-use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
-use plink_elf::ids::StringIdGetters;
+use crate::linker::strings::{MissingStringError, Strings};
+use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{
-    ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent, ElfStringTable, ElfSymbol,
+    ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent, ElfSymbol,
 };
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(super) struct Object {
     program_sections: BTreeMap<String, ProgramSection>,
-    string_tables: BTreeMap<SectionId, ElfStringTable>,
+    strings: Strings,
     symbols: BTreeMap<SymbolId, ElfSymbol<SerialIds>>,
 }
 
@@ -17,7 +16,7 @@ impl Object {
     pub(super) fn new() -> Self {
         Self {
             program_sections: BTreeMap::new(),
-            string_tables: BTreeMap::new(),
+            strings: Strings::new(),
             symbols: BTreeMap::new(),
         }
     }
@@ -40,9 +39,7 @@ impl Object {
                         self.symbols.insert(symbol_id, symbol);
                     }
                 }
-                ElfSectionContent::StringTable(table) => {
-                    self.string_tables.insert(section_id, table);
-                }
+                ElfSectionContent::StringTable(table) => self.strings.load_table(section_id, table),
                 ElfSectionContent::RelocationsTable(table) => {
                     relocations.insert(table.applies_to_section, table.relocations);
                 }
@@ -57,8 +54,9 @@ impl Object {
 
         for (section_id, section_name, program) in program_sections {
             let section_name = self
-                .get_string(section_name)
-                .map_err(|e| ObjectLoadError::Generic(Box::new(e)))?
+                .strings
+                .get(section_name)
+                .map_err(|e| ObjectLoadError::MissingSectionName(section_id, e))?
                 .to_string();
             let relocations = relocations.remove(&section_id).unwrap_or_else(Vec::new);
             match self.program_sections.get_mut(&section_name) {
@@ -77,13 +75,6 @@ impl Object {
 
         Ok(())
     }
-
-    fn get_string(&self, id: StringId) -> Result<&str, LinkerError> {
-        self.string_tables
-            .get(id.section())
-            .and_then(|table| table.get(id.offset()))
-            .ok_or(LinkerError::MissingString(id))
-    }
 }
 
 #[derive(Debug)]
@@ -96,7 +87,7 @@ struct ProgramSection {
 pub(crate) enum ObjectLoadError {
     UnsupportedNotesSection,
     UnsupportedUnknownSection,
-    Generic(Box<LinkerError>),
+    MissingSectionName(SectionId, MissingStringError),
 }
 
 impl std::error::Error for ObjectLoadError {
@@ -104,7 +95,7 @@ impl std::error::Error for ObjectLoadError {
         match self {
             ObjectLoadError::UnsupportedNotesSection => None,
             ObjectLoadError::UnsupportedUnknownSection => None,
-            ObjectLoadError::Generic(err) => Some(err),
+            ObjectLoadError::MissingSectionName(_, err) => Some(err),
         }
     }
 }
@@ -118,7 +109,9 @@ impl std::fmt::Display for ObjectLoadError {
             ObjectLoadError::UnsupportedUnknownSection => {
                 f.write_str("unknown sections are not supported")
             }
-            ObjectLoadError::Generic(_) => f.write_str("error happened during loading"),
+            ObjectLoadError::MissingSectionName(section_id, _) => {
+                write!(f, "missing name for section {section_id:?}")
+            }
         }
     }
 }

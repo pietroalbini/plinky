@@ -41,25 +41,27 @@ Object {
             ],
         },
     },
-    string_tables: {
-        section#3: ElfStringTable {
-            strings: {
-                0: "",
-                1: ".data",
-                7: ".text",
-                13: ".shstrtab",
-                23: ".symtab",
-                31: ".strtab",
-                39: ".rela.text",
+    strings: Strings {
+        tables: {
+            section#3: ElfStringTable {
+                strings: {
+                    0: "",
+                    1: ".data",
+                    7: ".text",
+                    13: ".shstrtab",
+                    23: ".symtab",
+                    31: ".strtab",
+                    39: ".rela.text",
+                },
             },
-        },
-        section#5: ElfStringTable {
-            strings: {
-                0: "",
-                1: "hello.S",
-                9: "msg",
-                13: "len",
-                17: "_start",
+            section#5: ElfStringTable {
+                strings: {
+                    0: "",
+                    1: "hello.S",
+                    9: "msg",
+                    13: "len",
+                    17: "_start",
+                },
             },
         },
     },

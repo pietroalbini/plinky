@@ -1,8 +1,9 @@
 mod object;
 
+mod strings;
 use crate::linker::object::{Object, ObjectLoadError};
 use plink_elf::errors::LoadError;
-use plink_elf::ids::serial::{SerialIds, StringId};
+use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject};
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -74,7 +75,6 @@ pub(crate) struct EnvironmentAndPath {
 pub(crate) enum LinkerError {
     ReadElfFailed(PathBuf, LoadError),
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
-    MissingString(StringId),
     ObjectLoadFailed(PathBuf, ObjectLoadError),
 }
 
@@ -83,7 +83,6 @@ impl std::error::Error for LinkerError {
         match self {
             LinkerError::ReadElfFailed(_, err) => Some(err),
             LinkerError::MismatchedEnv(_, _) => None,
-            LinkerError::MissingString(_) => None,
             LinkerError::ObjectLoadFailed(_, err) => Some(err),
         }
     }
@@ -108,7 +107,6 @@ impl std::fmt::Display for LinkerError {
             LinkerError::ObjectLoadFailed(path, _) => {
                 write!(f, "failed to load ELF object at {}", path.display())
             }
-            LinkerError::MissingString(id) => write!(f, "missing string: {id:?}"),
         }
     }
 }

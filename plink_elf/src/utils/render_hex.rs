@@ -1,14 +1,29 @@
 use std::fmt::Formatter;
 
-const BYTES_PER_COLUMN: usize = 25;
+const BYTES_PER_COLUMN: usize = 16;
 
 pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> std::fmt::Result {
+    f.write_fmt(format_args!("\n{prefix}     "))?;
+    let columns = bytes.len().min(BYTES_PER_COLUMN); // Between 0 and 16
+    for column in 0..columns {
+        f.write_fmt(format_args!("?{column:x} "))?;
+    }
+    f.write_fmt(format_args!("  (len: {:#x})", bytes.len()))?;
+    f.write_fmt(format_args!("\n{prefix}   +-"))?;
+    for _ in 0..columns {
+        f.write_str("---")?;
+    }
+    f.write_str("+")?;
+
     let mut multiline = false;
     let mut pending_as_ascii = Vec::new();
+    let mut row = 0;
     for byte in bytes {
         if pending_as_ascii.is_empty() {
             f.write_str("\n")?;
             f.write_str(prefix)?;
+            f.write_fmt(format_args!("{row:x}? | "))?;
+            row += 1;
         } else {
             f.write_str(" ")?;
         }
@@ -32,8 +47,8 @@ pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> s
         }
         render_ascii(f, &mut pending_as_ascii)?;
     }
+    f.write_str("\n")?;
 
-    f.write_fmt(format_args!("\n{prefix}(len: {:#x})\n", bytes.len()))?;
     Ok(())
 }
 

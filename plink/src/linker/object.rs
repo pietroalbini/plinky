@@ -1,15 +1,14 @@
 use crate::linker::strings::{MissingStringError, Strings};
+use crate::linker::symbols::Symbols;
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plink_elf::{
-    ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent, ElfSymbol,
-};
+use plink_elf::{ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(super) struct Object {
     program_sections: BTreeMap<String, ProgramSection>,
     strings: Strings,
-    symbols: BTreeMap<SymbolId, ElfSymbol<SerialIds>>,
+    symbols: Symbols,
 }
 
 impl Object {
@@ -17,7 +16,7 @@ impl Object {
         Self {
             program_sections: BTreeMap::new(),
             strings: Strings::new(),
-            symbols: BTreeMap::new(),
+            symbols: Symbols::new(),
         }
     }
 
@@ -25,6 +24,7 @@ impl Object {
         &mut self,
         object: ElfObject<SerialIds>,
     ) -> Result<(), ObjectLoadError> {
+        let mut symbol_tables = Vec::new();
         let mut program_sections = Vec::new();
         let mut relocations = BTreeMap::new();
 
@@ -34,11 +34,7 @@ impl Object {
                 ElfSectionContent::Program(program) => {
                     program_sections.push((section_id, section.name, program))
                 }
-                ElfSectionContent::SymbolTable(table) => {
-                    for (symbol_id, symbol) in table.symbols.into_iter() {
-                        self.symbols.insert(symbol_id, symbol);
-                    }
-                }
+                ElfSectionContent::SymbolTable(table) => symbol_tables.push(table),
                 ElfSectionContent::StringTable(table) => self.strings.load_table(section_id, table),
                 ElfSectionContent::RelocationsTable(table) => {
                     relocations.insert(table.applies_to_section, table.relocations);
@@ -50,6 +46,12 @@ impl Object {
                     return Err(ObjectLoadError::UnsupportedUnknownSection);
                 }
             }
+        }
+
+        // This is loaded after the string tables are loaded by the previous iteration, as we need
+        // to resolve the strings as part of symbol loading.
+        for table in symbol_tables {
+            self.symbols.load_table(table, &self.strings)?;
         }
 
         for (section_id, section_name, program) in program_sections {
@@ -87,7 +89,10 @@ struct ProgramSection {
 pub(crate) enum ObjectLoadError {
     UnsupportedNotesSection,
     UnsupportedUnknownSection,
+    UnsupportedUnknownSymbolBinding,
     MissingSectionName(SectionId, MissingStringError),
+    MissingSymbolName(SymbolId, MissingStringError),
+    DuplicateGlobalSymbol(String),
 }
 
 impl std::error::Error for ObjectLoadError {
@@ -95,7 +100,10 @@ impl std::error::Error for ObjectLoadError {
         match self {
             ObjectLoadError::UnsupportedNotesSection => None,
             ObjectLoadError::UnsupportedUnknownSection => None,
+            ObjectLoadError::UnsupportedUnknownSymbolBinding => None,
             ObjectLoadError::MissingSectionName(_, err) => Some(err),
+            ObjectLoadError::MissingSymbolName(_, err) => Some(err),
+            ObjectLoadError::DuplicateGlobalSymbol(_) => todo!(),
         }
     }
 }
@@ -109,8 +117,17 @@ impl std::fmt::Display for ObjectLoadError {
             ObjectLoadError::UnsupportedUnknownSection => {
                 f.write_str("unknown sections are not supported")
             }
+            ObjectLoadError::UnsupportedUnknownSymbolBinding => {
+                f.write_str("unknown symbol bindings are not supported")
+            }
             ObjectLoadError::MissingSectionName(section_id, _) => {
                 write!(f, "missing name for section {section_id:?}")
+            }
+            ObjectLoadError::MissingSymbolName(symbol_id, _) => {
+                write!(f, "missing name for symbol {symbol_id:?}")
+            }
+            ObjectLoadError::DuplicateGlobalSymbol(symbol) => {
+                write!(f, "duplicate global symbol {symbol}")
             }
         }
     }

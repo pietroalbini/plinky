@@ -1,4 +1,5 @@
 mod object;
+mod symbols;
 
 mod strings;
 use crate::linker::object::{Object, ObjectLoadError};

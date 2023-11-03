@@ -65,70 +65,79 @@ Object {
             },
         },
     },
-    symbols: {
-        symbol#0: ElfSymbol {
-            name: section#5:string#0,
-            binding: Local,
-            type_: NoType,
-            definition: Undefined,
-            value: 0,
-            size: 0,
+    symbols: Symbols {
+        local_symbols: {
+            symbol#0: ElfSymbol {
+                name: section#5:string#0,
+                binding: Local,
+                type_: NoType,
+                definition: Undefined,
+                value: 0,
+                size: 0,
+            },
+            symbol#1: ElfSymbol {
+                name: section#5:string#1,
+                binding: Local,
+                type_: File,
+                definition: Absolute,
+                value: 0,
+                size: 0,
+            },
+            symbol#2: ElfSymbol {
+                name: section#5:string#0,
+                binding: Local,
+                type_: Section,
+                definition: Section(
+                    section#1,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#3: ElfSymbol {
+                name: section#5:string#0,
+                binding: Local,
+                type_: Section,
+                definition: Section(
+                    section#2,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#4: ElfSymbol {
+                name: section#5:string#9,
+                binding: Local,
+                type_: NoType,
+                definition: Section(
+                    section#1,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#5: ElfSymbol {
+                name: section#5:string#13,
+                binding: Local,
+                type_: NoType,
+                definition: Absolute,
+                value: 13,
+                size: 0,
+            },
         },
-        symbol#1: ElfSymbol {
-            name: section#5:string#1,
-            binding: Local,
-            type_: File,
-            definition: Absolute,
-            value: 0,
-            size: 0,
+        global_symbols_map: {
+            symbol#6: "_start",
         },
-        symbol#2: ElfSymbol {
-            name: section#5:string#0,
-            binding: Local,
-            type_: Section,
-            definition: Section(
-                section#1,
+        global_symbols: {
+            "_start": Strong(
+                ElfSymbol {
+                    name: section#5:string#17,
+                    binding: Global,
+                    type_: NoType,
+                    definition: Section(
+                        section#2,
+                    ),
+                    value: 0,
+                    size: 0,
+                },
             ),
-            value: 0,
-            size: 0,
-        },
-        symbol#3: ElfSymbol {
-            name: section#5:string#0,
-            binding: Local,
-            type_: Section,
-            definition: Section(
-                section#2,
-            ),
-            value: 0,
-            size: 0,
-        },
-        symbol#4: ElfSymbol {
-            name: section#5:string#9,
-            binding: Local,
-            type_: NoType,
-            definition: Section(
-                section#1,
-            ),
-            value: 0,
-            size: 0,
-        },
-        symbol#5: ElfSymbol {
-            name: section#5:string#13,
-            binding: Local,
-            type_: NoType,
-            definition: Absolute,
-            value: 13,
-            size: 0,
-        },
-        symbol#6: ElfSymbol {
-            name: section#5:string#17,
-            binding: Global,
-            type_: NoType,
-            definition: Section(
-                section#2,
-            ),
-            value: 0,
-            size: 0,
         },
     },
 }

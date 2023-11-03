@@ -3,14 +3,32 @@ use crate::ids::convert::ConvertibleElfIds;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::{ElfObject, ElfSectionContent};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SectionId(usize);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl std::fmt::Debug for SectionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "section#{}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SymbolId(usize);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl std::fmt::Debug for SymbolId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "symbol#{}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct StringId(SectionId, u32);
+
+impl std::fmt::Debug for StringId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}:string#{}", self.0, self.1)
+    }
+}
 
 impl StringIdGetters<SerialIds> for StringId {
     fn section(&self) -> &SectionId {

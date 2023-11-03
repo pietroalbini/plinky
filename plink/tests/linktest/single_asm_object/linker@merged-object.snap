@@ -32,9 +32,7 @@ Object {
             relocations: [
                 ElfRelocation {
                     offset: 11,
-                    symbol: SymbolId(
-                        2,
-                    ),
+                    symbol: symbol#2,
                     relocation_type: X86_64_32,
                     addend: Some(
                         0,
@@ -44,9 +42,7 @@ Object {
         },
     },
     string_tables: {
-        SectionId(
-            3,
-        ): ElfStringTable {
+        section#3: ElfStringTable {
             strings: {
                 0: "",
                 1: ".data",
@@ -57,9 +53,7 @@ Object {
                 39: ".rela.text",
             },
         },
-        SectionId(
-            5,
-        ): ElfStringTable {
+        section#5: ElfStringTable {
             strings: {
                 0: "",
                 1: "hello.S",
@@ -70,123 +64,66 @@ Object {
         },
     },
     symbols: {
-        SymbolId(
-            0,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                0,
-            ),
+        symbol#0: ElfSymbol {
+            name: section#5:string#0,
             binding: Local,
             type_: NoType,
             definition: Undefined,
             value: 0,
             size: 0,
         },
-        SymbolId(
-            1,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                1,
-            ),
+        symbol#1: ElfSymbol {
+            name: section#5:string#1,
             binding: Local,
             type_: File,
             definition: Absolute,
             value: 0,
             size: 0,
         },
-        SymbolId(
-            2,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                0,
-            ),
+        symbol#2: ElfSymbol {
+            name: section#5:string#0,
             binding: Local,
             type_: Section,
             definition: Section(
-                SectionId(
-                    1,
-                ),
+                section#1,
             ),
             value: 0,
             size: 0,
         },
-        SymbolId(
-            3,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                0,
-            ),
+        symbol#3: ElfSymbol {
+            name: section#5:string#0,
             binding: Local,
             type_: Section,
             definition: Section(
-                SectionId(
-                    2,
-                ),
+                section#2,
             ),
             value: 0,
             size: 0,
         },
-        SymbolId(
-            4,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                9,
-            ),
+        symbol#4: ElfSymbol {
+            name: section#5:string#9,
             binding: Local,
             type_: NoType,
             definition: Section(
-                SectionId(
-                    1,
-                ),
+                section#1,
             ),
             value: 0,
             size: 0,
         },
-        SymbolId(
-            5,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                13,
-            ),
+        symbol#5: ElfSymbol {
+            name: section#5:string#13,
             binding: Local,
             type_: NoType,
             definition: Absolute,
             value: 13,
             size: 0,
         },
-        SymbolId(
-            6,
-        ): ElfSymbol {
-            name: StringId(
-                SectionId(
-                    5,
-                ),
-                17,
-            ),
+        symbol#6: ElfSymbol {
+            name: section#5:string#17,
             binding: Global,
             type_: NoType,
             definition: Section(
-                SectionId(
-                    2,
-                ),
+                section#2,
             ),
             value: 0,
             size: 0,

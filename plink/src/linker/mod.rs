@@ -6,11 +6,10 @@ mod symbols;
 use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::linker::object::{Object, ObjectLoadError};
 use plink_elf::errors::LoadError;
-use plink_elf::ids::serial::{SerialIds, SectionId};
+use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject};
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::collections::BTreeMap;
 
 pub(crate) struct Linker<S: LinkerStage> {
     object: Object<S::LayoutInformation>,

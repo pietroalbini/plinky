@@ -72,7 +72,7 @@ impl Object<()> {
     }
 
     pub(super) fn calculate_layout(
-        mut self,
+        self,
     ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
         let mut calculator = LayoutCalculator::new(&self.strings);
         for (id, section) in &self.program_sections {

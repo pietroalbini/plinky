@@ -49,7 +49,9 @@ impl<'a> LayoutCalculator<'a> {
                 sections: Vec::new(),
             };
             for section in sections {
-                calculated.sections.insert(section.id, SectionLayout { address });
+                calculated
+                    .sections
+                    .insert(section.id, SectionLayout { address });
                 merge.sections.push(section.id);
                 address += section.len as u64;
             }

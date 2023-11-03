@@ -1,7 +1,7 @@
+use crate::cli::DebugPrint;
 use crate::linker::Linker;
 use std::error::Error;
 use std::process::ExitCode;
-use crate::cli::DebugPrint;
 
 mod cli;
 mod linker;

@@ -1,0 +1,282 @@
+---
+source: plink/tests/linktest/main.rs
+---
+linking exited with exit status: 0
+
+=== stdout ===
+Object {
+    program_sections: {
+        section#1: ProgramSection {
+            name: section#3:string#1,
+            program: ElfProgramSection {
+                writeable: false,
+                allocated: true,
+                executable: false,
+                raw: RawBytes {
+                    47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
+                    (len: 0xf)
+                },
+            },
+            relocations: [],
+        },
+        section#2: ProgramSection {
+            name: section#3:string#9,
+            program: ElfProgramSection {
+                writeable: false,
+                allocated: true,
+                executable: true,
+                raw: RawBytes {
+                    b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0f 00 00 00 cd 80 b0 01 bb | .........................
+                    00 00 00 00 cd 80                                                          | ......
+                    (len: 0x1f)
+                },
+            },
+            relocations: [
+                ElfRelocation {
+                    offset: 11,
+                    symbol: symbol#2,
+                    relocation_type: X86_64_32,
+                    addend: Some(
+                        0,
+                    ),
+                },
+            ],
+        },
+        section#8: ProgramSection {
+            name: section#10:string#1,
+            program: ElfProgramSection {
+                writeable: false,
+                allocated: true,
+                executable: false,
+                raw: RawBytes {
+                    48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                    (len: 0xd)
+                },
+            },
+            relocations: [],
+        },
+        section#9: ProgramSection {
+            name: section#10:string#9,
+            program: ElfProgramSection {
+                writeable: false,
+                allocated: true,
+                executable: true,
+                raw: RawBytes {
+                    b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba 0d 00 00 00 cd 80 e9 00 00 | .........................
+                    00 00                                                                      | ..
+                    (len: 0x1b)
+                },
+            },
+            relocations: [
+                ElfRelocation {
+                    offset: 11,
+                    symbol: symbol#9,
+                    relocation_type: X86_64_32,
+                    addend: Some(
+                        0,
+                    ),
+                },
+                ElfRelocation {
+                    offset: 23,
+                    symbol: symbol#13,
+                    relocation_type: X86_64_PC32,
+                    addend: Some(
+                        -4,
+                    ),
+                },
+            ],
+        },
+    },
+    strings: Strings {
+        tables: {
+            section#3: ElfStringTable {
+                strings: {
+                    0: "",
+                    1: ".rodata",
+                    9: ".text",
+                    15: ".shstrtab",
+                    25: ".symtab",
+                    33: ".strtab",
+                    41: ".rela.text",
+                },
+            },
+            section#5: ElfStringTable {
+                strings: {
+                    0: "",
+                    1: "goodbye.S",
+                    11: "msg",
+                    15: "len",
+                    19: "goodbye",
+                },
+            },
+            section#10: ElfStringTable {
+                strings: {
+                    0: "",
+                    1: ".rodata",
+                    9: ".text",
+                    15: ".shstrtab",
+                    25: ".symtab",
+                    33: ".strtab",
+                    41: ".rela.text",
+                },
+            },
+            section#12: ElfStringTable {
+                strings: {
+                    0: "",
+                    1: "hello.S",
+                    9: "goodbye",
+                    17: "msg",
+                    21: "len",
+                    25: "_start",
+                },
+            },
+        },
+    },
+    symbols: Symbols {
+        local_symbols: {
+            symbol#0: ElfSymbol {
+                name: section#5:string#0,
+                binding: Local,
+                type_: NoType,
+                definition: Undefined,
+                value: 0,
+                size: 0,
+            },
+            symbol#1: ElfSymbol {
+                name: section#5:string#1,
+                binding: Local,
+                type_: File,
+                definition: Absolute,
+                value: 0,
+                size: 0,
+            },
+            symbol#2: ElfSymbol {
+                name: section#5:string#0,
+                binding: Local,
+                type_: Section,
+                definition: Section(
+                    section#1,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#3: ElfSymbol {
+                name: section#5:string#0,
+                binding: Local,
+                type_: Section,
+                definition: Section(
+                    section#2,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#4: ElfSymbol {
+                name: section#5:string#11,
+                binding: Local,
+                type_: NoType,
+                definition: Section(
+                    section#1,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#5: ElfSymbol {
+                name: section#5:string#15,
+                binding: Local,
+                type_: NoType,
+                definition: Absolute,
+                value: 15,
+                size: 0,
+            },
+            symbol#7: ElfSymbol {
+                name: section#12:string#0,
+                binding: Local,
+                type_: NoType,
+                definition: Undefined,
+                value: 0,
+                size: 0,
+            },
+            symbol#8: ElfSymbol {
+                name: section#12:string#1,
+                binding: Local,
+                type_: File,
+                definition: Absolute,
+                value: 0,
+                size: 0,
+            },
+            symbol#9: ElfSymbol {
+                name: section#12:string#0,
+                binding: Local,
+                type_: Section,
+                definition: Section(
+                    section#8,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#10: ElfSymbol {
+                name: section#12:string#0,
+                binding: Local,
+                type_: Section,
+                definition: Section(
+                    section#9,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#11: ElfSymbol {
+                name: section#12:string#17,
+                binding: Local,
+                type_: NoType,
+                definition: Section(
+                    section#8,
+                ),
+                value: 0,
+                size: 0,
+            },
+            symbol#12: ElfSymbol {
+                name: section#12:string#21,
+                binding: Local,
+                type_: NoType,
+                definition: Absolute,
+                value: 13,
+                size: 0,
+            },
+        },
+        global_symbols_map: {
+            symbol#6: "goodbye",
+            symbol#13: "goodbye",
+            symbol#14: "_start",
+        },
+        global_symbols: {
+            "_start": Strong(
+                ElfSymbol {
+                    name: section#12:string#25,
+                    binding: Global,
+                    type_: NoType,
+                    definition: Section(
+                        section#9,
+                    ),
+                    value: 0,
+                    size: 0,
+                },
+            ),
+            "goodbye": Strong(
+                ElfSymbol {
+                    name: section#5:string#19,
+                    binding: Global,
+                    type_: NoType,
+                    definition: Section(
+                        section#2,
+                    ),
+                    value: 0,
+                    size: 0,
+                },
+            ),
+        },
+    },
+}
+
+
+no stderr present
+

@@ -1,0 +1,9 @@
+cmd = ["goodbye.o", "hello.o"]
+kind = "link-fail"
+debug-print = ["merged-object"]
+
+[[asm]]
+source = "hello.S"
+
+[[asm]]
+source = "goodbye.S"

@@ -46,11 +46,12 @@ impl Symbols {
                             vacant.insert(symbol);
                         }
                         btree_map::Entry::Occupied(mut existing_symbol) => {
-                            match existing_symbol.get() {
-                                GlobalSymbol::Strong(_) => {
+                            match (existing_symbol.get(), &symbol) {
+                                (GlobalSymbol::Strong(_), GlobalSymbol::Strong(_)) => {
                                     return Err(ObjectLoadError::DuplicateGlobalSymbol(name));
                                 }
-                                GlobalSymbol::Undefined => {
+                                (GlobalSymbol::Strong(_), GlobalSymbol::Undefined) => {}
+                                (GlobalSymbol::Undefined, _) => {
                                     existing_symbol.insert(symbol);
                                 }
                             }

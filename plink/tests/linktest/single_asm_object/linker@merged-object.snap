@@ -6,7 +6,8 @@ linking exited with exit status: 0
 === stdout ===
 Object {
     program_sections: {
-        ".data": ProgramSection {
+        section#1: ProgramSection {
+            name: section#3:string#1,
             program: ElfProgramSection {
                 writeable: true,
                 allocated: true,
@@ -18,7 +19,8 @@ Object {
             },
             relocations: [],
         },
-        ".text": ProgramSection {
+        section#2: ProgramSection {
+            name: section#3:string#7,
             program: ElfProgramSection {
                 writeable: false,
                 allocated: true,

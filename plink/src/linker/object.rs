@@ -1,12 +1,12 @@
 use crate::linker::strings::{MissingStringError, Strings};
 use crate::linker::symbols::Symbols;
-use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use plink_elf::{ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(super) struct Object {
-    program_sections: BTreeMap<String, ProgramSection>,
+    program_sections: BTreeMap<SectionId, ProgramSection>,
     strings: Strings,
     symbols: Symbols,
 }
@@ -54,25 +54,16 @@ impl Object {
             self.symbols.load_table(table, &self.strings)?;
         }
 
-        for (section_id, section_name, program) in program_sections {
-            let section_name = self
-                .strings
-                .get(section_name)
-                .map_err(|e| ObjectLoadError::MissingSectionName(section_id, e))?
-                .to_string();
+        for (section_id, name, program) in program_sections {
             let relocations = relocations.remove(&section_id).unwrap_or_else(Vec::new);
-            match self.program_sections.get_mut(&section_name) {
-                Some(_) => todo!(),
-                None => {
-                    self.program_sections.insert(
-                        section_name,
-                        ProgramSection {
-                            program,
-                            relocations,
-                        },
-                    );
-                }
-            }
+            self.program_sections.insert(
+                section_id,
+                ProgramSection {
+                    name,
+                    program,
+                    relocations,
+                },
+            );
         }
 
         Ok(())
@@ -81,6 +72,7 @@ impl Object {
 
 #[derive(Debug)]
 struct ProgramSection {
+    name: StringId,
     program: ElfProgramSection,
     relocations: Vec<ElfRelocation<SerialIds>>,
 }
@@ -90,7 +82,6 @@ pub(crate) enum ObjectLoadError {
     UnsupportedNotesSection,
     UnsupportedUnknownSection,
     UnsupportedUnknownSymbolBinding,
-    MissingSectionName(SectionId, MissingStringError),
     MissingSymbolName(SymbolId, MissingStringError),
     DuplicateGlobalSymbol(String),
 }
@@ -101,7 +92,6 @@ impl std::error::Error for ObjectLoadError {
             ObjectLoadError::UnsupportedNotesSection => None,
             ObjectLoadError::UnsupportedUnknownSection => None,
             ObjectLoadError::UnsupportedUnknownSymbolBinding => None,
-            ObjectLoadError::MissingSectionName(_, err) => Some(err),
             ObjectLoadError::MissingSymbolName(_, err) => Some(err),
             ObjectLoadError::DuplicateGlobalSymbol(_) => todo!(),
         }
@@ -119,9 +109,6 @@ impl std::fmt::Display for ObjectLoadError {
             }
             ObjectLoadError::UnsupportedUnknownSymbolBinding => {
                 f.write_str("unknown symbol bindings are not supported")
-            }
-            ObjectLoadError::MissingSectionName(section_id, _) => {
-                write!(f, "missing name for section {section_id:?}")
             }
             ObjectLoadError::MissingSymbolName(symbol_id, _) => {
                 write!(f, "missing name for symbol {symbol_id:?}")

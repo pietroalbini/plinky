@@ -6,7 +6,8 @@ linking exited with exit status: 1
 no stdout present
 
 === stderr ===
-error: failed to find the entry point of the executable
+error: failed to prepare the resulting object
+caused by: failed to find the entry point of the executable
 caused by: could not find the symbol
 caused by: missing global symbol: _start
 

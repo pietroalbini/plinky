@@ -1,18 +1,18 @@
+mod elf_builder;
 mod layout;
 mod object;
 mod relocator;
 mod strings;
 mod symbols;
 
+use crate::linker::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
 use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
-use crate::linker::object::{GetSymbolAddressError, Object, ObjectLoadError};
+use crate::linker::object::{Object, ObjectLoadError};
 use crate::linker::relocator::RelocationError;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
-use plink_elf::{ElfEnvironment, ElfObject, ElfType};
-use std::collections::BTreeMap;
+use plink_elf::{ElfEnvironment, ElfObject};
 use std::fs::File;
-use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
 
 pub(crate) struct Linker<S: LinkerStage> {
@@ -95,23 +95,12 @@ impl Linker<LayoutStage> {
     }
 
     pub(crate) fn build_elf(self, entry: &str) -> Result<ElfObject<SerialIds>, LinkerError> {
-        let entry = Some(
-            NonZeroU64::new(
-                self.object
-                    .global_symbol_address(entry)
-                    .map_err(LinkerError::InvalidEntrypoint)?,
-            )
-            .ok_or_else(|| LinkerError::EntrypointIsZero(entry.into()))?,
-        );
-
-        Ok(ElfObject {
+        let builder = ElfBuilder::new(ElfBuilderContext {
+            entrypoint: entry.to_string(),
             env: self.stage.environment,
-            type_: ElfType::Executable,
-            entry,
-            flags: 0,
-            sections: BTreeMap::new(),
-            segments: Vec::new(),
-        })
+            object: self.object,
+        });
+        Ok(builder.build()?)
     }
 
     pub(crate) fn object_for_debug_print(&self) -> &dyn std::fmt::Debug {
@@ -163,8 +152,7 @@ pub(crate) enum LinkerError {
     ObjectLoadFailed(PathBuf, ObjectLoadError),
     LayoutCalculationFailed(LayoutCalculatorError),
     RelocationFailed(RelocationError),
-    InvalidEntrypoint(GetSymbolAddressError),
-    EntrypointIsZero(String),
+    ElfBuildFailed(ElfBuilderError),
 }
 
 impl std::error::Error for LinkerError {
@@ -176,8 +164,7 @@ impl std::error::Error for LinkerError {
             LinkerError::LayoutCalculationFailed(err) => Some(err),
             LinkerError::RelocationFailed(err) => Some(err),
             LinkerError::NoObjectLoaded => None,
-            LinkerError::InvalidEntrypoint(err) => Some(err),
-            LinkerError::EntrypointIsZero(_) => None,
+            LinkerError::ElfBuildFailed(err) => Some(err),
         }
     }
 }
@@ -206,12 +193,7 @@ impl std::fmt::Display for LinkerError {
             }
             LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
             LinkerError::NoObjectLoaded => f.write_str("no object loaded"),
-            LinkerError::InvalidEntrypoint(_) => {
-                f.write_str("failed to find the entry point of the executable")
-            }
-            LinkerError::EntrypointIsZero(entrypoint) => {
-                write!(f, "entry point symbol {entrypoint} is zero")
-            }
+            LinkerError::ElfBuildFailed(_) => f.write_str("failed to prepare the resulting object"),
         }
     }
 }
@@ -225,5 +207,11 @@ impl From<LayoutCalculatorError> for LinkerError {
 impl From<RelocationError> for LinkerError {
     fn from(value: RelocationError) -> Self {
         LinkerError::RelocationFailed(value)
+    }
+}
+
+impl From<ElfBuilderError> for LinkerError {
+    fn from(value: ElfBuilderError) -> Self {
+        LinkerError::ElfBuildFailed(value)
     }
 }

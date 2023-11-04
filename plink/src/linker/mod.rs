@@ -74,13 +74,20 @@ impl Linker<InitialStage> {
         let (object, section_merges) = self.object.calculate_layout()?;
         Ok(Linker {
             object,
-            stage: LayoutStage { section_merges },
+            stage: LayoutStage {
+                section_merges,
+                environment: self
+                    .stage
+                    .first_environment
+                    .ok_or(LinkerError::NoObjectLoaded)?
+                    .env,
+            },
         })
     }
 }
 
 impl Linker<LayoutStage> {
-    pub(crate) fn relocate(&mut self) -> Result<(), LinkerError>{
+    pub(crate) fn relocate(&mut self) -> Result<(), LinkerError> {
         self.object.relocate()?;
         Ok(())
     }
@@ -113,6 +120,7 @@ impl LinkerStage for InitialStage {
 
 pub(crate) struct LayoutStage {
     section_merges: Vec<SectionMerge>,
+    environment: ElfEnvironment,
 }
 
 impl LinkerStage for LayoutStage {
@@ -127,6 +135,7 @@ pub(crate) struct EnvironmentAndPath {
 
 #[derive(Debug)]
 pub(crate) enum LinkerError {
+    NoObjectLoaded,
     ReadElfFailed(PathBuf, LoadError),
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
     ObjectLoadFailed(PathBuf, ObjectLoadError),
@@ -142,6 +151,7 @@ impl std::error::Error for LinkerError {
             LinkerError::ObjectLoadFailed(_, err) => Some(err),
             LinkerError::LayoutCalculationFailed(err) => Some(err),
             LinkerError::RelocationFailed(err) => Some(err),
+            LinkerError::NoObjectLoaded => None,
         }
     }
 }
@@ -169,6 +179,7 @@ impl std::fmt::Display for LinkerError {
                 f.write_str("failed to calculate the resulting layout")
             }
             LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
+            LinkerError::NoObjectLoaded => f.write_str("no object loaded"),
         }
     }
 }

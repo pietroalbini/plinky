@@ -9,7 +9,7 @@ pub(crate) struct CliOptions {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum DebugPrint {
-    MergedObject,
+    LoadedObject,
     RelocatedObject,
     Layout,
 }
@@ -36,7 +36,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             CliToken::LongFlag("debug-print") => {
                 reject_duplicate(&token, &mut debug_print, || {
                     Ok(match lexer.expect_flag_value(&token)? {
-                        "merged-object" => DebugPrint::MergedObject,
+                        "loaded-object" => DebugPrint::LoadedObject,
                         "relocated-object" => DebugPrint::RelocatedObject,
                         "layout" => DebugPrint::Layout,
                         other => return Err(CliError::UnsupportedDebugPrint(other.into())),
@@ -304,8 +304,8 @@ mod tests {
     #[test]
     fn test_debug_print() {
         const VARIANTS: &[(DebugPrint, &[&str])] = &[(
-            DebugPrint::MergedObject,
-            &["foo", "--debug-print", "merged-object"],
+            DebugPrint::LoadedObject,
+            &["foo", "--debug-print", "loaded-object"],
         )];
         for (expected, flags) in VARIANTS {
             assert_eq!(
@@ -335,9 +335,9 @@ mod tests {
                 [
                     "input_file",
                     "--debug-print",
-                    "merged-object",
+                    "loaded-object",
                     "--debug-print",
-                    "merged-object"
+                    "loaded-object"
                 ]
                 .into_iter()
             )

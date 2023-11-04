@@ -14,7 +14,7 @@ fn app() -> Result<(), Box<dyn Error>> {
         linker.load_file(input)?;
     }
 
-    if let Some(DebugPrint::MergedObject) = options.debug_print {
+    if let Some(DebugPrint::LoadedObject) = options.debug_print {
         println!("{:#x?}", linker.object_for_debug_print());
         return Ok(());
     }

@@ -15,11 +15,11 @@ fn app() -> Result<(), Box<dyn Error>> {
     }
 
     if let Some(DebugPrint::MergedObject) = options.debug_print {
-        println!("{:#?}", linker.loaded_object_for_debug_print());
+        println!("{:#x?}", linker.object_for_debug_print());
         return Ok(());
     }
 
-    let linker = linker.calculate_layout()?;
+    let mut linker = linker.calculate_layout()?;
 
     if let Some(DebugPrint::Layout) = options.debug_print {
         println!("Section addresses");
@@ -31,6 +31,13 @@ fn app() -> Result<(), Box<dyn Error>> {
         for merge in linker.section_merges_for_debug_print() {
             println!("{merge:#x?}");
         }
+        return Ok(());
+    }
+
+    linker.relocate()?;
+
+    if let Some(DebugPrint::RelocatedObject) = options.debug_print {
+        println!("{:#x?}", linker.object_for_debug_print());
         return Ok(());
     }
 

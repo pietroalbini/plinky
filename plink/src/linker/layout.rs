@@ -74,6 +74,7 @@ pub(super) struct CalculatedLayout {
     pub(super) merges: Vec<SectionMerge>,
 }
 
+#[derive(Debug)]
 pub(crate) struct SectionLayout {
     pub(super) address: u64,
 }

@@ -6,7 +6,7 @@ linking exited with exit status: 101
 no stdout present
 
 === stderr ===
-thread 'main' panicked at plink/src/main.rs:37:5:
+thread 'main' panicked at plink/src/main.rs:44:5:
 not yet implemented
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 

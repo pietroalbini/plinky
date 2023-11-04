@@ -172,7 +172,7 @@ pub struct ElfRelocation<I: ElfIds> {
     pub addend: Option<i64>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub enum ElfRelocationType {
     // x86

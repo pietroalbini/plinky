@@ -1,12 +1,14 @@
 use crate::linker::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
+use crate::linker::relocator::{RelocationError, Relocator};
 use crate::linker::strings::{MissingStringError, Strings};
 use crate::linker::symbols::Symbols;
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
-use plink_elf::{ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent};
+use plink_elf::{ElfEndian, ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(super) struct Object<L> {
+    endian: Option<ElfEndian>,
     program_sections: BTreeMap<SectionId, ProgramSection<L>>,
     strings: Strings,
     symbols: Symbols,
@@ -15,6 +17,7 @@ pub(super) struct Object<L> {
 impl Object<()> {
     pub(super) fn new() -> Self {
         Self {
+            endian: None,
             program_sections: BTreeMap::new(),
             strings: Strings::new(),
             symbols: Symbols::new(),
@@ -25,6 +28,8 @@ impl Object<()> {
         &mut self,
         object: ElfObject<SerialIds>,
     ) -> Result<(), ObjectLoadError> {
+        self.endian = Some(object.env.endian);
+
         let mut symbol_tables = Vec::new();
         let mut program_sections = Vec::new();
         let mut relocations = BTreeMap::new();
@@ -81,6 +86,7 @@ impl Object<()> {
 
         let mut layout = calculator.calculate();
         let object = Object {
+            endian: self.endian,
             program_sections: self
                 .program_sections
                 .into_iter()
@@ -105,6 +111,14 @@ impl Object<()> {
 }
 
 impl Object<SectionLayout> {
+    pub(super) fn relocate(&mut self) -> Result<(), RelocationError> {
+        let relocator = Relocator::new(self.endian.unwrap(), &self.program_sections, &self.symbols);
+        for section in &mut self.program_sections.values_mut() {
+            relocator.relocate(section)?;
+        }
+        Ok(())
+    }
+
     pub(super) fn section_addresses_for_debug_print(&self) -> BTreeMap<SectionId, u64> {
         self.program_sections
             .iter()
@@ -115,10 +129,10 @@ impl Object<SectionLayout> {
 
 #[derive(Debug)]
 pub(crate) struct ProgramSection<L> {
-    name: StringId,
-    program: ElfProgramSection,
-    relocations: Vec<ElfRelocation<SerialIds>>,
-    layout: L,
+    pub(super) name: StringId,
+    pub(super) program: ElfProgramSection,
+    pub(super) relocations: Vec<ElfRelocation<SerialIds>>,
+    pub(super) layout: L,
 }
 
 #[derive(Debug)]

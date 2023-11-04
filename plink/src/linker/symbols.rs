@@ -67,10 +67,34 @@ impl Symbols {
         }
         Ok(())
     }
+
+    pub(super) fn get(&self, id: SymbolId) -> Result<&ElfSymbol<SerialIds>, MissingGlobalSymbol> {
+        if let Some(symbol) = self.local_symbols.get(&id) {
+            Ok(symbol)
+        } else if let Some(symbol_name) = self.global_symbols_map.get(&id) {
+            match self.global_symbols.get(symbol_name).expect("inconsistent global symbols") {
+                GlobalSymbol::Strong(symbol) => Ok(symbol),
+                GlobalSymbol::Undefined => Err(MissingGlobalSymbol(symbol_name.clone())),
+            }
+        } else {
+            panic!("symbol id doesn't point to a symbol");
+        }
+    }
 }
 
 #[derive(Debug)]
 enum GlobalSymbol {
     Strong(ElfSymbol<SerialIds>),
     Undefined,
+}
+
+#[derive(Debug)]
+pub(crate) struct MissingGlobalSymbol(String);
+
+impl std::error::Error for MissingGlobalSymbol {}
+
+impl std::fmt::Display for MissingGlobalSymbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "missing global symbol: {}", self.0)
+    }
 }

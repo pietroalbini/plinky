@@ -1,10 +1,12 @@
 mod layout;
 mod object;
+mod relocator;
 mod strings;
 mod symbols;
 
 use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::linker::object::{Object, ObjectLoadError};
+use crate::linker::relocator::RelocationError;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject};
@@ -64,7 +66,7 @@ impl Linker<InitialStage> {
         Ok(())
     }
 
-    pub(crate) fn loaded_object_for_debug_print(&self) -> &dyn std::fmt::Debug {
+    pub(crate) fn object_for_debug_print(&self) -> &dyn std::fmt::Debug {
         &self.object
     }
 
@@ -78,6 +80,15 @@ impl Linker<InitialStage> {
 }
 
 impl Linker<LayoutStage> {
+    pub(crate) fn relocate(&mut self) -> Result<(), LinkerError>{
+        self.object.relocate()?;
+        Ok(())
+    }
+
+    pub(crate) fn object_for_debug_print(&self) -> &dyn std::fmt::Debug {
+        &self.object
+    }
+
     pub(crate) fn section_addresses_for_debug_print(&self) -> impl std::fmt::Debug {
         self.object.section_addresses_for_debug_print()
     }
@@ -120,6 +131,7 @@ pub(crate) enum LinkerError {
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
     ObjectLoadFailed(PathBuf, ObjectLoadError),
     LayoutCalculationFailed(LayoutCalculatorError),
+    RelocationFailed(RelocationError),
 }
 
 impl std::error::Error for LinkerError {
@@ -129,6 +141,7 @@ impl std::error::Error for LinkerError {
             LinkerError::MismatchedEnv(_, _) => None,
             LinkerError::ObjectLoadFailed(_, err) => Some(err),
             LinkerError::LayoutCalculationFailed(err) => Some(err),
+            LinkerError::RelocationFailed(err) => Some(err),
         }
     }
 }
@@ -155,6 +168,7 @@ impl std::fmt::Display for LinkerError {
             LinkerError::LayoutCalculationFailed(_) => {
                 f.write_str("failed to calculate the resulting layout")
             }
+            LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
         }
     }
 }
@@ -162,5 +176,11 @@ impl std::fmt::Display for LinkerError {
 impl From<LayoutCalculatorError> for LinkerError {
     fn from(value: LayoutCalculatorError) -> Self {
         LinkerError::LayoutCalculationFailed(value)
+    }
+}
+
+impl From<RelocationError> for LinkerError {
+    fn from(value: RelocationError) -> Self {
+        LinkerError::RelocationFailed(value)
     }
 }

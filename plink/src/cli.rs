@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<PathBuf>,
     pub(crate) output: PathBuf,
+    pub(crate) entry: String,
     pub(crate) debug_print: Option<DebugPrint>,
 }
 
@@ -23,6 +24,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
     let mut inputs = Vec::new();
     let mut output = None;
+    let mut entry = None;
     let mut debug_print = None;
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -32,6 +34,10 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongFlag("output") | CliToken::ShortFlag("o") => {
                 reject_duplicate(&token, &mut output, || lexer.expect_flag_value(&token))?;
+            }
+
+            CliToken::LongFlag("entry") | CliToken::ShortFlag("e") => {
+                reject_duplicate(&token, &mut entry, || lexer.expect_flag_value(&token))?;
             }
 
             CliToken::LongFlag("debug-print") => {
@@ -68,6 +74,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     Ok(CliOptions {
         inputs,
         output: output.unwrap_or("a.out").into(),
+        entry: entry.unwrap_or("_start").into(),
         debug_print,
     })
 }
@@ -246,8 +253,7 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                output: "a.out".into(),
-                debug_print: None,
+                ..default_options()
             }),
             parse(["foo"].into_iter())
         )
@@ -258,8 +264,7 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into(), "bar".into()],
-                output: "a.out".into(),
-                debug_print: None,
+                ..default_options()
             }),
             parse(["foo", "bar"].into_iter())
         )
@@ -279,7 +284,7 @@ mod tests {
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
                     output: "bar".into(),
-                    debug_print: None,
+                    ..default_options()
                 }),
                 parse(flags.into_iter().copied())
             );
@@ -304,6 +309,44 @@ mod tests {
     }
 
     #[test]
+    fn test_entry_flags() {
+        const VARIANTS: &[&[&str]] = &[
+            &["foo", "-ebar"],
+            &["foo", "-e", "bar"],
+            &["foo", "--entry=bar"],
+            &["foo", "--entry", "bar"],
+        ];
+
+        for flags in VARIANTS {
+            assert_eq!(
+                Ok(CliOptions {
+                    inputs: vec!["foo".into()],
+                    entry: "bar".into(),
+                    ..default_options()
+                }),
+                parse(flags.into_iter().copied())
+            );
+        }
+    }
+
+    #[test]
+    fn test_multiple_entry_flags() {
+        const VARIANTS: &[(&str, &[&str])] = &[
+            ("-e", &["foo", "-ebar", "-ebaz"]),
+            ("-e", &["foo", "-e", "bar", "-e", "baz"]),
+            ("--entry", &["foo", "--entry=bar", "--entry=baz"]),
+            ("--entry", &["foo", "--entry", "bar", "--entry", "baz"]),
+        ];
+
+        for (duplicate, flags) in VARIANTS {
+            assert_eq!(
+                Err(CliError::DuplicateFlag((*duplicate).into())),
+                parse(flags.into_iter().copied())
+            );
+        }
+    }
+
+    #[test]
     fn test_debug_print() {
         const VARIANTS: &[(DebugPrint, &[&str])] = &[(
             DebugPrint::LoadedObject,
@@ -313,8 +356,8 @@ mod tests {
             assert_eq!(
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
-                    output: "a.out".into(),
                     debug_print: Some(*expected),
+                    ..default_options()
                 }),
                 parse(flags.into_iter().copied())
             )
@@ -352,5 +395,14 @@ mod tests {
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
             parse(["--foo-bar"].into_iter())
         )
+    }
+
+    fn default_options() -> CliOptions {
+        CliOptions {
+            inputs: Vec::new(),
+            output: "a.out".into(),
+            entry: "_start".into(),
+            debug_print: None,
+        }
     }
 }

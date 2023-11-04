@@ -1,0 +1,6 @@
+cmd = ["hello.o", "-e", "custom_entry"]
+kind = "link-fail"
+debug-print = ["final-elf"]
+
+[[asm]]
+source = "hello.S"

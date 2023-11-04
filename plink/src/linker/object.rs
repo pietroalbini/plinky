@@ -1,10 +1,13 @@
 use crate::linker::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::linker::relocator::{RelocationError, Relocator};
 use crate::linker::strings::{MissingStringError, Strings};
-use crate::linker::symbols::Symbols;
+use crate::linker::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
-use plink_elf::{ElfEndian, ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent};
+use plink_elf::{
+    ElfEndian, ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
+};
 use std::collections::BTreeMap;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub(super) struct Object<L> {
@@ -119,6 +122,28 @@ impl Object<SectionLayout> {
         Ok(())
     }
 
+    pub(super) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
+        let symbol = self
+            .symbols
+            .get_global(name)
+            .map_err(GetSymbolAddressError::Missing)?;
+
+        match symbol.definition {
+            ElfSymbolDefinition::Undefined => Err(GetSymbolAddressError::Undefined(name.into())),
+            ElfSymbolDefinition::Absolute => Err(GetSymbolAddressError::NotAnAddress(name.into())),
+            ElfSymbolDefinition::Common => todo!(),
+            ElfSymbolDefinition::Section(section_id) => {
+                let section_offset = self
+                    .program_sections
+                    .get(&section_id)
+                    .expect("invalid section id")
+                    .layout
+                    .address;
+                Ok(section_offset + symbol.value)
+            }
+        }
+    }
+
     pub(super) fn section_addresses_for_debug_print(&self) -> BTreeMap<SectionId, u64> {
         self.program_sections
             .iter()
@@ -156,7 +181,7 @@ impl std::error::Error for ObjectLoadError {
     }
 }
 
-impl std::fmt::Display for ObjectLoadError {
+impl Display for ObjectLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ObjectLoadError::UnsupportedNotesSection => {
@@ -173,6 +198,35 @@ impl std::fmt::Display for ObjectLoadError {
             }
             ObjectLoadError::DuplicateGlobalSymbol(symbol) => {
                 write!(f, "duplicate global symbol {symbol}")
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum GetSymbolAddressError {
+    Missing(MissingGlobalSymbol),
+    Undefined(String),
+    NotAnAddress(String),
+}
+
+impl std::error::Error for GetSymbolAddressError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            GetSymbolAddressError::Missing(err) => Some(err),
+            GetSymbolAddressError::Undefined(_) => None,
+            GetSymbolAddressError::NotAnAddress(_) => None,
+        }
+    }
+}
+
+impl Display for GetSymbolAddressError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GetSymbolAddressError::Missing(_) => f.write_str("could not find the symbol"),
+            GetSymbolAddressError::Undefined(name) => write!(f, "symbol {name} is undefined"),
+            GetSymbolAddressError::NotAnAddress(name) => {
+                write!(f, "symbol {name} is not an address")
             }
         }
     }

@@ -1,0 +1,5 @@
+cmd = ["code.o"]
+kind = "link-fail"
+
+[[asm]]
+source = "code.S"

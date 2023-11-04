@@ -5,14 +5,15 @@ mod strings;
 mod symbols;
 
 use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
-use crate::linker::object::{Object, ObjectLoadError};
+use crate::linker::object::{GetSymbolAddressError, Object, ObjectLoadError};
 use crate::linker::relocator::RelocationError;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject, ElfType};
-use std::fs::File;
-use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
+use std::fs::File;
+use std::num::NonZeroU64;
+use std::path::{Path, PathBuf};
 
 pub(crate) struct Linker<S: LinkerStage> {
     object: Object<S::LayoutInformation>,
@@ -93,11 +94,20 @@ impl Linker<LayoutStage> {
         Ok(())
     }
 
-    pub(crate) fn build_elf(self) -> Result<ElfObject<SerialIds>, LinkerError> {
+    pub(crate) fn build_elf(self, entry: &str) -> Result<ElfObject<SerialIds>, LinkerError> {
+        let entry = Some(
+            NonZeroU64::new(
+                self.object
+                    .global_symbol_address(entry)
+                    .map_err(LinkerError::InvalidEntrypoint)?,
+            )
+            .ok_or_else(|| LinkerError::EntrypointIsZero(entry.into()))?,
+        );
+
         Ok(ElfObject {
             env: self.stage.environment,
             type_: ElfType::Executable,
-            entry: None,
+            entry,
             flags: 0,
             sections: BTreeMap::new(),
             segments: Vec::new(),
@@ -153,6 +163,8 @@ pub(crate) enum LinkerError {
     ObjectLoadFailed(PathBuf, ObjectLoadError),
     LayoutCalculationFailed(LayoutCalculatorError),
     RelocationFailed(RelocationError),
+    InvalidEntrypoint(GetSymbolAddressError),
+    EntrypointIsZero(String),
 }
 
 impl std::error::Error for LinkerError {
@@ -164,6 +176,8 @@ impl std::error::Error for LinkerError {
             LinkerError::LayoutCalculationFailed(err) => Some(err),
             LinkerError::RelocationFailed(err) => Some(err),
             LinkerError::NoObjectLoaded => None,
+            LinkerError::InvalidEntrypoint(err) => Some(err),
+            LinkerError::EntrypointIsZero(_) => None,
         }
     }
 }
@@ -192,6 +206,12 @@ impl std::fmt::Display for LinkerError {
             }
             LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
             LinkerError::NoObjectLoaded => f.write_str("no object loaded"),
+            LinkerError::InvalidEntrypoint(_) => {
+                f.write_str("failed to find the entry point of the executable")
+            }
+            LinkerError::EntrypointIsZero(entrypoint) => {
+                write!(f, "entry point symbol {entrypoint} is zero")
+            }
         }
     }
 }

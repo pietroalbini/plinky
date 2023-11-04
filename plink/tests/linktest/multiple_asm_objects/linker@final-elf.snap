@@ -12,7 +12,9 @@ ElfObject {
         machine: X86_64,
     },
     type_: Executable,
-    entry: None,
+    entry: Some(
+        0x40101f,
+    ),
     flags: 0x0,
     sections: {},
     segments: [],

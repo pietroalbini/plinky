@@ -72,12 +72,19 @@ impl Symbols {
         if let Some(symbol) = self.local_symbols.get(&id) {
             Ok(symbol)
         } else if let Some(symbol_name) = self.global_symbols_map.get(&id) {
-            match self.global_symbols.get(symbol_name).expect("inconsistent global symbols") {
-                GlobalSymbol::Strong(symbol) => Ok(symbol),
-                GlobalSymbol::Undefined => Err(MissingGlobalSymbol(symbol_name.clone())),
-            }
+            self.get_global(symbol_name)
         } else {
             panic!("symbol id doesn't point to a symbol");
+        }
+    }
+
+    pub(super) fn get_global(
+        &self,
+        name: &str,
+    ) -> Result<&ElfSymbol<SerialIds>, MissingGlobalSymbol> {
+        match self.global_symbols.get(name) {
+            Some(GlobalSymbol::Strong(symbol)) => Ok(symbol),
+            Some(GlobalSymbol::Undefined) | None => Err(MissingGlobalSymbol(name.into())),
         }
     }
 }

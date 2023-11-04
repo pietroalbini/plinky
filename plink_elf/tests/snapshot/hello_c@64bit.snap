@@ -22,9 +22,7 @@ ElfObject {
             memory_address: 0x0,
             content: Program(
                 ElfProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
+                    perms: ElfPermissions(RX),
                     raw: RawBytes {
                              ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x29)
                            +-------------------------------------------------+
@@ -68,9 +66,7 @@ ElfObject {
             memory_address: 0x0,
             content: Program(
                 ElfProgramSection {
-                    writeable: true,
-                    allocated: true,
-                    executable: false,
+                    perms: ElfPermissions(RW),
                     raw: RawBytes {},
                 },
             ),
@@ -90,9 +86,7 @@ ElfObject {
             memory_address: 0x0,
             content: Program(
                 ElfProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: false,
+                    perms: ElfPermissions(R),
                     raw: RawBytes {
                              ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b   (len: 0xc)
                            +-------------------------------------+
@@ -106,9 +100,7 @@ ElfObject {
             memory_address: 0x0,
             content: Program(
                 ElfProgramSection {
-                    writeable: false,
-                    allocated: false,
-                    executable: false,
+                    perms: ElfPermissions(),
                     raw: RawBytes {
                              ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x2c)
                            +-------------------------------------------------+
@@ -124,9 +116,7 @@ ElfObject {
             memory_address: 0x0,
             content: Program(
                 ElfProgramSection {
-                    writeable: false,
-                    allocated: false,
-                    executable: false,
+                    perms: ElfPermissions(),
                     raw: RawBytes {},
                 },
             ),
@@ -155,9 +145,7 @@ ElfObject {
             memory_address: 0x0,
             content: Program(
                 ElfProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: false,
+                    perms: ElfPermissions(R),
                     raw: RawBytes {
                              ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x38)
                            +-------------------------------------------------+

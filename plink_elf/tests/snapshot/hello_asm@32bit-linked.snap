@@ -24,9 +24,7 @@ ElfObject {
             memory_address: 0x8049000,
             content: Program(
                 ElfProgramSection {
-                    writeable: false,
-                    allocated: true,
-                    executable: true,
+                    perms: ElfPermissions(RX),
                     raw: RawBytes {
                              ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x35)
                            +-------------------------------------------------+
@@ -43,9 +41,7 @@ ElfObject {
             memory_address: 0x804a000,
             content: Program(
                 ElfProgramSection {
-                    writeable: true,
-                    allocated: true,
-                    executable: false,
+                    perms: ElfPermissions(RW),
                     raw: RawBytes {
                              ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1c)
                            +-------------------------------------------------+
@@ -196,9 +192,7 @@ ElfObject {
     segments: [
         ElfSegment {
             type_: Load,
-            readable: true,
-            writeable: false,
-            executable: false,
+            perms: ElfPermissions(R),
             file_offset: 0x0,
             virtual_address: 0x8048000,
             file_size: 0x94,
@@ -207,9 +201,7 @@ ElfObject {
         },
         ElfSegment {
             type_: Load,
-            readable: true,
-            writeable: false,
-            executable: true,
+            perms: ElfPermissions(RX),
             file_offset: 0x1000,
             virtual_address: 0x8049000,
             file_size: 0x35,
@@ -218,9 +210,7 @@ ElfObject {
         },
         ElfSegment {
             type_: Load,
-            readable: true,
-            writeable: true,
-            executable: false,
+            perms: ElfPermissions(RW),
             file_offset: 0x2000,
             virtual_address: 0x804a000,
             file_size: 0x1c,

@@ -12,9 +12,7 @@ Object {
         section#1: ProgramSection {
             name: section#3:string#1,
             program: ElfProgramSection {
-                writeable: true,
-                allocated: true,
-                executable: false,
+                perms: ElfPermissions(RW),
                 raw: RawBytes {
                          ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
                        +----------------------------------------+
@@ -27,9 +25,7 @@ Object {
         section#2: ProgramSection {
             name: section#3:string#7,
             program: ElfProgramSection {
-                writeable: false,
-                allocated: true,
-                executable: true,
+                perms: ElfPermissions(RX),
                 raw: RawBytes {
                          ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
                        +-------------------------------------------------+

@@ -92,9 +92,7 @@ pub enum ElfSectionContent<I: ElfIds> {
 
 #[derive(Debug)]
 pub struct ElfProgramSection {
-    pub writeable: bool,
-    pub allocated: bool,
-    pub executable: bool,
+    pub perms: ElfPermissions,
     pub raw: RawBytes,
 }
 
@@ -220,9 +218,7 @@ pub enum ElfRelocationType {
 #[derive(Debug)]
 pub struct ElfSegment {
     pub type_: ElfSegmentType,
-    pub readable: bool,
-    pub writeable: bool,
-    pub executable: bool,
+    pub perms: ElfPermissions,
     pub file_offset: u64,
     pub virtual_address: u64,
     pub file_size: u64,
@@ -239,6 +235,28 @@ pub enum ElfSegmentType {
     Note,
     ProgramHeaderTable,
     Unknown(u32),
+}
+
+pub struct ElfPermissions {
+    pub read: bool,
+    pub write: bool,
+    pub execute: bool,
+}
+
+impl std::fmt::Debug for ElfPermissions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut content = String::new();
+        if self.read {
+            content.push('R');
+        }
+        if self.write {
+            content.push('W');
+        }
+        if self.execute {
+            content.push('X');
+        }
+        write!(f, "ElfPermissions({content})")
+    }
 }
 
 pub struct RawBytes(pub Vec<u8>);

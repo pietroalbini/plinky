@@ -3,9 +3,10 @@ use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
 use crate::reader::{Cursor, PendingIds, PendingSectionId};
 use crate::{
-    ElfClass, ElfProgramSection, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSection,
-    ElfSectionContent, ElfStringTable, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition,
-    ElfSymbolTable, ElfSymbolType, ElfUnknownSection, RawBytes,
+    ElfClass, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType,
+    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbol,
+    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfUnknownSection,
+    RawBytes,
 };
 use std::collections::BTreeMap;
 
@@ -53,9 +54,11 @@ fn read_section(
     let content = match type_ {
         0 => ElfSectionContent::Null,
         1 => ElfSectionContent::Program(ElfProgramSection {
-            writeable: flags & 0x1 > 0,
-            allocated: flags & 0x2 > 0,
-            executable: flags & 0x4 > 0,
+            perms: ElfPermissions {
+                write: flags & 0x1 > 0,
+                read: flags & 0x2 > 0,
+                execute: flags & 0x4 > 0,
+            },
             raw: RawBytes(raw_content),
         }),
         2 => read_symbol_table(

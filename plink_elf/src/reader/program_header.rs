@@ -1,6 +1,6 @@
 use crate::errors::LoadError;
 use crate::reader::Cursor;
-use crate::{ElfClass, ElfSegment, ElfSegmentType};
+use crate::{ElfClass, ElfPermissions, ElfSegment, ElfSegmentType};
 
 pub(super) fn read_program_header(cursor: &mut Cursor<'_>) -> Result<ElfSegment, LoadError> {
     // The position of the `flags` field changes depending on whether it's a 32-bit or 64-bit
@@ -31,9 +31,11 @@ pub(super) fn read_program_header(cursor: &mut Cursor<'_>) -> Result<ElfSegment,
             6 => ElfSegmentType::ProgramHeaderTable,
             other => ElfSegmentType::Unknown(other),
         },
-        readable: flags & 0x4 > 0,
-        writeable: flags & 0x2 > 0,
-        executable: flags & 0x1 > 0,
+        perms: ElfPermissions {
+            read: flags & 0x4 > 0,
+            write: flags & 0x2 > 0,
+            execute: flags & 0x1 > 0,
+        },
         file_offset,
         virtual_address,
         file_size,

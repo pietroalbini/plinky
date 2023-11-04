@@ -8,6 +8,19 @@ no stdout present
 === stderr ===
 thread 'main' panicked at plink/src/main.rs:51:5:
 not yet implemented
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+stack backtrace:
+   0: rust_begin_unwind
+             at /rustc/cc66ad468955717ab92600c770da8c1601a4ff33/library/std/src/panicking.rs:595:5
+   1: core::panicking::panic_fmt
+             at /rustc/cc66ad468955717ab92600c770da8c1601a4ff33/library/core/src/panicking.rs:67:14
+   2: core::panicking::panic
+             at /rustc/cc66ad468955717ab92600c770da8c1601a4ff33/library/core/src/panicking.rs:117:5
+   3: plink::app
+             at ${project}/src/main.rs:51:5
+   4: plink::main
+             at ${project}/src/main.rs:55:11
+   5: core::ops::function::FnOnce::call_once
+             at /rustc/cc66ad468955717ab92600c770da8c1601a4ff33/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
 
 

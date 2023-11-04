@@ -52,7 +52,10 @@ impl Test {
         debug_print: Option<&str>,
     ) -> Result<ExitStatus, Error> {
         let mut command = Command::new(env!("CARGO_BIN_EXE_plink"));
-        command.current_dir(root).args(&settings.cmd);
+        command
+            .current_dir(root)
+            .args(&settings.cmd)
+            .env("RUST_BACKTRACE", "1");
         if let Some(debug_print) = debug_print {
             command.args(["--debug-print", debug_print]);
         }
@@ -63,10 +66,10 @@ impl Test {
             if content.is_empty() {
                 output_repr.push_str(&format!("\nno {name} present\n"));
             } else {
-                output_repr.push_str(&format!(
-                    "\n=== {name} ===\n{}\n",
-                    String::from_utf8_lossy(content)
-                ));
+                let content = String::from_utf8_lossy(&content);
+                let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
+
+                output_repr.push_str(&format!("\n=== {name} ===\n{}\n", content,));
             }
         }
 

@@ -12,6 +12,7 @@ pub(crate) enum DebugPrint {
     LoadedObject,
     RelocatedObject,
     Layout,
+    FinalElf,
 }
 
 pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
@@ -39,6 +40,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                         "loaded-object" => DebugPrint::LoadedObject,
                         "relocated-object" => DebugPrint::RelocatedObject,
                         "layout" => DebugPrint::Layout,
+                        "final-elf" => DebugPrint::FinalElf,
                         other => return Err(CliError::UnsupportedDebugPrint(other.into())),
                     })
                 })?;

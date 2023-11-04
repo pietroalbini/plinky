@@ -9,9 +9,10 @@ use crate::linker::object::{Object, ObjectLoadError};
 use crate::linker::relocator::RelocationError;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
-use plink_elf::{ElfEnvironment, ElfObject};
+use plink_elf::{ElfEnvironment, ElfObject, ElfType};
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::collections::BTreeMap;
 
 pub(crate) struct Linker<S: LinkerStage> {
     object: Object<S::LayoutInformation>,
@@ -90,6 +91,17 @@ impl Linker<LayoutStage> {
     pub(crate) fn relocate(&mut self) -> Result<(), LinkerError> {
         self.object.relocate()?;
         Ok(())
+    }
+
+    pub(crate) fn build_elf(self) -> Result<ElfObject<SerialIds>, LinkerError> {
+        Ok(ElfObject {
+            env: self.stage.environment,
+            type_: ElfType::Executable,
+            entry: None,
+            flags: 0,
+            sections: BTreeMap::new(),
+            segments: Vec::new(),
+        })
     }
 
     pub(crate) fn object_for_debug_print(&self) -> &dyn std::fmt::Debug {

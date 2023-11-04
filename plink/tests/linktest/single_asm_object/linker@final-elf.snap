@@ -1,0 +1,23 @@
+---
+source: plink/tests/linktest/main.rs
+---
+linking exited with exit status: 0
+
+=== stdout ===
+ElfObject {
+    env: ElfEnvironment {
+        class: Elf64,
+        endian: Little,
+        abi: SystemV,
+        machine: X86_64,
+    },
+    type_: Executable,
+    entry: None,
+    flags: 0x0,
+    sections: {},
+    segments: [],
+}
+
+
+no stderr present
+

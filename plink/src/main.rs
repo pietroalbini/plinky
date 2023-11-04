@@ -41,6 +41,13 @@ fn app() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    let elf = linker.build_elf()?;
+
+    if let Some(DebugPrint::FinalElf) = options.debug_print {
+        println!("{:#x?}", elf);
+        return Ok(());
+    }
+
     todo!();
 }
 

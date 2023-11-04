@@ -237,6 +237,7 @@ pub enum ElfSegmentType {
     Unknown(u32),
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ElfPermissions {
     pub read: bool,
     pub write: bool,

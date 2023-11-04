@@ -18,6 +18,7 @@ Section merges
 SectionMerge {
     name: ".rodata",
     address: 0x400000,
+    perms: ElfPermissions(R),
     sections: [
         section#1,
         section#8,
@@ -26,6 +27,7 @@ SectionMerge {
 SectionMerge {
     name: ".text",
     address: 0x401000,
+    perms: ElfPermissions(RX),
     sections: [
         section#2,
         section#9,

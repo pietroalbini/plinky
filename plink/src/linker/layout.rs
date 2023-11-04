@@ -1,5 +1,6 @@
 use crate::linker::strings::{MissingStringError, Strings};
 use plink_elf::ids::serial::{SectionId, StringId};
+use plink_elf::ElfPermissions;
 use std::collections::BTreeMap;
 
 const BASE_ADDRESS: u64 = 0x400000;
@@ -23,6 +24,7 @@ impl<'a> LayoutCalculator<'a> {
         id: SectionId,
         name: StringId,
         len: usize,
+        perms: ElfPermissions,
     ) -> Result<(), LayoutCalculatorError> {
         let name = self
             .strings
@@ -31,11 +33,11 @@ impl<'a> LayoutCalculator<'a> {
         self.sections
             .entry(name.into())
             .or_insert_with(Vec::new)
-            .push(SectionToLayout { id, len });
+            .push(SectionToLayout { id, len, perms });
         Ok(())
     }
 
-    pub(super) fn calculate(self) -> CalculatedLayout {
+    pub(super) fn calculate(self) -> Result<CalculatedLayout, LayoutCalculatorError> {
         let mut calculated = CalculatedLayout {
             sections: BTreeMap::new(),
             merges: Vec::new(),
@@ -43,30 +45,47 @@ impl<'a> LayoutCalculator<'a> {
 
         let mut address = BASE_ADDRESS;
         for (name, sections) in self.sections {
-            let mut merge = SectionMerge {
-                name,
-                address,
-                sections: Vec::new(),
-            };
+            let section_address = address;
+            let mut section_ids = Vec::new();
+            let mut perms = None;
             for section in sections {
                 calculated
                     .sections
                     .insert(section.id, SectionLayout { address });
-                merge.sections.push(section.id);
+                section_ids.push(section.id);
                 address += section.len as u64;
+
+                match perms {
+                    Some(existing) => {
+                        if section.perms != existing {
+                            return Err(LayoutCalculatorError::SectionWithDifferentPerms(
+                                name,
+                                existing,
+                                section.perms,
+                            ));
+                        }
+                    }
+                    None => perms = Some(section.perms),
+                }
             }
-            calculated.merges.push(merge);
+            calculated.merges.push(SectionMerge {
+                name,
+                address: section_address,
+                perms: perms.unwrap(),
+                sections: section_ids,
+            });
 
             // Align to the next page boundary.
             address = (address + PAGE_SIZE) & !(PAGE_SIZE - 1);
         }
-        calculated
+        Ok(calculated)
     }
 }
 
 struct SectionToLayout {
     id: SectionId,
     len: usize,
+    perms: ElfPermissions,
 }
 
 pub(super) struct CalculatedLayout {
@@ -81,20 +100,23 @@ pub(crate) struct SectionLayout {
 
 #[derive(Debug)]
 pub(super) struct SectionMerge {
-    name: String,
-    address: u64,
-    sections: Vec<SectionId>,
+    pub(super) name: String,
+    pub(super) address: u64,
+    pub(super) perms: ElfPermissions,
+    pub(super) sections: Vec<SectionId>,
 }
 
 #[derive(Debug)]
 pub(crate) enum LayoutCalculatorError {
     MissingSectionName(SectionId, MissingStringError),
+    SectionWithDifferentPerms(String, ElfPermissions, ElfPermissions),
 }
 
 impl std::error::Error for LayoutCalculatorError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             LayoutCalculatorError::MissingSectionName(_, err) => Some(err),
+            LayoutCalculatorError::SectionWithDifferentPerms(_, _, _) => None,
         }
     }
 }
@@ -104,6 +126,12 @@ impl std::fmt::Display for LayoutCalculatorError {
         match self {
             LayoutCalculatorError::MissingSectionName(id, _) => {
                 write!(f, "failed to read name for section {id:?}")
+            }
+            LayoutCalculatorError::SectionWithDifferentPerms(name, perms1, perms2) => {
+                write!(
+                    f,
+                    "instances of section {name} have different perms: {perms1:?} vs {perms2:?}"
+                )
             }
         }
     }

@@ -16,7 +16,51 @@ ElfObject {
         0x401000,
     ),
     flags: 0x0,
-    sections: {},
+    sections: {
+        section#0: ElfSection {
+            name: section#0:string#13,
+            memory_address: 0x0,
+            content: StringTable(
+                ElfStringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: ".text",
+                        0x7: ".data",
+                        0xd: ".shstrtab",
+                    },
+                },
+            ),
+        },
+        section#1: ElfSection {
+            name: section#0:string#1,
+            memory_address: 0x401000,
+            content: Program(
+                ElfProgramSection {
+                    perms: ElfPermissions(RX),
+                    raw: RawBytes {
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+                           +-------------------------------------------------+
+                        0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+                        1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+                    },
+                },
+            ),
+        },
+        section#2: ElfSection {
+            name: section#0:string#7,
+            memory_address: 0x400000,
+            content: Program(
+                ElfProgramSection {
+                    perms: ElfPermissions(RW),
+                    raw: RawBytes {
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
+                           +----------------------------------------+
+                        0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                    },
+                },
+            ),
+        },
+    },
     segments: [],
 }
 

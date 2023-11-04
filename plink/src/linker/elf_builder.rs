@@ -1,7 +1,10 @@
-use crate::linker::layout::SectionLayout;
+use crate::linker::layout::{SectionLayout, SectionMerge};
 use crate::linker::object::{GetSymbolAddressError, Object};
-use plink_elf::ids::serial::SerialIds;
-use plink_elf::{ElfEnvironment, ElfObject, ElfType};
+use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
+use plink_elf::{
+    ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfStringTable,
+    ElfType, RawBytes,
+};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -9,18 +12,26 @@ pub(super) struct ElfBuilderContext {
     pub(super) entrypoint: String,
     pub(super) env: ElfEnvironment,
     pub(super) object: Object<SectionLayout>,
+    pub(super) section_merges: Vec<SectionMerge>,
 }
 
 pub(super) struct ElfBuilder {
     ctx: ElfBuilderContext,
+    ids: SerialIds,
+    section_names: PendingStringsTable,
 }
 
 impl ElfBuilder {
     pub(super) fn new(ctx: ElfBuilderContext) -> Self {
-        Self { ctx }
+        let mut ids = SerialIds::new();
+        Self {
+            ctx,
+            section_names: PendingStringsTable::new(&mut ids),
+            ids,
+        }
     }
 
-    pub(super) fn build(self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
+    pub(super) fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
 
         Ok(ElfObject {
@@ -28,7 +39,7 @@ impl ElfBuilder {
             type_: ElfType::Executable,
             entry,
             flags: 0,
-            sections: BTreeMap::new(),
+            sections: self.prepare_sections(),
             segments: Vec::new(),
         })
     }
@@ -43,6 +54,74 @@ impl ElfBuilder {
             )
             .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.ctx.entrypoint.clone()))?,
         ))
+    }
+
+    fn prepare_sections(&mut self) -> BTreeMap<SectionId, ElfSection<SerialIds>> {
+        let mut sections = BTreeMap::new();
+
+        while let Some(merge) = self.ctx.section_merges.pop() {
+            sections.insert(
+                self.ids.allocate_section_id(),
+                self.prepare_program_section(merge),
+            );
+        }
+
+        sections.insert(self.section_names.id, self.prepare_section_names_table());
+
+        sections
+    }
+
+    fn prepare_program_section(&mut self, merge: SectionMerge) -> ElfSection<SerialIds> {
+        let mut bytes = Vec::new();
+        for section in merge.sections {
+            let section = self.ctx.object.take_program_section(section);
+            bytes.extend_from_slice(&section.raw.0);
+        }
+
+        ElfSection {
+            name: self.section_names.add(&merge.name),
+            memory_address: merge.address,
+            content: ElfSectionContent::Program(ElfProgramSection {
+                perms: merge.perms,
+                raw: RawBytes(bytes),
+            }),
+        }
+    }
+
+    fn prepare_section_names_table(&mut self) -> ElfSection<SerialIds> {
+        let name = self.section_names.add(".shstrtab");
+        ElfSection {
+            name,
+            memory_address: 0,
+            content: ElfSectionContent::StringTable(ElfStringTable::new(
+                self.section_names.strings.clone(),
+            )),
+        }
+    }
+}
+
+struct PendingStringsTable {
+    id: SectionId,
+    strings: BTreeMap<u32, String>,
+    next_offset: u32,
+}
+
+impl PendingStringsTable {
+    fn new(ids: &mut SerialIds) -> Self {
+        let mut strings = BTreeMap::new();
+        strings.insert(0, String::new()); // First string has to always be empty.
+        Self {
+            id: ids.allocate_section_id(),
+            strings,
+            next_offset: 1,
+        }
+    }
+
+    fn add(&mut self, string: &str) -> StringId {
+        let offset = self.next_offset;
+        self.next_offset += string.len() as u32 + 1;
+        self.strings.insert(offset, string.into());
+        StringId::new(self.id, offset)
     }
 }
 

@@ -99,6 +99,7 @@ impl Linker<LayoutStage> {
             entrypoint: entry.to_string(),
             env: self.stage.environment,
             object: self.object,
+            section_merges: self.stage.section_merges,
         });
         Ok(builder.build()?)
     }

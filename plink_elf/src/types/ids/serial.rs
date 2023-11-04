@@ -24,6 +24,12 @@ impl std::fmt::Debug for SymbolId {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct StringId(SectionId, u32);
 
+impl StringId {
+    pub fn new(section: SectionId, offset: u32) -> Self {
+        Self(section, offset)
+    }
+}
+
 impl std::fmt::Debug for StringId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}:string#{}", self.0, self.1)
@@ -81,7 +87,7 @@ where
         for string_id in string_ids {
             map.string_ids.insert(
                 string_id.clone(),
-                StringId(
+                StringId::new(
                     *map.section_ids
                         .get(string_id.section())
                         .expect("missing section"),
@@ -102,13 +108,13 @@ impl SerialIds {
         }
     }
 
-    fn allocate_section_id(&mut self) -> SectionId {
+    pub fn allocate_section_id(&mut self) -> SectionId {
         let id = SectionId(self.next_section_id);
         self.next_section_id += 1;
         id
     }
 
-    fn allocate_symbol_id(&mut self) -> SymbolId {
+    pub fn allocate_symbol_id(&mut self) -> SymbolId {
         let id = SymbolId(self.next_symbol_id);
         self.next_symbol_id += 1;
         id

@@ -16,6 +16,7 @@ Section merges
 SectionMerge {
     name: ".data",
     address: 0x400000,
+    perms: ElfPermissions(RW),
     sections: [
         section#1,
     ],
@@ -23,6 +24,7 @@ SectionMerge {
 SectionMerge {
     name: ".text",
     address: 0x401000,
+    perms: ElfPermissions(RX),
     sections: [
         section#2,
     ],

@@ -6,7 +6,7 @@ pub struct ElfStringTable {
 }
 
 impl ElfStringTable {
-    pub(crate) fn new(strings: BTreeMap<u32, String>) -> Self {
+    pub fn new(strings: BTreeMap<u32, String>) -> Self {
         Self { strings }
     }
 

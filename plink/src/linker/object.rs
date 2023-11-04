@@ -84,10 +84,15 @@ impl Object<()> {
     ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
         let mut calculator = LayoutCalculator::new(&self.strings);
         for (id, section) in &self.program_sections {
-            calculator.learn_section(*id, section.name, section.program.raw.len())?;
+            calculator.learn_section(
+                *id,
+                section.name,
+                section.program.raw.len(),
+                section.program.perms,
+            )?;
         }
 
-        let mut layout = calculator.calculate();
+        let mut layout = calculator.calculate()?;
         let object = Object {
             endian: self.endian,
             program_sections: self
@@ -120,6 +125,13 @@ impl Object<SectionLayout> {
             relocator.relocate(section)?;
         }
         Ok(())
+    }
+
+    pub(super) fn take_program_section(&mut self, id: SectionId) -> ElfProgramSection {
+        self.program_sections
+            .remove(&id)
+            .expect("invalid section id")
+            .program
     }
 
     pub(super) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {

@@ -219,12 +219,26 @@ pub enum ElfRelocationType {
 
 #[derive(Debug)]
 pub struct ElfSegment {
-    pub content: ElfSegmentContent,
+    pub type_: ElfSegmentType,
+    pub readable: bool,
+    pub writeable: bool,
+    pub executable: bool,
+    pub file_offset: u64,
+    pub virtual_address: u64,
+    pub file_size: u64,
+    pub memory_size: u64,
+    pub align: u64,
 }
 
-#[derive(Debug)]
-pub enum ElfSegmentContent {
-    Unknown { id: u32, raw: RawBytes },
+#[derive(Debug, Clone, Copy)]
+pub enum ElfSegmentType {
+    Null,
+    Load,
+    Dynamic,
+    Interpreter,
+    Note,
+    ProgramHeaderTable,
+    Unknown(u32),
 }
 
 pub struct RawBytes(pub Vec<u8>);

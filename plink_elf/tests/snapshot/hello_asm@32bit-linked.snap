@@ -195,47 +195,37 @@ ElfObject {
     },
     segments: [
         ElfSegment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x94)
-                       +-------------------------------------------------+
-                    0? | 7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 | .ELF............
-                    1? | 02 00 03 00 01 00 00 00 00 90 04 08 34 00 00 00 | ............4...
-                    2? | 44 21 00 00 00 00 00 00 34 00 20 00 03 00 28 00 | D!......4. ...(.
-                    3? | 06 00 05 00 01 00 00 00 00 00 00 00 00 80 04 08 | ................
-                    4? | 00 80 04 08 94 00 00 00 94 00 00 00 04 00 00 00 | ................
-                    5? | 00 10 00 00 01 00 00 00 00 10 00 00 00 90 04 08 | ................
-                    6? | 00 90 04 08 35 00 00 00 35 00 00 00 05 00 00 00 | ....5...5.......
-                    7? | 00 10 00 00 01 00 00 00 00 20 00 00 00 a0 04 08 | ......... ......
-                    8? | 00 a0 04 08 1c 00 00 00 1c 00 00 00 06 00 00 00 | ................
-                    9? | 00 10 00 00                                     | ....
-                },
-            },
+            type_: Load,
+            readable: true,
+            writeable: false,
+            executable: false,
+            file_offset: 0x0,
+            virtual_address: 0x8048000,
+            file_size: 0x94,
+            memory_size: 0x94,
+            align: 0x1000,
         },
         ElfSegment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x35)
-                       +-------------------------------------------------+
-                    0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 a0 04 08 ba | ................
-                    1? | 0d 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
-                    2? | b9 0d a0 04 08 ba 0f 00 00 00 cd 80 b0 01 bb 00 | ................
-                    3? | 00 00 00 cd 80                                  | .....
-                },
-            },
+            type_: Load,
+            readable: true,
+            writeable: false,
+            executable: true,
+            file_offset: 0x1000,
+            virtual_address: 0x8049000,
+            file_size: 0x35,
+            memory_size: 0x35,
+            align: 0x1000,
         },
         ElfSegment {
-            content: Unknown {
-                id: 0x1,
-                raw: RawBytes {
-                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1c)
-                       +-------------------------------------------------+
-                    0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a 47 6f 6f | Hello world!.Goo
-                    1? | 64 62 79 65 20 77 6f 72 6c 64 21 0a             | dbye world!.
-                },
-            },
+            type_: Load,
+            readable: true,
+            writeable: true,
+            executable: false,
+            file_offset: 0x2000,
+            virtual_address: 0x804a000,
+            file_size: 0x1c,
+            memory_size: 0x1c,
+            align: 0x1000,
         },
     ],
 }

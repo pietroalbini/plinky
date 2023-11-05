@@ -2,8 +2,8 @@ use crate::linker::layout::{SectionLayout, SectionMerge};
 use crate::linker::object::{GetSymbolAddressError, Object};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
-    ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfStringTable,
-    ElfType, RawBytes,
+    ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, RawBytes,
 };
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
@@ -33,14 +33,16 @@ impl ElfBuilder {
 
     pub(super) fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
+        let sections = self.prepare_sections();
+        let segments = self.prepare_segments(&sections);
 
         Ok(ElfObject {
             env: self.ctx.env,
             type_: ElfType::Executable,
             entry,
             flags: 0,
-            sections: self.prepare_sections(),
-            segments: Vec::new(),
+            sections,
+            segments,
         })
     }
 
@@ -97,6 +99,24 @@ impl ElfBuilder {
                 self.section_names.strings.clone(),
             )),
         }
+    }
+
+    fn prepare_segments(
+        &self,
+        sections: &BTreeMap<SectionId, ElfSection<SerialIds>>,
+    ) -> Vec<ElfSegment<SerialIds>> {
+        let mut segments = Vec::new();
+        for (section_id, section) in sections.iter() {
+            if let ElfSectionContent::Program(program) = &section.content {
+                segments.push(ElfSegment {
+                    type_: ElfSegmentType::Load,
+                    perms: program.perms,
+                    content: vec![ElfSegmentContent::Section(*section_id)],
+                    align: 0x1000,
+                });
+            }
+        }
+        segments
     }
 }
 

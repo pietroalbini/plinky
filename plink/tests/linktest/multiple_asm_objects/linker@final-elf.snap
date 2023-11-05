@@ -64,7 +64,28 @@ ElfObject {
             ),
         },
     },
-    segments: [],
+    segments: [
+        ElfSegment {
+            type_: Load,
+            perms: ElfPermissions(RX),
+            content: [
+                Section(
+                    section#1,
+                ),
+            ],
+            align: 0x1000,
+        },
+        ElfSegment {
+            type_: Load,
+            perms: ElfPermissions(R),
+            content: [
+                Section(
+                    section#2,
+                ),
+            ],
+            align: 0x1000,
+        },
+    ],
 }
 
 

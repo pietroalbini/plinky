@@ -1,17 +1,19 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
+use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{Cursor, PendingIds, PendingSectionId};
 use crate::{
     ElfClass, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType,
-    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbol,
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfUnknownSection,
-    RawBytes,
+    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent, ElfStringTable,
+    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfUnknownSection, RawBytes,
 };
 use std::collections::BTreeMap;
 
 pub(super) fn read_sections(
     cursor: &mut Cursor<'_>,
+    segment_content_map: &mut SegmentContentMapping,
     offset: u64,
     count: u16,
     size: u16,
@@ -26,7 +28,12 @@ pub(super) fn read_sections(
         cursor.seek_to(offset + (size as u64 * idx as u64))?;
         sections.insert(
             PendingSectionId(idx as _),
-            read_section(cursor, section_names_table, PendingSectionId(idx as _))?,
+            read_section(
+                cursor,
+                segment_content_map,
+                section_names_table,
+                PendingSectionId(idx as _),
+            )?,
         );
     }
 
@@ -35,6 +42,7 @@ pub(super) fn read_sections(
 
 fn read_section(
     cursor: &mut Cursor<'_>,
+    segment_content_map: &mut SegmentContentMapping,
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
@@ -88,6 +96,8 @@ fn read_section(
             raw: RawBytes(raw_content),
         }),
     };
+
+    segment_content_map.insert((offset, size), ElfSegmentContent::Section(current_section));
 
     Ok(ElfSection {
         name: PendingStringId(section_names_table, name_offset),

@@ -19,7 +19,7 @@ pub struct ElfObject<I: ElfIds> {
     pub entry: Option<NonZeroU64>,
     pub flags: u32,
     pub sections: BTreeMap<I::SectionId, ElfSection<I>>,
-    pub segments: Vec<ElfSegment>,
+    pub segments: Vec<ElfSegment<I>>,
 }
 
 impl<I: ElfIds> ElfObject<I> {
@@ -216,13 +216,10 @@ pub enum ElfRelocationType {
 }
 
 #[derive(Debug)]
-pub struct ElfSegment {
+pub struct ElfSegment<I: ElfIds> {
     pub type_: ElfSegmentType,
     pub perms: ElfPermissions,
-    pub file_offset: u64,
-    pub virtual_address: u64,
-    pub file_size: u64,
-    pub memory_size: u64,
+    pub content: Vec<ElfSegmentContent<I>>,
     pub align: u64,
 }
 
@@ -235,6 +232,20 @@ pub enum ElfSegmentType {
     Note,
     ProgramHeaderTable,
     Unknown(u32),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ElfSegmentContent<I: ElfIds> {
+    Section(I::SectionId),
+    Unknown(ElfUnknownSegmentContent),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ElfUnknownSegmentContent {
+    pub file_offset: u64,
+    pub virtual_address: u64,
+    pub file_size: u64,
+    pub memory_size: u64,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

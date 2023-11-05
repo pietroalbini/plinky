@@ -1,8 +1,17 @@
 use crate::errors::LoadError;
-use crate::reader::Cursor;
-use crate::{ElfClass, ElfPermissions, ElfSegment, ElfSegmentType};
+use crate::reader::{Cursor, PendingIds};
+use crate::{
+    ElfClass, ElfPermissions, ElfSegment, ElfSegmentContent, ElfSegmentType,
+    ElfUnknownSegmentContent,
+};
+use std::collections::BTreeMap;
 
-pub(super) fn read_program_header(cursor: &mut Cursor<'_>) -> Result<ElfSegment, LoadError> {
+pub(super) type SegmentContentMapping = BTreeMap<(u64, u64), ElfSegmentContent<PendingIds>>;
+
+pub(super) fn read_program_header(
+    cursor: &mut Cursor<'_>,
+    content_map: &SegmentContentMapping,
+) -> Result<ElfSegment<PendingIds>, LoadError> {
     // The position of the `flags` field changes depending on whether it's a 32-bit or 64-bit
     // ELF binary.
     let mut flags = 0;
@@ -36,10 +45,15 @@ pub(super) fn read_program_header(cursor: &mut Cursor<'_>) -> Result<ElfSegment,
             write: flags & 0x2 > 0,
             execute: flags & 0x1 > 0,
         },
-        file_offset,
-        virtual_address,
-        file_size,
-        memory_size,
+        content: vec![content_map
+            .get(&(file_offset, file_size))
+            .cloned()
+            .unwrap_or(ElfSegmentContent::Unknown(ElfUnknownSegmentContent {
+                file_offset,
+                virtual_address,
+                file_size,
+                memory_size,
+            }))],
         align,
     })
 }

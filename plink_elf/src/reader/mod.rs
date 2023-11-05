@@ -9,7 +9,7 @@ pub(crate) use self::object::read_object;
 
 use crate::ids::{ElfIds, StringIdGetters};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PendingIds;
 
 impl ElfIds for PendingIds {

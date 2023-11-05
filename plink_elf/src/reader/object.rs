@@ -1,8 +1,9 @@
 use crate::errors::LoadError;
-use crate::reader::program_header::read_program_header;
+use crate::reader::program_header::{read_program_header, SegmentContentMapping};
 use crate::reader::sections::read_sections;
 use crate::reader::{Cursor, PendingIds, PendingSectionId};
 use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfObject, ElfType};
+use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<ElfObject<PendingIds>, LoadError> {
@@ -23,6 +24,8 @@ pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<ElfObject<PendingId
     read_version_u32(cursor)?;
     let entry = cursor.read_usize()?;
 
+    let mut segment_content_map: SegmentContentMapping = BTreeMap::new();
+
     let program_headers_offset = cursor.read_usize()?;
     let section_headers_offset = cursor.read_usize()?;
 
@@ -37,6 +40,7 @@ pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<ElfObject<PendingId
 
     let sections = read_sections(
         cursor,
+        &mut segment_content_map,
         section_headers_offset,
         section_header_count,
         section_header_size,
@@ -47,7 +51,7 @@ pub(crate) fn read_object(cursor: &mut Cursor<'_>) -> Result<ElfObject<PendingId
     if program_headers_offset != 0 {
         for idx in 0..program_header_count {
             cursor.seek_to(program_headers_offset + (program_header_size as u64 * idx as u64))?;
-            segments.push(read_program_header(cursor)?);
+            segments.push(read_program_header(cursor, &segment_content_map)?);
         }
     }
 

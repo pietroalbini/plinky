@@ -19,7 +19,6 @@ where
         })?;
         self.cursor.write_u8(match self.object.env.endian {
             ElfEndian::Little => 1,
-            ElfEndian::Big => 2,
         })?;
         self.cursor.write_u8(1)?; // Version
         match self.object.env.abi {

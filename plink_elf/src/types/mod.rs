@@ -64,7 +64,6 @@ pub enum ElfABI {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElfEndian {
     Little,
-    Big,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

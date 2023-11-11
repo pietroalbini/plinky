@@ -120,7 +120,7 @@ impl Object<()> {
 
 impl Object<SectionLayout> {
     pub(super) fn relocate(&mut self) -> Result<(), RelocationError> {
-        let relocator = Relocator::new(self.endian.unwrap(), &self.program_sections, &self.symbols);
+        let relocator = Relocator::new(&self.program_sections, &self.symbols);
         for section in &mut self.program_sections.values_mut() {
             relocator.relocate(section)?;
         }

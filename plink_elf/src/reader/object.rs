@@ -11,9 +11,8 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
     let class = read_class(cursor)?;
     let endian = read_endian(cursor)?;
 
-    // Use the provided endianness for the rest of the reading.
+    // Use the provided class for the rest of the reading.
     cursor.class = Some(class);
-    cursor.endian = Some(endian);
 
     read_version_u8(cursor)?;
     let abi = read_abi(cursor)?;
@@ -90,7 +89,6 @@ fn read_class(cursor: &mut ReadCursor<'_>) -> Result<ElfClass, LoadError> {
 fn read_endian(cursor: &mut ReadCursor<'_>) -> Result<ElfEndian, LoadError> {
     match cursor.read_u8()? {
         1 => Ok(ElfEndian::Little),
-        2 => Ok(ElfEndian::Big),
         other => Err(LoadError::BadEndian(other)),
     }
 }

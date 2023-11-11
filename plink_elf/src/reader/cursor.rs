@@ -1,12 +1,11 @@
 use crate::errors::LoadError;
 use crate::utils::ReadSeek;
-use crate::{ElfClass, ElfEndian};
+use crate::ElfClass;
 use std::io::SeekFrom;
 
 pub(crate) struct ReadCursor<'a> {
     reader: &'a mut dyn ReadSeek,
     pub(super) class: Option<ElfClass>,
-    pub(super) endian: Option<ElfEndian>,
 }
 
 impl<'a> ReadCursor<'a> {
@@ -14,7 +13,6 @@ impl<'a> ReadCursor<'a> {
         Self {
             reader,
             class: None,
-            endian: None,
         }
     }
 
@@ -29,48 +27,23 @@ impl<'a> ReadCursor<'a> {
     }
 
     pub(super) fn read_u16(&mut self) -> Result<u16, LoadError> {
-        let bytes = self.read_bytes()?;
-        match self.endian {
-            Some(ElfEndian::Big) => Ok(u16::from_be_bytes(bytes)),
-            Some(ElfEndian::Little) => Ok(u16::from_le_bytes(bytes)),
-            None => panic!("parsing non-u8 without setting endian"),
-        }
+        Ok(u16::from_le_bytes(self.read_bytes()?))
     }
 
     pub(super) fn read_u32(&mut self) -> Result<u32, LoadError> {
-        let bytes = self.read_bytes()?;
-        match self.endian {
-            Some(ElfEndian::Big) => Ok(u32::from_be_bytes(bytes)),
-            Some(ElfEndian::Little) => Ok(u32::from_le_bytes(bytes)),
-            None => panic!("parsing non-u8 without setting endian"),
-        }
+        Ok(u32::from_le_bytes(self.read_bytes()?))
     }
 
     pub(super) fn read_u64(&mut self) -> Result<u64, LoadError> {
-        let bytes = self.read_bytes()?;
-        match self.endian {
-            Some(ElfEndian::Big) => Ok(u64::from_be_bytes(bytes)),
-            Some(ElfEndian::Little) => Ok(u64::from_le_bytes(bytes)),
-            None => panic!("parsing non-u8 without setting endian"),
-        }
+        Ok(u64::from_le_bytes(self.read_bytes()?))
     }
 
     pub(super) fn read_i32(&mut self) -> Result<i32, LoadError> {
-        let bytes = self.read_bytes()?;
-        match self.endian {
-            Some(ElfEndian::Big) => Ok(i32::from_be_bytes(bytes)),
-            Some(ElfEndian::Little) => Ok(i32::from_le_bytes(bytes)),
-            None => panic!("parsing non-u8 without setting endian"),
-        }
+        Ok(i32::from_le_bytes(self.read_bytes()?))
     }
 
     pub(super) fn read_i64(&mut self) -> Result<i64, LoadError> {
-        let bytes = self.read_bytes()?;
-        match self.endian {
-            Some(ElfEndian::Big) => Ok(i64::from_be_bytes(bytes)),
-            Some(ElfEndian::Little) => Ok(i64::from_le_bytes(bytes)),
-            None => panic!("parsing non-u8 without setting endian"),
-        }
+        Ok(i64::from_le_bytes(self.read_bytes()?))
     }
 
     pub(super) fn read_usize(&mut self) -> Result<u64, LoadError> {
@@ -127,7 +100,6 @@ impl<'a> ReadCursor<'a> {
         ReadCursor {
             reader: new_reader,
             class: self.class,
-            endian: self.endian,
         }
     }
 }

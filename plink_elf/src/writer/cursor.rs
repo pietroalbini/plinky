@@ -1,13 +1,12 @@
 use crate::errors::WriteError;
 use crate::ids::ElfIds;
 use crate::utils::WriteSeek;
-use crate::{ElfClass, ElfEndian, ElfObject};
+use crate::{ElfClass, ElfObject};
 use std::io::SeekFrom;
 
 pub(super) struct WriteCursor<'a> {
     writer: &'a mut dyn WriteSeek,
     class: ElfClass,
-    endian: ElfEndian,
 }
 
 impl<'a> WriteCursor<'a> {
@@ -15,7 +14,6 @@ impl<'a> WriteCursor<'a> {
         Self {
             writer,
             class: object.env.class,
-            endian: object.env.endian,
         }
     }
 
@@ -25,26 +23,17 @@ impl<'a> WriteCursor<'a> {
     }
 
     pub(super) fn write_u16(&mut self, value: u16) -> Result<(), WriteError> {
-        self.writer.write_all(&match self.endian {
-            ElfEndian::Little => u16::to_le_bytes(value),
-            ElfEndian::Big => u16::to_be_bytes(value),
-        })?;
+        self.writer.write_all(&value.to_le_bytes())?;
         Ok(())
     }
 
     pub(super) fn write_u32(&mut self, value: u32) -> Result<(), WriteError> {
-        self.writer.write_all(&match self.endian {
-            ElfEndian::Little => u32::to_le_bytes(value),
-            ElfEndian::Big => u32::to_be_bytes(value),
-        })?;
+        self.writer.write_all(&value.to_le_bytes())?;
         Ok(())
     }
 
     pub(super) fn write_u64(&mut self, value: u64) -> Result<(), WriteError> {
-        self.writer.write_all(&match self.endian {
-            ElfEndian::Little => u64::to_le_bytes(value),
-            ElfEndian::Big => u64::to_be_bytes(value),
-        })?;
+        self.writer.write_all(&value.to_le_bytes())?;
         Ok(())
     }
 

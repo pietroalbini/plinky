@@ -143,8 +143,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "insta",
+ "plink_macros",
  "tempfile",
 ]
+
+[[package]]
+name = "plink_macros"
+version = "0.1.0"
 
 [[package]]
 name = "proc-macro2"

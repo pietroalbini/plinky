@@ -46,7 +46,7 @@ impl<'a> ReadCursor<'a> {
         Ok(i64::from_le_bytes(self.read_bytes()?))
     }
 
-    pub(super) fn read_usize(&mut self) -> Result<u64, LoadError> {
+    pub(crate) fn read_usize(&mut self) -> Result<u64, LoadError> {
         match self.class {
             Some(ElfClass::Elf32) => Ok(self.read_u32()? as _),
             Some(ElfClass::Elf64) => Ok(self.read_u64()?),
@@ -54,7 +54,7 @@ impl<'a> ReadCursor<'a> {
         }
     }
 
-    pub(super) fn read_isize(&mut self) -> Result<i64, LoadError> {
+    pub(crate) fn read_isize(&mut self) -> Result<i64, LoadError> {
         match self.class {
             Some(ElfClass::Elf32) => Ok(self.read_i32()? as _),
             Some(ElfClass::Elf64) => Ok(self.read_i64()?),
@@ -62,12 +62,12 @@ impl<'a> ReadCursor<'a> {
         }
     }
 
-    pub(super) fn skip_padding<const N: usize>(&mut self) -> Result<(), LoadError> {
+    pub(crate) fn skip_padding<const N: usize>(&mut self) -> Result<(), LoadError> {
         self.read_bytes::<N>()?;
         Ok(())
     }
 
-    pub(super) fn read_bytes<const N: usize>(&mut self) -> Result<[u8; N], LoadError> {
+    pub(crate) fn read_bytes<const N: usize>(&mut self) -> Result<[u8; N], LoadError> {
         let mut buf = [0; N];
         self.reader.read_exact(&mut buf)?;
         Ok(buf)

@@ -1,6 +1,7 @@
 use crate::errors::LoadError;
 use crate::reader::ReadCursor;
 use crate::{ElfNote, ElfNotesTable, RawBytes};
+use crate::raw::{RawNoteHeader, RawType};
 
 pub(super) fn read_notes(
     cursor: &mut ReadCursor<'_>,
@@ -18,20 +19,18 @@ pub(super) fn read_notes(
 }
 
 fn read_note(cursor: &mut ReadCursor<'_>) -> Result<ElfNote, LoadError> {
-    let name_size = cursor.read_u32()?;
-    let value_size = cursor.read_u32()?;
-    let type_ = cursor.read_u32()?;
+    let header = RawNoteHeader::read(cursor)?;
 
-    let mut name_bytes = cursor.read_vec(name_size as _)?;
+    let mut name_bytes = cursor.read_vec(header.name_size as _)?;
     name_bytes.pop(); // Zero-terminated string
     cursor.align_with_padding(8)?;
 
-    let value_bytes = cursor.read_vec(value_size as _)?;
+    let value_bytes = cursor.read_vec(header.value_size as _)?;
     cursor.align_with_padding(8)?;
 
     Ok(ElfNote {
         name: String::from_utf8(name_bytes)?,
         value: RawBytes(value_bytes),
-        type_,
+        type_: header.type_,
     })
 }

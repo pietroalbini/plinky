@@ -38,3 +38,10 @@ pub(crate) struct RawHeader {
     pub(crate) section_header_count: u16,
     pub(crate) section_names_table_index: u16,
 }
+
+#[derive(RawType)]
+pub(crate) struct RawNoteHeader {
+    pub(crate) name_size: u32,
+    pub(crate) value_size: u32,
+    pub(crate) type_: u32,
+}

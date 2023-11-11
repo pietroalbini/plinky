@@ -1,16 +1,17 @@
 use crate::errors::{LoadError, WriteError};
 use crate::reader::ReadCursor;
 use crate::writer::WriteCursor;
+use crate::ElfClass;
 
 pub(crate) trait RawType: Sized {
-    fn size() -> usize;
+    fn size(class: ElfClass) -> usize;
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError>;
     fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError>;
 }
 
 impl<const N: usize, T: RawType> RawType for [T; N] {
-    fn size() -> usize {
-        T::size() * N
+    fn size(class: ElfClass) -> usize {
+        T::size(class) * N
     }
 
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
@@ -36,7 +37,7 @@ macro_rules! impl_rawtype_for_int {
     ($($int:ty),*) => {
         $(
             impl RawType for $int {
-                fn size() -> usize {
+                fn size(_class: ElfClass) -> usize {
                     std::mem::size_of::<$int>()
                 }
 
@@ -57,7 +58,7 @@ impl_rawtype_for_int!(u8, u16, u32, u64, i8, i16, i32, i64);
 pub(crate) struct RawPadding<const N: usize>;
 
 impl<const N: usize> RawType for RawPadding<N> {
-    fn size() -> usize {
+    fn size(_class: ElfClass) -> usize {
         N
     }
 
@@ -71,12 +72,20 @@ impl<const N: usize> RawType for RawPadding<N> {
     }
 }
 
-pub(crate) trait RawTypeAsPointerSize: RawType {
+pub(crate) trait RawTypeAsPointerSize: Sized {
+    fn size(class: ElfClass) -> usize;
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError>;
     fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError>;
 }
 
 impl RawTypeAsPointerSize for u64 {
+    fn size(class: ElfClass) -> usize {
+        match class {
+            ElfClass::Elf32 => 4,
+            ElfClass::Elf64 => 8,
+        }
+    }
+
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
         cursor.read_usize()
     }
@@ -87,6 +96,13 @@ impl RawTypeAsPointerSize for u64 {
 }
 
 impl RawTypeAsPointerSize for i64 {
+    fn size(class: ElfClass) -> usize {
+        match class {
+            ElfClass::Elf32 => 4,
+            ElfClass::Elf64 => 8,
+        }
+    }
+
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
         cursor.read_isize()
     }

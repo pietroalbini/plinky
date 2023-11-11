@@ -10,9 +10,15 @@ pub(crate) struct Struct {
 
 #[derive(Debug)]
 pub(crate) struct StructField {
-    pub(crate) attrs: Vec<String>,
+    pub(crate) attrs: Vec<Attribute>,
     pub(crate) name: String,
     pub(crate) ty: String,
+}
+
+#[derive(Debug)]
+pub(crate) struct Attribute {
+    pub(crate) span: Span,
+    pub(crate) value: String,
 }
 
 pub(crate) struct Parser {
@@ -106,7 +112,7 @@ impl Parser {
         Ok(generic)
     }
 
-    fn parse_attributes(&mut self) -> Result<Vec<String>, Error> {
+    fn parse_attributes(&mut self) -> Result<Vec<Attribute>, Error> {
         let mut attributes = Vec::new();
 
         loop {
@@ -123,7 +129,10 @@ impl Parser {
                             Error::new("expected braces surrounding attribute").span(group.span())
                         );
                     }
-                    attributes.push(group.stream().to_string());
+                    attributes.push(Attribute {
+                        span: group.span(),
+                        value: group.stream().to_string(),
+                    });
                 }
                 other => return Err(Error::new("expected attribute").span(other.span())),
             }

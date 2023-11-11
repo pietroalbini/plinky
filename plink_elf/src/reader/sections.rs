@@ -1,6 +1,6 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
-use crate::raw::{RawSectionHeader, RawType};
+use crate::raw::{RawSectionHeader, RawType, RawSymbol};
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
@@ -144,31 +144,16 @@ fn read_symbol(
     cursor: &mut ReadCursor<'_>,
     strings_table: PendingSectionId,
 ) -> Result<ElfSymbol<PendingIds>, LoadError> {
-    let mut value = 0;
-    let mut size = 0;
-
-    let name_offset = cursor.read_u32()?;
-    if let Some(ElfClass::Elf32) = cursor.class {
-        value = cursor.read_usize()?;
-        size = cursor.read_usize()?;
-    }
-    let info = cursor.read_u8()?;
-    let _ = cursor.read_u8()?; // Reserved
-    let definition = cursor.read_u16()?;
-    if let Some(ElfClass::Elf64) = cursor.class {
-        value = cursor.read_usize()?;
-        size = cursor.read_usize()?;
-    }
-
+    let symbol: RawSymbol = RawSymbol::read(cursor)?;
     Ok(ElfSymbol {
-        name: PendingStringId(strings_table, name_offset),
-        binding: match (info & 0b11110000) >> 4 {
+        name: PendingStringId(strings_table, symbol.name_offset),
+        binding: match (symbol.info & 0b11110000) >> 4 {
             0 => ElfSymbolBinding::Local,
             1 => ElfSymbolBinding::Global,
             2 => ElfSymbolBinding::Weak,
             other => ElfSymbolBinding::Unknown(other),
         },
-        type_: match info & 0b1111 {
+        type_: match symbol.info & 0b1111 {
             0 => ElfSymbolType::NoType,
             1 => ElfSymbolType::Object,
             2 => ElfSymbolType::Function,
@@ -176,14 +161,14 @@ fn read_symbol(
             4 => ElfSymbolType::File,
             other => ElfSymbolType::Unknown(other),
         },
-        definition: match definition {
+        definition: match symbol.definition {
             0x0000 => ElfSymbolDefinition::Undefined, // SHN_UNDEF
             0xFFF1 => ElfSymbolDefinition::Absolute,  // SHN_ABS
             0xFFF2 => ElfSymbolDefinition::Common,    // SHN_COMMON
             other => ElfSymbolDefinition::Section(PendingSectionId(other as _)),
         },
-        value,
-        size,
+        value: symbol.value,
+        size: symbol.size,
     })
 }
 

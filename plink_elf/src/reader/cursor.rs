@@ -5,7 +5,7 @@ use std::io::SeekFrom;
 
 pub(crate) struct ReadCursor<'a> {
     reader: &'a mut dyn ReadSeek,
-    pub(super) class: Option<ElfClass>,
+    pub(crate) class: Option<ElfClass>,
 }
 
 impl<'a> ReadCursor<'a> {
@@ -19,15 +19,6 @@ impl<'a> ReadCursor<'a> {
     pub(super) fn seek_to(&mut self, position: u64) -> Result<(), LoadError> {
         self.reader.seek(SeekFrom::Start(position))?;
         Ok(())
-    }
-
-    pub(super) fn read_u8(&mut self) -> Result<u8, LoadError> {
-        let bytes = self.read_bytes::<1>()?;
-        Ok(bytes[0])
-    }
-
-    pub(super) fn read_u16(&mut self) -> Result<u16, LoadError> {
-        Ok(u16::from_le_bytes(self.read_bytes()?))
     }
 
     pub(super) fn read_u32(&mut self) -> Result<u32, LoadError> {

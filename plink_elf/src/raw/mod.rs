@@ -6,6 +6,7 @@ pub(crate) use self::support::*;
 use crate::errors::{LoadError, WriteError};
 use crate::reader::ReadCursor;
 use crate::writer::WriteCursor;
+use crate::ElfClass;
 use plink_macros::RawType;
 
 #[derive(RawType)]
@@ -57,6 +58,20 @@ pub(crate) struct RawSectionHeader {
     pub(crate) addr_align: u64,
     #[pointer_size]
     pub(crate) entries_size: u64,
+}
+
+#[derive(RawType)]
+pub(crate) struct RawSymbol {
+    pub(crate) name_offset: u32,
+    pub(crate) info: u8,
+    pub(crate) _reserved: RawPadding<1>,
+    pub(crate) definition: u16,
+    #[pointer_size]
+    #[placed_on_elf32_after = "name_offset"]
+    pub(crate) value: u64,
+    #[pointer_size]
+    #[placed_on_elf32_after = "value"]
+    pub(crate) size: u64,
 }
 
 #[derive(RawType)]

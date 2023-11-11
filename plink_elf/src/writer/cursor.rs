@@ -6,7 +6,7 @@ use std::io::SeekFrom;
 
 pub(crate) struct WriteCursor<'a> {
     writer: &'a mut dyn WriteSeek,
-    class: ElfClass,
+    pub(crate) class: ElfClass,
 }
 
 impl<'a> WriteCursor<'a> {

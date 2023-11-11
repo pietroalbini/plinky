@@ -40,6 +40,26 @@ pub(crate) struct RawHeader {
 }
 
 #[derive(RawType)]
+pub(crate) struct RawSectionHeader {
+    pub(crate) name_offset: u32,
+    pub(crate) type_: u32,
+    #[pointer_size]
+    pub(crate) flags: u64,
+    #[pointer_size]
+    pub(crate) memory_address: u64,
+    #[pointer_size]
+    pub(crate) offset: u64,
+    #[pointer_size]
+    pub(crate) size: u64,
+    pub(crate) link: u32,
+    pub(crate) info: u32,
+    #[pointer_size]
+    pub(crate) addr_align: u64,
+    #[pointer_size]
+    pub(crate) entries_size: u64,
+}
+
+#[derive(RawType)]
 pub(crate) struct RawNoteHeader {
     pub(crate) name_size: u32,
     pub(crate) value_size: u32,

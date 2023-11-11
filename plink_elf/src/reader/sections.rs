@@ -1,5 +1,6 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
+use crate::raw::{RawSectionHeader, RawType};
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
@@ -46,49 +47,40 @@ fn read_section(
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
-    let name_offset = cursor.read_u32()?;
-    let type_ = cursor.read_u32()?;
-    let flags = cursor.read_usize()?;
-    let memory_address = cursor.read_usize()?;
-    let offset = cursor.read_usize()?;
-    let size = cursor.read_usize()?;
-    let link = cursor.read_u32()?;
-    let info = cursor.read_u32()?;
-    let _addr_align = cursor.read_usize()?;
-    let _entries_size = cursor.read_usize()?;
+    let header = RawSectionHeader::read(cursor)?;
 
-    cursor.seek_to(offset)?;
-    let raw_content = cursor.read_vec(size)?;
-    let content = match type_ {
+    cursor.seek_to(header.offset)?;
+    let raw_content = cursor.read_vec(header.size)?;
+    let content = match header.type_ {
         0 => ElfSectionContent::Null,
         1 => ElfSectionContent::Program(ElfProgramSection {
             perms: ElfPermissions {
-                write: flags & 0x1 > 0,
-                read: flags & 0x2 > 0,
-                execute: flags & 0x4 > 0,
+                write: header.flags & 0x1 > 0,
+                read: header.flags & 0x2 > 0,
+                execute: header.flags & 0x4 > 0,
             },
             raw: RawBytes(raw_content),
         }),
         2 => read_symbol_table(
             cursor,
             &raw_content,
-            PendingSectionId(link),
+            PendingSectionId(header.link),
             current_section,
         )?,
         3 => read_string_table(&raw_content)?,
         4 => read_relocations_table(
             cursor,
             &raw_content,
-            PendingSectionId(link),
-            PendingSectionId(info),
+            PendingSectionId(header.link),
+            PendingSectionId(header.info),
             true,
         )?,
         7 => ElfSectionContent::Note(read_notes(cursor, &raw_content)?),
         9 => read_relocations_table(
             cursor,
             &raw_content,
-            PendingSectionId(link),
-            PendingSectionId(info),
+            PendingSectionId(header.link),
+            PendingSectionId(header.info),
             false,
         )?,
         other => ElfSectionContent::Unknown(ElfUnknownSection {
@@ -97,11 +89,14 @@ fn read_section(
         }),
     };
 
-    segment_content_map.insert((offset, size), ElfSegmentContent::Section(current_section));
+    segment_content_map.insert(
+        (header.offset, header.size),
+        ElfSegmentContent::Section(current_section),
+    );
 
     Ok(ElfSection {
-        name: PendingStringId(section_names_table, name_offset),
-        memory_address,
+        name: PendingStringId(section_names_table, header.name_offset),
+        memory_address: header.memory_address,
         content,
     })
 }

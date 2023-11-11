@@ -99,3 +99,21 @@ pub(crate) struct RawProgramHeader {
     #[pointer_size]
     pub(crate) align: u64,
 }
+
+#[derive(RawType)]
+pub(crate) struct RawRel {
+    #[pointer_size]
+    pub(crate) offset: u64,
+    #[pointer_size]
+    pub(crate) info: u64,
+}
+
+#[derive(RawType)]
+pub(crate) struct RawRela {
+    #[pointer_size]
+    pub(crate) offset: u64,
+    #[pointer_size]
+    pub(crate) info: u64,
+    #[pointer_size]
+    pub(crate) addend: i64,
+}

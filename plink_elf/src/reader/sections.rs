@@ -1,6 +1,6 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
-use crate::raw::{RawSectionHeader, RawType, RawSymbol};
+use crate::raw::{RawSectionHeader, RawType, RawSymbol, RawRela, RawRel};
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
@@ -199,8 +199,13 @@ fn read_relocation(
     symbol_table: PendingSectionId,
     rela: bool,
 ) -> Result<ElfRelocation<PendingIds>, LoadError> {
-    let offset = cursor.read_usize()?;
-    let info = cursor.read_usize()?;
+    let (offset, info, addend) = if rela {
+        let raw = RawRela::read(cursor)?;
+        (raw.offset, raw.info, Some(raw.addend))
+    } else {
+        let raw = RawRel::read(cursor)?;
+        (raw.offset, raw.info, None)
+    };
     let (symbol, relocation_type) = match cursor.class {
         Some(ElfClass::Elf32) => (
             (info >> 8) as u32,
@@ -251,11 +256,6 @@ fn read_relocation(
             },
         ),
         None => panic!("must call after the elf class is determined"),
-    };
-    let addend = if rela {
-        Some(cursor.read_isize()?)
-    } else {
-        None
     };
 
     Ok(ElfRelocation {

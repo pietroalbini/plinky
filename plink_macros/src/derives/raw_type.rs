@@ -41,7 +41,10 @@ fn fn_read(output: &mut String, parsed: &Struct) {
         } else {
             "RawType"
         };
-        output.push_str(&format!("{}: <{} as {as_ty}>::read(cursor)?,", field.name, field.ty));
+        output.push_str(&format!(
+            "{}: <{} as {as_ty}>::read(cursor)?,",
+            field.name, field.ty
+        ));
     }
     output.push_str("    })\n");
     output.push_str("}\n");
@@ -55,7 +58,10 @@ fn fn_write(output: &mut String, parsed: &Struct) {
         } else {
             "RawType"
         };
-        output.push_str(&format!("<{} as {as_ty}>::write(&self.{}, cursor)?;", field.ty, field.name));
+        output.push_str(&format!(
+            "<{} as {as_ty}>::write(&self.{}, cursor)?;",
+            field.ty, field.name
+        ));
     }
     output.push_str("    Ok(())\n");
     output.push_str("}\n");

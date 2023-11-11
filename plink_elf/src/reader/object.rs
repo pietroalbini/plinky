@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::raw::{RawIdentification, RawType, RawHeader};
+use crate::raw::{RawHeader, RawIdentification, RawType};
 use crate::reader::program_header::{read_program_header, SegmentContentMapping};
 use crate::reader::sections::read_sections;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
@@ -64,7 +64,9 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
     let mut segments = Vec::new();
     if header.program_headers_offset != 0 {
         for idx in 0..header.program_header_count {
-            cursor.seek_to(header.program_headers_offset + (header.program_header_size as u64 * idx as u64))?;
+            cursor.seek_to(
+                header.program_headers_offset + (header.program_header_size as u64 * idx as u64),
+            )?;
             segments.push(read_program_header(cursor, &segment_content_map)?);
         }
     }

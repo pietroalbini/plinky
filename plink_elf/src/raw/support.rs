@@ -1,5 +1,5 @@
-use crate::reader::ReadCursor;
 use crate::errors::{LoadError, WriteError};
+use crate::reader::ReadCursor;
 use crate::writer::WriteCursor;
 
 pub(crate) trait RawType: Sized {

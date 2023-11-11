@@ -1,8 +1,8 @@
 extern crate proc_macro;
 
 mod derives;
-mod parser;
 mod error;
+mod parser;
 
 use proc_macro::TokenStream;
 

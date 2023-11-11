@@ -1,7 +1,7 @@
 use crate::errors::LoadError;
+use crate::raw::{RawNoteHeader, RawType};
 use crate::reader::ReadCursor;
 use crate::{ElfNote, ElfNotesTable, RawBytes};
-use crate::raw::{RawNoteHeader, RawType};
 
 pub(super) fn read_notes(
     cursor: &mut ReadCursor<'_>,

@@ -12,6 +12,7 @@ use crate::linker::relocator::RelocationError;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject};
+use plink_macros::Error;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -145,29 +146,15 @@ pub(crate) struct EnvironmentAndPath {
     path: PathBuf,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum LinkerError {
     NoObjectLoaded,
-    ReadElfFailed(PathBuf, LoadError),
+    ReadElfFailed(PathBuf, #[source] LoadError),
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
-    ObjectLoadFailed(PathBuf, ObjectLoadError),
-    LayoutCalculationFailed(LayoutCalculatorError),
-    RelocationFailed(RelocationError),
-    ElfBuildFailed(ElfBuilderError),
-}
-
-impl std::error::Error for LinkerError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            LinkerError::ReadElfFailed(_, err) => Some(err),
-            LinkerError::MismatchedEnv(_, _) => None,
-            LinkerError::ObjectLoadFailed(_, err) => Some(err),
-            LinkerError::LayoutCalculationFailed(err) => Some(err),
-            LinkerError::RelocationFailed(err) => Some(err),
-            LinkerError::NoObjectLoaded => None,
-            LinkerError::ElfBuildFailed(err) => Some(err),
-        }
-    }
+    ObjectLoadFailed(PathBuf, #[source] ObjectLoadError),
+    LayoutCalculationFailed(#[from] LayoutCalculatorError),
+    RelocationFailed(#[from] RelocationError),
+    ElfBuildFailed(#[from] ElfBuilderError),
 }
 
 impl std::fmt::Display for LinkerError {
@@ -196,23 +183,5 @@ impl std::fmt::Display for LinkerError {
             LinkerError::NoObjectLoaded => f.write_str("no object loaded"),
             LinkerError::ElfBuildFailed(_) => f.write_str("failed to prepare the resulting object"),
         }
-    }
-}
-
-impl From<LayoutCalculatorError> for LinkerError {
-    fn from(value: LayoutCalculatorError) -> Self {
-        LinkerError::LayoutCalculationFailed(value)
-    }
-}
-
-impl From<RelocationError> for LinkerError {
-    fn from(value: RelocationError) -> Self {
-        LinkerError::RelocationFailed(value)
-    }
-}
-
-impl From<ElfBuilderError> for LinkerError {
-    fn from(value: ElfBuilderError) -> Self {
-        LinkerError::ElfBuildFailed(value)
     }
 }

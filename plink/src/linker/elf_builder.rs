@@ -5,6 +5,7 @@ use plink_elf::{
     ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
     ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, RawBytes,
 };
+use plink_macros::Error;
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -157,19 +158,10 @@ impl PendingStringsTable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum ElfBuilderError {
-    InvalidEntrypoint(GetSymbolAddressError),
+    InvalidEntrypoint(#[source] GetSymbolAddressError),
     EntrypointIsZero(String),
-}
-
-impl std::error::Error for ElfBuilderError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ElfBuilderError::InvalidEntrypoint(err) => Some(err),
-            ElfBuilderError::EntrypointIsZero(_) => None,
-        }
-    }
 }
 
 impl std::fmt::Display for ElfBuilderError {

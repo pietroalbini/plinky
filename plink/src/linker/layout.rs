@@ -1,6 +1,7 @@
 use crate::linker::strings::{MissingStringError, Strings};
 use plink_elf::ids::serial::{SectionId, StringId};
 use plink_elf::ElfPermissions;
+use plink_macros::Error;
 use std::collections::BTreeMap;
 
 const BASE_ADDRESS: u64 = 0x400000;
@@ -106,19 +107,10 @@ pub(super) struct SectionMerge {
     pub(super) sections: Vec<SectionId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum LayoutCalculatorError {
-    MissingSectionName(SectionId, MissingStringError),
+    MissingSectionName(SectionId, #[source] MissingStringError),
     SectionWithDifferentPerms(String, ElfPermissions, ElfPermissions),
-}
-
-impl std::error::Error for LayoutCalculatorError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            LayoutCalculatorError::MissingSectionName(_, err) => Some(err),
-            LayoutCalculatorError::SectionWithDifferentPerms(_, _, _) => None,
-        }
-    }
 }
 
 impl std::fmt::Display for LayoutCalculatorError {

@@ -1,3 +1,4 @@
+use plink_macros::Error;
 use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -93,7 +94,7 @@ fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub(crate) enum CliError {
     MissingInput,
     UnsupportedDebugPrint(String),
@@ -102,8 +103,6 @@ pub(crate) enum CliError {
     FlagDoesNotAcceptValues(String),
     MissingValueForFlag(String),
 }
-
-impl std::error::Error for CliError {}
 
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

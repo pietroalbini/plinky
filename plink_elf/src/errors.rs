@@ -1,8 +1,9 @@
 use crate::ElfABI;
+use plink_macros::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LoadError {
-    IO(std::io::Error),
+    IO(#[from] std::io::Error),
     BadMagic([u8; 4]),
     BadClass(u8),
     BadEndian(u8),
@@ -12,7 +13,7 @@ pub enum LoadError {
     BadType(u16),
     BadMachine(u16),
     UnterminatedString,
-    NonUtf8String(std::string::FromUtf8Error),
+    NonUtf8String(#[from] std::string::FromUtf8Error),
     MissingStringTable(u16),
     WrongStringTableType(u16),
     MissingString(u16, u32),
@@ -54,43 +55,11 @@ impl std::fmt::Display for LoadError {
     }
 }
 
-impl std::error::Error for LoadError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            LoadError::IO(err) => Some(err),
-            LoadError::NonUtf8String(err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl From<std::io::Error> for LoadError {
-    fn from(value: std::io::Error) -> Self {
-        LoadError::IO(value)
-    }
-}
-
-impl From<std::string::FromUtf8Error> for LoadError {
-    fn from(value: std::string::FromUtf8Error) -> Self {
-        LoadError::NonUtf8String(value)
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WriteError {
-    IO(std::io::Error),
+    IO(#[from] std::io::Error),
     MissingSectionNamesTable,
     InconsistentSectionNamesTableId,
-}
-
-impl std::error::Error for WriteError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            WriteError::IO(err) => Some(err),
-            WriteError::MissingSectionNamesTable => None,
-            WriteError::InconsistentSectionNamesTableId => None,
-        }
-    }
 }
 
 impl std::fmt::Display for WriteError {
@@ -102,11 +71,5 @@ impl std::fmt::Display for WriteError {
                 f.write_str("different sections point to different string tables for their name")
             }
         }
-    }
-}
-
-impl From<std::io::Error> for WriteError {
-    fn from(value: std::io::Error) -> Self {
-        WriteError::IO(value)
     }
 }

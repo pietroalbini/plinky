@@ -21,6 +21,32 @@ pub(crate) struct Attribute {
     pub(crate) value: String,
 }
 
+#[derive(Debug)]
+pub(crate) struct Enum {
+    pub(crate) name: String,
+    pub(crate) variants: Vec<EnumVariant>,
+}
+
+#[derive(Debug)]
+pub(crate) struct EnumVariant {
+    pub(crate) span: Span,
+    pub(crate) name: String,
+    pub(crate) data: EnumVariantData,
+}
+
+#[derive(Debug)]
+pub(crate) enum EnumVariantData {
+    None,
+    TupleLike(Vec<TupleField>),
+    StructLike(Vec<StructField>),
+}
+
+#[derive(Debug)]
+pub(crate) struct TupleField {
+    pub(crate) attrs: Vec<Attribute>,
+    pub(crate) ty: String,
+}
+
 pub(crate) struct Parser {
     tokens: Vec<Peekable<proc_macro::token_stream::IntoIter>>,
     last_span: Option<Span>,
@@ -37,21 +63,11 @@ impl Parser {
     pub(crate) fn parse_struct(&mut self) -> Result<Struct, Error> {
         self.skip_visibility()?;
         self.expect_keyword("struct")?;
-        let name = self.parse_ident()?;
-
-        let fields = match self.next()? {
-            TokenTree::Group(group) => {
-                if group.delimiter() != Delimiter::Brace {
-                    return Err(Error::new("expected group delimited by braces").span(group.span()));
-                }
-                self.within_stream(group.stream(), |this| {
-                    this.parse_comma_list(|this| this.parse_struct_field())
-                })?
-            }
-            other => return Err(Error::new("expected struct fields").span(other.span())),
-        };
-
-        Ok(Struct { name, fields })
+        Ok(Struct {
+            name: self.parse_ident()?,
+            fields: self
+                .within_braces(|this| this.parse_comma_list(|this| this.parse_struct_field()))?,
+        })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, Error> {
@@ -63,6 +79,50 @@ impl Parser {
         Ok(StructField { attrs, name, ty })
     }
 
+    pub(crate) fn parse_enum(&mut self) -> Result<Enum, Error> {
+        self.skip_visibility()?;
+        self.expect_keyword("enum")?;
+        Ok(Enum {
+            name: self.parse_ident()?,
+            variants: self
+                .within_braces(|this| this.parse_comma_list(|this| this.parse_enum_variant()))?,
+        })
+    }
+
+    fn parse_enum_variant(&mut self) -> Result<EnumVariant, Error> {
+        let (name, span) = match self.next()? {
+            TokenTree::Ident(ident) => (ident.to_string(), ident.span()),
+            other => return Err(Error::new("expected variant name").span(other.span())),
+        };
+
+        let data = if let Ok(TokenTree::Group(group)) = self.peek() {
+            self.next()?;
+            match group.delimiter() {
+                Delimiter::Parenthesis => {
+                    EnumVariantData::TupleLike(self.within_stream(group.stream(), |this| {
+                        this.parse_comma_list(|this| this.parse_tuple_field())
+                    })?)
+                }
+                Delimiter::Brace => {
+                    EnumVariantData::StructLike(self.within_stream(group.stream(), |this| {
+                        this.parse_comma_list(|this| this.parse_struct_field())
+                    })?)
+                }
+                _ => return Err(Error::new("invalid enum variant").span(group.span())),
+            }
+        } else {
+            EnumVariantData::None
+        };
+
+        Ok(EnumVariant { span, name, data })
+    }
+
+    fn parse_tuple_field(&mut self) -> Result<TupleField, Error> {
+        let attrs = self.parse_attributes()?;
+        let ty = self.parse_type()?;
+        Ok(TupleField { attrs, ty })
+    }
+
     fn parse_ident(&mut self) -> Result<String, Error> {
         match self.next()? {
             TokenTree::Ident(ident) => Ok(ident.to_string()),
@@ -72,24 +132,34 @@ impl Parser {
 
     fn parse_type(&mut self) -> Result<String, Error> {
         let mut ty = String::new();
-        match self.peek()? {
-            // Generic, arrays or tuples.
-            TokenTree::Group(group) => {
-                self.next()?;
-                ty.push_str(&group.to_string());
-            }
-            // Type names.
-            TokenTree::Ident(ident) => {
-                self.next()?;
-                ty.push_str(&ident.to_string());
-                if self.peek().map(|t| t.is_punct('<')).unwrap_or(false) {
+        loop {
+            match self.peek()? {
+                // Generic, arrays or tuples.
+                TokenTree::Group(group) => {
+                    self.next()?;
+                    ty.push_str(&group.to_string());
+                }
+                // Type names.
+                TokenTree::Ident(ident) => {
+                    self.next()?;
+                    ty.push_str(&ident.to_string());
+                    if self.peek().map(|t| t.is_punct('<')).unwrap_or(false) {
+                        ty.push_str(&self.parse_generic()?);
+                    }
+                }
+                TokenTree::Punct(punct) if punct.as_char() == '<' => {
                     ty.push_str(&self.parse_generic()?);
                 }
+                other => return Err(Error::new("expected a type").span(other.span())),
             }
-            TokenTree::Punct(punct) if punct.as_char() == '<' => {
-                ty.push_str(&self.parse_generic()?);
+
+            if self.peek().map(|p| p.is_punct(':')).unwrap_or(false) {
+                self.next()?;
+                self.expect_punct(':')?;
+                ty.push_str("::");
+            } else {
+                break;
             }
-            other => return Err(Error::new("expected a type").span(other.span())),
         }
         Ok(ty)
     }
@@ -197,6 +267,23 @@ impl Parser {
 
     fn next(&mut self) -> Result<TokenTree, Error> {
         self.access_iter(|tokens| tokens.next())
+    }
+
+    fn within_braces<F, T>(&mut self, f: F) -> Result<T, Error>
+    where
+        F: FnOnce(&mut Self) -> Result<T, Error>,
+    {
+        match self.next()? {
+            TokenTree::Group(group) => {
+                if group.delimiter() != Delimiter::Brace {
+                    return Err(Error::new("expected group delimited by braces").span(group.span()));
+                }
+                self.within_stream(group.stream(), |this| f(this))
+            }
+            other => {
+                return Err(Error::new("expected group delimited by braces").span(other.span()));
+            }
+        }
     }
 
     fn within_stream<F, T>(&mut self, stream: TokenStream, f: F) -> Result<T, Error>

@@ -5,6 +5,7 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
+plink_macros = { path = "../plink_macros" }
 plink_elf = { path = "../plink_elf" }
 
 [dev-dependencies]

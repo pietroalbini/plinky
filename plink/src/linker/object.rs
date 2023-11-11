@@ -6,6 +6,7 @@ use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use plink_elf::{
     ElfEndian, ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
 };
+use plink_macros::Error;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 
@@ -135,10 +136,7 @@ impl Object<SectionLayout> {
     }
 
     pub(super) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
-        let symbol = self
-            .symbols
-            .get_global(name)
-            .map_err(GetSymbolAddressError::Missing)?;
+        let symbol = self.symbols.get_global(name)?;
 
         match symbol.definition {
             ElfSymbolDefinition::Undefined => Err(GetSymbolAddressError::Undefined(name.into())),
@@ -172,25 +170,13 @@ pub(crate) struct ProgramSection<L> {
     pub(super) layout: L,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum ObjectLoadError {
     UnsupportedNotesSection,
     UnsupportedUnknownSection,
     UnsupportedUnknownSymbolBinding,
-    MissingSymbolName(SymbolId, MissingStringError),
+    MissingSymbolName(SymbolId, #[source] MissingStringError),
     DuplicateGlobalSymbol(String),
-}
-
-impl std::error::Error for ObjectLoadError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ObjectLoadError::UnsupportedNotesSection => None,
-            ObjectLoadError::UnsupportedUnknownSection => None,
-            ObjectLoadError::UnsupportedUnknownSymbolBinding => None,
-            ObjectLoadError::MissingSymbolName(_, err) => Some(err),
-            ObjectLoadError::DuplicateGlobalSymbol(_) => None,
-        }
-    }
 }
 
 impl Display for ObjectLoadError {
@@ -215,21 +201,11 @@ impl Display for ObjectLoadError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum GetSymbolAddressError {
-    Missing(MissingGlobalSymbol),
+    Missing(#[from] MissingGlobalSymbol),
     Undefined(String),
     NotAnAddress(String),
-}
-
-impl std::error::Error for GetSymbolAddressError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            GetSymbolAddressError::Missing(err) => Some(err),
-            GetSymbolAddressError::Undefined(_) => None,
-            GetSymbolAddressError::NotAnAddress(_) => None,
-        }
-    }
 }
 
 impl Display for GetSymbolAddressError {

@@ -3,6 +3,7 @@ use crate::linker::object::ProgramSection;
 use crate::linker::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
+use plink_macros::Error;
 use std::collections::BTreeMap;
 
 pub(super) struct Relocator<'a> {
@@ -109,23 +110,12 @@ impl ByteEditor<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum RelocationError {
-    MissingSymbol(MissingGlobalSymbol),
+    MissingSymbol(#[from] MissingGlobalSymbol),
     UndefinedSymbol(SymbolId),
     UnsupportedRelocation(ElfRelocationType),
     RelocatedAddressTooLarge(i64),
-}
-
-impl std::error::Error for RelocationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            RelocationError::MissingSymbol(err) => Some(err),
-            RelocationError::UndefinedSymbol(_) => None,
-            RelocationError::UnsupportedRelocation(_) => None,
-            RelocationError::RelocatedAddressTooLarge(_) => None,
-        }
-    }
 }
 
 impl std::fmt::Display for RelocationError {
@@ -142,11 +132,5 @@ impl std::fmt::Display for RelocationError {
                 write!(f, "relocated address {addr:#x} is too large")
             }
         }
-    }
-}
-
-impl From<MissingGlobalSymbol> for RelocationError {
-    fn from(value: MissingGlobalSymbol) -> Self {
-        RelocationError::MissingSymbol(value)
     }
 }

@@ -1,6 +1,6 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
-use crate::raw::{RawSectionHeader, RawType, RawSymbol, RawRela, RawRel};
+use crate::raw::{RawRel, RawRela, RawSectionHeader, RawSymbol, RawType};
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};

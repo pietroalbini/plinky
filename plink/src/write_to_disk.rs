@@ -1,6 +1,7 @@
 use plink_elf::errors::WriteError;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
+use plink_macros::Error;
 use std::fs::{File, Permissions};
 use std::io::BufWriter;
 use std::os::unix::prelude::PermissionsExt;
@@ -24,21 +25,11 @@ pub(crate) fn write_to_disk(
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum WriteToDiskError {
-    FileCreation(PathBuf, std::io::Error),
-    WriteFailed(PathBuf, WriteError),
-    PermissionSetFailed(PathBuf, std::io::Error),
-}
-
-impl std::error::Error for WriteToDiskError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            WriteToDiskError::FileCreation(_, err) => Some(err),
-            WriteToDiskError::WriteFailed(_, err) => Some(err),
-            WriteToDiskError::PermissionSetFailed(_, err) => Some(err),
-        }
-    }
+    FileCreation(PathBuf, #[source] std::io::Error),
+    WriteFailed(PathBuf, #[source] WriteError),
+    PermissionSetFailed(PathBuf, #[source] std::io::Error),
 }
 
 impl std::fmt::Display for WriteToDiskError {

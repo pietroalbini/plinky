@@ -13,3 +13,8 @@ use proc_macro::TokenStream;
 pub fn derive_raw_type(item: TokenStream) -> TokenStream {
     error::emit_compiler_error(derives::raw_type::derive(item))
 }
+
+#[proc_macro_derive(Error, attributes(source, from))]
+pub fn derive_error(item: TokenStream) -> TokenStream {
+    error::emit_compiler_error(derives::error::derive(item))
+}

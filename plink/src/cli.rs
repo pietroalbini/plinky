@@ -1,4 +1,4 @@
-use plink_macros::Error;
+use plink_macros::{Error, Display};
 use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -94,29 +94,20 @@ fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Error)]
+#[derive(Debug, PartialEq, Eq, Error, Display)]
 pub(crate) enum CliError {
+    #[display("missing input file")]
     MissingInput,
+    #[display("unsupported debug print: {f0}")]
     UnsupportedDebugPrint(String),
+    #[display("flag {f0} is not supported")]
     UnsupportedFlag(String),
+    #[display("flag {f0} provided multiple times")]
     DuplicateFlag(String),
+    #[display("flag {f0} does not accept values")]
     FlagDoesNotAcceptValues(String),
+    #[display("missing value for flag {f0}")]
     MissingValueForFlag(String),
-}
-
-impl std::fmt::Display for CliError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CliError::MissingInput => f.write_str("missing input file"),
-            CliError::UnsupportedDebugPrint(print) => write!(f, "unsupported debug print: {print}"),
-            CliError::UnsupportedFlag(flag) => write!(f, "flag {flag} is not supported"),
-            CliError::DuplicateFlag(flag) => write!(f, "flag {flag} provided multiple times"),
-            CliError::FlagDoesNotAcceptValues(flag) => {
-                write!(f, "flag {flag} does not accept values")
-            }
-            CliError::MissingValueForFlag(flag) => write!(f, "missing value for flag {flag}"),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

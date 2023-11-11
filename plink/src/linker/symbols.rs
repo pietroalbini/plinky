@@ -2,8 +2,8 @@ use crate::linker::object::ObjectLoadError;
 use crate::linker::strings::Strings;
 use plink_elf::ids::serial::{SerialIds, SymbolId};
 use plink_elf::{ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
+use plink_macros::{Display, Error};
 use std::collections::{btree_map, BTreeMap};
-use plink_macros::Error;
 
 #[derive(Debug)]
 pub(super) struct Symbols {
@@ -96,11 +96,6 @@ enum GlobalSymbol {
     Undefined,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
+#[display("missing global symbol: {f0}")]
 pub(crate) struct MissingGlobalSymbol(String);
-
-impl std::fmt::Display for MissingGlobalSymbol {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "missing global symbol: {}", self.0)
-    }
-}

@@ -19,6 +19,7 @@ impl Item {
 
 #[derive(Debug)]
 pub(crate) struct Struct {
+    pub(crate) attrs: Vec<Attribute>,
     pub(crate) name: String,
     pub(crate) fields: StructFields,
     pub(crate) span: Span,
@@ -46,6 +47,7 @@ pub(crate) struct Attribute {
 
 #[derive(Debug)]
 pub(crate) struct Enum {
+    pub(crate) _attrs: Vec<Attribute>,
     pub(crate) name: String,
     pub(crate) variants: Vec<EnumVariant>,
 }
@@ -53,6 +55,7 @@ pub(crate) struct Enum {
 #[derive(Debug)]
 pub(crate) struct EnumVariant {
     pub(crate) span: Span,
+    pub(crate) attrs: Vec<Attribute>,
     pub(crate) name: String,
     pub(crate) data: EnumVariantData,
 }
@@ -84,21 +87,25 @@ impl Parser {
     }
 
     pub(crate) fn parse_item(&mut self) -> Result<Item, Error> {
+        let attrs = self.parse_attributes()?;
         self.skip_visibility()?;
         match self.next()? {
-            next if next.is_ident("struct") => Ok(Item::Struct(self.parse_struct_after_keyword()?)),
-            next if next.is_ident("enum") => Ok(Item::Enum(self.parse_enum_after_keyword()?)),
+            next if next.is_ident("struct") => {
+                Ok(Item::Struct(self.parse_struct_after_keyword(attrs)?))
+            }
+            next if next.is_ident("enum") => Ok(Item::Enum(self.parse_enum_after_keyword(attrs)?)),
             other => Err(Error::new("unexpected keyword").span(other.span())),
         }
     }
 
     pub(crate) fn parse_struct(&mut self) -> Result<Struct, Error> {
+        let attrs = self.parse_attributes()?;
         self.skip_visibility()?;
         self.expect_keyword("struct")?;
-        self.parse_struct_after_keyword()
+        self.parse_struct_after_keyword(attrs)
     }
 
-    fn parse_struct_after_keyword(&mut self) -> Result<Struct, Error> {
+    fn parse_struct_after_keyword(&mut self, attrs: Vec<Attribute>) -> Result<Struct, Error> {
         let (name, span) = match self.next()? {
             TokenTree::Ident(name) => (name.to_string(), name.span()),
             other => return Err(Error::new("expected struct name").span(other.span())),
@@ -128,7 +135,12 @@ impl Parser {
             other => return Err(Error::new("expected struct content").span(other.span())),
         };
 
-        Ok(Struct { name, fields, span })
+        Ok(Struct {
+            attrs,
+            name,
+            fields,
+            span,
+        })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, Error> {
@@ -140,8 +152,9 @@ impl Parser {
         Ok(StructField { attrs, name, ty })
     }
 
-    fn parse_enum_after_keyword(&mut self) -> Result<Enum, Error> {
+    fn parse_enum_after_keyword(&mut self, attrs: Vec<Attribute>) -> Result<Enum, Error> {
         Ok(Enum {
+            _attrs: attrs,
             name: self.parse_ident()?,
             variants: self
                 .within_braces(|this| this.parse_comma_list(|this| this.parse_enum_variant()))?,
@@ -149,6 +162,8 @@ impl Parser {
     }
 
     fn parse_enum_variant(&mut self) -> Result<EnumVariant, Error> {
+        let attrs = self.parse_attributes()?;
+
         let (name, span) = match self.next()? {
             TokenTree::Ident(ident) => (ident.to_string(), ident.span()),
             other => return Err(Error::new("expected variant name").span(other.span())),
@@ -173,7 +188,12 @@ impl Parser {
             EnumVariantData::None
         };
 
-        Ok(EnumVariant { span, name, data })
+        Ok(EnumVariant {
+            span,
+            attrs,
+            name,
+            data,
+        })
     }
 
     fn parse_tuple_field(&mut self) -> Result<TupleField, Error> {

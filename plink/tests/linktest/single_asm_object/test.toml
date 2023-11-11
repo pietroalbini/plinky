@@ -1,5 +1,5 @@
 cmd = ["hello.o"]
-kind = "link-fail"
+kind = "run-fail"
 debug-print = ["loaded-object", "relocated-object", "layout", "final-elf"]
 
 [[asm]]

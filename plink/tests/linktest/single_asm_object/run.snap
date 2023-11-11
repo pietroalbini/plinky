@@ -1,0 +1,4 @@
+---
+source: plink/tests/linktest/main.rs
+---
+running failed to execute with error: Exec format error (os error 8)

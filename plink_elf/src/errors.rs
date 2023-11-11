@@ -75,3 +75,38 @@ impl From<std::string::FromUtf8Error> for LoadError {
         LoadError::NonUtf8String(value)
     }
 }
+
+#[derive(Debug)]
+pub enum WriteError {
+    IO(std::io::Error),
+    MissingSectionNamesTable,
+    InconsistentSectionNamesTableId,
+}
+
+impl std::error::Error for WriteError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            WriteError::IO(err) => Some(err),
+            WriteError::MissingSectionNamesTable => None,
+            WriteError::InconsistentSectionNamesTableId => None,
+        }
+    }
+}
+
+impl std::fmt::Display for WriteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WriteError::IO(_) => f.write_str("I/O error"),
+            WriteError::MissingSectionNamesTable => f.write_str("msissing section names table"),
+            WriteError::InconsistentSectionNamesTableId => {
+                f.write_str("different sections point to different string tables for their name")
+            }
+        }
+    }
+}
+
+impl From<std::io::Error> for WriteError {
+    fn from(value: std::io::Error) -> Self {
+        WriteError::IO(value)
+    }
+}

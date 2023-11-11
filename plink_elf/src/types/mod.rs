@@ -3,11 +3,12 @@ mod string_table;
 
 pub use self::string_table::ElfStringTable;
 
-use crate::errors::LoadError;
-use crate::ids::{convert, ConvertibleElfIds};
+use crate::errors::{LoadError, WriteError};
+use crate::ids::{convert, ConvertibleElfIds, StringIdGetters};
 use crate::reader::{read_object, Cursor, PendingIds};
 use crate::types::ids::ElfIds;
-use crate::utils::{render_hex, ReadSeek};
+use crate::utils::{render_hex, ReadSeek, WriteSeek};
+use crate::writer::Writer;
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 use std::ops::Deref;
@@ -30,6 +31,14 @@ impl<I: ElfIds> ElfObject<I> {
         let mut cursor = Cursor::new(reader);
         let object = read_object(&mut cursor)?;
         Ok(convert(ids, object))
+    }
+
+    pub fn write(&self, write_to: &mut dyn WriteSeek) -> Result<(), WriteError>
+    where
+        I::StringId: StringIdGetters<I>,
+    {
+        let writer = Writer::new(write_to, self);
+        writer.write()
     }
 }
 

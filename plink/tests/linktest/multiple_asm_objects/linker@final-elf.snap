@@ -18,7 +18,12 @@ ElfObject {
     flags: 0x0,
     sections: {
         section#0: ElfSection {
-            name: section#0:string#15,
+            name: section#1:string#0,
+            memory_address: 0x0,
+            content: Null,
+        },
+        section#1: ElfSection {
+            name: section#1:string#15,
             memory_address: 0x0,
             content: StringTable(
                 ElfStringTable {
@@ -31,8 +36,8 @@ ElfObject {
                 },
             ),
         },
-        section#1: ElfSection {
-            name: section#0:string#1,
+        section#2: ElfSection {
+            name: section#1:string#1,
             memory_address: 0x401000,
             content: Program(
                 ElfProgramSection {
@@ -48,8 +53,8 @@ ElfObject {
                 },
             ),
         },
-        section#2: ElfSection {
-            name: section#0:string#7,
+        section#3: ElfSection {
+            name: section#1:string#7,
             memory_address: 0x400000,
             content: Program(
                 ElfProgramSection {
@@ -70,7 +75,7 @@ ElfObject {
             perms: ElfPermissions(RX),
             content: [
                 Section(
-                    section#1,
+                    section#2,
                 ),
             ],
             align: 0x1000,
@@ -80,7 +85,7 @@ ElfObject {
             perms: ElfPermissions(R),
             content: [
                 Section(
-                    section#2,
+                    section#3,
                 ),
             ],
             align: 0x1000,

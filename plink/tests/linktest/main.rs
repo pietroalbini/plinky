@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Error};
 use std::collections::HashMap;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 use tempfile::TempDir;
 
 struct Test {
@@ -25,24 +25,51 @@ impl Test {
 
         match settings.kind {
             TestKind::LinkFail => self.run_link_fail(settings, root),
+            TestKind::RunFail => self.run_run_fail(settings, root),
+            TestKind::RunPass => self.run_run_pass(settings, root),
         }
     }
 
     fn run_link_fail(self, settings: TestSettings, root: TempDir) -> Result<(), Error> {
-        if self.link_and_snapshot(&settings, root.path())?.success() {
+        if self.link_and_snapshot(&settings, root.path())? {
             bail!("linking was supposed to fail but passed!");
         }
         Ok(())
     }
 
-    fn link_and_snapshot(&self, settings: &TestSettings, root: &Path) -> Result<ExitStatus, Error> {
+    fn run_run_fail(self, settings: TestSettings, root: TempDir) -> Result<(), Error> {
+        if self.run_and_snapshot(settings, root.path())? {
+            bail!("running was supposed to fail but passed!");
+        }
+        Ok(())
+    }
+
+    fn run_run_pass(self, settings: TestSettings, root: TempDir) -> Result<(), Error> {
+        if !self.run_and_snapshot(settings, root.path())? {
+            bail!("running was supposed to pass but failed!");
+        }
+        Ok(())
+    }
+
+    fn link_and_snapshot(&self, settings: &TestSettings, root: &Path) -> Result<bool, Error> {
         for debug_print in &settings.debug_print {
             let outcome = self.link_and_snapshot_inner(settings, root, Some(&debug_print))?;
-            if !outcome.success() {
+            if !outcome {
                 anyhow::bail!("debug printing {debug_print} failed, but should always succeed");
             }
         }
         self.link_and_snapshot_inner(settings, root, None)
+    }
+
+    fn run_and_snapshot(&self, settings: TestSettings, root: &Path) -> Result<bool, Error> {
+        if !self.link_and_snapshot(&settings, root)? {
+            bail!("linking was supposed to pass but failed!");
+        }
+
+        let mut command = Command::new(root.join("a.out"));
+        command.current_dir(root);
+
+        self.record_snapshot("run", "running", &mut command, None)
     }
 
     fn link_and_snapshot_inner(
@@ -50,7 +77,7 @@ impl Test {
         settings: &TestSettings,
         root: &Path,
         debug_print: Option<&str>,
-    ) -> Result<ExitStatus, Error> {
+    ) -> Result<bool, Error> {
         let mut command = Command::new(env!("CARGO_BIN_EXE_plink"));
         command
             .current_dir(root)
@@ -59,38 +86,8 @@ impl Test {
         if let Some(debug_print) = debug_print {
             command.args(["--debug-print", debug_print]);
         }
-        let output = command.output()?;
 
-        let mut output_repr = format!("linking exited with {}\n", output.status);
-        for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
-            if content.is_empty() {
-                output_repr.push_str(&format!("\nno {name} present\n"));
-            } else {
-                let content = String::from_utf8_lossy(&content);
-                let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
-
-                output_repr.push_str(&format!("\n=== {name} ===\n{}\n", content,));
-            }
-        }
-
-        let mut insta_settings = insta::Settings::clone_current();
-        insta_settings.set_prepend_module_to_snapshot(false);
-        insta_settings.set_omit_expression(true);
-        insta_settings.set_snapshot_path(std::fs::canonicalize(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("tests")
-                .join("linktest")
-                .join(self.name),
-        )?);
-        if let Some(suffix) = debug_print {
-            insta_settings.set_snapshot_suffix(suffix);
-        }
-
-        insta_settings.bind(|| {
-            insta::assert_snapshot!("linker", output_repr);
-        });
-
-        Ok(output.status)
+        self.record_snapshot("linker", "linking", &mut command, debug_print)
     }
 
     fn compile_asm(&self, root: &Path, asm: &AsmFile) -> Result<(), Error> {
@@ -126,6 +123,53 @@ impl Test {
 
         Ok(())
     }
+
+    fn record_snapshot(
+        &self,
+        snapshot_name: &str,
+        action: &str,
+        command: &mut Command,
+        suffix: Option<&str>,
+    ) -> Result<bool, Error> {
+        let (output_repr, success) = match command.output() {
+            Ok(output) => {
+                let mut output_repr = format!("{action} exited with {}\n", output.status);
+                for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
+                    if content.is_empty() {
+                        output_repr.push_str(&format!("\nno {name} present\n"));
+                    } else {
+                        let content = String::from_utf8_lossy(&content);
+                        let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
+
+                        output_repr.push_str(&format!("\n=== {name} ===\n{}\n", content,));
+                    }
+                }
+                (output_repr, output.status.success())
+            }
+            Err(err) => (
+                format!("{action} failed to execute with error: {err}"),
+                false,
+            ),
+        };
+
+        let mut insta_settings = insta::Settings::clone_current();
+        insta_settings.set_prepend_module_to_snapshot(false);
+        insta_settings.set_omit_expression(true);
+        insta_settings.set_snapshot_path(std::fs::canonicalize(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests")
+                .join("linktest")
+                .join(self.name),
+        )?);
+        if let Some(suffix) = suffix {
+            insta_settings.set_snapshot_suffix(suffix);
+        }
+
+        insta_settings.bind(|| {
+            insta::assert_snapshot!(snapshot_name, output_repr);
+        });
+        Ok(success)
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -143,6 +187,8 @@ struct TestSettings {
 #[serde(rename_all = "kebab-case")]
 enum TestKind {
     LinkFail,
+    RunFail,
+    RunPass,
 }
 
 #[derive(serde::Deserialize)]

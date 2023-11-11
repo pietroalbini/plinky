@@ -5,6 +5,7 @@ use std::process::ExitCode;
 
 mod cli;
 mod linker;
+mod write_to_disk;
 
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
@@ -48,7 +49,9 @@ fn app() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    todo!();
+    write_to_disk::write_to_disk(elf, &options.output)?;
+
+    Ok(())
 }
 
 fn main() -> ExitCode {

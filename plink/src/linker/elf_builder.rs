@@ -19,6 +19,7 @@ pub(super) struct ElfBuilder {
     ctx: ElfBuilderContext,
     ids: SerialIds,
     section_names: PendingStringsTable,
+    section_zero_id: SectionId,
 }
 
 impl ElfBuilder {
@@ -26,6 +27,7 @@ impl ElfBuilder {
         let mut ids = SerialIds::new();
         Self {
             ctx,
+            section_zero_id: ids.allocate_section_id(),
             section_names: PendingStringsTable::new(&mut ids),
             ids,
         }
@@ -60,6 +62,16 @@ impl ElfBuilder {
 
     fn prepare_sections(&mut self) -> BTreeMap<SectionId, ElfSection<SerialIds>> {
         let mut sections = BTreeMap::new();
+
+        // The first section must always be the null section.
+        sections.insert(
+            self.section_zero_id,
+            ElfSection {
+                name: StringId::new(self.section_names.id, 0),
+                memory_address: 0,
+                content: ElfSectionContent::Null,
+            },
+        );
 
         while let Some(merge) = self.ctx.section_merges.pop() {
             sections.insert(

@@ -3,8 +3,9 @@ mod support;
 
 pub(crate) use self::support::*;
 
-use crate::errors::LoadError;
+use crate::errors::{LoadError, WriteError};
 use crate::reader::ReadCursor;
+use crate::writer::WriteCursor;
 use plink_macros::RawType;
 
 #[derive(RawType)]
@@ -15,7 +16,7 @@ pub(crate) struct RawIdentification {
     pub(crate) version: u8,
     pub(crate) abi: u8,
     pub(crate) abi_version: u8,
-    pub(crate) _padding: RawPadding<7>,
+    pub(crate) padding: RawPadding<7>,
 }
 
 #[derive(RawType)]

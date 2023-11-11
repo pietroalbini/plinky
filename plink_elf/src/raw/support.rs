@@ -1,9 +1,11 @@
 use crate::reader::ReadCursor;
-use crate::errors::LoadError;
+use crate::errors::{LoadError, WriteError};
+use crate::writer::WriteCursor;
 
 pub(crate) trait RawType: Sized {
     fn size() -> usize;
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError>;
+    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError>;
 }
 
 impl<const N: usize, T: RawType> RawType for [T; N] {
@@ -21,6 +23,13 @@ impl<const N: usize, T: RawType> RawType for [T; N] {
             Err(_) => unreachable!(),
         }
     }
+
+    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
+        for item in self {
+            T::write(item, cursor)?;
+        }
+        Ok(())
+    }
 }
 
 macro_rules! impl_rawtype_for_int {
@@ -33,6 +42,10 @@ macro_rules! impl_rawtype_for_int {
 
                 fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
                     Ok(<$int>::from_le_bytes(cursor.read_bytes()?))
+                }
+
+                fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
+                    cursor.write_bytes(&self.to_le_bytes())
                 }
             }
         )*
@@ -52,20 +65,33 @@ impl<const N: usize> RawType for RawPadding<N> {
         cursor.skip_padding::<N>()?;
         Ok(RawPadding)
     }
+
+    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
+        cursor.write_bytes(&[0; N])
+    }
 }
 
 pub(crate) trait RawTypeAsPointerSize: RawType {
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError>;
+    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError>;
 }
 
 impl RawTypeAsPointerSize for u64 {
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
         cursor.read_usize()
     }
+
+    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
+        cursor.write_usize(*self)
+    }
 }
 
 impl RawTypeAsPointerSize for i64 {
     fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
         cursor.read_isize()
+    }
+
+    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
+        cursor.write_isize(*self)
     }
 }

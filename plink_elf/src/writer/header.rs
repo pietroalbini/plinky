@@ -1,6 +1,7 @@
 use super::replacements::Replacement;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
+use crate::raw::{RawIdentification, RawPadding, RawType};
 use crate::writer::Writer;
 use crate::{ElfABI, ElfClass, ElfEndian, ElfMachine, ElfType};
 use std::collections::BTreeMap;
@@ -11,27 +12,25 @@ where
     I::StringId: StringIdGetters<I>,
 {
     pub(super) fn write_header(&mut self) -> Result<(), WriteError> {
-        self.write_magic()?;
-
-        self.cursor.write_u8(match self.object.env.class {
-            ElfClass::Elf32 => 1,
-            ElfClass::Elf64 => 2,
-        })?;
-        self.cursor.write_u8(match self.object.env.endian {
-            ElfEndian::Little => 1,
-        })?;
-        self.cursor.write_u8(1)?; // Version
-        match self.object.env.abi {
-            ElfABI::SystemV => {
-                self.cursor.write_u8(0)?; // ABI
-                self.cursor.write_u8(0)?; // Version
-            }
-        }
-
-        // Padding bytes:
-        for _ in 0..7 {
-            self.cursor.write_u8(0)?;
-        }
+        let identification = RawIdentification {
+            magic: [0x7F, b'E', b'L', b'F'],
+            class: match self.object.env.class {
+                ElfClass::Elf32 => 1,
+                ElfClass::Elf64 => 2,
+            },
+            endian: match self.object.env.endian {
+                ElfEndian::Little => 1,
+            },
+            version: 1,
+            abi: match self.object.env.abi {
+                ElfABI::SystemV => 0,
+            },
+            abi_version: match self.object.env.abi {
+                ElfABI::SystemV => 0,
+            },
+            padding: RawPadding,
+        };
+        identification.write(&mut self.cursor)?;
 
         self.cursor.write_u16(match self.object.type_ {
             ElfType::Relocatable => 1,
@@ -70,14 +69,6 @@ where
         self.cursor
             .write_u16(self.find_section_names_string_table()?)?;
 
-        Ok(())
-    }
-
-    fn write_magic(&mut self) -> Result<(), WriteError> {
-        self.cursor.write_u8(0x7F)?;
-        self.cursor.write_u8(b'E')?;
-        self.cursor.write_u8(b'L')?;
-        self.cursor.write_u8(b'F')?;
         Ok(())
     }
 

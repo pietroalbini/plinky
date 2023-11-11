@@ -2,10 +2,11 @@ mod cursor;
 mod header;
 mod replacements;
 
+pub(crate) use self::cursor::WriteCursor;
+
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::utils::WriteSeek;
-use crate::writer::cursor::WriteCursor;
 use crate::writer::replacements::Replacements;
 use crate::ElfObject;
 

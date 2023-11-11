@@ -3,9 +3,32 @@ use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 use std::iter::Peekable;
 
 #[derive(Debug)]
+pub(crate) enum Item {
+    Struct(Struct),
+    Enum(Enum),
+}
+
+impl Item {
+    pub(crate) fn name(&self) -> &str {
+        match self {
+            Item::Struct(struct_) => &struct_.name,
+            Item::Enum(enum_) => &enum_.name,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub(crate) struct Struct {
     pub(crate) name: String,
-    pub(crate) fields: Vec<StructField>,
+    pub(crate) fields: StructFields,
+    pub(crate) span: Span,
+}
+
+#[derive(Debug)]
+pub(crate) enum StructFields {
+    None,
+    TupleLike(Vec<TupleField>),
+    StructLike(Vec<StructField>),
 }
 
 #[derive(Debug)]
@@ -60,14 +83,52 @@ impl Parser {
         }
     }
 
+    pub(crate) fn parse_item(&mut self) -> Result<Item, Error> {
+        self.skip_visibility()?;
+        match self.next()? {
+            next if next.is_ident("struct") => Ok(Item::Struct(self.parse_struct_after_keyword()?)),
+            next if next.is_ident("enum") => Ok(Item::Enum(self.parse_enum_after_keyword()?)),
+            other => Err(Error::new("unexpected keyword").span(other.span())),
+        }
+    }
+
     pub(crate) fn parse_struct(&mut self) -> Result<Struct, Error> {
         self.skip_visibility()?;
         self.expect_keyword("struct")?;
-        Ok(Struct {
-            name: self.parse_ident()?,
-            fields: self
-                .within_braces(|this| this.parse_comma_list(|this| this.parse_struct_field()))?,
-        })
+        self.parse_struct_after_keyword()
+    }
+
+    fn parse_struct_after_keyword(&mut self) -> Result<Struct, Error> {
+        let (name, span) = match self.next()? {
+            TokenTree::Ident(name) => (name.to_string(), name.span()),
+            other => return Err(Error::new("expected struct name").span(other.span())),
+        };
+
+        let fields = match self.peek()? {
+            TokenTree::Group(group) => {
+                self.next()?;
+                match group.delimiter() {
+                    Delimiter::Parenthesis => {
+                        StructFields::TupleLike(self.within_stream(group.stream(), |this| {
+                            this.parse_comma_list(|this| this.parse_tuple_field())
+                        })?)
+                    }
+                    Delimiter::Brace => {
+                        StructFields::StructLike(self.within_stream(group.stream(), |this| {
+                            this.parse_comma_list(|this| this.parse_struct_field())
+                        })?)
+                    }
+                    _ => return Err(Error::new("expected struct content").span(group.span())),
+                }
+            }
+            TokenTree::Punct(punct) if punct.as_char() == ';' => {
+                self.next()?;
+                StructFields::None
+            }
+            other => return Err(Error::new("expected struct content").span(other.span())),
+        };
+
+        Ok(Struct { name, fields, span })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, Error> {
@@ -79,9 +140,7 @@ impl Parser {
         Ok(StructField { attrs, name, ty })
     }
 
-    pub(crate) fn parse_enum(&mut self) -> Result<Enum, Error> {
-        self.skip_visibility()?;
-        self.expect_keyword("enum")?;
+    fn parse_enum_after_keyword(&mut self) -> Result<Enum, Error> {
         Ok(Enum {
             name: self.parse_ident()?,
             variants: self

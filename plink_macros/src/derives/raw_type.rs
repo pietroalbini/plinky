@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::parser::{Parser, Struct};
+use crate::parser::{Parser, Struct, StructFields};
 use proc_macro::{Span, TokenStream};
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
@@ -86,7 +86,12 @@ fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>])
 fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Error> {
     let mut fields: Vec<Field> = Vec::new();
 
-    for field in &parsed.fields {
+    let parsed_fields = match &parsed.fields {
+        StructFields::StructLike(struct_like) => struct_like,
+        _ => return Err(Error::new("only struct-like fields are supported")),
+    };
+
+    for field in parsed_fields {
         let mut trait_ty = "RawType";
         let mut insert_at = fields.len();
         for attribute in &field.attrs {

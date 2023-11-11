@@ -1,6 +1,7 @@
 use plink_elf::ids::serial::{SectionId, StringId};
 use plink_elf::ids::StringIdGetters;
 use plink_elf::ElfStringTable;
+use plink_macros::Error;
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
@@ -27,10 +28,8 @@ impl Strings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) struct MissingStringError(StringId);
-
-impl std::error::Error for MissingStringError {}
 
 impl std::fmt::Display for MissingStringError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

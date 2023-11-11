@@ -2,7 +2,7 @@ use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
-use crate::reader::{Cursor, PendingIds, PendingSectionId};
+use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
     ElfClass, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType,
     ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent, ElfStringTable,
@@ -12,7 +12,7 @@ use crate::{
 use std::collections::BTreeMap;
 
 pub(super) fn read_sections(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     segment_content_map: &mut SegmentContentMapping,
     offset: u64,
     count: u16,
@@ -41,7 +41,7 @@ pub(super) fn read_sections(
 }
 
 fn read_section(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     segment_content_map: &mut SegmentContentMapping,
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
@@ -126,7 +126,7 @@ fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent<PendingIds>
 }
 
 fn read_symbol_table(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     raw_content: &[u8],
     strings_table: PendingSectionId,
     current_section: PendingSectionId,
@@ -146,7 +146,7 @@ fn read_symbol_table(
 }
 
 fn read_symbol(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     strings_table: PendingSectionId,
 ) -> Result<ElfSymbol<PendingIds>, LoadError> {
     let mut value = 0;
@@ -193,7 +193,7 @@ fn read_symbol(
 }
 
 fn read_relocations_table(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     raw_content: &[u8],
     symbol_table: PendingSectionId,
     applies_to_section: PendingSectionId,
@@ -215,7 +215,7 @@ fn read_relocations_table(
 }
 
 fn read_relocation(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     symbol_table: PendingSectionId,
     rela: bool,
 ) -> Result<ElfRelocation<PendingIds>, LoadError> {

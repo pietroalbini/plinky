@@ -3,13 +3,13 @@ use crate::utils::ReadSeek;
 use crate::{ElfClass, ElfEndian};
 use std::io::SeekFrom;
 
-pub(crate) struct Cursor<'a> {
+pub(crate) struct ReadCursor<'a> {
     reader: &'a mut dyn ReadSeek,
     pub(super) class: Option<ElfClass>,
     pub(super) endian: Option<ElfEndian>,
 }
 
-impl<'a> Cursor<'a> {
+impl<'a> ReadCursor<'a> {
     pub(crate) fn new(reader: &'a mut dyn ReadSeek) -> Self {
         Self {
             reader,
@@ -120,8 +120,11 @@ impl<'a> Cursor<'a> {
         Ok(self.reader.seek(SeekFrom::Current(0))?)
     }
 
-    pub(super) fn duplicate<'new>(&mut self, new_reader: &'new mut dyn ReadSeek) -> Cursor<'new> {
-        Cursor {
+    pub(super) fn duplicate<'new>(
+        &mut self,
+        new_reader: &'new mut dyn ReadSeek,
+    ) -> ReadCursor<'new> {
+        ReadCursor {
             reader: new_reader,
             class: self.class,
             endian: self.endian,

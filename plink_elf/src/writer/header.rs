@@ -1,9 +1,9 @@
 use super::replacements::Replacement;
+use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::writer::Writer;
 use crate::{ElfABI, ElfClass, ElfEndian, ElfMachine, ElfType};
 use std::collections::BTreeMap;
-use crate::errors::WriteError;
 
 impl<'a, I> Writer<'a, I>
 where

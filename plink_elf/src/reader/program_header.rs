@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::reader::{Cursor, PendingIds};
+use crate::reader::{PendingIds, ReadCursor};
 use crate::{
     ElfClass, ElfPermissions, ElfSegment, ElfSegmentContent, ElfSegmentType,
     ElfUnknownSegmentContent,
@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 pub(super) type SegmentContentMapping = BTreeMap<(u64, u64), ElfSegmentContent<PendingIds>>;
 
 pub(super) fn read_program_header(
-    cursor: &mut Cursor<'_>,
+    cursor: &mut ReadCursor<'_>,
     content_map: &SegmentContentMapping,
 ) -> Result<ElfSegment<PendingIds>, LoadError> {
     // The position of the `flags` field changes depending on whether it's a 32-bit or 64-bit

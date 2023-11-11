@@ -5,7 +5,7 @@ pub use self::string_table::ElfStringTable;
 
 use crate::errors::{LoadError, WriteError};
 use crate::ids::{convert, ConvertibleElfIds, StringIdGetters};
-use crate::reader::{read_object, Cursor, PendingIds};
+use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek, WriteSeek};
 use crate::writer::Writer;
@@ -28,7 +28,7 @@ impl<I: ElfIds> ElfObject<I> {
     where
         I: ConvertibleElfIds<PendingIds>,
     {
-        let mut cursor = Cursor::new(reader);
+        let mut cursor = ReadCursor::new(reader);
         let object = read_object(&mut cursor)?;
         Ok(convert(ids, object))
     }

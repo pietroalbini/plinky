@@ -2,12 +2,12 @@ mod cursor;
 mod header;
 mod replacements;
 
+use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::utils::WriteSeek;
 use crate::writer::cursor::WriteCursor;
 use crate::writer::replacements::Replacements;
 use crate::ElfObject;
-use crate::errors::WriteError;
 
 pub(crate) struct Writer<'a, I>
 where

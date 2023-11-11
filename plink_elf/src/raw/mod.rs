@@ -80,3 +80,22 @@ pub(crate) struct RawNoteHeader {
     pub(crate) value_size: u32,
     pub(crate) type_: u32,
 }
+
+#[derive(RawType)]
+pub(crate) struct RawProgramHeader {
+    pub(crate) type_: u32,
+    #[pointer_size]
+    pub(crate) file_offset: u64,
+    #[pointer_size]
+    pub(crate) virtual_address: u64,
+    #[pointer_size]
+    pub(crate) _reserved: u64,
+    #[pointer_size]
+    pub(crate) file_size: u64,
+    #[pointer_size]
+    pub(crate) memory_size: u64,
+    #[placed_on_elf64_after = "type_"]
+    pub(crate) flags: u32,
+    #[pointer_size]
+    pub(crate) align: u64,
+}

@@ -105,6 +105,15 @@ fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Err
                             })? + 1;
                     }
                 }
+                ("placed_on_elf64_after", Some(after)) => {
+                    if !is_elf32 {
+                        insert_at =
+                            fields.iter().position(|i| i.name == after).ok_or_else(|| {
+                                Error::new(format!("could not find field called {after}"))
+                                    .span(attribute.span)
+                            })? + 1;
+                    }
+                }
                 _ => return Err(Error::new("unknown attribute").span(attribute.span)),
             }
         }

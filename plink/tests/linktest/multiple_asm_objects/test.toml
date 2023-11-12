@@ -1,5 +1,6 @@
 cmd = ["goodbye.o", "hello.o"]
 kind = "run-pass"
+archs = ["x86", "x86_64"]
 debug-print = ["loaded-object", "relocated-object", "layout", "final-elf"]
 
 [[asm]]

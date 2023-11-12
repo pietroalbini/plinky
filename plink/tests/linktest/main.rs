@@ -17,16 +17,20 @@ impl Test {
                 .ok_or_else(|| anyhow!("missing test.toml"))?,
         )?)?;
 
-        let root = TempDir::new()?;
-
-        TestExecution {
-            test: &self,
-            settings: &settings,
-            root: root.path(),
-            suffix: "-64bit",
+        for arch in &settings.archs {
+            let root = TempDir::new()?;
+            TestExecution {
+                test: &self,
+                settings: &settings,
+                root: root.path(),
+                suffix: match arch {
+                    TestArch::X86 => "-32bit",
+                    TestArch::X86_64 => "-64bit",
+                },
+                arch: *arch,
+            }
+            .run()?;
         }
-
-        .run()?;
 
         Ok(())
     }
@@ -37,6 +41,7 @@ struct TestExecution<'a> {
     settings: &'a TestSettings,
     root: &'a Path,
     suffix: &'a str,
+    arch: TestArch,
 }
 
 impl TestExecution<'_> {
@@ -131,9 +136,9 @@ impl TestExecution<'_> {
         run(Command::new("nasm")
             .current_dir(self.root)
             .arg("-f")
-            .arg(match asm.format {
-                AsmFormat::Elf32 => "elf32",
-                AsmFormat::Elf64 => "elf64",
+            .arg(match (&asm.format, self.arch) {
+                (Some(AsmFormat::Elf32), _) | (None, TestArch::X86) => "elf32",
+                (Some(AsmFormat::Elf64), _) | (None, TestArch::X86_64) => "elf64",
             })
             .arg("-o")
             .arg(&dest_name)
@@ -197,10 +202,23 @@ impl TestExecution<'_> {
 struct TestSettings {
     cmd: Vec<String>,
     kind: TestKind,
+    #[serde(default = "default_test_archs")]
+    archs: Vec<TestArch>,
     #[serde(default)]
     debug_print: Vec<String>,
     #[serde(default)]
     asm: Vec<AsmFile>,
+}
+
+#[derive(serde::Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+enum TestArch {
+    X86,
+    X86_64,
+}
+
+fn default_test_archs() -> Vec<TestArch> {
+    vec![TestArch::X86_64]
 }
 
 #[derive(serde::Deserialize)]
@@ -216,15 +234,14 @@ enum TestKind {
 struct AsmFile {
     source: String,
     #[serde(default)]
-    format: AsmFormat,
+    format: Option<AsmFormat>,
     output: Option<String>,
 }
 
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 enum AsmFormat {
     Elf32,
-    #[default]
     Elf64,
 }
 

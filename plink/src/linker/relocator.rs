@@ -44,30 +44,15 @@ impl<'a> Relocator<'a> {
     ) -> Result<(), RelocationError> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.relocation_type {
-            ElfRelocationType::X86_64_32 => self.x86_64_32(&relocation, &mut editor),
-            ElfRelocationType::X86_64_PC32 => {
-                self.x86_64_pc32(section_id, &relocation, &mut editor)
+            ElfRelocationType::X86_64_32 | ElfRelocationType::X86_32 => {
+                editor.write_32(self.symbol(relocation)? + editor.addend_32())
+            }
+            ElfRelocationType::X86_64_PC32 | ElfRelocationType::X86_PC32 => {
+                let offset = self.section_addresses.get(&section_id).unwrap() + relocation.offset;
+                editor.write_32(self.symbol(relocation)? + editor.addend_32() - offset as i64)
             }
             other => Err(RelocationError::UnsupportedRelocation(other)),
         }
-    }
-
-    fn x86_64_32(
-        &self,
-        rel: &ElfRelocation<SerialIds>,
-        editor: &mut ByteEditor<'_>,
-    ) -> Result<(), RelocationError> {
-        editor.write_32(self.symbol(rel)? + editor.addend_32())
-    }
-
-    fn x86_64_pc32(
-        &self,
-        section_id: SectionId,
-        rel: &ElfRelocation<SerialIds>,
-        editor: &mut ByteEditor<'_>,
-    ) -> Result<(), RelocationError> {
-        let offset = self.section_addresses.get(&section_id).unwrap() + rel.offset;
-        editor.write_32(self.symbol(rel)? + editor.addend_32() - offset as i64)
     }
 
     fn symbol(&self, rel: &ElfRelocation<SerialIds>) -> Result<i64, RelocationError> {

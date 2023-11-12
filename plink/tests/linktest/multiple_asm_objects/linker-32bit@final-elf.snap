@@ -13,7 +13,7 @@ ElfObject {
     },
     type_: Executable,
     entry: Some(
-        0x401000,
+        0x40101f,
     ),
     flags: 0x0,
     sections: {
@@ -23,15 +23,15 @@ ElfObject {
             content: Null,
         },
         section#1: ElfSection {
-            name: section#1:string#13,
+            name: section#1:string#15,
             memory_address: 0x0,
             content: StringTable(
                 ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: ".text",
-                        0x7: ".data",
-                        0xd: ".shstrtab",
+                        0x7: ".rodata",
+                        0xf: ".shstrtab",
                     },
                 },
             ),
@@ -43,10 +43,12 @@ ElfObject {
                 ElfProgramSection {
                     perms: ElfPermissions(RX),
                     raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x3a)
                            +-------------------------------------------------+
                         0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
-                        1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+                        1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80 b8 | ................
+                        2? | 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba 0d | ............@...
+                        3? | 00 00 00 cd 80 e9 c6 ff ff ff                   | ..........
                     },
                 },
             ),
@@ -56,11 +58,12 @@ ElfObject {
             memory_address: 0x400000,
             content: Program(
                 ElfProgramSection {
-                    perms: ElfPermissions(RW),
+                    perms: ElfPermissions(R),
                     raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
-                           +----------------------------------------+
-                        0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1c)
+                           +-------------------------------------------------+
+                        0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a 48 | Goodbye world!.H
+                        1? | 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a             | ello world!.
                     },
                 },
             ),
@@ -79,7 +82,7 @@ ElfObject {
         },
         ElfSegment {
             type_: Load,
-            perms: ElfPermissions(RW),
+            perms: ElfPermissions(R),
             content: [
                 Section(
                     section#3,

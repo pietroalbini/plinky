@@ -1,0 +1,11 @@
+---
+source: plink/tests/linktest/main.rs
+---
+running exited with exit status: 0
+
+=== stdout ===
+Hello world!
+
+
+no stderr present
+

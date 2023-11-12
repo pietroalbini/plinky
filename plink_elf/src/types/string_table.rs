@@ -27,6 +27,14 @@ impl ElfStringTable {
             None
         }
     }
+
+    pub fn all(&self) -> impl Iterator<Item = &str> {
+        self.strings.values().map(|s| s.as_str())
+    }
+
+    pub fn len(&self) -> usize {
+        self.strings.values().map(|s| s.len() + 1).sum()
+    }
 }
 
 #[cfg(test)]

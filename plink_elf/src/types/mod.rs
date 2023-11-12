@@ -37,7 +37,7 @@ impl<I: ElfIds> ElfObject<I> {
     where
         I::StringId: StringIdGetters<I>,
     {
-        let writer = Writer::new(write_to, self);
+        let writer = Writer::new(write_to, self)?;
         writer.write()
     }
 }

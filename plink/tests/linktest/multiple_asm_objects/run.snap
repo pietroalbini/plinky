@@ -1,4 +1,11 @@
 ---
 source: plink/tests/linktest/main.rs
 ---
-running failed to execute with error: Exec format error (os error 8)
+running exited with signal: 11 (SIGSEGV) (core dumped)
+
+=== stdout ===
+Hello world!
+
+
+no stderr present
+

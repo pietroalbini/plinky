@@ -1,5 +1,5 @@
 cmd = ["hello.o", "-e", "custom_entry"]
-kind = "run-fail"
+kind = "run-pass"
 debug-print = ["final-elf"]
 
 [[asm]]

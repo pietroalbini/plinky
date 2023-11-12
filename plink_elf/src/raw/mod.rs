@@ -32,7 +32,7 @@ pub(crate) struct RawHeader {
     #[pointer_size]
     pub(crate) section_headers_offset: u64,
     pub(crate) flags: u32,
-    pub(crate) _elf_header_size: u16,
+    pub(crate) elf_header_size: u16,
     pub(crate) program_header_size: u16,
     pub(crate) program_header_count: u16,
     pub(crate) section_header_size: u16,
@@ -89,7 +89,7 @@ pub(crate) struct RawProgramHeader {
     #[pointer_size]
     pub(crate) virtual_address: u64,
     #[pointer_size]
-    pub(crate) _reserved: u64,
+    pub(crate) reserved: u64,
     #[pointer_size]
     pub(crate) file_size: u64,
     #[pointer_size]

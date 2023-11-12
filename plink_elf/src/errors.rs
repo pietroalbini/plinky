@@ -1,3 +1,4 @@
+use crate::writer::WriteLayoutError;
 use crate::ElfABI;
 use plink_macros::{Display, Error};
 
@@ -45,4 +46,6 @@ pub enum WriteError {
     MissingSectionNamesTable,
     #[display("different sections point to different string tables for their name")]
     InconsistentSectionNamesTableId,
+    #[display("failed to calculate the resulting ELF layout")]
+    LayoutError(#[from] WriteLayoutError),
 }

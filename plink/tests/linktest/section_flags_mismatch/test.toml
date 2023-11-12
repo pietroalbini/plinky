@@ -1,0 +1,8 @@
+cmd = ["rx.o", "rwx.o"]
+kind = "link-fail"
+
+[[asm]]
+source = "rx.S"
+
+[[asm]]
+source = "rwx.S"

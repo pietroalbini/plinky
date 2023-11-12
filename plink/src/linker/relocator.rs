@@ -27,23 +27,27 @@ impl<'a> Relocator<'a> {
 
     pub(super) fn relocate(
         &self,
+        section_id: SectionId,
         section: &mut ProgramSection<SectionLayout>,
     ) -> Result<(), RelocationError> {
         for relocation in section.relocations.drain(..) {
-            self.relocate_one(&relocation, &mut section.program.raw.0)?;
+            self.relocate_one(section_id, &relocation, &mut section.program.raw.0)?;
         }
         Ok(())
     }
 
     fn relocate_one(
         &self,
+        section_id: SectionId,
         relocation: &ElfRelocation<SerialIds>,
         bytes: &mut [u8],
     ) -> Result<(), RelocationError> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.relocation_type {
             ElfRelocationType::X86_64_32 => self.x86_64_32(&relocation, &mut editor),
-            ElfRelocationType::X86_64_PC32 => self.x86_64_pc32(&relocation, &mut editor),
+            ElfRelocationType::X86_64_PC32 => {
+                self.x86_64_pc32(section_id, &relocation, &mut editor)
+            }
             other => Err(RelocationError::UnsupportedRelocation(other)),
         }
     }
@@ -53,15 +57,17 @@ impl<'a> Relocator<'a> {
         rel: &ElfRelocation<SerialIds>,
         editor: &mut ByteEditor<'_>,
     ) -> Result<(), RelocationError> {
-        editor.write_u32(self.symbol(rel)? + editor.addend_32())
+        editor.write_32(self.symbol(rel)? + editor.addend_32())
     }
 
     fn x86_64_pc32(
         &self,
+        section_id: SectionId,
         rel: &ElfRelocation<SerialIds>,
         editor: &mut ByteEditor<'_>,
     ) -> Result<(), RelocationError> {
-        editor.write_u32(self.symbol(rel)? + editor.addend_32() - rel.offset as i64)
+        let offset = self.section_addresses.get(&section_id).unwrap() + rel.offset;
+        editor.write_32(self.symbol(rel)? + editor.addend_32() - offset as i64)
     }
 
     fn symbol(&self, rel: &ElfRelocation<SerialIds>) -> Result<i64, RelocationError> {
@@ -98,8 +104,8 @@ impl ByteEditor<'_> {
         }
     }
 
-    fn write_u32(&mut self, value: i64) -> Result<(), RelocationError> {
-        let bytes = u32::try_from(value)
+    fn write_32(&mut self, value: i64) -> Result<(), RelocationError> {
+        let bytes = i32::try_from(value)
             .map_err(|_| RelocationError::RelocatedAddressTooLarge(value))?
             .to_le_bytes();
 

@@ -1,5 +1,5 @@
 cmd = ["goodbye.o", "hello.o"]
-kind = "run-fail"
+kind = "run-pass"
 debug-print = ["loaded-object", "relocated-object", "layout", "final-elf"]
 
 [[asm]]

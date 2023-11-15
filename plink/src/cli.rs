@@ -1,4 +1,4 @@
-use plink_macros::{Error, Display};
+use plink_macros::{Display, Error};
 use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq)]

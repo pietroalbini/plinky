@@ -54,7 +54,7 @@ impl<F: ElfIds, T: ElfIds> IdConversionMap<F, T> {
     }
 }
 
-pub(crate) fn convert<F, T>(ids: &mut T, object: ElfObject<F>) -> ElfObject<T>
+pub fn convert<F, T>(ids: &mut T, object: ElfObject<F>) -> ElfObject<T>
 where
     F: ElfIds,
     T: ConvertibleElfIds<F>,

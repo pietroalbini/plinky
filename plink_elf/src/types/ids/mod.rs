@@ -2,7 +2,7 @@ mod convert;
 pub mod serial;
 mod string;
 
-pub(crate) use convert::convert;
+pub use convert::convert;
 pub use convert::{ConvertibleElfIds, IdConversionMap};
 pub use string::StringIds;
 

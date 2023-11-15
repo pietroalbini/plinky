@@ -1,6 +1,7 @@
 //! Check whether ELF files are parsed correctly.
 
-use anyhow::Error;
+use anyhow::{Context, Error};
+use plink_elf::ids::serial::SerialIds;
 use plink_elf::ids::StringIds;
 use plink_elf::ElfObject;
 use std::fs::File;
@@ -10,7 +11,7 @@ use std::process::Command;
 use tempfile::NamedTempFile;
 
 macro_rules! test {
-    ($name:ident, $source:expr $(, $variant:ident)*) => {
+    ($name:ident, $source:expr $(, $variant:ident)*$(,)?) => {
         mod $name {
             use super::*;
 
@@ -31,7 +32,9 @@ test!(
     x86,
     x86_64,
     x86__linked,
-    x86_64__linked
+    x86_64__linked,
+    x86__written,
+    x86_64__written,
 );
 test!(hello_c, "tests/snapshot/hello_c.c", x86, x86_64);
 
@@ -50,7 +53,7 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
     }
     let mut file = BufReader::new(File::open(object_file.path())?);
 
-    let parsed = ElfObject::load(&mut file, &mut StringIds::new())?;
+    let mut parsed = ElfObject::load(&mut file, &mut SerialIds::new())?;
 
     let mut settings = insta::Settings::clone_current();
     settings.set_omit_expression(true);
@@ -67,6 +70,22 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
         .rsplit_once('.')
         .map(|(name, _ext)| name)
         .unwrap_or(name);
+
+    match meta.mode {
+        Mode::Read => {}
+        Mode::WriteThenRead => {
+            let mut buf = Vec::new();
+            let mut cursor = std::io::Cursor::new(&mut buf);
+            parsed
+                .write(&mut cursor)
+                .context("failed to write back the ELF file")?;
+
+            cursor.set_position(0);
+            parsed = ElfObject::load(&mut file, &mut SerialIds::new())?;
+        }
+    }
+
+    let parsed = plink_elf::ids::convert(&mut StringIds::new(), parsed);
 
     insta::assert_snapshot!(name, format!("{parsed:#x?}"));
     Ok(())
@@ -123,6 +142,7 @@ fn link_single_object(object: &Path, variant: Variant) -> Result<NamedTempFile, 
 struct Metadata {
     variant: Variant,
     link: Link,
+    mode: Mode,
 }
 
 impl Metadata {
@@ -136,12 +156,14 @@ impl Metadata {
 
         let mut variant = None;
         let mut link = None;
+        let mut mode = None;
 
         for component in name.split("__") {
             match component {
                 "x86" => set(component, &mut variant, Variant::X86),
                 "x86_64" => set(component, &mut variant, Variant::X86_64),
                 "linked" => set(component, &mut link, Link::Yes),
+                "written" => set(component, &mut mode, Mode::WriteThenRead),
                 other => panic!("unknown component {other}"),
             }
         }
@@ -149,6 +171,7 @@ impl Metadata {
         Metadata {
             variant: variant.expect("missing variant"),
             link: link.unwrap_or(Link::No),
+            mode: mode.unwrap_or(Mode::Read),
         }
     }
 
@@ -174,4 +197,10 @@ enum Variant {
 enum Link {
     Yes,
     No,
+}
+
+#[derive(Clone, Copy)]
+enum Mode {
+    Read,
+    WriteThenRead,
 }

@@ -16,6 +16,7 @@ macro_rules! test {
 
             $(
                 #[test]
+                #[allow(non_snake_case)]
                 fn $variant() -> Result<(), Error> {
                     implement_test($source, stringify!($variant))
                 }
@@ -29,29 +30,23 @@ test!(
     "tests/snapshot/hello_asm.S",
     x86,
     x86_64,
-    x86_linked,
-    x86_64_linked
+    x86__linked,
+    x86_64__linked
 );
 test!(hello_c, "tests/snapshot/hello_c.c", x86, x86_64);
 
 #[track_caller]
-fn implement_test(source: &str, variant: &str) -> Result<(), Error> {
-    let (variant, link) = match variant {
-        "x86" => (Variant::X86, Link::No),
-        "x86_64" => (Variant::X86_64, Link::No),
-        "x86_linked" => (Variant::X86, Link::Yes),
-        "x86_64_linked" => (Variant::X86_64, Link::Yes),
-        other => panic!("unsupported variant: {other}"),
-    };
+fn implement_test(source: &str, name: &str) -> Result<(), Error> {
+    let meta = Metadata::from_name(name);
 
     let mut object_file = match source.rsplit_once('.').map(|(_name, ext)| ext) {
-        Some("S") => compile_asm(source, variant)?,
-        Some("c") => compile_c(source, variant)?,
+        Some("S") => compile_asm(source, meta.variant)?,
+        Some("c") => compile_c(source, meta.variant)?,
         Some(other) => panic!("unsupported extension: {other}"),
         None => panic!("missing extension for {source}"),
     };
-    if let Link::Yes = link {
-        object_file = link_single_object(object_file.path(), variant)?;
+    if let Link::Yes = meta.link {
+        object_file = link_single_object(object_file.path(), meta.variant)?;
     }
     let mut file = BufReader::new(File::open(object_file.path())?);
 
@@ -61,12 +56,7 @@ fn implement_test(source: &str, variant: &str) -> Result<(), Error> {
     settings.set_omit_expression(true);
     settings.set_snapshot_path("snapshot");
     settings.set_prepend_module_to_snapshot(false);
-    settings.set_snapshot_suffix(match (variant, link) {
-        (Variant::X86, Link::No) => "32bit",
-        (Variant::X86_64, Link::No) => "64bit",
-        (Variant::X86, Link::Yes) => "32bit-linked",
-        (Variant::X86_64, Link::Yes) => "64bit-linked",
-    });
+    settings.set_snapshot_suffix(meta.snapshot_suffix());
     let _guard = settings.bind_to_scope();
 
     let name = source
@@ -127,6 +117,51 @@ fn link_single_object(object: &Path, variant: Variant) -> Result<NamedTempFile, 
         .status()?;
     anyhow::ensure!(status.success(), "failed to link {object:?}");
     Ok(dest)
+}
+
+#[derive(Clone, Copy)]
+struct Metadata {
+    variant: Variant,
+    link: Link,
+}
+
+impl Metadata {
+    fn from_name(name: &str) -> Metadata {
+        fn set<T>(component: &str, store: &mut Option<T>, value: T) {
+            if store.is_some() {
+                panic!("duplicate {component} in name");
+            }
+            *store = Some(value);
+        }
+
+        let mut variant = None;
+        let mut link = None;
+
+        for component in name.split("__") {
+            match component {
+                "x86" => set(component, &mut variant, Variant::X86),
+                "x86_64" => set(component, &mut variant, Variant::X86_64),
+                "linked" => set(component, &mut link, Link::Yes),
+                other => panic!("unknown component {other}"),
+            }
+        }
+
+        Metadata {
+            variant: variant.expect("missing variant"),
+            link: link.unwrap_or(Link::No),
+        }
+    }
+
+    fn snapshot_suffix(&self) -> String {
+        let mut suffix = match self.variant {
+            Variant::X86 => "32bit".to_string(),
+            Variant::X86_64 => "64bit".to_string(),
+        };
+        if let Link::Yes = self.link {
+            suffix.push_str("-linked");
+        }
+        suffix
+    }
 }
 
 #[derive(Clone, Copy)]

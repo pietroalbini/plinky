@@ -7,11 +7,12 @@ use crate::errors::{LoadError, WriteError};
 use crate::ids::{convert, ConvertibleElfIds, StringIdGetters};
 use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::types::ids::ElfIds;
-use crate::utils::{render_hex, ReadSeek, WriteSeek};
+use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 use std::ops::Deref;
+use std::io::Write;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {
@@ -28,12 +29,13 @@ impl<I: ElfIds> ElfObject<I> {
     where
         I: ConvertibleElfIds<PendingIds>,
     {
-        let mut cursor = ReadCursor::new(reader);
+        // Default to elf32 for the header, it will be switched automatically.
+        let mut cursor = ReadCursor::new(reader, ElfClass::Elf32);
         let object = read_object(&mut cursor)?;
         Ok(convert(ids, object))
     }
 
-    pub fn write(&self, write_to: &mut dyn WriteSeek) -> Result<(), WriteError>
+    pub fn write(&self, write_to: &mut dyn Write) -> Result<(), WriteError>
     where
         I::StringId: StringIdGetters<I>,
     {

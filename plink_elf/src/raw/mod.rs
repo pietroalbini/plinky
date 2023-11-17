@@ -2,11 +2,9 @@ mod traits;
 
 pub(crate) use self::traits::*;
 
-use crate::errors::{LoadError, WriteError};
-use crate::reader::ReadCursor;
-use crate::writer::WriteCursor;
 use crate::ElfClass;
 use plink_macros::RawType;
+use std::io::{Error, Read, Write};
 
 #[derive(RawType)]
 pub(crate) struct RawIdentification {

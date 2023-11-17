@@ -48,22 +48,21 @@ fn fn_read(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) 
         output.push_str("Ok(Self {");
         for field in fields {
             output.push_str(&format!(
-                "{}: <{} as {}>::read(cursor)?,",
+                "{}: <{} as {}>::read(class, reader)?,",
                 field.name, field.field_ty, field.trait_ty
             ));
         }
         output.push_str("})");
     }
 
-    output.push_str("fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {");
+    output.push_str("fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error> {");
     if fields32 != fields64 {
-        output.push_str("match cursor.class {");
+        output.push_str("match class {");
         for (class, fields) in [("Elf32", fields32), ("Elf64", fields64)] {
-            output.push_str(&format!("Some(ElfClass::{class}) => {{"));
+            output.push_str(&format!("ElfClass::{class} => {{"));
             render(output, fields);
             output.push_str("}");
         }
-        output.push_str(r#"None => panic!("elf class not configured yet"),"#);
         output.push_str("}");
     } else {
         render(output, fields32);
@@ -75,15 +74,17 @@ fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>])
     fn render(output: &mut String, fields: &[Field<'_>]) {
         for field in fields {
             output.push_str(&format!(
-                "<{} as {}>::write(&self.{}, cursor)?;",
+                "<{} as {}>::write(&self.{}, class, writer)?;",
                 field.field_ty, field.trait_ty, field.name
             ));
         }
     }
 
-    output.push_str("fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {");
+    output.push_str(
+        "fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error> {",
+    );
     if fields32 != fields64 {
-        output.push_str("match cursor.class {");
+        output.push_str("match class {");
         for (class, fields) in [("Elf32", fields32), ("Elf64", fields64)] {
             output.push_str(&format!("ElfClass::{class} => {{"));
             render(output, fields);

@@ -1,29 +1,27 @@
-mod cursor;
 mod layout;
 
-pub(crate) use self::cursor::WriteCursor;
 pub(crate) use self::layout::WriteLayoutError;
 
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawHeader, RawIdentification, RawPadding, RawProgramHeader, RawSectionHeader, RawSymbol,
-    RawType, RawRela, RawRel,
+    RawHeader, RawIdentification, RawPadding, RawProgramHeader, RawRel, RawRela, RawSectionHeader,
+    RawSymbol, RawType,
 };
-use crate::utils::WriteSeek;
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
     ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfSectionContent, ElfSegmentContent,
     ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfType,
 };
 use std::collections::BTreeMap;
+use std::io::Write;
 
 pub(crate) struct Writer<'a, I>
 where
     I: ElfIds,
     I::StringId: StringIdGetters<I>,
 {
-    cursor: WriteCursor<'a>,
+    writer: &'a mut dyn Write,
     layout: WriteLayout<I>,
     object: &'a ElfObject<I>,
 }
@@ -34,11 +32,11 @@ where
     I::StringId: StringIdGetters<I>,
 {
     pub(crate) fn new(
-        write_to: &'a mut dyn WriteSeek,
+        writer: &'a mut dyn Write,
         object: &'a ElfObject<I>,
     ) -> Result<Self, WriteError> {
         Ok(Self {
-            cursor: WriteCursor::new(write_to, object),
+            writer,
             layout: WriteLayout::new(object)?,
             object,
         })
@@ -63,7 +61,7 @@ where
     }
 
     fn write_identification(&mut self) -> Result<(), WriteError> {
-        let identification = RawIdentification {
+        self.write_raw(RawIdentification {
             magic: [0x7F, b'E', b'L', b'F'],
             class: match self.object.env.class {
                 ElfClass::Elf32 => 1,
@@ -80,12 +78,11 @@ where
                 ElfABI::SystemV => 0,
             },
             padding: RawPadding,
-        };
-        identification.write(&mut self.cursor)
+        })
     }
 
     fn write_header(&mut self) -> Result<(), WriteError> {
-        let header = RawHeader {
+        self.write_raw(RawHeader {
             type_: match self.object.type_ {
                 ElfType::Relocatable => 1,
                 ElfType::Executable => 2,
@@ -108,19 +105,18 @@ where
             section_header_size: self.raw_type_size::<RawSectionHeader>(),
             section_header_count: self.object.sections.len() as _,
             section_names_table_index: self.find_section_names_string_table()?,
-        };
-        header.write(&mut self.cursor)
+        })
     }
 
     fn write_section_headers(&mut self) -> Result<(), WriteError> {
         for (id, section) in &self.object.sections {
             if let ElfSectionContent::Null = section.content {
-                RawSectionHeader::zero().write(&mut self.cursor)?;
+                self.write_raw(RawSectionHeader::zero())?;
                 continue;
             }
 
             let metadata = self.layout.metadata_of_section(id);
-            let header = RawSectionHeader {
+            self.write_raw(RawSectionHeader {
                 name_offset: section.name.offset(),
                 type_: match &section.content {
                     ElfSectionContent::Null => unreachable!(),
@@ -168,8 +164,7 @@ where
                 },
                 addr_align: 0x1,
                 entries_size: 0,
-            };
-            header.write(&mut self.cursor)?;
+            })?;
         }
         Ok(())
     }
@@ -185,7 +180,7 @@ where
                 _ => todo!(),
             };
 
-            let header = RawProgramHeader {
+            self.write_raw(RawProgramHeader {
                 type_: match segment.type_ {
                     ElfSegmentType::Null => 0,
                     ElfSegmentType::Load => 1,
@@ -204,8 +199,7 @@ where
                     | (segment.perms.write as u32) << 1
                     | (segment.perms.read as u32) << 2,
                 align: 0x1000,
-            };
-            header.write(&mut self.cursor)?;
+            })?;
         }
         Ok(())
     }
@@ -217,8 +211,8 @@ where
         };
 
         for string in table.all() {
-            self.cursor.write_bytes(string.as_bytes())?;
-            self.cursor.write_bytes(b"\0")?;
+            self.writer.write_all(string.as_bytes())?;
+            self.writer.write_all(b"\0")?;
         }
         Ok(())
     }
@@ -228,7 +222,8 @@ where
         else {
             panic!("section {id:?} is not a program section");
         };
-        self.cursor.write_bytes(&program.raw.0)
+        self.writer.write_all(&program.raw.0)?;
+        Ok(())
     }
 
     fn write_symbol_table(&mut self, id: &I::SectionId) -> Result<(), WriteError> {
@@ -253,7 +248,7 @@ where
                 ElfSymbolType::File => 4,
                 ElfSymbolType::Unknown(other) => other & 0xF,
             };
-            let raw = RawSymbol {
+            self.write_raw(RawSymbol {
                 name_offset: symbol.name.offset(),
                 info,
                 reserved: RawPadding,
@@ -265,26 +260,26 @@ where
                 },
                 value: symbol.value,
                 size: symbol.size,
-            };
-            raw.write(&mut self.cursor)?;
+            })?;
         }
 
         Ok(())
     }
 
     fn write_relocations_table(&mut self, id: &I::SectionId, rela: bool) -> Result<(), WriteError> {
-        let ElfSectionContent::RelocationsTable(table) = &self.object.sections.get(id).unwrap().content
+        let ElfSectionContent::RelocationsTable(table) =
+            &self.object.sections.get(id).unwrap().content
         else {
             panic!("section {id:?} is not a relocation table")
         };
 
         if rela {
             for _ in 0..table.relocations.len() {
-                RawRela::zero().write(&mut self.cursor)?;
+                self.write_raw(RawRela::zero())?;
             }
         } else {
             for _ in 0..table.relocations.len() {
-                RawRel::zero().write(&mut self.cursor)?;
+                self.write_raw(RawRel::zero())?;
             }
         }
 
@@ -296,7 +291,8 @@ where
     fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError> {
         let metadata = self.layout.metadata(part);
         let padding = vec![0; metadata.len as usize];
-        self.cursor.write_bytes(&padding)
+        self.writer.write_all(&padding)?;
+        Ok(())
     }
 
     fn find_section_names_string_table(&self) -> Result<u16, WriteError> {
@@ -333,5 +329,10 @@ where
 
     fn raw_type_size<T: RawType>(&self) -> u16 {
         T::size(self.object.env.class) as _
+    }
+
+    fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError> {
+        value.write(self.object.env.class, self.writer)?;
+        Ok(())
     }
 }

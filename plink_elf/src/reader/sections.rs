@@ -1,6 +1,6 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
-use crate::raw::{RawRel, RawRela, RawSectionHeader, RawSymbol, RawType};
+use crate::raw::{RawRel, RawRela, RawSectionHeader, RawSymbol};
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
@@ -47,7 +47,7 @@ fn read_section(
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
-    let header = RawSectionHeader::read(cursor)?;
+    let header: RawSectionHeader = cursor.read_raw()?;
 
     cursor.seek_to(header.offset)?;
     let raw_content = cursor.read_vec(header.size)?;
@@ -144,7 +144,7 @@ fn read_symbol(
     cursor: &mut ReadCursor<'_>,
     strings_table: PendingSectionId,
 ) -> Result<ElfSymbol<PendingIds>, LoadError> {
-    let symbol: RawSymbol = RawSymbol::read(cursor)?;
+    let symbol: RawSymbol = cursor.read_raw()?;
     Ok(ElfSymbol {
         name: PendingStringId(strings_table, symbol.name_offset),
         binding: match (symbol.info & 0b11110000) >> 4 {
@@ -200,14 +200,14 @@ fn read_relocation(
     rela: bool,
 ) -> Result<ElfRelocation<PendingIds>, LoadError> {
     let (offset, info, addend) = if rela {
-        let raw = RawRela::read(cursor)?;
+        let raw: RawRela = cursor.read_raw()?;
         (raw.offset, raw.info, Some(raw.addend))
     } else {
-        let raw = RawRel::read(cursor)?;
+        let raw: RawRel = cursor.read_raw()?;
         (raw.offset, raw.info, None)
     };
     let (symbol, relocation_type) = match cursor.class {
-        Some(ElfClass::Elf32) => (
+        ElfClass::Elf32 => (
             (info >> 8) as u32,
             match info & 0xF {
                 0 => ElfRelocationType::X86_None,
@@ -216,7 +216,7 @@ fn read_relocation(
                 other => ElfRelocationType::Unknown(other as _),
             },
         ),
-        Some(ElfClass::Elf64) => (
+        ElfClass::Elf64 => (
             (info >> 32) as u32,
             match info & 0xFFFF_FFFF {
                 0 => ElfRelocationType::X86_64_None,
@@ -255,7 +255,6 @@ fn read_relocation(
                 other => ElfRelocationType::Unknown(other as _),
             },
         ),
-        None => panic!("must call after the elf class is determined"),
     };
 
     Ok(ElfRelocation {

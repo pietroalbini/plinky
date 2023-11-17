@@ -1,19 +1,17 @@
 use crate::errors::LoadError;
+use crate::raw::RawType;
 use crate::utils::ReadSeek;
 use crate::ElfClass;
 use std::io::SeekFrom;
 
 pub(crate) struct ReadCursor<'a> {
     reader: &'a mut dyn ReadSeek,
-    pub(crate) class: Option<ElfClass>,
+    pub(crate) class: ElfClass,
 }
 
 impl<'a> ReadCursor<'a> {
-    pub(crate) fn new(reader: &'a mut dyn ReadSeek) -> Self {
-        Self {
-            reader,
-            class: None,
-        }
+    pub(crate) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass) -> Self {
+        Self { reader, class }
     }
 
     pub(super) fn seek_to(&mut self, position: u64) -> Result<(), LoadError> {
@@ -21,53 +19,14 @@ impl<'a> ReadCursor<'a> {
         Ok(())
     }
 
-    pub(super) fn read_u32(&mut self) -> Result<u32, LoadError> {
-        Ok(u32::from_le_bytes(self.read_bytes()?))
-    }
-
-    pub(super) fn read_u64(&mut self) -> Result<u64, LoadError> {
-        Ok(u64::from_le_bytes(self.read_bytes()?))
-    }
-
-    pub(super) fn read_i32(&mut self) -> Result<i32, LoadError> {
-        Ok(i32::from_le_bytes(self.read_bytes()?))
-    }
-
-    pub(super) fn read_i64(&mut self) -> Result<i64, LoadError> {
-        Ok(i64::from_le_bytes(self.read_bytes()?))
-    }
-
-    pub(crate) fn read_usize(&mut self) -> Result<u64, LoadError> {
-        match self.class {
-            Some(ElfClass::Elf32) => Ok(self.read_u32()? as _),
-            Some(ElfClass::Elf64) => Ok(self.read_u64()?),
-            None => panic!("parsing usize without setting class"),
-        }
-    }
-
-    pub(crate) fn read_isize(&mut self) -> Result<i64, LoadError> {
-        match self.class {
-            Some(ElfClass::Elf32) => Ok(self.read_i32()? as _),
-            Some(ElfClass::Elf64) => Ok(self.read_i64()?),
-            None => panic!("parsing isize without setting class"),
-        }
-    }
-
-    pub(crate) fn skip_padding<const N: usize>(&mut self) -> Result<(), LoadError> {
-        self.read_bytes::<N>()?;
-        Ok(())
-    }
-
-    pub(crate) fn read_bytes<const N: usize>(&mut self) -> Result<[u8; N], LoadError> {
-        let mut buf = [0; N];
-        self.reader.read_exact(&mut buf)?;
-        Ok(buf)
-    }
-
     pub(super) fn read_vec(&mut self, size: u64) -> Result<Vec<u8>, LoadError> {
         let mut contents = vec![0; size as _];
         self.reader.read_exact(&mut contents)?;
         Ok(contents)
+    }
+
+    pub(super) fn read_raw<T: RawType>(&mut self) -> Result<T, LoadError> {
+        Ok(T::read(self.class, self)?)
     }
 
     pub(super) fn align_with_padding(&mut self, align: u64) -> Result<(), LoadError> {
@@ -92,5 +51,11 @@ impl<'a> ReadCursor<'a> {
             reader: new_reader,
             class: self.class,
         }
+    }
+}
+
+impl std::io::Read for ReadCursor<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.reader.read(buf)
     }
 }

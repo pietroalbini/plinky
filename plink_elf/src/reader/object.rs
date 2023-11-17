@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::raw::{RawHeader, RawIdentification, RawType};
+use crate::raw::{RawHeader, RawIdentification};
 use crate::reader::program_header::{read_program_header, SegmentContentMapping};
 use crate::reader::sections::read_sections;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<PendingIds>, LoadError> {
-    let identification = RawIdentification::read(cursor)?;
+    let identification: RawIdentification = cursor.read_raw()?;
     if identification.magic != [0x7F, b'E', b'L', b'F'] {
         return Err(LoadError::BadMagic(identification.magic));
     }
@@ -31,8 +31,8 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
         (abi, _) => return Err(LoadError::BadAbi(abi)),
     };
 
-    cursor.class = Some(class);
-    let header = RawHeader::read(cursor)?;
+    cursor.class = class;
+    let header: RawHeader = cursor.read_raw()?;
     if header.version != 1 {
         return Err(LoadError::BadVersion(header.version));
     }

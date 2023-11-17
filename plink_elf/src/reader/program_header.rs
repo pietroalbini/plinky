@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::raw::{RawProgramHeader, RawType};
+use crate::raw::RawProgramHeader;
 use crate::reader::{PendingIds, ReadCursor};
 use crate::{
     ElfPermissions, ElfSegment, ElfSegmentContent, ElfSegmentType, ElfUnknownSegmentContent,
@@ -12,7 +12,7 @@ pub(super) fn read_program_header(
     cursor: &mut ReadCursor<'_>,
     content_map: &SegmentContentMapping,
 ) -> Result<ElfSegment<PendingIds>, LoadError> {
-    let header = RawProgramHeader::read(cursor)?;
+    let header: RawProgramHeader = cursor.read_raw()?;
 
     Ok(ElfSegment {
         type_: match header.type_ {

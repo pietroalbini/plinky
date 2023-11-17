@@ -1,13 +1,11 @@
-use crate::errors::{LoadError, WriteError};
-use crate::reader::ReadCursor;
-use crate::writer::WriteCursor;
 use crate::ElfClass;
+use std::io::{Error, Read, Write};
 
 pub(crate) trait RawType: Sized {
     fn zero() -> Self;
     fn size(class: ElfClass) -> usize;
-    fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError>;
-    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError>;
+    fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error>;
+    fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error>;
 }
 
 impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
@@ -19,10 +17,10 @@ impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
         T::size(class) * N
     }
 
-    fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
+    fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error> {
         let mut items = Vec::new();
         for _ in 0..N {
-            items.push(T::read(cursor)?);
+            items.push(T::read(class, reader)?);
         }
         match items.try_into() {
             Ok(items) => Ok(items),
@@ -30,9 +28,9 @@ impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
         }
     }
 
-    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
+    fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error> {
         for item in self {
-            T::write(item, cursor)?;
+            T::write(item, class, writer)?;
         }
         Ok(())
     }
@@ -50,12 +48,21 @@ macro_rules! impl_rawtype_for_int {
                     std::mem::size_of::<$int>()
                 }
 
-                fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
-                    Ok(<$int>::from_le_bytes(cursor.read_bytes()?))
+                fn read(
+                    _class: ElfClass,
+                    reader: &mut dyn std::io::Read,
+                ) -> Result<Self, std::io::Error> {
+                    let mut buf = [0; std::mem::size_of::<$int>()];
+                    reader.read_exact(&mut buf)?;
+                    Ok(<$int>::from_le_bytes(buf))
                 }
 
-                fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
-                    cursor.write_bytes(&self.to_le_bytes())
+                fn write(
+                    &self,
+                    _class: ElfClass,
+                    writer: &mut dyn std::io::Write,
+                ) -> Result<(), std::io::Error> {
+                    writer.write_all(&self.to_le_bytes())
                 }
             }
         )*
@@ -75,21 +82,22 @@ impl<const N: usize> RawType for RawPadding<N> {
         N
     }
 
-    fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
-        cursor.skip_padding::<N>()?;
-        Ok(RawPadding)
+    fn read(_class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error> {
+        let mut buf = [0; N];
+        reader.read_exact(&mut buf)?;
+        Ok(Self)
     }
 
-    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
-        cursor.write_bytes(&[0; N])
+    fn write(&self, _class: ElfClass, writer: &mut dyn Write) -> Result<(), Error> {
+        writer.write_all(&[0; N])
     }
 }
 
 pub(crate) trait RawTypeAsPointerSize: Sized {
     fn zero() -> Self;
     fn size(class: ElfClass) -> usize;
-    fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError>;
-    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError>;
+    fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error>;
+    fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error>;
 }
 
 impl RawTypeAsPointerSize for u64 {
@@ -104,12 +112,18 @@ impl RawTypeAsPointerSize for u64 {
         }
     }
 
-    fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
-        cursor.read_usize()
+    fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error> {
+        match class {
+            ElfClass::Elf32 => <u32 as RawType>::read(class, reader).map(|v| v as _),
+            ElfClass::Elf64 => <u64 as RawType>::read(class, reader),
+        }
     }
 
-    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
-        cursor.write_usize(*self)
+    fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error> {
+        match class {
+            ElfClass::Elf32 => <u32 as RawType>::write(&(*self as _), class, writer),
+            ElfClass::Elf64 => <u64 as RawType>::write(self, class, writer),
+        }
     }
 }
 
@@ -125,11 +139,17 @@ impl RawTypeAsPointerSize for i64 {
         }
     }
 
-    fn read(cursor: &mut ReadCursor<'_>) -> Result<Self, LoadError> {
-        cursor.read_isize()
+    fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error> {
+        match class {
+            ElfClass::Elf32 => <i32 as RawType>::read(class, reader).map(|v| v as _),
+            ElfClass::Elf64 => <i64 as RawType>::read(class, reader),
+        }
     }
 
-    fn write(&self, cursor: &mut WriteCursor<'_>) -> Result<(), WriteError> {
-        cursor.write_isize(*self)
+    fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error> {
+        match class {
+            ElfClass::Elf32 => <i32 as RawType>::write(&(*self as _), class, writer),
+            ElfClass::Elf64 => <i64 as RawType>::write(self, class, writer),
+        }
     }
 }

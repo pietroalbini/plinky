@@ -10,12 +10,22 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 
     let mut output = String::new();
     output.push_str(&format!("impl RawType for {} {{\n", parsed.name));
+    fn_zero(&mut output, &fields32);
     fn_size(&mut output, &fields32);
     fn_read(&mut output, &fields32, &fields64);
     fn_write(&mut output, &fields32, &fields64);
     output.push_str("}\n");
 
     Ok(output.parse().unwrap())
+}
+
+fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
+    output.push_str("fn zero() -> Self {");
+    output.push_str("Self {");
+    for field in fields {
+        output.push_str(&format!("{}: <{} as {}>::zero(),", field.name, field.field_ty, field.trait_ty));
+    }
+    output.push_str("}}");
 }
 
 fn fn_size(output: &mut String, fields: &[Field<'_>]) {

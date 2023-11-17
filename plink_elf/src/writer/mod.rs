@@ -112,19 +112,7 @@ where
     fn write_section_headers(&mut self) -> Result<(), WriteError> {
         for (id, section) in &self.object.sections {
             if let ElfSectionContent::Null = section.content {
-                let header = RawSectionHeader {
-                    name_offset: 0,
-                    type_: 0,
-                    flags: 0,
-                    memory_address: 0,
-                    offset: 0,
-                    size: 0,
-                    link: 0,
-                    info: 0,
-                    addr_align: 0,
-                    entries_size: 0,
-                };
-                header.write(&mut self.cursor)?;
+                RawSectionHeader::zero().write(&mut self.cursor)?;
                 continue;
             }
 

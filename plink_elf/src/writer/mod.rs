@@ -8,7 +8,7 @@ use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
     RawHeader, RawIdentification, RawPadding, RawProgramHeader, RawSectionHeader, RawSymbol,
-    RawType,
+    RawType, RawRela, RawRel,
 };
 use crate::utils::WriteSeek;
 use crate::writer::layout::{Part, WriteLayout};
@@ -55,6 +55,7 @@ where
                 Part::ProgramSection(id) => self.write_program_section(id)?,
                 Part::StringTable(id) => self.write_string_table(id)?,
                 Part::SymbolTable(id) => self.write_symbol_table(id)?,
+                Part::RelocationsTable { id, rela } => self.write_relocations_table(id, *rela)?,
                 Part::Padding(_) => self.write_padding(part)?,
             }
         }
@@ -126,7 +127,7 @@ where
                     ElfSectionContent::Program(_) => 1,
                     ElfSectionContent::SymbolTable(_) => 2,
                     ElfSectionContent::StringTable(_) => 3,
-                    ElfSectionContent::RelocationsTable(_) => todo!(),
+                    ElfSectionContent::RelocationsTable(_) => 0, // TODO
                     ElfSectionContent::Note(_) => todo!(),
                     ElfSectionContent::Unknown(_) => panic!("unknown section"),
                 },
@@ -233,7 +234,7 @@ where
     fn write_symbol_table(&mut self, id: &I::SectionId) -> Result<(), WriteError> {
         let ElfSectionContent::SymbolTable(table) = &self.object.sections.get(id).unwrap().content
         else {
-            panic!("section {id:?} is not a program section")
+            panic!("section {id:?} is not a symbol table")
         };
 
         for symbol in table.symbols.values() {
@@ -267,6 +268,27 @@ where
             };
             raw.write(&mut self.cursor)?;
         }
+
+        Ok(())
+    }
+
+    fn write_relocations_table(&mut self, id: &I::SectionId, rela: bool) -> Result<(), WriteError> {
+        let ElfSectionContent::RelocationsTable(table) = &self.object.sections.get(id).unwrap().content
+        else {
+            panic!("section {id:?} is not a relocation table")
+        };
+
+        if rela {
+            for _ in 0..table.relocations.len() {
+                RawRela::zero().write(&mut self.cursor)?;
+            }
+        } else {
+            for _ in 0..table.relocations.len() {
+                RawRel::zero().write(&mut self.cursor)?;
+            }
+        }
+
+        // TODO
 
         Ok(())
     }

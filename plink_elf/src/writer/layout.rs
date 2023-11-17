@@ -1,6 +1,7 @@
 use crate::ids::ElfIds;
 use crate::raw::{
-    RawHeader, RawIdentification, RawProgramHeader, RawSectionHeader, RawSymbol, RawType,
+    RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader, RawSymbol,
+    RawType,
 };
 use crate::{ElfClass, ElfObject, ElfSectionContent};
 use plink_macros::{Display, Error};
@@ -53,8 +54,27 @@ impl<I: ElfIds> WriteLayout<I> {
                 ElfSectionContent::StringTable(table) => {
                     layout.add_part(Part::StringTable(id.clone()), table.len());
                 }
-                ElfSectionContent::RelocationsTable(_) => {
-                    return Err(WriteLayoutError::WritingRelocationsUnsupported);
+                ElfSectionContent::RelocationsTable(table) => {
+                    let mut rela = None;
+                    for relocation in &table.relocations {
+                        match rela {
+                            Some(rela) if rela == relocation.addend.is_some() => {}
+                            Some(_) => return Err(WriteLayoutError::MixedRelRela),
+                            None => rela = Some(relocation.addend.is_some()),
+                        }
+                    }
+                    let rela = rela.unwrap_or(false);
+                    layout.add_part(
+                        Part::RelocationsTable {
+                            id: id.clone(),
+                            rela,
+                        },
+                        if rela {
+                            (RawRela::size(layout.class) * table.relocations.len()) as _
+                        } else {
+                            (RawRel::size(layout.class) * table.relocations.len()) as _
+                        },
+                    )
                 }
                 ElfSectionContent::Note(_) => {
                     return Err(WriteLayoutError::WritingNotesUnsupported);
@@ -124,6 +144,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::StringTable(this) => this == id,
                 Part::SymbolTable(this) => this == id,
                 Part::Padding(_) => false,
+                Part::RelocationsTable { id: this, .. } => this == id,
             })
             .map(|(_, value)| value)
             .next()
@@ -140,6 +161,7 @@ pub(super) enum Part<SectionId> {
     ProgramSection(SectionId),
     StringTable(SectionId),
     SymbolTable(SectionId),
+    RelocationsTable { id: SectionId, rela: bool },
     Padding(PaddingId),
 }
 
@@ -154,8 +176,8 @@ pub(super) struct PartMetadata {
 
 #[derive(Debug, Error, Display)]
 pub enum WriteLayoutError {
-    #[display("writing relocations is not supported yet")]
-    WritingRelocationsUnsupported,
+    #[display("relocation section mixing rel and rela")]
+    MixedRelRela,
     #[display("writing notes is not supported yet")]
     WritingNotesUnsupported,
     #[display("unkown section encountered while calculating the layout")]

@@ -10,9 +10,9 @@ use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
 use std::collections::BTreeMap;
+use std::io::Write;
 use std::num::NonZeroU64;
 use std::ops::Deref;
-use std::io::Write;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {

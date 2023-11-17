@@ -1,7 +1,6 @@
-#[macro_use]
-mod support;
+mod traits;
 
-pub(crate) use self::support::*;
+pub(crate) use self::traits::*;
 
 use crate::errors::{LoadError, WriteError};
 use crate::reader::ReadCursor;

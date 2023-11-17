@@ -1,5 +1,7 @@
 use crate::ids::ElfIds;
-use crate::raw::{RawHeader, RawIdentification, RawProgramHeader, RawSectionHeader, RawType};
+use crate::raw::{
+    RawHeader, RawIdentification, RawProgramHeader, RawSectionHeader, RawSymbol, RawType,
+};
 use crate::{ElfClass, ElfObject, ElfSectionContent};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -44,9 +46,10 @@ impl<I: ElfIds> WriteLayout<I> {
                     deferred_program_sections
                         .push((Part::ProgramSection(id.clone()), program.raw.len()));
                 }
-                ElfSectionContent::SymbolTable(_) => {
-                    return Err(WriteLayoutError::WritingSymbolsUnsupported);
-                }
+                ElfSectionContent::SymbolTable(table) => layout.add_part(
+                    Part::SymbolTable(id.clone()),
+                    RawSymbol::size(layout.class) * table.symbols.len(),
+                ),
                 ElfSectionContent::StringTable(table) => {
                     layout.add_part(Part::StringTable(id.clone()), table.len());
                 }
@@ -119,6 +122,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::ProgramHeaders => false,
                 Part::ProgramSection(this) => this == id,
                 Part::StringTable(this) => this == id,
+                Part::SymbolTable(this) => this == id,
                 Part::Padding(_) => false,
             })
             .map(|(_, value)| value)
@@ -135,6 +139,7 @@ pub(super) enum Part<SectionId> {
     ProgramHeaders,
     ProgramSection(SectionId),
     StringTable(SectionId),
+    SymbolTable(SectionId),
     Padding(PaddingId),
 }
 
@@ -149,8 +154,6 @@ pub(super) struct PartMetadata {
 
 #[derive(Debug, Error, Display)]
 pub enum WriteLayoutError {
-    #[display("writing symbols is not supported yet")]
-    WritingSymbolsUnsupported,
     #[display("writing relocations is not supported yet")]
     WritingRelocationsUnsupported,
     #[display("writing notes is not supported yet")]

@@ -46,6 +46,8 @@ pub enum WriteError {
     MissingSectionNamesTable,
     #[display("different sections point to different string tables for their name")]
     InconsistentSectionNamesTableId,
+    #[display("different symbols point to different string tables for their name")]
+    InconsistentSymbolNamesTableId,
     #[display("failed to calculate the resulting ELF layout")]
     LayoutError(#[from] WriteLayoutError),
 }

@@ -137,7 +137,7 @@ pub struct ElfSymbol<I: ElfIds> {
     pub size: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ElfSymbolBinding {
     Local,
     Global,

@@ -7,13 +7,14 @@ pub(crate) use self::layout::WriteLayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawHeader, RawIdentification, RawPadding, RawProgramHeader, RawSectionHeader, RawType,
+    RawHeader, RawIdentification, RawPadding, RawProgramHeader, RawSectionHeader, RawSymbol,
+    RawType,
 };
 use crate::utils::WriteSeek;
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
     ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfSectionContent, ElfSegmentContent,
-    ElfSegmentType, ElfType,
+    ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfType,
 };
 use std::collections::BTreeMap;
 
@@ -53,6 +54,7 @@ where
                 Part::ProgramHeaders => self.write_program_headers()?,
                 Part::ProgramSection(id) => self.write_program_section(id)?,
                 Part::StringTable(id) => self.write_string_table(id)?,
+                Part::SymbolTable(id) => self.write_symbol_table(id)?,
                 Part::Padding(_) => self.write_padding(part)?,
             }
         }
@@ -122,7 +124,7 @@ where
                 type_: match &section.content {
                     ElfSectionContent::Null => unreachable!(),
                     ElfSectionContent::Program(_) => 1,
-                    ElfSectionContent::SymbolTable(_) => todo!(),
+                    ElfSectionContent::SymbolTable(_) => 2,
                     ElfSectionContent::StringTable(_) => 3,
                     ElfSectionContent::RelocationsTable(_) => todo!(),
                     ElfSectionContent::Note(_) => todo!(),
@@ -139,8 +141,30 @@ where
                 memory_address: section.memory_address,
                 offset: metadata.offset,
                 size: metadata.len,
-                link: 0,
-                info: 0,
+                link: match &section.content {
+                    ElfSectionContent::SymbolTable(table) => {
+                        let mut strings = None;
+                        for symbol in table.symbols.values() {
+                            match strings {
+                                Some(existing) if existing == symbol.name.section() => {}
+                                Some(_) => return Err(WriteError::InconsistentSymbolNamesTableId),
+                                None => strings = Some(symbol.name.section()),
+                            }
+                        }
+                        self.section_idx(strings.expect("no symbols in table")) as _
+                    }
+                    _ => 0,
+                },
+                info: match &section.content {
+                    // Number of local symbols (aka index of first non-local symbol)
+                    ElfSectionContent::SymbolTable(table) => table
+                        .symbols
+                        .values()
+                        .position(|s| s.binding != ElfSymbolBinding::Local)
+                        .unwrap_or(table.symbols.len())
+                        as _,
+                    _ => 0,
+                },
                 addr_align: 0x1,
                 entries_size: 0,
             };
@@ -206,6 +230,47 @@ where
         self.cursor.write_bytes(&program.raw.0)
     }
 
+    fn write_symbol_table(&mut self, id: &I::SectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::SymbolTable(table) = &self.object.sections.get(id).unwrap().content
+        else {
+            panic!("section {id:?} is not a program section")
+        };
+
+        for symbol in table.symbols.values() {
+            let mut info = 0;
+            info |= match symbol.binding {
+                ElfSymbolBinding::Local => 0x00,
+                ElfSymbolBinding::Global => 0x10,
+                ElfSymbolBinding::Weak => 0x20,
+                ElfSymbolBinding::Unknown(other) => other << 4,
+            };
+            info |= match symbol.type_ {
+                ElfSymbolType::NoType => 0,
+                ElfSymbolType::Object => 1,
+                ElfSymbolType::Function => 2,
+                ElfSymbolType::Section => 3,
+                ElfSymbolType::File => 4,
+                ElfSymbolType::Unknown(other) => other & 0xF,
+            };
+            let raw = RawSymbol {
+                name_offset: symbol.name.offset(),
+                info,
+                reserved: RawPadding,
+                definition: match &symbol.definition {
+                    ElfSymbolDefinition::Undefined => 0x0000,
+                    ElfSymbolDefinition::Absolute => 0xFFF1,
+                    ElfSymbolDefinition::Common => 0xFFF2,
+                    ElfSymbolDefinition::Section(id) => self.section_idx(id) as _,
+                },
+                value: symbol.value,
+                size: symbol.size,
+            };
+            raw.write(&mut self.cursor)?;
+        }
+
+        Ok(())
+    }
+
     fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError> {
         let metadata = self.layout.metadata(part);
         let padding = vec![0; metadata.len as usize];
@@ -234,6 +299,14 @@ where
             .and_then(|id| section_ids_to_indices.get(&id))
             .copied()
             .ok_or(WriteError::MissingSectionNamesTable)
+    }
+
+    fn section_idx(&self, id: &I::SectionId) -> usize {
+        self.object
+            .sections
+            .keys()
+            .position(|k| k == id)
+            .expect("inconsistent section id")
     }
 
     fn raw_type_size<T: RawType>(&self) -> u16 {

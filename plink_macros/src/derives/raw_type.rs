@@ -23,7 +23,10 @@ fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
     output.push_str("fn zero() -> Self {");
     output.push_str("Self {");
     for field in fields {
-        output.push_str(&format!("{}: <{} as {}>::zero(),", field.name, field.field_ty, field.trait_ty));
+        output.push_str(&format!(
+            "{}: <{} as {}>::zero(),",
+            field.name, field.field_ty, field.trait_ty
+        ));
     }
     output.push_str("}}");
 }

@@ -1,5 +1,6 @@
 use crate::error::Error;
 use crate::parser::{Attribute, EnumVariantData, Item, Parser, StructFields};
+use crate::utils::generate_impl_for;
 use proc_macro::{Span, TokenStream};
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
@@ -13,71 +14,69 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 }
 
 fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
-    output.push_str(&format!("impl std::error::Error for {} {{", item.name()));
-
-    output.push_str("fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {");
-    match item {
-        Item::Struct(struct_) => {
-            let mut source = None;
-            match &struct_.fields {
-                StructFields::None => {}
-                StructFields::TupleLike(fields) => {
-                    for (idx, field) in fields.iter().enumerate() {
-                        maybe_set_source(&mut source, &idx.to_string(), &field.attrs)?;
-                    }
-                }
-                StructFields::StructLike(fields) => {
-                    for field in fields {
-                        maybe_set_source(&mut source, &field.name, &field.attrs)?;
-                    }
-                }
-            }
-            match source {
-                Some(source) => output.push_str(&format!("Some(&self.{source})")),
-                None => output.push_str("None"),
-            }
-        }
-        Item::Enum(enum_) => {
-            output.push_str("match self {");
-            for variant in &enum_.variants {
+    generate_impl_for(output, item, "std::error::Error", |output| {
+        output.push_str("fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {");
+        match item {
+            Item::Struct(struct_) => {
                 let mut source = None;
-                output.push_str(&format!("Self::{}", variant.name));
-                match &variant.data {
-                    EnumVariantData::None => {}
-                    EnumVariantData::TupleLike(fields) => {
-                        output.push_str("(");
+                match &struct_.fields {
+                    StructFields::None => {}
+                    StructFields::TupleLike(fields) => {
                         for (idx, field) in fields.iter().enumerate() {
-                            let name = format!("field{}", idx);
-                            output.push_str(&name);
-                            output.push_str(",");
-                            maybe_set_source(&mut source, &name, &field.attrs)?;
+                            maybe_set_source(&mut source, &idx.to_string(), &field.attrs)?;
                         }
-                        output.push_str(")");
                     }
-                    EnumVariantData::StructLike(fields) => {
-                        output.push_str("{");
+                    StructFields::StructLike(fields) => {
                         for field in fields {
-                            output.push_str(&field.name);
-                            output.push_str(",");
                             maybe_set_source(&mut source, &field.name, &field.attrs)?;
                         }
-                        output.push_str("}");
                     }
                 }
-                output.push_str(" => ");
                 match source {
-                    Some(source) => output.push_str(&format!("Some({source})")),
+                    Some(source) => output.push_str(&format!("Some(&self.{source})")),
                     None => output.push_str("None"),
                 }
-                output.push_str(",");
             }
-            output.push_str("}");
+            Item::Enum(enum_) => {
+                output.push_str("match self {");
+                for variant in &enum_.variants {
+                    let mut source = None;
+                    output.push_str(&format!("Self::{}", variant.name));
+                    match &variant.data {
+                        EnumVariantData::None => {}
+                        EnumVariantData::TupleLike(fields) => {
+                            output.push_str("(");
+                            for (idx, field) in fields.iter().enumerate() {
+                                let name = format!("field{}", idx);
+                                output.push_str(&name);
+                                output.push_str(",");
+                                maybe_set_source(&mut source, &name, &field.attrs)?;
+                            }
+                            output.push_str(")");
+                        }
+                        EnumVariantData::StructLike(fields) => {
+                            output.push_str("{");
+                            for field in fields {
+                                output.push_str(&field.name);
+                                output.push_str(",");
+                                maybe_set_source(&mut source, &field.name, &field.attrs)?;
+                            }
+                            output.push_str("}");
+                        }
+                    }
+                    output.push_str(" => ");
+                    match source {
+                        Some(source) => output.push_str(&format!("Some({source})")),
+                        None => output.push_str("None"),
+                    }
+                    output.push_str(",");
+                }
+                output.push_str("}");
+            }
         }
-    }
-    output.push_str("}");
-
-    output.push_str("}");
-    Ok(())
+        output.push_str("}");
+        Ok(())
+    })
 }
 
 fn maybe_set_source(
@@ -127,7 +126,7 @@ fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
                     .collect::<Vec<_>>(),
             };
 
-            generate_from_impl(output, &struct_.name, &struct_.name, struct_.span, &fields)?;
+            generate_from_impl(output, &item, &struct_.name, struct_.span, &fields)?;
         }
         Item::Enum(enum_) => {
             for variant in &enum_.variants {
@@ -157,7 +156,7 @@ fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
 
                 generate_from_impl(
                     output,
-                    &enum_.name,
+                    item,
                     &format!("{}::{}", enum_.name, variant.name),
                     variant.span,
                     &fields,
@@ -170,7 +169,7 @@ fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
 
 fn generate_from_impl(
     output: &mut String,
-    item_name: &str,
+    item: &Item,
     constructor: &str,
     span: Span,
     fields: &[FromImplField<'_>],
@@ -185,17 +184,18 @@ fn generate_from_impl(
     }
     let field = fields.last().unwrap();
 
-    output.push_str(&format!("impl From<{}> for {item_name} {{", field.ty));
-    output.push_str(&format!(
-        "fn from({}: {}) -> Self {{",
-        field.field, field.ty
-    ));
-    output.push_str(&format!(
-        "{constructor}{}{}{}",
-        field.open_assign, field.field, field.close_assign
-    ));
-    output.push_str("}}");
-    Ok(())
+    generate_impl_for(output, item, &format!("From<{}>", field.ty), |output| {
+        output.push_str(&format!(
+            "fn from({}: {}) -> Self {{",
+            field.field, field.ty
+        ));
+        output.push_str(&format!(
+            "{constructor}{}{}{}",
+            field.open_assign, field.field, field.close_assign
+        ));
+        output.push_str("}");
+        Ok(())
+    })
 }
 
 struct FromImplField<'a> {

@@ -1,3 +1,4 @@
+use crate::ids::ElfIds;
 use crate::writer::WriteLayoutError;
 use crate::ElfABI;
 use plink_macros::{Display, Error};
@@ -39,7 +40,7 @@ pub enum LoadError {
 }
 
 #[derive(Debug, Error, Display)]
-pub enum WriteError {
+pub enum WriteError<I: ElfIds> {
     #[display("I/O error")]
     IO(#[from] std::io::Error),
     #[display("missing section names table")]
@@ -48,6 +49,17 @@ pub enum WriteError {
     InconsistentSectionNamesTableId,
     #[display("different symbols point to different string tables for their name")]
     InconsistentSymbolNamesTableId,
+    #[display("missing symbol table {symbol_table:?} for relocations table {relocations_table:?}")]
+    MissingSymbolTableForRelocations {
+        symbol_table: I::SectionId,
+        relocations_table: I::SectionId,
+    },
+    #[display("missing symbol {symbol_id:?} for relocation {relocation_idx} in table {relocations_table:?}")]
+    MissingSymbolInRelocation {
+        symbol_id: I::SymbolId,
+        relocations_table: I::SectionId,
+        relocation_idx: usize,
+    },
     #[display("failed to calculate the resulting ELF layout")]
     LayoutError(#[from] WriteLayoutError),
 }

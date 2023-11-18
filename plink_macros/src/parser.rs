@@ -8,19 +8,11 @@ pub(crate) enum Item {
     Enum(Enum),
 }
 
-impl Item {
-    pub(crate) fn name(&self) -> &str {
-        match self {
-            Item::Struct(struct_) => &struct_.name,
-            Item::Enum(enum_) => &enum_.name,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub(crate) struct Struct {
     pub(crate) attrs: Vec<Attribute>,
     pub(crate) name: String,
+    pub(crate) generics: Vec<GenericParam>,
     pub(crate) fields: StructFields,
     pub(crate) span: Span,
 }
@@ -49,6 +41,7 @@ pub(crate) struct Attribute {
 pub(crate) struct Enum {
     pub(crate) _attrs: Vec<Attribute>,
     pub(crate) name: String,
+    pub(crate) generics: Vec<GenericParam>,
     pub(crate) variants: Vec<EnumVariant>,
 }
 
@@ -71,6 +64,12 @@ pub(crate) enum EnumVariantData {
 pub(crate) struct TupleField {
     pub(crate) attrs: Vec<Attribute>,
     pub(crate) ty: String,
+}
+
+#[derive(Debug)]
+pub(crate) struct GenericParam {
+    pub(crate) name: String,
+    pub(crate) bound: String,
 }
 
 pub(crate) struct Parser {
@@ -111,18 +110,20 @@ impl Parser {
             other => return Err(Error::new("expected struct name").span(other.span())),
         };
 
+        let generics = self.parse_generic_params()?;
+
         let fields = match self.peek()? {
             TokenTree::Group(group) => {
                 self.next()?;
                 match group.delimiter() {
                     Delimiter::Parenthesis => {
                         StructFields::TupleLike(self.within_stream(group.stream(), |this| {
-                            this.parse_comma_list(|this| this.parse_tuple_field())
+                            this.parse_comma_list(|this| Ok(this.parse_tuple_field()?.into()))
                         })?)
                     }
                     Delimiter::Brace => {
                         StructFields::StructLike(self.within_stream(group.stream(), |this| {
-                            this.parse_comma_list(|this| this.parse_struct_field())
+                            this.parse_comma_list(|this| Ok(this.parse_struct_field()?.into()))
                         })?)
                     }
                     _ => return Err(Error::new("expected struct content").span(group.span())),
@@ -138,6 +139,7 @@ impl Parser {
         Ok(Struct {
             attrs,
             name,
+            generics,
             fields,
             span,
         })
@@ -156,8 +158,10 @@ impl Parser {
         Ok(Enum {
             _attrs: attrs,
             name: self.parse_ident()?,
-            variants: self
-                .within_braces(|this| this.parse_comma_list(|this| this.parse_enum_variant()))?,
+            generics: self.parse_generic_params()?,
+            variants: self.within_braces(|this| {
+                this.parse_comma_list(|this| Ok(this.parse_enum_variant()?.into()))
+            })?,
         })
     }
 
@@ -174,12 +178,12 @@ impl Parser {
             match group.delimiter() {
                 Delimiter::Parenthesis => {
                     EnumVariantData::TupleLike(self.within_stream(group.stream(), |this| {
-                        this.parse_comma_list(|this| this.parse_tuple_field())
+                        this.parse_comma_list(|this| Ok(this.parse_tuple_field()?.into()))
                     })?)
                 }
                 Delimiter::Brace => {
                     EnumVariantData::StructLike(self.within_stream(group.stream(), |this| {
-                        this.parse_comma_list(|this| this.parse_struct_field())
+                        this.parse_comma_list(|this| Ok(this.parse_struct_field()?.into()))
                     })?)
                 }
                 _ => return Err(Error::new("invalid enum variant").span(group.span())),
@@ -223,11 +227,11 @@ impl Parser {
                     self.next()?;
                     ty.push_str(&ident.to_string());
                     if self.peek().map(|t| t.is_punct('<')).unwrap_or(false) {
-                        ty.push_str(&self.parse_generic()?);
+                        ty.push_str(&self.parse_generic_in_type_name()?);
                     }
                 }
                 TokenTree::Punct(punct) if punct.as_char() == '<' => {
-                    ty.push_str(&self.parse_generic()?);
+                    ty.push_str(&self.parse_generic_in_type_name()?);
                 }
                 other => return Err(Error::new("expected a type").span(other.span())),
             }
@@ -243,7 +247,7 @@ impl Parser {
         Ok(ty)
     }
 
-    fn parse_generic(&mut self) -> Result<String, Error> {
+    fn parse_generic_in_type_name(&mut self) -> Result<String, Error> {
         self.expect_punct('<')?;
         let mut generic = "<".to_string();
         let mut count = 1;
@@ -290,13 +294,59 @@ impl Parser {
         Ok(attributes)
     }
 
+    fn parse_generic_params(&mut self) -> Result<Vec<GenericParam>, Error> {
+        if !self.peek()?.is_punct('<') {
+            return Ok(Vec::new());
+        }
+        self.next()?;
+
+        let params = self.parse_comma_list(|this| {
+            if this.peek()?.is_punct('>') {
+                return Ok(IterationOutcome::Break);
+            }
+
+            let name = match this.next()? {
+                TokenTree::Ident(ident) => ident.to_string(),
+                other => return Err(Error::new("expected generic name").span(other.span())),
+            };
+            this.expect_punct(':')?;
+
+            let mut bound = Vec::new();
+            let mut constructor: fn(GenericParam) -> _ = IterationOutcome::Value;
+            loop {
+                if this.peek()?.is_punct('>') {
+                    constructor = IterationOutcome::Last;
+                    break;
+                } else if this.peek()?.is_punct(',') {
+                    break;
+                }
+                bound.push(this.next()?);
+            }
+
+            Ok(constructor(GenericParam {
+                name,
+                bound: bound.into_iter().collect::<TokenStream>().to_string(),
+            }))
+        })?;
+
+        self.expect_punct('>')?;
+        Ok(params)
+    }
+
     fn parse_comma_list<F, T>(&mut self, mut f: F) -> Result<Vec<T>, Error>
     where
-        F: FnMut(&mut Self) -> Result<T, Error>,
+        F: FnMut(&mut Self) -> Result<IterationOutcome<T>, Error>,
     {
         let mut values = Vec::new();
         loop {
-            values.push(f(self)?);
+            match f(self)? {
+                IterationOutcome::Value(v) => values.push(v),
+                IterationOutcome::Last(v) => {
+                    values.push(v);
+                    break;
+                }
+                IterationOutcome::Break => break,
+            }
             match self.next() {
                 Ok(comma) => {
                     if !comma.is_punct(',') {
@@ -410,5 +460,17 @@ impl TokenTreeExt for TokenTree {
             TokenTree::Punct(punct) => punct.as_char() == expected,
             _ => false,
         }
+    }
+}
+
+enum IterationOutcome<T> {
+    Value(T),
+    Last(T),
+    Break,
+}
+
+impl<T> From<T> for IterationOutcome<T> {
+    fn from(value: T) -> Self {
+        IterationOutcome::Value(value)
     }
 }

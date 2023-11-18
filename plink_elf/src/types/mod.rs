@@ -35,7 +35,7 @@ impl<I: ElfIds> ElfObject<I> {
         Ok(convert(ids, object))
     }
 
-    pub fn write(&self, write_to: &mut dyn Write) -> Result<(), WriteError>
+    pub fn write(&self, write_to: &mut dyn Write) -> Result<(), WriteError<I>>
     where
         I::StringId: StringIdGetters<I>,
     {

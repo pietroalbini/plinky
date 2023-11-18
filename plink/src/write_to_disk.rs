@@ -28,7 +28,7 @@ pub(crate) fn write_to_disk(
 #[derive(Debug, Error)]
 pub(crate) enum WriteToDiskError {
     FileCreation(PathBuf, #[source] std::io::Error),
-    WriteFailed(PathBuf, #[source] WriteError),
+    WriteFailed(PathBuf, #[source] WriteError<SerialIds>),
     PermissionSetFailed(PathBuf, #[source] std::io::Error),
 }
 

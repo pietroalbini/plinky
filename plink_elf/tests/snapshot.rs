@@ -75,13 +75,10 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
         Mode::Read => {}
         Mode::WriteThenRead => {
             let mut buf = Vec::new();
-            let mut cursor = std::io::Cursor::new(&mut buf);
             parsed
-                .write(&mut cursor)
+                .write(&mut buf)
                 .context("failed to write back the ELF file")?;
-
-            cursor.set_position(0);
-            parsed = ElfObject::load(&mut file, &mut SerialIds::new())?;
+            parsed = ElfObject::load(&mut std::io::Cursor::new(&mut buf), &mut SerialIds::new())?;
         }
     }
 
@@ -182,6 +179,9 @@ impl Metadata {
         };
         if let Link::Yes = self.link {
             suffix.push_str("-linked");
+        }
+        if let Mode::WriteThenRead = self.mode {
+            suffix.push_str("-written");
         }
         suffix
     }

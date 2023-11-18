@@ -10,8 +10,9 @@ use crate::raw::{
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
-    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfSectionContent, ElfSegmentContent,
-    ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfType,
+    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfRelocationType, ElfSectionContent,
+    ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType,
+    ElfType,
 };
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -34,7 +35,7 @@ where
     pub(crate) fn new(
         writer: &'a mut dyn Write,
         object: &'a ElfObject<I>,
-    ) -> Result<Self, WriteError> {
+    ) -> Result<Self, WriteError<I>> {
         Ok(Self {
             writer,
             layout: WriteLayout::new(object)?,
@@ -42,7 +43,7 @@ where
         })
     }
 
-    pub(crate) fn write(mut self) -> Result<(), WriteError> {
+    pub(crate) fn write(mut self) -> Result<(), WriteError<I>> {
         let parts = self.layout.parts().iter().cloned().collect::<Vec<_>>();
         for part in &parts {
             match part {
@@ -60,7 +61,7 @@ where
         Ok(())
     }
 
-    fn write_identification(&mut self) -> Result<(), WriteError> {
+    fn write_identification(&mut self) -> Result<(), WriteError<I>> {
         self.write_raw(RawIdentification {
             magic: [0x7F, b'E', b'L', b'F'],
             class: match self.object.env.class {
@@ -81,7 +82,7 @@ where
         })
     }
 
-    fn write_header(&mut self) -> Result<(), WriteError> {
+    fn write_header(&mut self) -> Result<(), WriteError<I>> {
         self.write_raw(RawHeader {
             type_: match self.object.type_ {
                 ElfType::Relocatable => 1,
@@ -108,7 +109,7 @@ where
         })
     }
 
-    fn write_section_headers(&mut self) -> Result<(), WriteError> {
+    fn write_section_headers(&mut self) -> Result<(), WriteError<I>> {
         for (id, section) in &self.object.sections {
             if let ElfSectionContent::Null = section.content {
                 self.write_raw(RawSectionHeader::zero())?;
@@ -123,7 +124,21 @@ where
                     ElfSectionContent::Program(_) => 1,
                     ElfSectionContent::SymbolTable(_) => 2,
                     ElfSectionContent::StringTable(_) => 3,
-                    ElfSectionContent::RelocationsTable(_) => 0, // TODO
+                    ElfSectionContent::RelocationsTable(_) => self
+                        .layout
+                        .parts()
+                        .iter()
+                        .filter_map(|part| match part {
+                            Part::RelocationsTable { id: part_id, rela } if part_id == id => {
+                                Some(match *rela {
+                                    true => 4,
+                                    false => 9,
+                                })
+                            }
+                            _ => None,
+                        })
+                        .next()
+                        .expect("relocations table not in layout"),
                     ElfSectionContent::Note(_) => todo!(),
                     ElfSectionContent::Unknown(_) => panic!("unknown section"),
                 },
@@ -150,6 +165,9 @@ where
                         }
                         self.section_idx(strings.expect("no symbols in table")) as _
                     }
+                    ElfSectionContent::RelocationsTable(table) => {
+                        self.section_idx(&table.symbol_table) as _
+                    }
                     _ => 0,
                 },
                 info: match &section.content {
@@ -160,6 +178,9 @@ where
                         .position(|s| s.binding != ElfSymbolBinding::Local)
                         .unwrap_or(table.symbols.len())
                         as _,
+                    ElfSectionContent::RelocationsTable(table) => {
+                        self.section_idx(&table.applies_to_section) as _
+                    }
                     _ => 0,
                 },
                 addr_align: 0x1,
@@ -169,7 +190,7 @@ where
         Ok(())
     }
 
-    fn write_program_headers(&mut self) -> Result<(), WriteError> {
+    fn write_program_headers(&mut self) -> Result<(), WriteError<I>> {
         for segment in &self.object.segments {
             let (metadata, section) = match segment.content.as_slice() {
                 [ElfSegmentContent::Section(id)] => (
@@ -204,7 +225,7 @@ where
         Ok(())
     }
 
-    fn write_string_table(&mut self, id: &I::SectionId) -> Result<(), WriteError> {
+    fn write_string_table(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
         let ElfSectionContent::StringTable(table) = &self.object.sections.get(id).unwrap().content
         else {
             panic!("section {id:?} is not a string table");
@@ -217,7 +238,7 @@ where
         Ok(())
     }
 
-    fn write_program_section(&mut self, id: &I::SectionId) -> Result<(), WriteError> {
+    fn write_program_section(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
         let ElfSectionContent::Program(program) = &self.object.sections.get(id).unwrap().content
         else {
             panic!("section {id:?} is not a program section");
@@ -226,7 +247,7 @@ where
         Ok(())
     }
 
-    fn write_symbol_table(&mut self, id: &I::SectionId) -> Result<(), WriteError> {
+    fn write_symbol_table(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
         let ElfSectionContent::SymbolTable(table) = &self.object.sections.get(id).unwrap().content
         else {
             panic!("section {id:?} is not a symbol table")
@@ -266,36 +287,109 @@ where
         Ok(())
     }
 
-    fn write_relocations_table(&mut self, id: &I::SectionId, rela: bool) -> Result<(), WriteError> {
+    fn write_relocations_table(
+        &mut self,
+        id: &I::SectionId,
+        rela: bool,
+    ) -> Result<(), WriteError<I>> {
         let ElfSectionContent::RelocationsTable(table) =
             &self.object.sections.get(id).unwrap().content
         else {
             panic!("section {id:?} is not a relocation table")
         };
 
-        if rela {
-            for _ in 0..table.relocations.len() {
-                self.write_raw(RawRela::zero())?;
-            }
-        } else {
-            for _ in 0..table.relocations.len() {
-                self.write_raw(RawRel::zero())?;
+        let ElfSectionContent::SymbolTable(symbol_table) = &self
+            .object
+            .sections
+            .get(&table.symbol_table)
+            .ok_or_else(|| WriteError::MissingSymbolTableForRelocations {
+                symbol_table: table.symbol_table.clone(),
+                relocations_table: id.clone(),
+            })?
+            .content
+        else {
+            panic!("section {id:?} is not a symbol table")
+        };
+
+        for (idx, relocation) in table.relocations.iter().enumerate() {
+            let relocation_type = match relocation.relocation_type {
+                ElfRelocationType::X86_None => 0,
+                ElfRelocationType::X86_32 => 1,
+                ElfRelocationType::X86_PC32 => 2,
+                ElfRelocationType::X86_64_None => 0,
+                ElfRelocationType::X86_64_64 => 1,
+                ElfRelocationType::X86_64_PC32 => 2,
+                ElfRelocationType::X86_64_GOT32 => 3,
+                ElfRelocationType::X86_64_PLT32 => 4,
+                ElfRelocationType::X86_64_Copy => 5,
+                ElfRelocationType::X86_64_GlobDat => 6,
+                ElfRelocationType::X86_64_JumpSlot => 7,
+                ElfRelocationType::X86_64_Relative => 8,
+                ElfRelocationType::X86_64_GOTPCRel => 9,
+                ElfRelocationType::X86_64_32 => 10,
+                ElfRelocationType::X86_64_32S => 11,
+                ElfRelocationType::X86_64_16 => 12,
+                ElfRelocationType::X86_64_PC16 => 13,
+                ElfRelocationType::X86_64_8 => 14,
+                ElfRelocationType::X86_64_PC8 => 15,
+                ElfRelocationType::X86_64_DTPMod64 => 16,
+                ElfRelocationType::X86_64_DTPOff64 => 17,
+                ElfRelocationType::X86_64_TPOff64 => 18,
+                ElfRelocationType::X86_64_TLSGD => 19,
+                ElfRelocationType::X86_64_TLSLD => 20,
+                ElfRelocationType::X86_64_DTPOff32 => 21,
+                ElfRelocationType::X86_64_GOTTPOff => 22,
+                ElfRelocationType::X86_64_TPOff32 => 23,
+                ElfRelocationType::X86_64_PC64 => 24,
+                ElfRelocationType::X86_64_GOTOff64 => 25,
+                ElfRelocationType::X86_64_GOTPC32 => 26,
+                ElfRelocationType::X86_64_Size32 => 32,
+                ElfRelocationType::X86_64_Size64 => 33,
+                ElfRelocationType::X86_64_GOTPC32_TLSDesc => 34,
+                ElfRelocationType::X86_64_TLSDescCall => 35,
+                ElfRelocationType::X86_64_TLSDesc => 36,
+                ElfRelocationType::X86_64_IRelative => 37,
+                ElfRelocationType::Unknown(other) => other as u64,
+            };
+            let symbol = symbol_table
+                .symbols
+                .keys()
+                .position(|id| *id == relocation.symbol)
+                .ok_or_else(|| WriteError::MissingSymbolInRelocation {
+                    symbol_id: relocation.symbol.clone(),
+                    relocations_table: id.clone(),
+                    relocation_idx: idx,
+                })? as u64;
+            let info = match self.object.env.class {
+                ElfClass::Elf32 => relocation_type | (symbol << 8),
+                ElfClass::Elf64 => relocation_type | (symbol << 32),
+            };
+
+            if rela {
+                self.write_raw(RawRela {
+                    offset: relocation.offset,
+                    info,
+                    addend: relocation.addend.expect("rela relocation without addend"),
+                })?;
+            } else {
+                self.write_raw(RawRel {
+                    offset: relocation.offset,
+                    info,
+                })?;
             }
         }
-
-        // TODO
 
         Ok(())
     }
 
-    fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError> {
+    fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError<I>> {
         let metadata = self.layout.metadata(part);
         let padding = vec![0; metadata.len as usize];
         self.writer.write_all(&padding)?;
         Ok(())
     }
 
-    fn find_section_names_string_table(&self) -> Result<u16, WriteError> {
+    fn find_section_names_string_table(&self) -> Result<u16, WriteError<I>> {
         let section_ids_to_indices = self
             .object
             .sections
@@ -331,7 +425,7 @@ where
         T::size(self.object.env.class) as _
     }
 
-    fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError> {
+    fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError<I>> {
         value.write(self.object.env.class, self.writer)?;
         Ok(())
     }

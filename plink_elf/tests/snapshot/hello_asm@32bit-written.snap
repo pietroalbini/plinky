@@ -1,0 +1,204 @@
+---
+source: plink_elf/tests/snapshot.rs
+---
+ElfObject {
+    env: ElfEnvironment {
+        class: Elf32,
+        endian: Little,
+        abi: SystemV,
+        machine: X86,
+    },
+    type_: Relocatable,
+    entry: None,
+    flags: 0x0,
+    sections: {
+        "#0 ": ElfSection {
+            name: "",
+            memory_address: 0x0,
+            content: Null,
+        },
+        "#1 .data": ElfSection {
+            name: ".data",
+            memory_address: 0x0,
+            content: Program(
+                ElfProgramSection {
+                    perms: ElfPermissions(RW),
+                    raw: RawBytes {
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1c)
+                           +-------------------------------------------------+
+                        0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a 47 6f 6f | Hello world!.Goo
+                        1? | 64 62 79 65 20 77 6f 72 6c 64 21 0a             | dbye world!.
+                    },
+                },
+            ),
+        },
+        "#2 .text": ElfSection {
+            name: ".text",
+            memory_address: 0x0,
+            content: Program(
+                ElfProgramSection {
+                    perms: ElfPermissions(RX),
+                    raw: RawBytes {
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x35)
+                           +-------------------------------------------------+
+                        0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
+                        1? | 0d 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
+                        2? | b9 0d 00 00 00 ba 0f 00 00 00 cd 80 b0 01 bb 00 | ................
+                        3? | 00 00 00 cd 80                                  | .....
+                    },
+                },
+            ),
+        },
+        "#3 .shstrtab": ElfSection {
+            name: ".shstrtab",
+            memory_address: 0x0,
+            content: StringTable(
+                ElfStringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: ".data",
+                        0x7: ".text",
+                        0xd: ".shstrtab",
+                        0x17: ".symtab",
+                        0x1f: ".strtab",
+                        0x27: ".rel.text",
+                    },
+                },
+            ),
+        },
+        "#4 .symtab": ElfSection {
+            name: ".symtab",
+            memory_address: 0x0,
+            content: SymbolTable(
+                ElfSymbolTable {
+                    symbols: {
+                        "#0 <empty>": ElfSymbol {
+                            name: "",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Undefined,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#1 tests/snapshot/hello_asm.S": ElfSymbol {
+                            name: "tests/snapshot/hello_asm.S",
+                            binding: Local,
+                            type_: File,
+                            definition: Absolute,
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#2 <empty>": ElfSymbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#1 .data",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#3 <empty>": ElfSymbol {
+                            name: "",
+                            binding: Local,
+                            type_: Section,
+                            definition: Section(
+                                "#2 .text",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#4 msg_hello": ElfSymbol {
+                            name: "msg_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                "#1 .data",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                        "#5 len_hello": ElfSymbol {
+                            name: "len_hello",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        "#6 msg_goodbye": ElfSymbol {
+                            name: "msg_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                "#1 .data",
+                            ),
+                            value: 0xd,
+                            size: 0x0,
+                        },
+                        "#7 len_goodbye": ElfSymbol {
+                            name: "len_goodbye",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Absolute,
+                            value: 0xf,
+                            size: 0x0,
+                        },
+                        "#8 _start": ElfSymbol {
+                            name: "_start",
+                            binding: Global,
+                            type_: NoType,
+                            definition: Section(
+                                "#2 .text",
+                            ),
+                            value: 0x0,
+                            size: 0x0,
+                        },
+                    },
+                },
+            ),
+        },
+        "#5 .strtab": ElfSection {
+            name: ".strtab",
+            memory_address: 0x0,
+            content: StringTable(
+                ElfStringTable {
+                    strings: {
+                        0x0: "",
+                        0x1: "tests/snapshot/hello_asm.S",
+                        0x1c: "msg_hello",
+                        0x26: "len_hello",
+                        0x30: "msg_goodbye",
+                        0x3c: "len_goodbye",
+                        0x48: "_start",
+                    },
+                },
+            ),
+        },
+        "#6 .rel.text": ElfSection {
+            name: ".rel.text",
+            memory_address: 0x0,
+            content: RelocationsTable(
+                ElfRelocationsTable {
+                    symbol_table: "#4 .symtab",
+                    applies_to_section: "#2 .text",
+                    relocations: [
+                        ElfRelocation {
+                            offset: 0xb,
+                            symbol: "#2 <empty>",
+                            relocation_type: X86_32,
+                            addend: None,
+                        },
+                        ElfRelocation {
+                            offset: 0x21,
+                            symbol: "#2 <empty>",
+                            relocation_type: X86_32,
+                            addend: None,
+                        },
+                    ],
+                },
+            ),
+        },
+    },
+    segments: [],
+}

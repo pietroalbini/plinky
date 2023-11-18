@@ -111,37 +111,37 @@ where
 
     fn write_section_headers(&mut self) -> Result<(), WriteError<I>> {
         for (id, section) in &self.object.sections {
-            if let ElfSectionContent::Null = section.content {
-                self.write_raw(RawSectionHeader::zero())?;
-                continue;
-            }
+            let type_ = match &section.content {
+                ElfSectionContent::Null => {
+                    self.write_raw(RawSectionHeader::zero())?;
+                    continue;
+                }
+                ElfSectionContent::Program(_) => 1,
+                ElfSectionContent::SymbolTable(_) => 2,
+                ElfSectionContent::StringTable(_) => 3,
+                ElfSectionContent::Note(_) => todo!(),
+                ElfSectionContent::Unknown(_) => panic!("unknown section"),
+                ElfSectionContent::RelocationsTable(_) => self
+                    .layout
+                    .parts()
+                    .iter()
+                    .filter_map(|part| match part {
+                        Part::RelocationsTable { id: part_id, rela } if part_id == id => {
+                            Some(match *rela {
+                                true => 4,
+                                false => 9,
+                            })
+                        }
+                        _ => None,
+                    })
+                    .next()
+                    .expect("relocations table not in layout"),
+            };
 
             let metadata = self.layout.metadata_of_section(id);
             self.write_raw(RawSectionHeader {
                 name_offset: section.name.offset(),
-                type_: match &section.content {
-                    ElfSectionContent::Null => unreachable!(),
-                    ElfSectionContent::Program(_) => 1,
-                    ElfSectionContent::SymbolTable(_) => 2,
-                    ElfSectionContent::StringTable(_) => 3,
-                    ElfSectionContent::RelocationsTable(_) => self
-                        .layout
-                        .parts()
-                        .iter()
-                        .filter_map(|part| match part {
-                            Part::RelocationsTable { id: part_id, rela } if part_id == id => {
-                                Some(match *rela {
-                                    true => 4,
-                                    false => 9,
-                                })
-                            }
-                            _ => None,
-                        })
-                        .next()
-                        .expect("relocations table not in layout"),
-                    ElfSectionContent::Note(_) => todo!(),
-                    ElfSectionContent::Unknown(_) => panic!("unknown section"),
-                },
+                type_,
                 flags: match &section.content {
                     ElfSectionContent::Program(program) => {
                         (program.perms.write as u64)

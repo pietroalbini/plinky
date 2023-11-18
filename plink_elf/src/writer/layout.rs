@@ -47,6 +47,9 @@ impl<I: ElfIds> WriteLayout<I> {
                     deferred_program_sections
                         .push((Part::ProgramSection(id.clone()), program.raw.len()));
                 }
+                ElfSectionContent::Uninitialized(_) => {
+                    // Uninitialized sections are not part of the file layout.
+                }
                 ElfSectionContent::SymbolTable(table) => layout.add_part(
                     Part::SymbolTable(id.clone()),
                     RawSymbol::size(layout.class) * table.symbols.len(),

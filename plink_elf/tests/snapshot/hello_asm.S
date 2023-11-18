@@ -6,6 +6,9 @@ section .data
     msg_goodbye: db "Goodbye world!",0x0A
     len_goodbye: equ $-msg_goodbye
 
+section .bss
+    uninit: resb 8
+
 section .text
 _start:
     ; write(1, "Hello world\n", $len_goodbye)

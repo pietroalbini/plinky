@@ -51,7 +51,17 @@ ElfObject {
                 },
             ),
         },
-        "#3 .symtab": ElfSection {
+        "#3 .bss": ElfSection {
+            name: ".bss",
+            memory_address: 0x804a01c,
+            content: Uninitialized(
+                ElfUninitializedSection {
+                    perms: ElfPermissions(RW),
+                    len: 0x8,
+                },
+            ),
+        },
+        "#4 .symtab": ElfSection {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
@@ -109,7 +119,17 @@ ElfObject {
                             value: 0xf,
                             size: 0x0,
                         },
-                        "#06 _start": ElfSymbol {
+                        "#06 uninit": ElfSymbol {
+                            name: "uninit",
+                            binding: Local,
+                            type_: NoType,
+                            definition: Section(
+                                "#3 .bss",
+                            ),
+                            value: 0x804a01c,
+                            size: 0x0,
+                        },
+                        "#07 _start": ElfSymbol {
                             name: "_start",
                             binding: Global,
                             type_: NoType,
@@ -119,17 +139,17 @@ ElfObject {
                             value: 0x8049000,
                             size: 0x0,
                         },
-                        "#07 __bss_start": ElfSymbol {
+                        "#08 __bss_start": ElfSymbol {
                             name: "__bss_start",
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                "#2 .data",
+                                "#3 .bss",
                             ),
                             value: 0x804a01c,
                             size: 0x0,
                         },
-                        "#08 _edata": ElfSymbol {
+                        "#09 _edata": ElfSymbol {
                             name: "_edata",
                             binding: Global,
                             type_: NoType,
@@ -139,21 +159,21 @@ ElfObject {
                             value: 0x804a01c,
                             size: 0x0,
                         },
-                        "#09 _end": ElfSymbol {
+                        "#10 _end": ElfSymbol {
                             name: "_end",
                             binding: Global,
                             type_: NoType,
                             definition: Section(
-                                "#2 .data",
+                                "#3 .bss",
                             ),
-                            value: 0x804a01c,
+                            value: 0x804a024,
                             size: 0x0,
                         },
                     },
                 },
             ),
         },
-        "#4 .strtab": ElfSection {
+        "#5 .strtab": ElfSection {
             name: ".strtab",
             memory_address: 0x0,
             content: StringTable(
@@ -165,14 +185,15 @@ ElfObject {
                         0x26: "len_hello",
                         0x30: "msg_goodbye",
                         0x3c: "len_goodbye",
-                        0x48: "__bss_start",
-                        0x54: "_edata",
-                        0x5b: "_end",
+                        0x48: "uninit",
+                        0x4f: "__bss_start",
+                        0x5b: "_edata",
+                        0x62: "_end",
                     },
                 },
             ),
         },
-        "#5 .shstrtab": ElfSection {
+        "#6 .shstrtab": ElfSection {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
@@ -184,6 +205,7 @@ ElfObject {
                         0x11: ".shstrtab",
                         0x1b: ".text",
                         0x21: ".data",
+                        0x27: ".bss",
                     },
                 },
             ),

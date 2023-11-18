@@ -8,7 +8,7 @@ use crate::{
     ElfClass, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType,
     ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent, ElfStringTable,
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
-    ElfUnknownSection, RawBytes,
+    ElfUninitializedSection, ElfUnknownSection, RawBytes,
 };
 use std::collections::BTreeMap;
 
@@ -48,6 +48,21 @@ fn read_section(
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
     let header: RawSectionHeader = cursor.read_raw()?;
+
+    if header.type_ == 8 {
+        return Ok(ElfSection {
+            name: PendingStringId(section_names_table, header.name_offset),
+            memory_address: header.memory_address,
+            content: ElfSectionContent::Uninitialized(ElfUninitializedSection {
+                perms: ElfPermissions {
+                    read: header.flags & 0x1 > 0,
+                    write: header.flags & 0x2 > 0,
+                    execute: header.flags & 0x4 > 0,
+                },
+                len: header.size,
+            }),
+        });
+    }
 
     cursor.seek_to(header.offset)?;
     let raw_content = cursor.read_vec(header.size)?;

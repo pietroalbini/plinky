@@ -93,6 +93,7 @@ pub struct ElfSection<I: ElfIds> {
 pub enum ElfSectionContent<I: ElfIds> {
     Null,
     Program(ElfProgramSection),
+    Uninitialized(ElfUninitializedSection),
     SymbolTable(ElfSymbolTable<I>),
     StringTable(ElfStringTable),
     RelocationsTable(ElfRelocationsTable<I>),
@@ -104,6 +105,12 @@ pub enum ElfSectionContent<I: ElfIds> {
 pub struct ElfProgramSection {
     pub perms: ElfPermissions,
     pub raw: RawBytes,
+}
+
+#[derive(Debug)]
+pub struct ElfUninitializedSection {
+    pub perms: ElfPermissions,
+    pub len: u64,
 }
 
 #[derive(Debug)]

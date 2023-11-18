@@ -44,6 +44,7 @@ impl Object<()> {
                 ElfSectionContent::Program(program) => {
                     program_sections.push((section_id, section.name, program))
                 }
+                ElfSectionContent::Uninitialized(_) => todo!(),
                 ElfSectionContent::SymbolTable(table) => symbol_tables.push(table),
                 ElfSectionContent::StringTable(table) => self.strings.load_table(section_id, table),
                 ElfSectionContent::RelocationsTable(table) => {

@@ -103,10 +103,10 @@ ElfObject {
         "#05 .bss": ElfSection {
             name: ".bss",
             memory_address: 0x0,
-            content: Unknown(
-                ElfUnknownSection {
-                    id: 0x8,
-                    raw: RawBytes {},
+            content: Uninitialized(
+                ElfUninitializedSection {
+                    perms: ElfPermissions(RW),
+                    len: 0x0,
                 },
             ),
         },

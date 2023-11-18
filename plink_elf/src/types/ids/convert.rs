@@ -79,6 +79,9 @@ where
                         content: match section.content {
                             ElfSectionContent::Null => ElfSectionContent::Null,
                             ElfSectionContent::Program(p) => ElfSectionContent::Program(p),
+                            ElfSectionContent::Uninitialized(u) => {
+                                ElfSectionContent::Uninitialized(u)
+                            }
                             ElfSectionContent::SymbolTable(table) => {
                                 ElfSectionContent::SymbolTable(ElfSymbolTable {
                                     symbols: table

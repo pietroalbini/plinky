@@ -10,9 +10,9 @@ use crate::raw::{
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
-    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfRelocationType, ElfSectionContent,
-    ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType,
-    ElfType,
+    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfRelocationType,
+    ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition,
+    ElfSymbolType, ElfType,
 };
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -116,6 +116,23 @@ where
                     self.write_raw(RawSectionHeader::zero())?;
                     continue;
                 }
+
+                ElfSectionContent::Uninitialized(uninit) => {
+                    self.write_raw(RawSectionHeader {
+                        name_offset: section.name.offset(),
+                        type_: 8,
+                        flags: self.perms_to_section_flags(&uninit.perms),
+                        memory_address: section.memory_address,
+                        offset: 0,
+                        size: uninit.len,
+                        link: 0,
+                        info: 0,
+                        addr_align: 0x1,
+                        entries_size: 0,
+                    })?;
+                    continue;
+                }
+
                 ElfSectionContent::Program(_) => 1,
                 ElfSectionContent::SymbolTable(_) => 2,
                 ElfSectionContent::StringTable(_) => 3,
@@ -143,11 +160,7 @@ where
                 name_offset: section.name.offset(),
                 type_,
                 flags: match &section.content {
-                    ElfSectionContent::Program(program) => {
-                        (program.perms.write as u64)
-                            | (program.perms.read as u64) << 1
-                            | (program.perms.execute as u64) << 2
-                    }
+                    ElfSectionContent::Program(p) => self.perms_to_section_flags(&p.perms),
                     _ => 0,
                 },
                 memory_address: section.memory_address,
@@ -419,6 +432,10 @@ where
             .keys()
             .position(|k| k == id)
             .expect("inconsistent section id")
+    }
+
+    fn perms_to_section_flags(&self, perms: &ElfPermissions) -> u64 {
+        (perms.write as u64) | (perms.read as u64) << 1 | (perms.execute as u64) << 2
     }
 
     fn raw_type_size<T: RawType>(&self) -> u16 {

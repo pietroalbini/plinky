@@ -45,23 +45,23 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
                     match &variant.data {
                         EnumVariantData::None => {}
                         EnumVariantData::TupleLike(fields) => {
-                            output.push_str("(");
+                            output.push('(');
                             for (idx, field) in fields.iter().enumerate() {
                                 let name = format!("field{}", idx);
                                 output.push_str(&name);
-                                output.push_str(",");
+                                output.push(',');
                                 maybe_set_source(&mut source, &name, &field.attrs)?;
                             }
-                            output.push_str(")");
+                            output.push(')');
                         }
                         EnumVariantData::StructLike(fields) => {
-                            output.push_str("{");
+                            output.push('{');
                             for field in fields {
                                 output.push_str(&field.name);
-                                output.push_str(",");
+                                output.push(',');
                                 maybe_set_source(&mut source, &field.name, &field.attrs)?;
                             }
-                            output.push_str("}");
+                            output.push('}');
                         }
                     }
                     output.push_str(" => ");
@@ -69,12 +69,12 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
                         Some(source) => output.push_str(&format!("Some({source})")),
                         None => output.push_str("None"),
                     }
-                    output.push_str(",");
+                    output.push(',');
                 }
-                output.push_str("}");
+                output.push('}');
             }
         }
-        output.push_str("}");
+        output.push('}');
         Ok(())
     })
 }
@@ -126,7 +126,7 @@ fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
                     .collect::<Vec<_>>(),
             };
 
-            generate_from_impl(output, &item, &struct_.name, struct_.span, &fields)?;
+            generate_from_impl(output, item, &struct_.name, struct_.span, &fields)?;
         }
         Item::Enum(enum_) => {
             for variant in &enum_.variants {
@@ -193,7 +193,7 @@ fn generate_from_impl(
             "{constructor}{}{}{}",
             field.open_assign, field.field, field.close_assign
         ));
-        output.push_str("}");
+        output.push('}');
         Ok(())
     })
 }

@@ -14,3 +14,6 @@ insta = "1.30.0"
 serde = { version = "1.0.190", features = ["derive"] }
 tempfile = "3.8.1"
 toml = "0.8.6"
+
+[lints]
+workspace = true

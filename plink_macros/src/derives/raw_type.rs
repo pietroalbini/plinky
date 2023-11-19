@@ -33,7 +33,7 @@ fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
 
 fn fn_size(output: &mut String, fields: &[Field<'_>]) {
     output.push_str("fn size(class: ElfClass) -> usize {\n");
-    output.push_str("0");
+    output.push('0');
     for field in fields {
         output.push_str(&format!(
             " + <{} as {}>::size(class)",
@@ -61,13 +61,13 @@ fn fn_read(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) 
         for (class, fields) in [("Elf32", fields32), ("Elf64", fields64)] {
             output.push_str(&format!("ElfClass::{class} => {{"));
             render(output, fields);
-            output.push_str("}");
+            output.push('}');
         }
-        output.push_str("}");
+        output.push('}');
     } else {
         render(output, fields32);
     }
-    output.push_str("}");
+    output.push('}');
 }
 
 fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) {
@@ -88,9 +88,9 @@ fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>])
         for (class, fields) in [("Elf32", fields32), ("Elf64", fields64)] {
             output.push_str(&format!("ElfClass::{class} => {{"));
             render(output, fields);
-            output.push_str("}");
+            output.push('}');
         }
-        output.push_str("}");
+        output.push('}');
     } else {
         render(output, fields32);
     }

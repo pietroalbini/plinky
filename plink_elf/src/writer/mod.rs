@@ -44,7 +44,7 @@ where
     }
 
     pub(crate) fn write(mut self) -> Result<(), WriteError<I>> {
-        let parts = self.layout.parts().iter().cloned().collect::<Vec<_>>();
+        let parts = self.layout.parts().to_vec();
         for part in &parts {
             match part {
                 Part::Identification => self.write_identification()?,

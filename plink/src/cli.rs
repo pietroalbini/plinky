@@ -121,7 +121,7 @@ enum CliToken<'a> {
 impl std::fmt::Display for CliToken<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CliToken::StandaloneValue(v) | CliToken::FlagValue(v) => f.write_str(*v),
+            CliToken::StandaloneValue(v) | CliToken::FlagValue(v) => f.write_str(v),
             CliToken::ShortFlag(flag) => write!(f, "-{flag}"),
             CliToken::LongFlag(flag) => write!(f, "--{flag}"),
         }
@@ -179,7 +179,7 @@ impl<'a> Iterator for CliLexer<'a> {
                 }
             }
 
-            if let Some(option) = token.strip_prefix("-") {
+            if let Some(option) = token.strip_prefix('-') {
                 if option.len() == 1 {
                     return Some(CliToken::ShortFlag(option));
                 } else {
@@ -276,7 +276,7 @@ mod tests {
                     output: "bar".into(),
                     ..default_options()
                 }),
-                parse(flags.into_iter().copied())
+                parse(flags.iter().copied())
             );
         }
     }
@@ -293,7 +293,7 @@ mod tests {
         for (duplicate, flags) in VARIANTS {
             assert_eq!(
                 Err(CliError::DuplicateFlag((*duplicate).into())),
-                parse(flags.into_iter().copied())
+                parse(flags.iter().copied())
             );
         }
     }
@@ -314,7 +314,7 @@ mod tests {
                     entry: "bar".into(),
                     ..default_options()
                 }),
-                parse(flags.into_iter().copied())
+                parse(flags.iter().copied())
             );
         }
     }
@@ -331,7 +331,7 @@ mod tests {
         for (duplicate, flags) in VARIANTS {
             assert_eq!(
                 Err(CliError::DuplicateFlag((*duplicate).into())),
-                parse(flags.into_iter().copied())
+                parse(flags.iter().copied())
             );
         }
     }
@@ -349,7 +349,7 @@ mod tests {
                     debug_print: Some(*expected),
                     ..default_options()
                 }),
-                parse(flags.into_iter().copied())
+                parse(flags.iter().copied())
             )
         }
     }

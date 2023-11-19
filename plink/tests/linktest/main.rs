@@ -80,7 +80,7 @@ impl TestExecution<'_> {
 
     fn link_and_snapshot(&self) -> Result<bool, Error> {
         for debug_print in &self.settings.debug_print {
-            let outcome = self.link_and_snapshot_inner(Some(&debug_print))?;
+            let outcome = self.link_and_snapshot_inner(Some(debug_print))?;
             if !outcome {
                 anyhow::bail!("debug printing {debug_print} failed, but should always succeed");
             }
@@ -163,7 +163,7 @@ impl TestExecution<'_> {
                     if content.is_empty() {
                         output_repr.push_str(&format!("\nno {name} present\n"));
                     } else {
-                        let content = String::from_utf8_lossy(&content);
+                        let content = String::from_utf8_lossy(content);
                         let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
 
                         output_repr.push_str(&format!("\n=== {name} ===\n{}\n", content,));

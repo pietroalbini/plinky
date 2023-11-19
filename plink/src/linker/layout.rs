@@ -33,7 +33,7 @@ impl<'a> LayoutCalculator<'a> {
             .map_err(|e| LayoutCalculatorError::MissingSectionName(id, e))?;
         self.sections
             .entry(name.into())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(SectionToLayout { id, len, perms });
         Ok(())
     }

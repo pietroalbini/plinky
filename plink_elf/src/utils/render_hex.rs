@@ -40,9 +40,7 @@ pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> s
     if !pending_as_ascii.is_empty() {
         if multiline {
             f.write_str(
-                &std::iter::repeat("   ")
-                    .take(BYTES_PER_COLUMN - pending_as_ascii.len())
-                    .collect::<String>(),
+                &"   ".repeat(BYTES_PER_COLUMN - pending_as_ascii.len()),
             )?;
         }
         render_ascii(f, &mut pending_as_ascii)?;

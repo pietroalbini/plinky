@@ -13,7 +13,7 @@ impl ElfStringTable {
     pub fn get(&self, offset: u32) -> Option<&str> {
         if let Some(string) = self.strings.get(&offset) {
             // Simple case: the offset starts at the beginning of the string.
-            Some(&*string)
+            Some(string)
         } else if let Some((&prev_offset, prev_string)) = self.strings.range(..offset).last() {
             // Some compilers perform an optimization when a string is a suffix of another string,
             // and return an offset inside the existing string.

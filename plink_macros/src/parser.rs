@@ -410,7 +410,7 @@ impl Parser {
                 self.within_stream(group.stream(), |this| f(this))
             }
             other => {
-                return Err(Error::new("expected group delimited by braces").span(other.span()));
+                Err(Error::new("expected group delimited by braces").span(other.span()))
             }
         }
     }

@@ -180,7 +180,7 @@ impl Object<SectionLayout> {
             .collect()
     }
 
-    fn section_layouts<'a>(&'a self) -> impl Iterator<Item = (SectionId, &'a SectionLayout)> {
+    fn section_layouts(&self) -> impl Iterator<Item = (SectionId, &'_ SectionLayout)> {
         self.sections
             .iter()
             .map(|(id, section)| (*id, &section.layout))

@@ -40,7 +40,7 @@ impl<'a> ReadCursor<'a> {
     }
 
     pub(super) fn current_position(&mut self) -> Result<u64, LoadError> {
-        Ok(self.reader.seek(SeekFrom::Current(0))?)
+        Ok(self.reader.stream_position()?)
     }
 
     pub(super) fn duplicate<'new>(

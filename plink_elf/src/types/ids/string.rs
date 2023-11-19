@@ -59,25 +59,22 @@ where
                 ),
             );
 
-            match &section.content {
-                ElfSectionContent::SymbolTable(table) => {
-                    for (i, (id, symbol)) in table.symbols.iter().enumerate() {
-                        let symbol_name = map.string_ids.get(&symbol.name).unwrap().to_string();
-                        map.symbol_ids.insert(
-                            id.clone(),
-                            format!(
-                                "{} {}",
-                                format_number(i, table.symbols.len()),
-                                if symbol_name.is_empty() {
-                                    "<empty>"
-                                } else {
-                                    &symbol_name
-                                }
-                            ),
-                        );
-                    }
+            if let ElfSectionContent::SymbolTable(table) = &section.content {
+                for (i, (id, symbol)) in table.symbols.iter().enumerate() {
+                    let symbol_name = map.string_ids.get(&symbol.name).unwrap().to_string();
+                    map.symbol_ids.insert(
+                        id.clone(),
+                        format!(
+                            "{} {}",
+                            format_number(i, table.symbols.len()),
+                            if symbol_name.is_empty() {
+                                "<empty>"
+                            } else {
+                                &symbol_name
+                            }
+                        ),
+                    );
                 }
-                _ => {}
             }
         }
 

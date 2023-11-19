@@ -74,13 +74,10 @@ where
             map.section_ids
                 .insert(old_id.clone(), self.allocate_section_id());
 
-            match &section.content {
-                ElfSectionContent::SymbolTable(table) => {
-                    for (id, _) in &table.symbols {
-                        map.symbol_ids.insert(id.clone(), self.allocate_symbol_id());
-                    }
+            if let ElfSectionContent::SymbolTable(table) = &section.content {
+                for id in table.symbols.keys() {
+                    map.symbol_ids.insert(id.clone(), self.allocate_symbol_id());
                 }
-                _ => {}
             }
         }
 

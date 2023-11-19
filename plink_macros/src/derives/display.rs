@@ -8,8 +8,8 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let mut output = String::new();
 
     match &item {
-        Item::Struct(struct_) => generate_struct_impl(&mut output, &item, &struct_)?,
-        Item::Enum(enum_) => generate_enum_impl(&mut output, &item, &enum_)?,
+        Item::Struct(struct_) => generate_struct_impl(&mut output, &item, struct_)?,
+        Item::Enum(enum_) => generate_enum_impl(&mut output, &item, enum_)?,
     }
 
     Ok(output.parse().unwrap())
@@ -35,7 +35,7 @@ fn generate_struct_impl(output: &mut String, item: &Item, struct_: &Struct) -> R
         }
         generate_writeln(output, &struct_.attrs, struct_.span)?;
 
-        output.push_str("}");
+        output.push('}');
         Ok(())
     })
 }
@@ -46,7 +46,7 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
         let name = &variant.name;
         match &variant.data {
             EnumVariantData::None => {
-                match_arms.push((format!("{name}"), &variant.attrs, variant.span))
+                match_arms.push((name.to_string(), &variant.attrs, variant.span))
             }
             EnumVariantData::TupleLike(fields) => {
                 let fields = (0..fields.len())
@@ -79,7 +79,7 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
             output.push_str(&variant);
             output.push_str(" => ");
             generate_writeln(output, attrs, span)?;
-            output.push_str(",");
+            output.push(',');
         }
         output.push_str("}}");
 

@@ -1,12 +1,12 @@
 mod prerequisites;
 mod utils;
 
+use crate::prerequisites::Prerequisites;
 use anyhow::{anyhow, bail, Error};
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
-use crate::prerequisites::Prerequisites;
 
 struct Test {
     name: &'static str,
@@ -176,7 +176,7 @@ struct TestSettings {
     prerequisites: Prerequisites,
 }
 
-#[derive(serde::Deserialize, Clone, Copy)]
+#[derive(serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 enum TestArch {
     X86,

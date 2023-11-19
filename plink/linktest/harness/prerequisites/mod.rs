@@ -3,8 +3,9 @@ mod c;
 
 use crate::prerequisites::asm::AsmFile;
 use crate::prerequisites::c::CFile;
-use crate::TestExecution;
+use crate::{TestArch, TestExecution};
 use anyhow::Error;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 #[derive(serde::Deserialize)]
@@ -14,6 +15,8 @@ pub(crate) struct Prerequisites {
     asm: Vec<AsmFile>,
     #[serde(default)]
     c: Vec<CFile>,
+    #[serde(default)]
+    arch: BTreeMap<TestArch, Prerequisites>,
 }
 
 impl Prerequisites {
@@ -23,6 +26,9 @@ impl Prerequisites {
         }
         for c in &self.c {
             c.build(execution, dest_dir)?;
+        }
+        if let Some(arch_specific) = self.arch.get(&execution.arch) {
+            arch_specific.build(execution, dest_dir)?;
         }
         Ok(())
     }

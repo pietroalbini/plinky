@@ -1,8 +1,12 @@
+mod prerequisites;
+mod utils;
+
 use anyhow::{anyhow, bail, Error};
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
+use crate::prerequisites::Prerequisites;
 
 struct Test {
     name: &'static str,
@@ -46,10 +50,7 @@ struct TestExecution<'a> {
 
 impl TestExecution<'_> {
     fn run(self) -> Result<(), Error> {
-        for asm in &self.settings.asm {
-            self.compile_asm(asm)?;
-        }
-
+        self.settings.prerequisites.build(&self, self.root)?;
         match self.settings.kind {
             TestKind::LinkFail => self.run_link_fail(),
             TestKind::RunFail => self.run_run_fail(),
@@ -112,41 +113,6 @@ impl TestExecution<'_> {
         self.record_snapshot("linker", "linking", &mut command, debug_print)
     }
 
-    fn compile_asm(&self, asm: &AsmFile) -> Result<(), Error> {
-        let source = self
-            .test
-            .files
-            .get(&*asm.source)
-            .ok_or_else(|| anyhow!("missing {}", asm.source))?;
-
-        let dest_name = match &asm.output {
-            Some(output) => output.clone(),
-            None => format!(
-                "{}.o",
-                asm.source
-                    .rsplit_once('.')
-                    .map(|(name, _ext)| name)
-                    .unwrap_or(&asm.source)
-            ),
-        };
-
-        std::fs::write(self.root.join(&asm.source), source)?;
-
-        eprintln!("compiling {} into {dest_name}...", asm.source);
-        run(Command::new("nasm")
-            .current_dir(self.root)
-            .arg("-f")
-            .arg(match (&asm.format, self.arch) {
-                (Some(AsmFormat::Elf32), _) | (None, TestArch::X86) => "elf32",
-                (Some(AsmFormat::Elf64), _) | (None, TestArch::X86_64) => "elf64",
-            })
-            .arg("-o")
-            .arg(&dest_name)
-            .arg(&asm.source))?;
-
-        Ok(())
-    }
-
     fn record_snapshot(
         &self,
         snapshot_name: &str,
@@ -206,8 +172,8 @@ struct TestSettings {
     archs: Vec<TestArch>,
     #[serde(default)]
     debug_print: Vec<String>,
-    #[serde(default)]
-    asm: Vec<AsmFile>,
+    #[serde(flatten)]
+    prerequisites: Prerequisites,
 }
 
 #[derive(serde::Deserialize, Clone, Copy)]
@@ -227,39 +193,6 @@ enum TestKind {
     LinkFail,
     RunFail,
     RunPass,
-}
-
-#[derive(serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AsmFile {
-    source: String,
-    #[serde(default)]
-    format: Option<AsmFormat>,
-    output: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-enum AsmFormat {
-    Elf32,
-    Elf64,
-}
-
-fn run(command: &mut Command) -> Result<(), Error> {
-    let cmd_repr = format!("{command:?}");
-    let output = command.output()?;
-    if !output.status.success() {
-        eprintln!("Failed to execute {cmd_repr}");
-        eprintln!();
-        eprintln!("=== stdout ===");
-        eprintln!("{}", String::from_utf8_lossy(&output.stdout));
-        eprintln!();
-        eprintln!("=== stderr ===");
-        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-        eprintln!();
-        bail!("command failed with exit {}", output.status);
-    }
-    Ok(())
 }
 
 macro_rules! linktest {

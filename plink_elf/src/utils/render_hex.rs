@@ -39,9 +39,7 @@ pub(crate) fn render_hex(f: &mut Formatter<'_>, prefix: &str, bytes: &[u8]) -> s
     // Handle remaining bytes by filling in whitespace and rendering that.
     if !pending_as_ascii.is_empty() {
         if multiline {
-            f.write_str(
-                &"   ".repeat(BYTES_PER_COLUMN - pending_as_ascii.len()),
-            )?;
+            f.write_str(&"   ".repeat(BYTES_PER_COLUMN - pending_as_ascii.len()))?;
         }
         render_ascii(f, &mut pending_as_ascii)?;
     }

@@ -7,6 +7,6 @@ no stdout present
 
 === stderr ===
 error: failed to load ELF object at hello.o
-caused by: unknown sections are not supported
+caused by: unknown section with type 0x11 is not supported
 
 

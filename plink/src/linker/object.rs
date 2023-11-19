@@ -7,9 +7,8 @@ use plink_elf::{
     ElfEndian, ElfObject, ElfPermissions, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
     RawBytes,
 };
-use plink_macros::Error;
+use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
-use std::fmt::Display;
 
 #[derive(Debug)]
 pub(super) struct Object<L> {
@@ -66,8 +65,8 @@ impl Object<()> {
                 ElfSectionContent::Note(_) => {
                     return Err(ObjectLoadError::UnsupportedNotesSection);
                 }
-                ElfSectionContent::Unknown(_) => {
-                    return Err(ObjectLoadError::UnsupportedUnknownSection);
+                ElfSectionContent::Unknown(unknown) => {
+                    return Err(ObjectLoadError::UnsupportedUnknownSection { id: unknown.id });
                 }
             }
         }
@@ -212,52 +211,26 @@ pub(super) struct UninitializedSection {
     pub(super) len: u64,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
 pub(crate) enum ObjectLoadError {
+    #[display("note sections are not supported")]
     UnsupportedNotesSection,
-    UnsupportedUnknownSection,
+    #[display("unknown section with type {id:#x?} is not supported")]
+    UnsupportedUnknownSection { id: u32 },
+    #[display("unknown symbol bindings are not supported")]
     UnsupportedUnknownSymbolBinding,
+    #[display("missing name for symbol {f0:?}")]
     MissingSymbolName(SymbolId, #[source] MissingStringError),
+    #[display("duplicate global symbol {f0}")]
     DuplicateGlobalSymbol(String),
 }
 
-impl Display for ObjectLoadError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ObjectLoadError::UnsupportedNotesSection => {
-                f.write_str("note sections are not supported")
-            }
-            ObjectLoadError::UnsupportedUnknownSection => {
-                f.write_str("unknown sections are not supported")
-            }
-            ObjectLoadError::UnsupportedUnknownSymbolBinding => {
-                f.write_str("unknown symbol bindings are not supported")
-            }
-            ObjectLoadError::MissingSymbolName(symbol_id, _) => {
-                write!(f, "missing name for symbol {symbol_id:?}")
-            }
-            ObjectLoadError::DuplicateGlobalSymbol(symbol) => {
-                write!(f, "duplicate global symbol {symbol}")
-            }
-        }
-    }
-}
-
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
 pub(crate) enum GetSymbolAddressError {
+    #[display("could not find the symbol")]
     Missing(#[from] MissingGlobalSymbol),
+    #[display("symbol {f0} is undefined")]
     Undefined(String),
+    #[display("symbol {f0} is not an address")]
     NotAnAddress(String),
-}
-
-impl Display for GetSymbolAddressError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GetSymbolAddressError::Missing(_) => f.write_str("could not find the symbol"),
-            GetSymbolAddressError::Undefined(name) => write!(f, "symbol {name} is undefined"),
-            GetSymbolAddressError::NotAnAddress(name) => {
-                write!(f, "symbol {name} is not an address")
-            }
-        }
-    }
 }

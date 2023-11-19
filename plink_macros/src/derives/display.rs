@@ -33,7 +33,7 @@ fn generate_struct_impl(output: &mut String, item: &Item, struct_: &Struct) -> R
         for (name, value) in &args {
             output.push_str(&format!("let {name} = {value};"));
         }
-        generate_writeln(output, &struct_.attrs, struct_.span)?;
+        generate_write(output, &struct_.attrs, struct_.span)?;
 
         output.push('}');
         Ok(())
@@ -78,7 +78,7 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
             output.push_str("::");
             output.push_str(&variant);
             output.push_str(" => ");
-            generate_writeln(output, attrs, span)?;
+            generate_write(output, attrs, span)?;
             output.push(',');
         }
         output.push_str("}}");
@@ -87,7 +87,7 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
     })
 }
 
-fn generate_writeln(output: &mut String, attrs: &[Attribute], span: Span) -> Result<(), Error> {
+fn generate_write(output: &mut String, attrs: &[Attribute], span: Span) -> Result<(), Error> {
     let mut format_str = None;
     for attr in attrs {
         let stripped = attr
@@ -105,6 +105,6 @@ fn generate_writeln(output: &mut String, attrs: &[Attribute], span: Span) -> Res
         return Err(Error::new("missing #[display] attribute").span(span));
     };
 
-    output.push_str(&format!("writeln!(f, \"{format_str}\")"));
+    output.push_str(&format!("write!(f, \"{format_str}\")"));
     Ok(())
 }

@@ -205,11 +205,18 @@ where
 
     fn write_program_headers(&mut self) -> Result<(), WriteError<I>> {
         for segment in &self.object.segments {
-            let (metadata, section) = match segment.content.as_slice() {
-                [ElfSegmentContent::Section(id)] => (
-                    self.layout.metadata_of_section(id),
-                    self.object.sections.get(id).unwrap(),
-                ),
+            let (file_offset, file_size, memory_size, section) = match segment.content.as_slice() {
+                [ElfSegmentContent::Section(id)] => {
+                    let section = self.object.sections.get(id).unwrap();
+                    match &section.content {
+                        ElfSectionContent::Program(_) => {
+                            let metadata = self.layout.metadata_of_section(id);
+                            (metadata.offset, metadata.len, metadata.len, section)
+                        }
+                        ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len, section),
+                        _ => todo!(),
+                    }
+                }
                 [ElfSegmentContent::Unknown(_)] => todo!(),
                 _ => todo!(),
             };
@@ -224,11 +231,11 @@ where
                     ElfSegmentType::ProgramHeaderTable => 5,
                     ElfSegmentType::Unknown(_) => panic!("unknown segment"),
                 },
-                file_offset: metadata.offset,
+                file_offset,
                 virtual_address: section.memory_address,
                 reserved: 0,
-                file_size: metadata.len,
-                memory_size: metadata.len,
+                file_size,
+                memory_size,
                 flags: (segment.perms.execute as u32)
                     | (segment.perms.write as u32) << 1
                     | (segment.perms.read as u32) << 2,

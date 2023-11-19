@@ -1,0 +1,6 @@
+cmd = ["bss.o"]
+kind = "run-pass"
+debug-print = ["layout", "final-elf"]
+
+[[asm]]
+source = "bss.S"

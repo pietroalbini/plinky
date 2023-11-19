@@ -1,5 +1,5 @@
 use crate::linker::layout::SectionLayout;
-use crate::linker::object::ProgramSection;
+use crate::linker::object::DataSection;
 use crate::linker::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
@@ -12,15 +12,12 @@ pub(super) struct Relocator<'a> {
 }
 
 impl<'a> Relocator<'a> {
-    pub(super) fn new(
-        sections: &BTreeMap<SectionId, ProgramSection<SectionLayout>>,
+    pub(super) fn new<'b>(
+        layouts: impl Iterator<Item = (SectionId, &'b SectionLayout)>,
         symbols: &'a Symbols,
     ) -> Self {
         Self {
-            section_addresses: sections
-                .iter()
-                .map(|(id, section)| (*id, section.layout.address))
-                .collect(),
+            section_addresses: layouts.map(|(id, layout)| (id, layout.address)).collect(),
             symbols,
         }
     }
@@ -28,10 +25,10 @@ impl<'a> Relocator<'a> {
     pub(super) fn relocate(
         &self,
         section_id: SectionId,
-        section: &mut ProgramSection<SectionLayout>,
+        data_section: &mut DataSection,
     ) -> Result<(), RelocationError> {
-        for relocation in section.relocations.drain(..) {
-            self.relocate_one(section_id, &relocation, &mut section.program.raw.0)?;
+        for relocation in data_section.relocations.drain(..) {
+            self.relocate_one(section_id, &relocation, &mut data_section.bytes.0)?;
         }
         Ok(())
     }
@@ -44,7 +41,9 @@ impl<'a> Relocator<'a> {
     ) -> Result<(), RelocationError> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.relocation_type {
-            ElfRelocationType::X86_64_32 | ElfRelocationType::X86_32 => {
+            ElfRelocationType::X86_64_32
+            | ElfRelocationType::X86_64_32S
+            | ElfRelocationType::X86_32 => {
                 editor.write_32(self.symbol(relocation)? + editor.addend_32())
             }
             ElfRelocationType::X86_64_PC32 | ElfRelocationType::X86_PC32 => {

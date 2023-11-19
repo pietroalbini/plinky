@@ -4,7 +4,8 @@ use crate::linker::strings::{MissingStringError, Strings};
 use crate::linker::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use plink_elf::{
-    ElfEndian, ElfObject, ElfProgramSection, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
+    ElfEndian, ElfObject, ElfPermissions, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
+    RawBytes,
 };
 use plink_macros::Error;
 use std::collections::BTreeMap;
@@ -13,7 +14,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub(super) struct Object<L> {
     endian: Option<ElfEndian>,
-    program_sections: BTreeMap<SectionId, ProgramSection<L>>,
+    sections: BTreeMap<SectionId, Section<L>>,
     strings: Strings,
     symbols: Symbols,
 }
@@ -22,7 +23,7 @@ impl Object<()> {
     pub(super) fn new() -> Self {
         Self {
             endian: None,
-            program_sections: BTreeMap::new(),
+            sections: BTreeMap::new(),
             strings: Strings::new(),
             symbols: Symbols::new(),
         }
@@ -44,7 +45,19 @@ impl Object<()> {
                 ElfSectionContent::Program(program) => {
                     program_sections.push((section_id, section.name, program))
                 }
-                ElfSectionContent::Uninitialized(_) => todo!(),
+                ElfSectionContent::Uninitialized(uninit) => {
+                    self.sections.insert(
+                        section_id,
+                        Section {
+                            name: section.name,
+                            perms: uninit.perms,
+                            content: SectionContent::Uninitialized(UninitializedSection {
+                                len: uninit.len,
+                            }),
+                            layout: (),
+                        },
+                    );
+                }
                 ElfSectionContent::SymbolTable(table) => symbol_tables.push(table),
                 ElfSectionContent::StringTable(table) => self.strings.load_table(section_id, table),
                 ElfSectionContent::RelocationsTable(table) => {
@@ -67,12 +80,15 @@ impl Object<()> {
 
         for (section_id, name, program) in program_sections {
             let relocations = relocations.remove(&section_id).unwrap_or_else(Vec::new);
-            self.program_sections.insert(
+            self.sections.insert(
                 section_id,
-                ProgramSection {
+                Section {
                     name,
-                    program,
-                    relocations,
+                    perms: program.perms,
+                    content: SectionContent::Data(DataSection {
+                        bytes: program.raw,
+                        relocations,
+                    }),
                     layout: (),
                 },
             );
@@ -85,28 +101,31 @@ impl Object<()> {
         self,
     ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
         let mut calculator = LayoutCalculator::new(&self.strings);
-        for (id, section) in &self.program_sections {
+        for (id, section) in &self.sections {
             calculator.learn_section(
                 *id,
                 section.name,
-                section.program.raw.len(),
-                section.program.perms,
+                match &section.content {
+                    SectionContent::Data(data) => data.bytes.len(),
+                    SectionContent::Uninitialized(uninit) => uninit.len as usize,
+                },
+                section.perms,
             )?;
         }
 
         let mut layout = calculator.calculate()?;
         let object = Object {
             endian: self.endian,
-            program_sections: self
-                .program_sections
+            sections: self
+                .sections
                 .into_iter()
                 .map(|(id, section)| {
                     (
                         id,
-                        ProgramSection {
+                        Section {
                             name: section.name,
-                            program: section.program,
-                            relocations: section.relocations,
+                            perms: section.perms,
+                            content: section.content,
                             layout: layout.sections.remove(&id).unwrap(),
                         },
                     )
@@ -122,18 +141,18 @@ impl Object<()> {
 
 impl Object<SectionLayout> {
     pub(super) fn relocate(&mut self) -> Result<(), RelocationError> {
-        let relocator = Relocator::new(&self.program_sections, &self.symbols);
-        for (id, section) in &mut self.program_sections.iter_mut() {
-            relocator.relocate(*id, section)?;
+        let relocator = Relocator::new(self.section_layouts(), &self.symbols);
+        for (id, section) in &mut self.sections.iter_mut() {
+            match &mut section.content {
+                SectionContent::Data(data) => relocator.relocate(*id, data)?,
+                SectionContent::Uninitialized(_) => {}
+            }
         }
         Ok(())
     }
 
-    pub(super) fn take_program_section(&mut self, id: SectionId) -> ElfProgramSection {
-        self.program_sections
-            .remove(&id)
-            .expect("invalid section id")
-            .program
+    pub(super) fn take_section(&mut self, id: SectionId) -> Section<SectionLayout> {
+        self.sections.remove(&id).expect("invalid section id")
     }
 
     pub(super) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
@@ -145,7 +164,7 @@ impl Object<SectionLayout> {
             ElfSymbolDefinition::Common => todo!(),
             ElfSymbolDefinition::Section(section_id) => {
                 let section_offset = self
-                    .program_sections
+                    .sections
                     .get(&section_id)
                     .expect("invalid section id")
                     .layout
@@ -156,19 +175,41 @@ impl Object<SectionLayout> {
     }
 
     pub(super) fn section_addresses_for_debug_print(&self) -> BTreeMap<SectionId, u64> {
-        self.program_sections
-            .iter()
-            .map(|(id, section)| (*id, section.layout.address))
+        self.section_layouts()
+            .map(|(id, layout)| (id, layout.address))
             .collect()
+    }
+
+    fn section_layouts<'a>(&'a self) -> impl Iterator<Item = (SectionId, &'a SectionLayout)> {
+        self.sections
+            .iter()
+            .map(|(id, section)| (*id, &section.layout))
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct ProgramSection<L> {
+pub(crate) struct Section<L> {
     pub(super) name: StringId,
-    pub(super) program: ElfProgramSection,
-    pub(super) relocations: Vec<ElfRelocation<SerialIds>>,
+    pub(super) perms: ElfPermissions,
+    pub(super) content: SectionContent,
     pub(super) layout: L,
+}
+
+#[derive(Debug)]
+pub(super) enum SectionContent {
+    Data(DataSection),
+    Uninitialized(UninitializedSection),
+}
+
+#[derive(Debug)]
+pub(super) struct DataSection {
+    pub(super) bytes: RawBytes,
+    pub(super) relocations: Vec<ElfRelocation<SerialIds>>,
+}
+
+#[derive(Debug)]
+pub(super) struct UninitializedSection {
+    pub(super) len: u64,
 }
 
 #[derive(Debug, Error)]

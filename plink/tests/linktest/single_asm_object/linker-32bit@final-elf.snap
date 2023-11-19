@@ -69,20 +69,20 @@ ElfObject {
     segments: [
         ElfSegment {
             type_: Load,
-            perms: ElfPermissions(RX),
+            perms: ElfPermissions(RW),
             content: [
                 Section(
-                    section#2,
+                    section#3,
                 ),
             ],
             align: 0x1000,
         },
         ElfSegment {
             type_: Load,
-            perms: ElfPermissions(RW),
+            perms: ElfPermissions(RX),
             content: [
                 Section(
-                    section#3,
+                    section#2,
                 ),
             ],
             align: 0x1000,

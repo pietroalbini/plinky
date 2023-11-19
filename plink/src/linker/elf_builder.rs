@@ -1,9 +1,10 @@
+use super::object::SectionContent;
 use crate::linker::layout::{SectionLayout, SectionMerge};
 use crate::linker::object::{GetSymbolAddressError, Object};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
-    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, RawBytes,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
 };
 use plink_macros::Error;
 use std::collections::BTreeMap;
@@ -75,10 +76,9 @@ impl ElfBuilder {
         );
 
         while let Some(merge) = self.ctx.section_merges.pop() {
-            sections.insert(
-                self.ids.allocate_section_id(),
-                self.prepare_program_section(merge),
-            );
+            if let Some(section) = self.prepare_section(merge) {
+                sections.insert(self.ids.allocate_section_id(), section);
+            }
         }
 
         sections.insert(self.section_names.id, self.prepare_section_names_table());
@@ -86,21 +86,38 @@ impl ElfBuilder {
         sections
     }
 
-    fn prepare_program_section(&mut self, merge: SectionMerge) -> ElfSection<SerialIds> {
-        let mut bytes = Vec::new();
+    fn prepare_section(&mut self, merge: SectionMerge) -> Option<ElfSection<SerialIds>> {
+        let mut content = None;
         for section in merge.sections {
-            let section = self.ctx.object.take_program_section(section);
-            bytes.extend_from_slice(&section.raw.0);
+            let section = self.ctx.object.take_section(section);
+            match (&mut content, section.content) {
+                (None, SectionContent::Data(data)) => {
+                    content = Some(ElfSectionContent::Program(ElfProgramSection {
+                        perms: merge.perms,
+                        raw: data.bytes,
+                    }));
+                }
+                (None, SectionContent::Uninitialized(uninit)) => {
+                    content = Some(ElfSectionContent::Uninitialized(ElfUninitializedSection {
+                        perms: merge.perms,
+                        len: uninit.len,
+                    }));
+                }
+                (Some(ElfSectionContent::Program(elf)), SectionContent::Data(data)) => {
+                    elf.raw.0.extend_from_slice(&data.bytes.0);
+                }
+                (Some(ElfSectionContent::Uninitialized(elf)), SectionContent::Uninitialized(u)) => {
+                    elf.len += u.len;
+                }
+                _ => panic!("mixed different section content types in the same merge"),
+            }
         }
 
-        ElfSection {
+        Some(ElfSection {
             name: self.section_names.add(&merge.name),
             memory_address: merge.address,
-            content: ElfSectionContent::Program(ElfProgramSection {
-                perms: merge.perms,
-                raw: RawBytes(bytes),
-            }),
-        }
+            content: content?,
+        })
     }
 
     fn prepare_section_names_table(&mut self) -> ElfSection<SerialIds> {
@@ -120,16 +137,39 @@ impl ElfBuilder {
     ) -> Vec<ElfSegment<SerialIds>> {
         let mut segments = Vec::new();
         for (section_id, section) in sections.iter() {
-            if let ElfSectionContent::Program(program) = &section.content {
-                segments.push(ElfSegment {
-                    type_: ElfSegmentType::Load,
-                    perms: program.perms,
-                    content: vec![ElfSegmentContent::Section(*section_id)],
-                    align: 0x1000,
-                });
+            match &section.content {
+                ElfSectionContent::Program(program) => {
+                    segments.push((
+                        section.memory_address,
+                        ElfSegment {
+                            type_: ElfSegmentType::Load,
+                            perms: program.perms,
+                            content: vec![ElfSegmentContent::Section(*section_id)],
+                            align: 0x1000,
+                        },
+                    ));
+                }
+                ElfSectionContent::Uninitialized(uninit) => {
+                    segments.push((
+                        section.memory_address,
+                        ElfSegment {
+                            type_: ElfSegmentType::Load,
+                            perms: uninit.perms,
+                            content: vec![ElfSegmentContent::Section(*section_id)],
+                            align: 0x1000,
+                        },
+                    ));
+                }
+                _ => (),
             }
         }
+
+        // Segments have to be in order in memory, otherwise they will not be loaded.
+        segments.sort_by_key(|(addr, _segment)| *addr);
         segments
+            .into_iter()
+            .map(|(_addr, segment)| segment)
+            .collect()
     }
 }
 

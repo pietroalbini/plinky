@@ -23,15 +23,15 @@ ElfObject {
             content: Null,
         },
         section#1: ElfSection {
-            name: section#1:string#13,
+            name: section#1:string#12,
             memory_address: 0x0,
             content: StringTable(
                 ElfStringTable {
                     strings: {
                         0x0: "",
                         0x1: ".text",
-                        0x7: ".data",
-                        0xd: ".shstrtab",
+                        0x7: ".bss",
+                        0xc: ".shstrtab",
                     },
                 },
             ),
@@ -43,10 +43,14 @@ ElfObject {
                 ElfProgramSection {
                     perms: ElfPermissions(RX),
                     raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x52)
                            +-------------------------------------------------+
-                        0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
-                        1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+                        0? | c6 04 25 00 00 40 00 68 c6 04 25 01 00 40 00 65 | ..%..@.h..%..@.e
+                        1? | c6 04 25 02 00 40 00 6c c6 04 25 03 00 40 00 6c | ..%..@.l..%..@.l
+                        2? | c6 04 25 04 00 40 00 6f c6 04 25 05 00 40 00 0a | ..%..@.o..%..@..
+                        3? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+                        4? | 06 00 00 00 cd 80 b8 01 00 00 00 bb 00 00 00 00 | ................
+                        5? | cd 80                                           | ..
                     },
                 },
             ),
@@ -54,14 +58,10 @@ ElfObject {
         section#3: ElfSection {
             name: section#1:string#7,
             memory_address: 0x400000,
-            content: Program(
-                ElfProgramSection {
+            content: Uninitialized(
+                ElfUninitializedSection {
                     perms: ElfPermissions(RW),
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
-                           +----------------------------------------+
-                        0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
-                    },
+                    len: 0x6,
                 },
             ),
         },

@@ -5,7 +5,7 @@ fn main() {
     println!("cargo:rerun-if-changed=tests/linktest/");
 
     let mut tests_list = String::new();
-    for test in std::fs::read_dir("tests/linktest/").unwrap() {
+    for test in std::fs::read_dir("linktest/tests/").unwrap() {
         let test = test.unwrap().path();
         if !test.is_dir() {
             continue;

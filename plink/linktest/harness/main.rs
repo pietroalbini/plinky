@@ -182,8 +182,8 @@ impl TestExecution<'_> {
         insta_settings.set_omit_expression(true);
         insta_settings.set_snapshot_path(std::fs::canonicalize(
             Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("tests")
                 .join("linktest")
+                .join("tests")
                 .join(self.test.name),
         )?);
         if let Some(suffix) = suffix {

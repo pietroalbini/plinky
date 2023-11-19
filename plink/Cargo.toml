@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+[[test]]
+name = "linktest"
+path = "linktest/harness/main.rs"
+
 [dependencies]
 plink_macros = { path = "../plink_macros" }
 plink_elf = { path = "../plink_elf" }

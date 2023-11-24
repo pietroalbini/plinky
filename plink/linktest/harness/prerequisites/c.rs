@@ -39,6 +39,8 @@ impl CFile {
         run(Command::new("cc")
             .current_dir(source_dir.path())
             .arg("-c")
+            // Disable control-flow protection, as it's not implemented in the linker right now.
+            .arg("-fcf-protection=none")
             .arg("-o")
             .arg(dest_dir.join(dest_name))
             .arg(match execution.arch {

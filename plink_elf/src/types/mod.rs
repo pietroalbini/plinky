@@ -119,7 +119,12 @@ pub struct ElfNotesTable {
 }
 
 #[derive(Debug)]
-pub struct ElfNote {
+pub enum ElfNote {
+    Unknown(ElfUnknownNote),
+}
+
+#[derive(Debug)]
+pub struct ElfUnknownNote {
     pub name: String,
     pub value: RawBytes,
     pub type_: u32,

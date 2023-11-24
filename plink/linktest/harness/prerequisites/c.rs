@@ -41,6 +41,7 @@ impl CFile {
             .arg("-c")
             // Disable control-flow protection, as it's not implemented in the linker right now.
             .arg("-fcf-protection=none")
+            .args(["-fno-pic"])
             .arg("-o")
             .arg(dest_dir.join(dest_name))
             .arg(match execution.arch {

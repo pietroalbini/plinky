@@ -1,6 +1,6 @@
 cmd = ["hello.o", "syscalls.o"]
-kind = "link-fail" # TODO: should be run-pass
-archs = ["x86_64", "x86"]
+kind = "run-pass"
+archs = ["x86"]
 
 [[c]]
 source = "hello.c"

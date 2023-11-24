@@ -7,10 +7,10 @@ write:
     push ebx
     push ecx
 
-    mov eax, 4   ; Syscall number (4 = write)
-    mov ebx, edi ; First argument (fd)
-    mov ecx, esi ; Second argument (string pointer)
-  ; mov rdx, rdx ; Third argument (len)
+    mov eax, 4          ; Syscall number (4 = write)
+    mov ebx, [esp + 16] ; First argument (fd)
+    mov ecx, [esp + 20] ; Second argument (string pointer)
+    mov edx, [esp + 24] ; Third argument (len)
     int 0x80
 
     pop ecx
@@ -19,6 +19,6 @@ write:
     ret
 
 exit:
-    mov eax, 1   ; Syscall number (1 = exit)
-    mov ebx, edi ; First argument (code)
+    mov eax, 1         ; Syscall number (1 = exit)
+    mov ebx, [esp + 4] ; First argument (code)
     int 0x80

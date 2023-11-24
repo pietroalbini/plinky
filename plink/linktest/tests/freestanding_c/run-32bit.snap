@@ -3,7 +3,9 @@ source: plink/linktest/harness/main.rs
 ---
 running exited with exit status: 0
 
-no stdout present
+=== stdout ===
+Hello world
+
 
 no stderr present
 

@@ -62,8 +62,17 @@ impl Object<()> {
                 ElfSectionContent::RelocationsTable(table) => {
                     relocations.insert(table.applies_to_section, table.relocations);
                 }
-                ElfSectionContent::Note(_) => {
-                    return Err(ObjectLoadError::UnsupportedNotesSection);
+                ElfSectionContent::Note(table) => {
+                    for note in table.notes {
+                        match note {
+                            plink_elf::ElfNote::Unknown(unknown) => {
+                                return Err(ObjectLoadError::UnsupportedUnknownNote {
+                                    name: unknown.name,
+                                    type_: unknown.type_,
+                                })
+                            }
+                        }
+                    }
                 }
                 ElfSectionContent::Unknown(unknown) => {
                     return Err(ObjectLoadError::UnsupportedUnknownSection { id: unknown.id });
@@ -213,8 +222,8 @@ pub(super) struct UninitializedSection {
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum ObjectLoadError {
-    #[display("note sections are not supported")]
-    UnsupportedNotesSection,
+    #[display("unsupported note with name {name} and type {type_}")]
+    UnsupportedUnknownNote { name: String, type_: u32 },
     #[display("unknown section with type {id:#x?} is not supported")]
     UnsupportedUnknownSection { id: u32 },
     #[display("unknown symbol bindings are not supported")]

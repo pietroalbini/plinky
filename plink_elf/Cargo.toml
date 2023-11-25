@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+plink_rawutils = { path = "../plink_rawutils" }
 plink_macros = { path = "../plink_macros" }
 
 [dev-dependencies]

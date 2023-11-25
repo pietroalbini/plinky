@@ -1,10 +1,10 @@
 use crate::ids::ElfIds;
 use crate::raw::{
     RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader, RawSymbol,
-    RawType,
 };
 use crate::{ElfClass, ElfObject, ElfSectionContent};
 use plink_macros::{Display, Error};
+use plink_rawutils::RawType;
 use std::collections::BTreeMap;
 
 const ALIGN: u64 = 0x1000;

@@ -1,7 +1,7 @@
 use crate::errors::LoadError;
-use crate::raw::RawType;
 use crate::utils::ReadSeek;
 use crate::ElfClass;
+use plink_rawutils::RawType;
 use std::io::SeekFrom;
 
 pub(crate) struct ReadCursor<'a> {

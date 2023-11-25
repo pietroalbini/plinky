@@ -9,7 +9,10 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let fields64 = prepare_field_list(&parsed, false)?;
 
     let mut output = String::new();
-    output.push_str(&format!("impl RawType for {} {{\n", parsed.name));
+    output.push_str(&format!(
+        "impl plink_rawutils::RawType for {} {{\n",
+        parsed.name
+    ));
     fn_zero(&mut output, &fields32);
     fn_size(&mut output, &fields32);
     fn_read(&mut output, &fields32, &fields64);
@@ -24,7 +27,7 @@ fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
     output.push_str("Self {");
     for field in fields {
         output.push_str(&format!(
-            "{}: <{} as {}>::zero(),",
+            "{}: <{} as plink_rawutils::{}>::zero(),",
             field.name, field.field_ty, field.trait_ty
         ));
     }
@@ -32,11 +35,12 @@ fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
 }
 
 fn fn_size(output: &mut String, fields: &[Field<'_>]) {
-    output.push_str("fn size(class: ElfClass) -> usize {\n");
+    output.push_str("fn size(bits: impl Into<plink_rawutils::Bits>) -> usize {\n");
+    output.push_str("let bits = bits.into();");
     output.push('0');
     for field in fields {
         output.push_str(&format!(
-            " + <{} as {}>::size(class)",
+            " + <{} as plink_rawutils::{}>::size(bits)",
             field.field_ty, field.trait_ty
         ));
     }
@@ -48,18 +52,19 @@ fn fn_read(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) 
         output.push_str("Ok(Self {");
         for field in fields {
             output.push_str(&format!(
-                "{}: <{} as {}>::read(class, reader)?,",
+                "{}: <{} as plink_rawutils::{}>::read(bits, reader)?,",
                 field.name, field.field_ty, field.trait_ty
             ));
         }
         output.push_str("})");
     }
 
-    output.push_str("fn read(class: ElfClass, reader: &mut dyn Read) -> Result<Self, Error> {");
+    output.push_str("fn read(bits: impl Into<plink_rawutils::Bits>, reader: &mut dyn Read) -> Result<Self, Error> {");
+    output.push_str("let bits = bits.into();");
     if fields32 != fields64 {
-        output.push_str("match class {");
-        for (class, fields) in [("Elf32", fields32), ("Elf64", fields64)] {
-            output.push_str(&format!("ElfClass::{class} => {{"));
+        output.push_str("match bits {");
+        for (bits, fields) in [("Bits32", fields32), ("Bits64", fields64)] {
+            output.push_str(&format!("plink_rawutils::Bits::{bits} => {{"));
             render(output, fields);
             output.push('}');
         }
@@ -74,19 +79,20 @@ fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>])
     fn render(output: &mut String, fields: &[Field<'_>]) {
         for field in fields {
             output.push_str(&format!(
-                "<{} as {}>::write(&self.{}, class, writer)?;",
+                "<{} as plink_rawutils::{}>::write(&self.{}, bits, writer)?;",
                 field.field_ty, field.trait_ty, field.name
             ));
         }
     }
 
     output.push_str(
-        "fn write(&self, class: ElfClass, writer: &mut dyn Write) -> Result<(), Error> {",
+        "fn write(&self, bits: impl Into<plink_rawutils::Bits>, writer: &mut dyn Write) -> Result<(), Error> {",
     );
+    output.push_str("let bits = bits.into();");
     if fields32 != fields64 {
-        output.push_str("match class {");
-        for (class, fields) in [("Elf32", fields32), ("Elf64", fields64)] {
-            output.push_str(&format!("ElfClass::{class} => {{"));
+        output.push_str("match bits {");
+        for (bits, fields) in [("Bits32", fields32), ("Bits64", fields64)] {
+            output.push_str(&format!("plink_rawutils::Bits::{bits} => {{"));
             render(output, fields);
             output.push('}');
         }

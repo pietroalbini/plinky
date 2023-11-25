@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::io::Write;
 use std::num::NonZeroU64;
 use std::ops::Deref;
+use plink_rawutils::Bits;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {
@@ -56,6 +57,15 @@ pub struct ElfEnvironment {
 pub enum ElfClass {
     Elf32,
     Elf64,
+}
+
+impl Into<Bits> for ElfClass {
+    fn into(self) -> Bits {
+        match self {
+            ElfClass::Elf32 => Bits::Bits32,
+            ElfClass::Elf64 => Bits::Bits64,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

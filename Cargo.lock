@@ -145,11 +145,16 @@ dependencies = [
  "anyhow",
  "insta",
  "plink_macros",
+ "plink_rawutils",
  "tempfile",
 ]
 
 [[package]]
 name = "plink_macros"
+version = "0.1.0"
+
+[[package]]
+name = "plink_rawutils"
 version = "0.1.0"
 
 [[package]]

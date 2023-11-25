@@ -1,9 +1,5 @@
-mod traits;
-
-pub(crate) use self::traits::*;
-
-use crate::ElfClass;
 use plink_macros::RawType;
+use plink_rawutils::RawPadding;
 use std::io::{Error, Read, Write};
 
 #[derive(RawType)]

@@ -5,8 +5,7 @@ pub(crate) use self::layout::WriteLayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawHeader, RawIdentification, RawPadding, RawProgramHeader, RawRel, RawRela, RawSectionHeader,
-    RawSymbol, RawType,
+    RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader, RawSymbol,
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
@@ -14,6 +13,7 @@ use crate::{
     ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition,
     ElfSymbolType, ElfType,
 };
+use plink_rawutils::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
 

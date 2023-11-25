@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["plink", "plink_elf", "plink_macros"]
+members = ["plink", "plink_elf", "plink_macros", "plink_rawutils"]
 
 [workspace.lints.clippy]
 new_without_default = "allow"

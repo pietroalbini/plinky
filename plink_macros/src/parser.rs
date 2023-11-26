@@ -215,6 +215,7 @@ impl Parser {
 
     fn parse_type(&mut self) -> Result<String, Error> {
         let mut ty = String::new();
+        let mut repeat_without_new_segment = false;
         loop {
             match self.peek()? {
                 // Generic, arrays or tuples.
@@ -233,10 +234,39 @@ impl Parser {
                 TokenTree::Punct(punct) if punct.as_char() == '<' => {
                     ty.push_str(&self.parse_generic_in_type_name()?);
                 }
+                TokenTree::Punct(punct) if punct.as_char() == '&' => {
+                    self.next()?;
+                    ty.push('&');
+
+                    // Lifetimes
+                    if self.peek()?.is_punct('\'') {
+                        self.next()?;
+                        ty.push('\'');
+                        match self.next()? {
+                            TokenTree::Ident(ident) => ty.push_str(&ident.to_string()),
+                            other => {
+                                return Err(Error::new("expected lifetime name").span(other.span()));
+                            }
+                        }
+                        ty.push(' ');
+                    }
+
+                    for keyword in ["mut", "dyn"] {
+                        if self.peek()?.is_ident(keyword) {
+                            self.next()?;
+                            ty.push_str(keyword);
+                            ty.push(' ');
+                        }
+                    }
+
+                    repeat_without_new_segment = true;
+                }
                 other => return Err(Error::new("expected a type").span(other.span())),
             }
 
-            if self.peek().map(|p| p.is_punct(':')).unwrap_or(false) {
+            if repeat_without_new_segment {
+                repeat_without_new_segment = false;
+            } else if self.peek().map(|p| p.is_punct(':')).unwrap_or(false) {
                 self.next()?;
                 self.expect_punct(':')?;
                 ty.push_str("::");

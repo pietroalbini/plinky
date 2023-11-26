@@ -156,6 +156,9 @@ version = "0.1.0"
 [[package]]
 name = "plink_rawutils"
 version = "0.1.0"
+dependencies = [
+ "plink_macros",
+]
 
 [[package]]
 name = "proc-macro2"

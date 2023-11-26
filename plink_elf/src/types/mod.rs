@@ -9,11 +9,11 @@ use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
+use plink_rawutils::Bits;
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::num::NonZeroU64;
 use std::ops::Deref;
-use plink_rawutils::Bits;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {

@@ -1,6 +1,5 @@
 use plink_macros::RawType;
-use plink_rawutils::RawPadding;
-use std::io::{Error, Read, Write};
+use plink_rawutils::raw_types::RawPadding;
 
 #[derive(RawType)]
 pub(crate) struct RawIdentification {

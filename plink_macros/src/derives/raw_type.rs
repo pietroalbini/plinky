@@ -10,7 +10,7 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 
     let mut output = String::new();
     output.push_str(&format!(
-        "impl plink_rawutils::RawType for {} {{\n",
+        "impl plink_rawutils::raw_types::RawType for {} {{\n",
         parsed.name
     ));
     fn_zero(&mut output, &fields32);
@@ -27,7 +27,7 @@ fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
     output.push_str("Self {");
     for field in fields {
         output.push_str(&format!(
-            "{}: <{} as plink_rawutils::{}>::zero(),",
+            "{}: <{} as plink_rawutils::raw_types::{}>::zero(),",
             field.name, field.field_ty, field.trait_ty
         ));
     }
@@ -40,7 +40,7 @@ fn fn_size(output: &mut String, fields: &[Field<'_>]) {
     output.push('0');
     for field in fields {
         output.push_str(&format!(
-            " + <{} as plink_rawutils::{}>::size(bits)",
+            " + <{} as plink_rawutils::raw_types::{}>::size(bits)",
             field.field_ty, field.trait_ty
         ));
     }
@@ -52,14 +52,14 @@ fn fn_read(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) 
         output.push_str("Ok(Self {");
         for field in fields {
             output.push_str(&format!(
-                "{}: <{} as plink_rawutils::{}>::read(bits, reader)?,",
-                field.name, field.field_ty, field.trait_ty
+                "{}: plink_rawutils::raw_types::RawReadError::wrap_field::<Self, _>(stringify!({}), <{} as plink_rawutils::raw_types::{}>::read(bits, reader))?,",
+                field.name, field.name, field.field_ty, field.trait_ty
             ));
         }
         output.push_str("})");
     }
 
-    output.push_str("fn read(bits: impl Into<plink_rawutils::Bits>, reader: &mut dyn Read) -> Result<Self, Error> {");
+    output.push_str("fn read(bits: impl Into<plink_rawutils::Bits>, reader: &mut dyn std::io::Read) -> Result<Self, plink_rawutils::raw_types::RawReadError> {");
     output.push_str("let bits = bits.into();");
     if fields32 != fields64 {
         output.push_str("match bits {");
@@ -79,14 +79,14 @@ fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>])
     fn render(output: &mut String, fields: &[Field<'_>]) {
         for field in fields {
             output.push_str(&format!(
-                "<{} as plink_rawutils::{}>::write(&self.{}, bits, writer)?;",
-                field.field_ty, field.trait_ty, field.name
+                "plink_rawutils::raw_types::RawWriteError::wrap_field::<Self, _>(stringify!({}), <{} as plink_rawutils::raw_types::{}>::write(&self.{}, bits, writer))?;",
+                field.name, field.field_ty, field.trait_ty, field.name
             ));
         }
     }
 
     output.push_str(
-        "fn write(&self, bits: impl Into<plink_rawutils::Bits>, writer: &mut dyn Write) -> Result<(), Error> {",
+        "fn write(&self, bits: impl Into<plink_rawutils::Bits>, writer: &mut dyn std::io::Write) -> Result<(), plink_rawutils::raw_types::RawWriteError> {",
     );
     output.push_str("let bits = bits.into();");
     if fields32 != fields64 {

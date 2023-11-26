@@ -13,7 +13,7 @@ use crate::{
     ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition,
     ElfSymbolType, ElfType,
 };
-use plink_rawutils::{RawPadding, RawType};
+use plink_rawutils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
 

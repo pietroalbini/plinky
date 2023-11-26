@@ -1,6 +1,4 @@
-mod raw_types;
-
-pub use raw_types::*;
+pub mod raw_types;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Bits {

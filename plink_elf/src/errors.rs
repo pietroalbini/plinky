@@ -7,6 +7,8 @@ use plink_macros::{Display, Error};
 pub enum LoadError {
     #[display("I/O error")]
     IO(#[from] std::io::Error),
+    #[display("failed to read data")]
+    RawRead(#[from] plink_rawutils::raw_types::RawReadError),
     #[display("bad ELF magic number: {f0:?}")]
     BadMagic([u8; 4]),
     #[display("bad ELF class: {f0}")]
@@ -43,6 +45,8 @@ pub enum LoadError {
 pub enum WriteError<I: ElfIds> {
     #[display("I/O error")]
     IO(#[from] std::io::Error),
+    #[display("failed to write data")]
+    RawWrite(#[from] plink_rawutils::raw_types::RawWriteError),
     #[display("missing section names table")]
     MissingSectionNamesTable,
     #[display("different sections point to different string tables for their name")]

@@ -1,12 +1,13 @@
+use crate::bitfields::BitfieldReadError;
 use crate::Bits;
 use plink_macros::Display;
 use std::io::{Read, Write};
 
 pub trait RawType: Sized {
     fn zero() -> Self;
-    fn size(class: impl Into<Bits>) -> usize;
-    fn read(class: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError>;
-    fn write(&self, class: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError>;
+    fn size(bits: impl Into<Bits>) -> usize;
+    fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError>;
+    fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError>;
 }
 
 impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
@@ -14,8 +15,8 @@ impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
         [T::zero(); N]
     }
 
-    fn size(class: impl Into<Bits>) -> usize {
-        T::size(class) * N
+    fn size(bits: impl Into<Bits>) -> usize {
+        T::size(bits) * N
     }
 
     fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
@@ -157,6 +158,13 @@ impl RawReadError {
         }
     }
 
+    pub fn bitfield<T>(err: BitfieldReadError) -> Self {
+        Self {
+            source: ErrorSource::Type(std::any::type_name::<T>()),
+            inner: RawReadErrorInner::Bitfield(err),
+        }
+    }
+
     pub fn wrap_type<T, R>(result: Result<R, RawReadError>) -> Result<R, RawReadError> {
         match result {
             Ok(ok) => Ok(ok),
@@ -187,6 +195,7 @@ impl RawReadError {
 #[derive(Debug)]
 enum RawReadErrorInner {
     Itself(Box<RawReadError>),
+    Bitfield(BitfieldReadError),
     IO(std::io::Error),
 }
 
@@ -194,6 +203,7 @@ impl std::error::Error for RawReadError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match &self.inner {
             RawReadErrorInner::IO(io) => Some(io),
+            RawReadErrorInner::Bitfield(bitfield) => Some(bitfield),
             RawReadErrorInner::Itself(itself) => Some(itself),
         }
     }

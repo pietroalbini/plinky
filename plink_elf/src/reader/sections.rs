@@ -55,9 +55,9 @@ fn read_section(
             memory_address: header.memory_address,
             content: ElfSectionContent::Uninitialized(ElfUninitializedSection {
                 perms: ElfPermissions {
-                    read: header.flags & 0x1 > 0,
-                    write: header.flags & 0x2 > 0,
-                    execute: header.flags & 0x4 > 0,
+                    read: header.flags.alloc,
+                    write: header.flags.write,
+                    execute: header.flags.exec,
                 },
                 len: header.size,
             }),
@@ -70,9 +70,9 @@ fn read_section(
         0 => ElfSectionContent::Null,
         1 => ElfSectionContent::Program(ElfProgramSection {
             perms: ElfPermissions {
-                write: header.flags & 0x1 > 0,
-                read: header.flags & 0x2 > 0,
-                execute: header.flags & 0x4 > 0,
+                read: header.flags.alloc,
+                write: header.flags.write,
+                execute: header.flags.exec,
             },
             raw: RawBytes(raw_content),
         }),

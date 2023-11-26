@@ -2,13 +2,13 @@ use crate::error::Error;
 use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 use std::iter::Peekable;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum Item {
     Struct(Struct),
     Enum(Enum),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Struct {
     pub(crate) attrs: Vec<Attribute>,
     pub(crate) name: String,
@@ -17,27 +17,27 @@ pub(crate) struct Struct {
     pub(crate) span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum StructFields {
     None,
     TupleLike(Vec<TupleField>),
     StructLike(Vec<StructField>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct StructField {
     pub(crate) attrs: Vec<Attribute>,
     pub(crate) name: String,
     pub(crate) ty: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Attribute {
     pub(crate) span: Span,
     pub(crate) value: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Enum {
     pub(crate) _attrs: Vec<Attribute>,
     pub(crate) name: String,
@@ -45,7 +45,7 @@ pub(crate) struct Enum {
     pub(crate) variants: Vec<EnumVariant>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct EnumVariant {
     pub(crate) span: Span,
     pub(crate) attrs: Vec<Attribute>,
@@ -53,20 +53,20 @@ pub(crate) struct EnumVariant {
     pub(crate) data: EnumVariantData,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum EnumVariantData {
     None,
     TupleLike(Vec<TupleField>),
     StructLike(Vec<StructField>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct TupleField {
     pub(crate) attrs: Vec<Attribute>,
     pub(crate) ty: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct GenericParam {
     pub(crate) name: String,
     pub(crate) bound: String,

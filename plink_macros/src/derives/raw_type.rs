@@ -1,5 +1,6 @@
 use crate::error::Error;
-use crate::parser::{Parser, Struct, StructFields};
+use crate::parser::{Item, Parser, Struct, StructFields};
+use crate::utils::generate_impl_for;
 use proc_macro::{Span, TokenStream};
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
@@ -9,15 +10,17 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let fields64 = prepare_field_list(&parsed, false)?;
 
     let mut output = String::new();
-    output.push_str(&format!(
-        "impl plink_rawutils::raw_types::RawType for {} {{\n",
-        parsed.name
-    ));
-    fn_zero(&mut output, &fields32);
-    fn_size(&mut output, &fields32);
-    fn_read(&mut output, &fields32, &fields64);
-    fn_write(&mut output, &fields32, &fields64);
-    output.push_str("}\n");
+    generate_impl_for(
+        &mut output,
+        &Item::Struct(parsed.clone()),
+        "plink_rawutils::raw_types::RawType",
+        |output| {
+            fn_zero(output, &fields32);
+            fn_size(output, &fields32);
+            fn_read(output, &fields32, &fields64);
+            fn_write(output, &fields32, &fields64);
+        },
+    );
 
     Ok(output.parse().unwrap())
 }

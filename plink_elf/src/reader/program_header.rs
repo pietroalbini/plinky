@@ -25,9 +25,9 @@ pub(super) fn read_program_header(
             other => ElfSegmentType::Unknown(other),
         },
         perms: ElfPermissions {
-            read: header.flags & 0x4 > 0,
-            write: header.flags & 0x2 > 0,
-            execute: header.flags & 0x1 > 0,
+            read: header.flags.read,
+            write: header.flags.write,
+            execute: header.flags.execute,
         },
         content: vec![content_map
             .get(&(header.file_offset, header.file_size))

@@ -1,3 +1,4 @@
+pub mod bitfields;
 pub mod raw_types;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

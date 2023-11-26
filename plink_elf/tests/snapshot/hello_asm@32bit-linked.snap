@@ -12,7 +12,6 @@ ElfObject {
     entry: Some(
         0x8049000,
     ),
-    flags: 0x0,
     sections: {
         "#0 ": ElfSection {
             name: "",

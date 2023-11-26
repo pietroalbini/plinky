@@ -20,7 +20,6 @@ pub struct ElfObject<I: ElfIds> {
     pub env: ElfEnvironment,
     pub type_: ElfType,
     pub entry: Option<NonZeroU64>,
-    pub flags: u32,
     pub sections: BTreeMap<I::SectionId, ElfSection<I>>,
     pub segments: Vec<ElfSegment<I>>,
 }

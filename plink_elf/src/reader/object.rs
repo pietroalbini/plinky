@@ -80,7 +80,6 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
         },
         type_,
         entry: NonZeroU64::new(header.entry),
-        flags: header.flags,
         sections,
         segments,
     })

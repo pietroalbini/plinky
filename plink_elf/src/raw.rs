@@ -1,4 +1,4 @@
-use plink_macros::RawType;
+use plink_macros::{Bitfield, RawType};
 use plink_rawutils::raw_types::RawPadding;
 
 #[derive(RawType)]
@@ -23,7 +23,7 @@ pub(crate) struct RawHeader {
     pub(crate) program_headers_offset: u64,
     #[pointer_size]
     pub(crate) section_headers_offset: u64,
-    pub(crate) flags: u32,
+    pub(crate) flags: RawHeaderFlags,
     pub(crate) elf_header_size: u16,
     pub(crate) program_header_size: u16,
     pub(crate) program_header_count: u16,
@@ -32,12 +32,16 @@ pub(crate) struct RawHeader {
     pub(crate) section_names_table_index: u16,
 }
 
+#[derive(Bitfield)]
+#[bitfield_repr(u32)]
+pub(crate) struct RawHeaderFlags;
+
 #[derive(RawType)]
 pub(crate) struct RawSectionHeader {
     pub(crate) name_offset: u32,
     pub(crate) type_: u32,
     #[pointer_size]
-    pub(crate) flags: u64,
+    pub(crate) flags: RawSectionHeaderFlags,
     #[pointer_size]
     pub(crate) memory_address: u64,
     #[pointer_size]
@@ -50,6 +54,14 @@ pub(crate) struct RawSectionHeader {
     pub(crate) addr_align: u64,
     #[pointer_size]
     pub(crate) entries_size: u64,
+}
+
+#[derive(Bitfield)]
+#[bitfield_repr(u64)]
+pub(crate) struct RawSectionHeaderFlags {
+    pub(crate) write: bool,
+    pub(crate) alloc: bool,
+    pub(crate) exec: bool,
 }
 
 #[derive(RawType)]
@@ -87,9 +99,17 @@ pub(crate) struct RawProgramHeader {
     #[pointer_size]
     pub(crate) memory_size: u64,
     #[placed_on_elf64_after = "type_"]
-    pub(crate) flags: u32,
+    pub(crate) flags: RawProgramHeaderFlags,
     #[pointer_size]
     pub(crate) align: u64,
+}
+
+#[derive(Bitfield)]
+#[bitfield_repr(u32)]
+pub(crate) struct RawProgramHeaderFlags {
+    pub(crate) execute: bool,
+    pub(crate) write: bool,
+    pub(crate) read: bool,
 }
 
 #[derive(RawType)]

@@ -66,7 +66,6 @@ where
         env: object.env,
         type_: object.type_,
         entry: object.entry,
-        flags: object.flags,
         sections: object
             .sections
             .into_iter()

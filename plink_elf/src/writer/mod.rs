@@ -5,7 +5,8 @@ pub(crate) use self::layout::WriteLayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader, RawSymbol,
+    RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader,
+    RawSectionHeaderFlags, RawSymbol, RawHeaderFlags, RawProgramHeaderFlags,
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
@@ -98,7 +99,7 @@ where
             entry: self.object.entry.map(|n| n.get()).unwrap_or(0),
             program_headers_offset: self.layout.metadata(&Part::ProgramHeaders).offset,
             section_headers_offset: self.layout.metadata(&Part::SectionHeaders).offset,
-            flags: 0,
+            flags: RawHeaderFlags::zero(),
             elf_header_size: self.raw_type_size::<RawIdentification>()
                 + self.raw_type_size::<RawHeader>(),
             program_header_size: self.raw_type_size::<RawProgramHeader>(),
@@ -161,7 +162,7 @@ where
                 type_,
                 flags: match &section.content {
                     ElfSectionContent::Program(p) => self.perms_to_section_flags(&p.perms),
-                    _ => 0,
+                    _ => RawSectionHeaderFlags::zero(),
                 },
                 memory_address: section.memory_address,
                 offset: metadata.offset,
@@ -236,9 +237,11 @@ where
                 reserved: 0,
                 file_size,
                 memory_size,
-                flags: (segment.perms.execute as u32)
-                    | (segment.perms.write as u32) << 1
-                    | (segment.perms.read as u32) << 2,
+                flags: RawProgramHeaderFlags {
+                    execute: segment.perms.execute,
+                    write: segment.perms.write,
+                    read: segment.perms.read,
+                },
                 align: 0x1000,
             })?;
         }
@@ -441,8 +444,12 @@ where
             .expect("inconsistent section id")
     }
 
-    fn perms_to_section_flags(&self, perms: &ElfPermissions) -> u64 {
-        (perms.write as u64) | (perms.read as u64) << 1 | (perms.execute as u64) << 2
+    fn perms_to_section_flags(&self, perms: &ElfPermissions) -> RawSectionHeaderFlags {
+        RawSectionHeaderFlags {
+            write: perms.write,
+            alloc: perms.read,
+            exec: perms.execute,
+        }
     }
 
     fn raw_type_size<T: RawType>(&self) -> u16 {

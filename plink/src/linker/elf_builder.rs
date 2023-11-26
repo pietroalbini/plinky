@@ -44,7 +44,6 @@ impl ElfBuilder {
             env: self.ctx.env,
             type_: ElfType::Executable,
             entry,
-            flags: 0,
             sections,
             segments,
         })

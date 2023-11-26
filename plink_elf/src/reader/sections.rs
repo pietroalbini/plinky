@@ -47,7 +47,13 @@ fn read_section(
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
-    let header: RawSectionHeader = cursor.read_raw()?;
+    let header: RawSectionHeader =
+        cursor
+            .read_raw()
+            .map_err(|e| LoadError::FailedToParseSectionHeader {
+                idx: current_section.0,
+                inner: Box::new(e),
+            })?;
 
     if header.type_ == 8 {
         return Ok(ElfSection {

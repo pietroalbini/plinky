@@ -5,8 +5,8 @@ pub(crate) use self::layout::WriteLayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader,
-    RawSectionHeaderFlags, RawSymbol, RawHeaderFlags, RawProgramHeaderFlags,
+    RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader, RawProgramHeaderFlags, RawRel,
+    RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
@@ -162,6 +162,10 @@ where
                 type_,
                 flags: match &section.content {
                     ElfSectionContent::Program(p) => self.perms_to_section_flags(&p.perms),
+                    ElfSectionContent::RelocationsTable(_) => RawSectionHeaderFlags {
+                        info_link: true,
+                        ..RawSectionHeaderFlags::zero()
+                    },
                     _ => RawSectionHeaderFlags::zero(),
                 },
                 memory_address: section.memory_address,
@@ -449,6 +453,7 @@ where
             write: perms.write,
             alloc: perms.read,
             exec: perms.execute,
+            ..RawSectionHeaderFlags::zero()
         }
     }
 

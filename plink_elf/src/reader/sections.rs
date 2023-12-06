@@ -70,6 +70,14 @@ fn read_section(
         });
     }
 
+    // The info link flag is used to indicate the info field contains a link to a section table,
+    // which only makes sense for relocations. The flag doesn't actually seem to be required
+    // though, as for example GCC emits it while NASM doesn't. To catch unknown uses of the flag,
+    // we error out if the flag is set for a non-relocation section.
+    if header.flags.info_link && header.type_ != 4 && header.type_ != 9 {
+        return Err(LoadError::UnsupportedInfoLinkFlag(current_section.0));
+    }
+
     cursor.seek_to(header.offset)?;
     let raw_content = cursor.read_vec(header.size)?;
     let content = match header.type_ {

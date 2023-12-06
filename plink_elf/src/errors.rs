@@ -37,6 +37,8 @@ pub enum LoadError {
     MissingString(u16, u32),
     #[display("missing section with id {f0:#x}")]
     MissingSection(u16),
+    #[display("SHF_INFO_LINK flag set for section {f0} even though it's not a relocation")]
+    UnsupportedInfoLinkFlag(u32),
     #[display("failed to parse section header number {idx}")]
     FailedToParseSectionHeader { idx: u32, #[source] inner: Box<LoadError> },
     #[display("misaligned file: parsed until {current:#x}, expected to be at {expected:#x}")]

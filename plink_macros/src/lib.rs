@@ -7,7 +7,7 @@ mod utils;
 
 use proc_macro::TokenStream;
 
-#[proc_macro_derive(Bitfield, attributes(bitfield_repr))]
+#[proc_macro_derive(Bitfield, attributes(bitfield_repr, bit))]
 pub fn derive_bitfield_repr(item: TokenStream) -> TokenStream {
     error::emit_compiler_error(derives::bitfield::derive(item))
 }

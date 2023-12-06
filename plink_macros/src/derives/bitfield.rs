@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::parser::{Item, Parser, Struct, StructFields};
+use crate::parser::{Attribute, Item, Parser, Struct, StructFields};
 use crate::utils::generate_impl_for;
 use proc_macro::TokenStream;
 
@@ -7,14 +7,16 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let parsed = Parser::new(tokens).parse_struct()?;
     let mut output = String::new();
 
+    let fields = generate_fields(&parsed)?;
+
     generate_impl_for(
         &mut output,
         &Item::Struct(parsed.clone()),
         "plink_rawutils::bitfields::Bitfield",
         |output| {
             type_repr(output, &parsed)?;
-            fn_read(output, &parsed);
-            fn_write(output, &parsed);
+            fn_read(output, &fields);
+            fn_write(output, &fields);
             Ok(())
         },
     )?;
@@ -48,26 +50,26 @@ fn type_repr(output: &mut String, struct_: &Struct) -> Result<(), Error> {
     Ok(())
 }
 
-fn fn_read(output: &mut String, struct_: &Struct) {
+fn fn_read(output: &mut String, fields: &Fields) {
     output.push_str(
         "fn read(raw: Self::Repr) -> Result<Self, plink_rawutils::bitfields::BitfieldReadError> {",
     );
     output.push_str("let mut reader = plink_rawutils::bitfields::BitfieldReader::new(raw);");
 
     output.push_str("let result = Self ");
-    match &struct_.fields {
-        StructFields::None => {}
-        StructFields::TupleLike(fields) => {
+    match fields {
+        Fields::None => {}
+        Fields::TupleLike(fields) => {
             output.push('(');
-            for idx in 0..fields.len() {
-                output.push_str(&format!("reader.bit({idx}),"));
+            for bit in fields {
+                output.push_str(&format!("reader.bit({}),", bit.0));
             }
             output.push(')');
         }
-        StructFields::StructLike(fields) => {
+        Fields::StructLike(fields) => {
             output.push('{');
-            for (idx, field) in fields.iter().enumerate() {
-                output.push_str(&format!("{}: reader.bit({idx}),", field.name));
+            for (name, bit) in fields {
+                output.push_str(&format!("{}: reader.bit({}),", name, bit.0));
             }
             output.push('}');
         }
@@ -79,20 +81,20 @@ fn fn_read(output: &mut String, struct_: &Struct) {
     output.push_str("}");
 }
 
-fn fn_write(output: &mut String, struct_: &Struct) {
+fn fn_write(output: &mut String, fields: &Fields) {
     output.push_str("fn write(&self) -> Self::Repr {");
     output.push_str("let mut writer = plink_rawutils::bitfields::BitfieldWriter::new();");
 
-    match &struct_.fields {
-        StructFields::None => {}
-        StructFields::TupleLike(fields) => {
-            for idx in 0..fields.len() {
-                output.push_str(&format!("writer.set_bit({idx}, self.{idx});"));
+    match fields {
+        Fields::None => {}
+        Fields::TupleLike(fields) => {
+            for (idx, bit) in fields.iter().enumerate() {
+                output.push_str(&format!("writer.set_bit({}, self.{});", bit.0, idx));
             }
         }
-        StructFields::StructLike(fields) => {
-            for (idx, field) in fields.iter().enumerate() {
-                output.push_str(&format!("writer.set_bit({idx}, self.{});", field.name));
+        Fields::StructLike(fields) => {
+            for (name, bit) in fields.iter() {
+                output.push_str(&format!("writer.set_bit({}, self.{});", bit.0, name));
             }
         }
     }
@@ -100,3 +102,89 @@ fn fn_write(output: &mut String, struct_: &Struct) {
     output.push_str("writer.value()");
     output.push_str("}");
 }
+
+fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
+    let mut calculator = BitCalculator::new();
+
+    Ok(match &struct_.fields {
+        StructFields::None => Fields::None,
+        StructFields::TupleLike(fields) => Fields::TupleLike(
+            fields
+                .iter()
+                .enumerate()
+                .map(|(idx, field)| calculator.index_of(&field.attrs, idx))
+                .collect::<Result<_, _>>()?,
+        ),
+        StructFields::StructLike(fields) => Fields::StructLike(
+            fields
+                .iter()
+                .enumerate()
+                .map(|(idx, field)| {
+                    Ok((field.name.clone(), calculator.index_of(&field.attrs, idx)?))
+                })
+                .collect::<Result<_, _>>()?,
+        ),
+    })
+}
+
+struct BitCalculator {
+    has_custom_bit: bool,
+}
+
+impl BitCalculator {
+    fn new() -> Self {
+        Self {
+            has_custom_bit: false,
+        }
+    }
+
+    fn index_of(&mut self, attrs: &[Attribute], position: usize) -> Result<BitIndex, Error> {
+        match self.find_bit_attribute(attrs)? {
+            Some(bit) => {
+                self.has_custom_bit = true;
+                Ok(BitIndex(bit))
+            }
+            None => {
+                if self.has_custom_bit {
+                    return Err(Error::new(
+                        "bit attribute required after other bit attributes",
+                    ));
+                }
+                Ok(BitIndex(position))
+            }
+        }
+    }
+
+    fn find_bit_attribute(&self, attrs: &[Attribute]) -> Result<Option<usize>, Error> {
+        let mut found = None;
+        for attr in attrs {
+            match (&found, self.parse_bit_attribute(attr)?) {
+                (None, Some(value)) => found = Some(value),
+                (Some(_), Some(_)) => {
+                    return Err(Error::new("duplicate bit attribute").span(attr.span))
+                }
+                _ => {}
+            }
+        }
+        Ok(found)
+    }
+
+    fn parse_bit_attribute(&self, attr: &Attribute) -> Result<Option<usize>, Error> {
+        attr.value
+            .strip_prefix("bit(")
+            .and_then(|s| s.strip_suffix(")"))
+            .map(|s| {
+                s.parse::<usize>()
+                    .map_err(|_| Error::new("failed to parse bit").span(attr.span))
+            })
+            .transpose()
+    }
+}
+
+enum Fields {
+    None,
+    TupleLike(Vec<BitIndex>),
+    StructLike(Vec<(String, BitIndex)>),
+}
+
+struct BitIndex(usize);

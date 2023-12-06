@@ -111,8 +111,16 @@ pub enum ElfSectionContent<I: ElfIds> {
 }
 
 #[derive(Debug)]
+pub enum ElfDeduplication {
+    Disabled,
+    ZeroTerminatedStrings,
+    FixedSizeChunks { size: NonZeroU64 },
+}
+
+#[derive(Debug)]
 pub struct ElfProgramSection {
     pub perms: ElfPermissions,
+    pub deduplication: ElfDeduplication,
     pub raw: RawBytes,
 }
 

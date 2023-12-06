@@ -43,6 +43,10 @@ pub enum LoadError {
     UnsupportedStringsWithSizeNotOne { section_idx: u32, size: u64 },
     #[display("flag SHF_STRINGS is only expected in sections with SHF_MERGE or in string tables")]
     UnexpectedStringsFlag { section_idx: u32 },
+    #[display("flag SHF_MERGE for fixed-sized chunks was provided with chunk size zero on section {section_idx}")]
+    FixedSizeChunksMergeWithZeroLenChunks { section_idx: u32 },
+    #[display("flag SHF_MERGE was applied on an unsupported section (section {section_idx})")]
+    MergeFlagOnUnsupportedSection { section_idx: u32 },
     #[display("failed to parse section header number {idx}")]
     FailedToParseSectionHeader {
         idx: u32,

@@ -5,12 +5,13 @@ use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
-    ElfClass, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType,
-    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent, ElfStringTable,
-    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
-    ElfUninitializedSection, ElfUnknownSection, RawBytes,
+    ElfClass, ElfDeduplication, ElfPermissions, ElfProgramSection, ElfRelocation,
+    ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent,
+    ElfStringTable, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfUninitializedSection, ElfUnknownSection, RawBytes,
 };
 use std::collections::BTreeMap;
+use std::num::NonZeroU64;
 
 pub(super) fn read_sections(
     cursor: &mut ReadCursor<'_>,
@@ -95,6 +96,21 @@ fn read_section(
         }
     }
 
+    let mut deduplication = if header.flags.merge && header.flags.strings {
+        Some(ElfDeduplication::ZeroTerminatedStrings)
+    } else if header.flags.merge {
+        match NonZeroU64::new(header.entries_size) {
+            None => {
+                return Err(LoadError::FixedSizeChunksMergeWithZeroLenChunks {
+                    section_idx: current_section.0,
+                })
+            }
+            Some(size) => Some(ElfDeduplication::FixedSizeChunks { size }),
+        }
+    } else {
+        None
+    };
+
     let content = match ty {
         SectionType::Null => ElfSectionContent::Null,
         SectionType::Program => ElfSectionContent::Program(ElfProgramSection {
@@ -103,6 +119,7 @@ fn read_section(
                 write: header.flags.write,
                 execute: header.flags.exec,
             },
+            deduplication: deduplication.take().unwrap_or(ElfDeduplication::Disabled),
             raw: RawBytes(read_section_raw_content(&header, cursor)?),
         }),
         SectionType::SymbolTable => {
@@ -137,6 +154,12 @@ fn read_section(
             raw: RawBytes(read_section_raw_content(&header, cursor)?),
         }),
     };
+
+    if deduplication.is_some() {
+        return Err(LoadError::MergeFlagOnUnsupportedSection {
+            section_idx: current_section.0,
+        });
+    }
 
     segment_content_map.insert(
         (header.offset, header.size),

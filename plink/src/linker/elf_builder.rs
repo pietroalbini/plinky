@@ -4,7 +4,7 @@ use crate::linker::object::{GetSymbolAddressError, Object};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
-    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, ElfDeduplication,
 };
 use plink_macros::Error;
 use std::collections::BTreeMap;
@@ -93,6 +93,7 @@ impl ElfBuilder {
                 (None, SectionContent::Data(data)) => {
                     content = Some(ElfSectionContent::Program(ElfProgramSection {
                         perms: merge.perms,
+                        deduplication: ElfDeduplication::Disabled, // TODO: implement merging.
                         raw: data.bytes,
                     }));
                 }

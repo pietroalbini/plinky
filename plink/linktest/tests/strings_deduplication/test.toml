@@ -1,0 +1,9 @@
+cmd = ["foo.o", "bar.o"]
+kind = "run-pass"
+debug-print = ["final-elf"]
+
+[[asm]]
+source = "foo.S"
+
+[[asm]]
+source = "bar.S"

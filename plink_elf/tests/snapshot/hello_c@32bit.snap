@@ -10,7 +10,6 @@ ElfObject {
     },
     type_: Relocatable,
     entry: None,
-    flags: 0x0,
     sections: {
         "#00 ": ElfSection {
             name: "",

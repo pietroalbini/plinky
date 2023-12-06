@@ -1,6 +1,6 @@
 use super::object::SectionContent;
-use crate::linker::layout::{SectionLayout, SectionMerge};
-use crate::linker::object::{GetSymbolAddressError, Object};
+use crate::repr::layout::{SectionLayout, SectionMerge};
+use crate::repr::object::{GetSymbolAddressError, Object};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
@@ -10,14 +10,14 @@ use plink_macros::Error;
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(super) struct ElfBuilderContext {
-    pub(super) entrypoint: String,
-    pub(super) env: ElfEnvironment,
-    pub(super) object: Object<SectionLayout>,
-    pub(super) section_merges: Vec<SectionMerge>,
+pub(crate) struct ElfBuilderContext {
+    pub(crate) entrypoint: String,
+    pub(crate) env: ElfEnvironment,
+    pub(crate) object: Object<SectionLayout>,
+    pub(crate) section_merges: Vec<SectionMerge>,
 }
 
-pub(super) struct ElfBuilder {
+pub(crate) struct ElfBuilder {
     ctx: ElfBuilderContext,
     ids: SerialIds,
     section_names: PendingStringsTable,
@@ -25,7 +25,7 @@ pub(super) struct ElfBuilder {
 }
 
 impl ElfBuilder {
-    pub(super) fn new(ctx: ElfBuilderContext) -> Self {
+    pub(crate) fn new(ctx: ElfBuilderContext) -> Self {
         let mut ids = SerialIds::new();
         Self {
             ctx,
@@ -35,7 +35,7 @@ impl ElfBuilder {
         }
     }
 
-    pub(super) fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
+    pub(crate) fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
         let sections = self.prepare_sections();
         let segments = self.prepare_segments(&sections);

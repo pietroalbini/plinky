@@ -1,7 +1,7 @@
 use crate::cli::DebugPrint;
-use crate::linker::layout::{SectionLayout, SectionMerge};
-use crate::linker::object::Object;
 use crate::linker::{link_driver, CallbackOutcome, LinkerCallbacks, LinkerError};
+use crate::repr::layout::{SectionLayout, SectionMerge};
+use crate::repr::object::Object;
 use plink_elf::ids::serial::SerialIds;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -9,6 +9,7 @@ use std::process::ExitCode;
 
 mod cli;
 mod linker;
+mod repr;
 mod write_to_disk;
 
 fn app() -> Result<(), Box<dyn Error>> {

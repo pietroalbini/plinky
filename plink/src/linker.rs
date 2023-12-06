@@ -1,15 +1,8 @@
-mod elf_builder;
-pub(crate) mod layout;
-pub(crate) mod object;
-mod relocator;
-mod strings;
-mod symbols;
-
 use crate::cli::CliOptions;
-use crate::linker::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
-use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
-use crate::linker::object::{Object, ObjectLoadError};
-use crate::linker::relocator::RelocationError;
+use crate::repr::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
+use crate::repr::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
+use crate::repr::object::{Object, ObjectLoadError};
+use crate::repr::relocator::RelocationError;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject};

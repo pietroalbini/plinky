@@ -1,7 +1,7 @@
-use crate::linker::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
-use crate::linker::relocator::{RelocationError, Relocator};
-use crate::linker::strings::{MissingStringError, Strings};
-use crate::linker::symbols::{MissingGlobalSymbol, Symbols};
+use crate::repr::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
+use crate::repr::relocator::{RelocationError, Relocator};
+use crate::repr::strings::{MissingStringError, Strings};
+use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use plink_elf::{
     ElfEndian, ElfObject, ElfPermissions, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
@@ -19,7 +19,7 @@ pub(crate) struct Object<L> {
 }
 
 impl Object<()> {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             endian: None,
             sections: BTreeMap::new(),
@@ -28,7 +28,7 @@ impl Object<()> {
         }
     }
 
-    pub(super) fn merge_elf(
+    pub(crate) fn merge_elf(
         &mut self,
         object: ElfObject<SerialIds>,
     ) -> Result<(), ObjectLoadError> {
@@ -105,7 +105,7 @@ impl Object<()> {
         Ok(())
     }
 
-    pub(super) fn calculate_layout(
+    pub(crate) fn calculate_layout(
         self,
     ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
         let mut calculator = LayoutCalculator::new(&self.strings);
@@ -148,7 +148,7 @@ impl Object<()> {
 }
 
 impl Object<SectionLayout> {
-    pub(super) fn relocate(&mut self) -> Result<(), RelocationError> {
+    pub(crate) fn relocate(&mut self) -> Result<(), RelocationError> {
         let relocator = Relocator::new(self.section_layouts(), &self.symbols);
         for (id, section) in &mut self.sections.iter_mut() {
             match &mut section.content {
@@ -159,11 +159,11 @@ impl Object<SectionLayout> {
         Ok(())
     }
 
-    pub(super) fn take_section(&mut self, id: SectionId) -> Section<SectionLayout> {
+    pub(crate) fn take_section(&mut self, id: SectionId) -> Section<SectionLayout> {
         self.sections.remove(&id).expect("invalid section id")
     }
 
-    pub(super) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
+    pub(crate) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
         let symbol = self.symbols.get_global(name)?;
 
         match symbol.definition {
@@ -191,27 +191,27 @@ impl Object<SectionLayout> {
 
 #[derive(Debug)]
 pub(crate) struct Section<L> {
-    pub(super) name: StringId,
-    pub(super) perms: ElfPermissions,
-    pub(super) content: SectionContent,
-    pub(super) layout: L,
+    pub(crate) name: StringId,
+    pub(crate) perms: ElfPermissions,
+    pub(crate) content: SectionContent,
+    pub(crate) layout: L,
 }
 
 #[derive(Debug)]
-pub(super) enum SectionContent {
+pub(crate) enum SectionContent {
     Data(DataSection),
     Uninitialized(UninitializedSection),
 }
 
 #[derive(Debug)]
-pub(super) struct DataSection {
-    pub(super) bytes: RawBytes,
-    pub(super) relocations: Vec<ElfRelocation<SerialIds>>,
+pub(crate) struct DataSection {
+    pub(crate) bytes: RawBytes,
+    pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
 }
 
 #[derive(Debug)]
-pub(super) struct UninitializedSection {
-    pub(super) len: u64,
+pub(crate) struct UninitializedSection {
+    pub(crate) len: u64,
 }
 
 #[derive(Debug, Error, Display)]

@@ -1,18 +1,18 @@
-use crate::linker::layout::SectionLayout;
-use crate::linker::object::DataSection;
-use crate::linker::symbols::{MissingGlobalSymbol, Symbols};
+use crate::repr::layout::SectionLayout;
+use crate::repr::object::DataSection;
+use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
 use plink_macros::Error;
 use std::collections::BTreeMap;
 
-pub(super) struct Relocator<'a> {
+pub(crate) struct Relocator<'a> {
     section_addresses: BTreeMap<SectionId, u64>,
     symbols: &'a Symbols,
 }
 
 impl<'a> Relocator<'a> {
-    pub(super) fn new<'b>(
+    pub(crate) fn new<'b>(
         layouts: impl Iterator<Item = (SectionId, &'b SectionLayout)>,
         symbols: &'a Symbols,
     ) -> Self {
@@ -22,7 +22,7 @@ impl<'a> Relocator<'a> {
         }
     }
 
-    pub(super) fn relocate(
+    pub(crate) fn relocate(
         &self,
         section_id: SectionId,
         data_section: &mut DataSection,

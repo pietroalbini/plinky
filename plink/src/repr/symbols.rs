@@ -1,19 +1,19 @@
-use crate::linker::object::ObjectLoadError;
-use crate::linker::strings::Strings;
+use crate::repr::object::ObjectLoadError;
+use crate::repr::strings::Strings;
 use plink_elf::ids::serial::{SerialIds, SymbolId};
 use plink_elf::{ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plink_macros::{Display, Error};
 use std::collections::{btree_map, BTreeMap};
 
 #[derive(Debug)]
-pub(super) struct Symbols {
+pub(crate) struct Symbols {
     local_symbols: BTreeMap<SymbolId, ElfSymbol<SerialIds>>,
     global_symbols_map: BTreeMap<SymbolId, String>,
     global_symbols: BTreeMap<String, GlobalSymbol>,
 }
 
 impl Symbols {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             local_symbols: BTreeMap::new(),
             global_symbols_map: BTreeMap::new(),
@@ -21,7 +21,7 @@ impl Symbols {
         }
     }
 
-    pub(super) fn load_table(
+    pub(crate) fn load_table(
         &mut self,
         table: ElfSymbolTable<SerialIds>,
         strings: &Strings,
@@ -69,7 +69,7 @@ impl Symbols {
         Ok(())
     }
 
-    pub(super) fn get(&self, id: SymbolId) -> Result<&ElfSymbol<SerialIds>, MissingGlobalSymbol> {
+    pub(crate) fn get(&self, id: SymbolId) -> Result<&ElfSymbol<SerialIds>, MissingGlobalSymbol> {
         if let Some(symbol) = self.local_symbols.get(&id) {
             Ok(symbol)
         } else if let Some(symbol_name) = self.global_symbols_map.get(&id) {
@@ -79,7 +79,7 @@ impl Symbols {
         }
     }
 
-    pub(super) fn get_global(
+    pub(crate) fn get_global(
         &self,
         name: &str,
     ) -> Result<&ElfSymbol<SerialIds>, MissingGlobalSymbol> {

@@ -1,4 +1,4 @@
-use crate::linker::strings::{MissingStringError, Strings};
+use crate::repr::strings::{MissingStringError, Strings};
 use plink_elf::ids::serial::{SectionId, StringId};
 use plink_elf::ElfPermissions;
 use plink_macros::Error;
@@ -7,20 +7,20 @@ use std::collections::BTreeMap;
 const BASE_ADDRESS: u64 = 0x400000;
 const PAGE_SIZE: u64 = 0x1000;
 
-pub(super) struct LayoutCalculator<'a> {
+pub(crate) struct LayoutCalculator<'a> {
     sections: BTreeMap<String, Vec<SectionToLayout>>,
     strings: &'a Strings,
 }
 
 impl<'a> LayoutCalculator<'a> {
-    pub(super) fn new(strings: &'a Strings) -> Self {
+    pub(crate) fn new(strings: &'a Strings) -> Self {
         Self {
             sections: BTreeMap::new(),
             strings,
         }
     }
 
-    pub(super) fn learn_section(
+    pub(crate) fn learn_section(
         &mut self,
         id: SectionId,
         name: StringId,
@@ -38,7 +38,7 @@ impl<'a> LayoutCalculator<'a> {
         Ok(())
     }
 
-    pub(super) fn calculate(self) -> Result<CalculatedLayout, LayoutCalculatorError> {
+    pub(crate) fn calculate(self) -> Result<CalculatedLayout, LayoutCalculatorError> {
         let mut calculated = CalculatedLayout {
             sections: BTreeMap::new(),
             merges: Vec::new(),
@@ -89,9 +89,9 @@ struct SectionToLayout {
     perms: ElfPermissions,
 }
 
-pub(super) struct CalculatedLayout {
-    pub(super) sections: BTreeMap<SectionId, SectionLayout>,
-    pub(super) merges: Vec<SectionMerge>,
+pub(crate) struct CalculatedLayout {
+    pub(crate) sections: BTreeMap<SectionId, SectionLayout>,
+    pub(crate) merges: Vec<SectionMerge>,
 }
 
 #[derive(Debug)]
@@ -101,10 +101,10 @@ pub(crate) struct SectionLayout {
 
 #[derive(Debug)]
 pub(crate) struct SectionMerge {
-    pub(super) name: String,
-    pub(super) address: u64,
-    pub(super) perms: ElfPermissions,
-    pub(super) sections: Vec<SectionId>,
+    pub(crate) name: String,
+    pub(crate) address: u64,
+    pub(crate) perms: ElfPermissions,
+    pub(crate) sections: Vec<SectionId>,
 }
 
 #[derive(Debug, Error)]

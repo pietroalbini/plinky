@@ -55,66 +55,66 @@ fn read_section(
                 inner: Box::new(e),
             })?;
 
-    if header.type_ == 8 {
-        return Ok(ElfSection {
-            name: PendingStringId(section_names_table, header.name_offset),
-            memory_address: header.memory_address,
-            content: ElfSectionContent::Uninitialized(ElfUninitializedSection {
-                perms: ElfPermissions {
-                    read: header.flags.alloc,
-                    write: header.flags.write,
-                    execute: header.flags.exec,
-                },
-                len: header.size,
-            }),
-        });
-    }
+    let ty = match header.type_ {
+        0 => SectionType::Null,
+        1 => SectionType::Program,
+        2 => SectionType::SymbolTable,
+        3 => SectionType::StringTable,
+        4 => SectionType::Relocations { rela: true },
+        7 => SectionType::Note,
+        8 => SectionType::Uninit,
+        9 => SectionType::Relocations { rela: false },
+        other => SectionType::Unknown(other),
+    };
 
     // The info link flag is used to indicate the info field contains a link to a section table,
     // which only makes sense for relocations. The flag doesn't actually seem to be required
     // though, as for example GCC emits it while NASM doesn't. To catch unknown uses of the flag,
     // we error out if the flag is set for a non-relocation section.
-    if header.flags.info_link && header.type_ != 4 && header.type_ != 9 {
+    if header.flags.info_link && !matches!(ty, SectionType::Relocations { .. }) {
         return Err(LoadError::UnsupportedInfoLinkFlag(current_section.0));
     }
 
-    cursor.seek_to(header.offset)?;
-    let raw_content = cursor.read_vec(header.size)?;
-    let content = match header.type_ {
-        0 => ElfSectionContent::Null,
-        1 => ElfSectionContent::Program(ElfProgramSection {
+    let content = match ty {
+        SectionType::Null => ElfSectionContent::Null,
+        SectionType::Program => ElfSectionContent::Program(ElfProgramSection {
             perms: ElfPermissions {
                 read: header.flags.alloc,
                 write: header.flags.write,
                 execute: header.flags.exec,
             },
-            raw: RawBytes(raw_content),
+            raw: RawBytes(read_section_raw_content(&header, cursor)?),
         }),
-        2 => read_symbol_table(
-            cursor,
-            &raw_content,
-            PendingSectionId(header.link),
-            current_section,
-        )?,
-        3 => read_string_table(&raw_content)?,
-        4 => read_relocations_table(
-            cursor,
-            &raw_content,
-            PendingSectionId(header.link),
-            PendingSectionId(header.info),
-            true,
-        )?,
-        7 => ElfSectionContent::Note(read_notes(cursor, &raw_content)?),
-        9 => read_relocations_table(
-            cursor,
-            &raw_content,
-            PendingSectionId(header.link),
-            PendingSectionId(header.info),
-            false,
-        )?,
-        other => ElfSectionContent::Unknown(ElfUnknownSection {
+        SectionType::SymbolTable => {
+            let raw = read_section_raw_content(&header, cursor)?;
+            read_symbol_table(cursor, &raw, PendingSectionId(header.link), current_section)?
+        }
+        SectionType::StringTable => read_string_table(&read_section_raw_content(&header, cursor)?)?,
+        SectionType::Relocations { rela } => {
+            let raw = read_section_raw_content(&header, cursor)?;
+            read_relocations_table(
+                cursor,
+                &raw,
+                PendingSectionId(header.link),
+                PendingSectionId(header.info),
+                rela,
+            )?
+        }
+        SectionType::Note => {
+            let raw = read_section_raw_content(&header, cursor)?;
+            ElfSectionContent::Note(read_notes(cursor, &raw)?)
+        }
+        SectionType::Uninit => ElfSectionContent::Uninitialized(ElfUninitializedSection {
+            perms: ElfPermissions {
+                read: header.flags.alloc,
+                write: header.flags.write,
+                execute: header.flags.exec,
+            },
+            len: header.size,
+        }),
+        SectionType::Unknown(other) => ElfSectionContent::Unknown(ElfUnknownSection {
             id: other,
-            raw: RawBytes(raw_content),
+            raw: RawBytes(read_section_raw_content(&header, cursor)?),
         }),
     };
 
@@ -128,6 +128,25 @@ fn read_section(
         memory_address: header.memory_address,
         content,
     })
+}
+
+fn read_section_raw_content(
+    header: &RawSectionHeader,
+    cursor: &mut ReadCursor<'_>,
+) -> Result<Vec<u8>, LoadError> {
+    cursor.seek_to(header.offset)?;
+    cursor.read_vec(header.size)
+}
+
+enum SectionType {
+    Null,
+    Program,
+    SymbolTable,
+    StringTable,
+    Relocations { rela: bool },
+    Note,
+    Uninit,
+    Unknown(u32),
 }
 
 fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent<PendingIds>, LoadError> {

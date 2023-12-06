@@ -1,10 +1,11 @@
 mod elf_builder;
-mod layout;
-mod object;
+pub(crate) mod layout;
+pub(crate) mod object;
 mod relocator;
 mod strings;
 mod symbols;
 
+use crate::cli::CliOptions;
 use crate::linker::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
 use crate::linker::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::linker::object::{Object, ObjectLoadError};
@@ -14,130 +15,64 @@ use plink_elf::ids::serial::SerialIds;
 use plink_elf::{ElfEnvironment, ElfObject};
 use plink_macros::Error;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use crate::write_to_disk::{write_to_disk, WriteToDiskError};
 
-pub(crate) struct Linker<S: LinkerStage> {
-    object: Object<S::LayoutInformation>,
-    stage: S,
-}
+pub(crate) fn link_driver(
+    options: &CliOptions,
+    callbacks: &dyn LinkerCallbacks,
+) -> Result<(), LinkerError> {
+    let mut object = Object::new();
+    let mut ids = SerialIds::new();
+    let mut first_environment: Option<EnvironmentAndPath> = None;
 
-impl Linker<InitialStage> {
-    pub(crate) fn new() -> Self {
-        Linker {
-            object: Object::new(),
-            stage: InitialStage {
-                ids: SerialIds::new(),
-                first_environment: None,
-            },
-        }
-    }
-
-    pub(crate) fn load_file(&mut self, path: &Path) -> Result<(), LinkerError> {
-        let object = ElfObject::load(
+    for path in &options.inputs {
+        let elf = ElfObject::load(
             &mut File::open(path)
                 .map_err(|e| LinkerError::ReadElfFailed(path.into(), LoadError::IO(e)))?,
-            &mut self.stage.ids,
+            &mut ids,
         )
         .map_err(|e| LinkerError::ReadElfFailed(path.into(), e))?;
 
-        self.check_matching_environment(EnvironmentAndPath {
-            env: object.env,
+        let new_env = EnvironmentAndPath {
+            env: elf.env,
             path: path.into(),
-        })?;
-
-        self.object
-            .merge_elf(object)
-            .map_err(|e| LinkerError::ObjectLoadFailed(path.into(), e))?;
-
-        Ok(())
-    }
-
-    fn check_matching_environment(
-        &mut self,
-        new_env: EnvironmentAndPath,
-    ) -> Result<(), LinkerError> {
-        match &self.stage.first_environment {
-            Some(first_env) => {
-                if first_env.env != new_env.env {
-                    return Err(LinkerError::MismatchedEnv(first_env.clone(), new_env));
-                }
+        };
+        match first_environment {
+            Some(first_env) if first_env.env != new_env.env => {
+                return Err(LinkerError::MismatchedEnv(first_env.clone(), new_env));
             }
-            None => {
-                self.stage.first_environment = Some(new_env);
-            }
+            Some(_) => {}
+            None => first_environment = Some(new_env),
         }
-        Ok(())
+
+        object
+            .merge_elf(elf)
+            .map_err(|e| LinkerError::ObjectLoadFailed(path.into(), e))?;
     }
+    callbacks.on_inputs_loaded(&object).result()?;
 
-    pub(crate) fn object_for_debug_print(&self) -> &dyn std::fmt::Debug {
-        &self.object
-    }
+    let (mut object, section_merges) = object.calculate_layout()?;
+    callbacks.on_layout_calculated(&object, &section_merges).result()?;
 
-    pub(crate) fn calculate_layout(self) -> Result<Linker<LayoutStage>, LinkerError> {
-        let (object, section_merges) = self.object.calculate_layout()?;
-        Ok(Linker {
-            object,
-            stage: LayoutStage {
-                section_merges,
-                environment: self
-                    .stage
-                    .first_environment
-                    .ok_or(LinkerError::NoObjectLoaded)?
-                    .env,
-            },
-        })
-    }
-}
+    // TODO: we need a better impl for this.
+    let env = first_environment.ok_or(LinkerError::NoObjectLoaded)?;
 
-impl Linker<LayoutStage> {
-    pub(crate) fn relocate(&mut self) -> Result<(), LinkerError> {
-        self.object.relocate()?;
-        Ok(())
-    }
+    object.relocate()?;
+    callbacks.on_relocations_applied(&object).result()?;
 
-    pub(crate) fn build_elf(self, entry: &str) -> Result<ElfObject<SerialIds>, LinkerError> {
-        let builder = ElfBuilder::new(ElfBuilderContext {
-            entrypoint: entry.to_string(),
-            env: self.stage.environment,
-            object: self.object,
-            section_merges: self.stage.section_merges,
-        });
-        Ok(builder.build()?)
-    }
+    let elf_builder = ElfBuilder::new(ElfBuilderContext {
+        entrypoint: options.entry.clone(),
+        env: env.env,
+        object,
+        section_merges,
+    });
+    let elf = elf_builder.build()?;
+    callbacks.on_elf_built(&elf).result()?;
 
-    pub(crate) fn object_for_debug_print(&self) -> &dyn std::fmt::Debug {
-        &self.object
-    }
+    write_to_disk(elf, &options.output)?;
 
-    pub(crate) fn section_addresses_for_debug_print(&self) -> impl std::fmt::Debug {
-        self.object.section_addresses_for_debug_print()
-    }
-
-    pub(crate) fn section_merges_for_debug_print(&self) -> &[impl std::fmt::Debug] {
-        &self.stage.section_merges
-    }
-}
-
-pub(crate) trait LinkerStage {
-    type LayoutInformation;
-}
-
-pub(crate) struct InitialStage {
-    ids: SerialIds,
-    first_environment: Option<EnvironmentAndPath>,
-}
-
-impl LinkerStage for InitialStage {
-    type LayoutInformation = ();
-}
-
-pub(crate) struct LayoutStage {
-    section_merges: Vec<SectionMerge>,
-    environment: ElfEnvironment,
-}
-
-impl LinkerStage for LayoutStage {
-    type LayoutInformation = SectionLayout;
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -146,8 +81,46 @@ pub(crate) struct EnvironmentAndPath {
     path: PathBuf,
 }
 
+pub(crate) trait LinkerCallbacks {
+    fn on_inputs_loaded(&self, _object: &Object<()>) -> CallbackOutcome {
+        CallbackOutcome::Continue
+    }
+
+    fn on_layout_calculated(
+        &self,
+        _object: &Object<SectionLayout>,
+        _merges: &[SectionMerge],
+    ) -> CallbackOutcome {
+        CallbackOutcome::Continue
+    }
+
+    fn on_relocations_applied(&self, _object: &Object<SectionLayout>) -> CallbackOutcome {
+        CallbackOutcome::Continue
+    }
+
+    fn on_elf_built(&self, _elf: &ElfObject<SerialIds>) -> CallbackOutcome {
+        CallbackOutcome::Continue
+    }
+}
+
+#[must_use]
+pub(crate) enum CallbackOutcome {
+    Continue,
+    Stop,
+}
+
+impl CallbackOutcome {
+    fn result(self) -> Result<(), LinkerError> {
+        match self {
+            CallbackOutcome::Continue => Ok(()),
+            CallbackOutcome::Stop => Err(LinkerError::CallbackEarlyExit),
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub(crate) enum LinkerError {
+    CallbackEarlyExit,
     NoObjectLoaded,
     ReadElfFailed(PathBuf, #[source] LoadError),
     MismatchedEnv(EnvironmentAndPath, EnvironmentAndPath),
@@ -155,11 +128,13 @@ pub(crate) enum LinkerError {
     LayoutCalculationFailed(#[from] LayoutCalculatorError),
     RelocationFailed(#[from] RelocationError),
     ElfBuildFailed(#[from] ElfBuilderError),
+    WriteToDiskFailed(#[from] WriteToDiskError),
 }
 
 impl std::fmt::Display for LinkerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            LinkerError::CallbackEarlyExit => f.write_str("early exit caused by a callback"),
             LinkerError::ReadElfFailed(path, _) => {
                 write!(f, "failed to read ELF file at {}", path.display())
             }
@@ -182,6 +157,7 @@ impl std::fmt::Display for LinkerError {
             LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
             LinkerError::NoObjectLoaded => f.write_str("no object loaded"),
             LinkerError::ElfBuildFailed(_) => f.write_str("failed to prepare the resulting object"),
+            LinkerError::WriteToDiskFailed(_) => f.write_str("failed to write the linked object to disk"),
         }
     }
 }

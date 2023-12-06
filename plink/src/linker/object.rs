@@ -11,7 +11,7 @@ use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-pub(super) struct Object<L> {
+pub(crate) struct Object<L> {
     endian: Option<ElfEndian>,
     sections: BTreeMap<SectionId, Section<L>>,
     strings: Strings,
@@ -182,13 +182,7 @@ impl Object<SectionLayout> {
         }
     }
 
-    pub(super) fn section_addresses_for_debug_print(&self) -> BTreeMap<SectionId, u64> {
-        self.section_layouts()
-            .map(|(id, layout)| (id, layout.address))
-            .collect()
-    }
-
-    fn section_layouts(&self) -> impl Iterator<Item = (SectionId, &'_ SectionLayout)> {
+    pub(crate) fn section_layouts(&self) -> impl Iterator<Item = (SectionId, &'_ SectionLayout)> {
         self.sections
             .iter()
             .map(|(id, section)| (*id, &section.layout))

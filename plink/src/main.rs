@@ -1,5 +1,9 @@
 use crate::cli::DebugPrint;
-use crate::linker::Linker;
+use crate::linker::layout::{SectionLayout, SectionMerge};
+use crate::linker::object::Object;
+use crate::linker::{link_driver, CallbackOutcome, LinkerCallbacks, LinkerError};
+use plink_elf::ids::serial::SerialIds;
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::process::ExitCode;
 
@@ -10,48 +14,76 @@ mod write_to_disk;
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
 
-    let mut linker = Linker::new();
-    for input in &options.inputs {
-        linker.load_file(input)?;
+    let callbacks = DebugCallbacks {
+        print: options.debug_print,
+    };
+    match link_driver(&options, &callbacks) {
+        Ok(()) => {}
+        Err(LinkerError::CallbackEarlyExit) => {}
+        Err(err) => return Err(err.into()),
     }
-
-    if let Some(DebugPrint::LoadedObject) = options.debug_print {
-        println!("{:#x?}", linker.object_for_debug_print());
-        return Ok(());
-    }
-
-    let mut linker = linker.calculate_layout()?;
-
-    if let Some(DebugPrint::Layout) = options.debug_print {
-        println!("Section addresses");
-        println!("-----------------");
-        println!("{:#x?}", linker.section_addresses_for_debug_print());
-        println!();
-        println!("Section merges");
-        println!("--------------");
-        for merge in linker.section_merges_for_debug_print() {
-            println!("{merge:#x?}");
-        }
-        return Ok(());
-    }
-
-    linker.relocate()?;
-
-    if let Some(DebugPrint::RelocatedObject) = options.debug_print {
-        println!("{:#x?}", linker.object_for_debug_print());
-        return Ok(());
-    }
-
-    let elf = linker.build_elf(&options.entry)?;
-
-    if let Some(DebugPrint::FinalElf) = options.debug_print {
-        println!("{:#x?}", elf);
-        return Ok(());
-    }
-
-    write_to_disk::write_to_disk(elf, &options.output)?;
 
     Ok(())
+}
+
+struct DebugCallbacks {
+    print: Option<DebugPrint>,
+}
+
+impl LinkerCallbacks for DebugCallbacks {
+    fn on_inputs_loaded(&self, object: &Object<()>) -> CallbackOutcome {
+        if let Some(DebugPrint::LoadedObject) = self.print {
+            println!("{object:#x?}");
+            CallbackOutcome::Stop
+        } else {
+            CallbackOutcome::Continue
+        }
+    }
+
+    fn on_layout_calculated(
+        &self,
+        object: &Object<SectionLayout>,
+        merges: &[SectionMerge],
+    ) -> CallbackOutcome {
+        if let Some(DebugPrint::Layout) = self.print {
+            let addresses: BTreeMap<_, _> = object
+                .section_layouts()
+                .map(|(id, layout)| (id, layout.address))
+                .collect();
+
+            println!("Section addresses");
+            println!("-----------------");
+            println!("{addresses:#x?}");
+            println!();
+            println!("Section merges");
+            println!("--------------");
+            for merge in merges {
+                println!("{merge:#x?}");
+            }
+
+            CallbackOutcome::Stop
+        } else {
+            CallbackOutcome::Continue
+        }
+    }
+
+    fn on_relocations_applied(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
+        if let Some(DebugPrint::RelocatedObject) = self.print {
+            println!("{object:#x?}");
+            CallbackOutcome::Stop
+        } else {
+            CallbackOutcome::Continue
+        }
+    }
+
+    fn on_elf_built(&self, elf: &plink_elf::ElfObject<SerialIds>) -> CallbackOutcome {
+        if let Some(DebugPrint::FinalElf) = self.print {
+            println!("{elf:#x?}");
+            CallbackOutcome::Stop
+        } else {
+            CallbackOutcome::Continue
+        }
+    }
 }
 
 fn main() -> ExitCode {

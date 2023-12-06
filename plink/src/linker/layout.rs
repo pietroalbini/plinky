@@ -96,11 +96,11 @@ pub(super) struct CalculatedLayout {
 
 #[derive(Debug)]
 pub(crate) struct SectionLayout {
-    pub(super) address: u64,
+    pub(crate) address: u64,
 }
 
 #[derive(Debug)]
-pub(super) struct SectionMerge {
+pub(crate) struct SectionMerge {
     pub(super) name: String,
     pub(super) address: u64,
     pub(super) perms: ElfPermissions,

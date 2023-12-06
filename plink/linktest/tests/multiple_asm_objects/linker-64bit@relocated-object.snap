@@ -1,13 +1,16 @@
 ---
-source: plink/tests/linktest/main.rs
+source: plink/linktest/harness/main.rs
 ---
 linking exited with exit status: 0
 
 === stdout ===
 Object {
-    endian: Some(
-        Little,
-    ),
+    env: ElfEnvironment {
+        class: Elf64,
+        endian: Little,
+        abi: SystemV,
+        machine: X86_64,
+    },
     sections: {
         section#1: Section {
             name: section#3:string#1,

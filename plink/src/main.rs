@@ -11,6 +11,7 @@ mod cli;
 mod linker;
 mod repr;
 mod write_to_disk;
+mod passes;
 
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;

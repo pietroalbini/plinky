@@ -68,10 +68,6 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         previous_token = Some(token);
     }
 
-    if inputs.is_empty() {
-        return Err(CliError::MissingInput);
-    }
-
     Ok(CliOptions {
         inputs,
         output: output.unwrap_or("a.out").into(),
@@ -96,8 +92,6 @@ fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
 
 #[derive(Debug, PartialEq, Eq, Error, Display)]
 pub(crate) enum CliError {
-    #[display("missing input file")]
-    MissingInput,
     #[display("unsupported debug print: {f0}")]
     UnsupportedDebugPrint(String),
     #[display("flag {f0} is not supported")]
@@ -233,7 +227,10 @@ mod tests {
     #[test]
     fn test_no_flags() {
         assert_eq!(
-            Err(CliError::MissingInput),
+            Ok(CliOptions {
+                inputs: Vec::new(),
+                ..default_options()
+            }),
             parse(std::iter::empty::<String>())
         );
     }

@@ -1,5 +1,4 @@
-use crate::repr::object::ObjectLoadError;
-use crate::repr::strings::Strings;
+use crate::repr::strings::{MissingStringError, Strings};
 use plink_elf::ids::serial::{SerialIds, SymbolId};
 use plink_elf::{ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plink_macros::{Display, Error};
@@ -25,7 +24,7 @@ impl Symbols {
         &mut self,
         table: ElfSymbolTable<SerialIds>,
         strings: &Strings,
-    ) -> Result<(), ObjectLoadError> {
+    ) -> Result<(), LoadSymbolsError> {
         for (symbol_id, symbol) in table.symbols.into_iter() {
             match symbol.binding {
                 ElfSymbolBinding::Local => {
@@ -34,7 +33,7 @@ impl Symbols {
                 ElfSymbolBinding::Global => {
                     let name = strings
                         .get(symbol.name)
-                        .map_err(|e| ObjectLoadError::MissingSymbolName(symbol_id, e))?
+                        .map_err(|e| LoadSymbolsError::MissingSymbolName(symbol_id, e))?
                         .to_string();
 
                     let symbol = match symbol.definition {
@@ -49,7 +48,7 @@ impl Symbols {
                         btree_map::Entry::Occupied(mut existing_symbol) => {
                             match (existing_symbol.get(), &symbol) {
                                 (GlobalSymbol::Strong(_), GlobalSymbol::Strong(_)) => {
-                                    return Err(ObjectLoadError::DuplicateGlobalSymbol(name));
+                                    return Err(LoadSymbolsError::DuplicateGlobalSymbol(name));
                                 }
                                 (GlobalSymbol::Strong(_), GlobalSymbol::Undefined) => {}
                                 (GlobalSymbol::Undefined, _) => {
@@ -62,7 +61,7 @@ impl Symbols {
                 }
                 ElfSymbolBinding::Weak => todo!("weak symbols are not supported yet"),
                 ElfSymbolBinding::Unknown(_) => {
-                    return Err(ObjectLoadError::UnsupportedUnknownSymbolBinding);
+                    return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
                 }
             }
         }
@@ -99,3 +98,13 @@ enum GlobalSymbol {
 #[derive(Debug, Error, Display)]
 #[display("missing global symbol: {f0}")]
 pub(crate) struct MissingGlobalSymbol(String);
+
+#[derive(Debug, Error, Display)]
+pub(crate) enum LoadSymbolsError {
+    #[display("unknown symbol bindings are not supported")]
+    UnsupportedUnknownSymbolBinding,
+    #[display("missing name for symbol {f0:?}")]
+    MissingSymbolName(SymbolId, #[source] MissingStringError),
+    #[display("duplicate global symbol {f0}")]
+    DuplicateGlobalSymbol(String),
+}

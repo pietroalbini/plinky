@@ -3,8 +3,8 @@ use crate::repr::layout::{SectionLayout, SectionMerge};
 use crate::repr::object::{GetSymbolAddressError, Object};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
-    ElfEnvironment, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
-    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, ElfDeduplication,
+    ElfDeduplication, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
 };
 use plink_macros::Error;
 use std::collections::BTreeMap;
@@ -12,7 +12,6 @@ use std::num::NonZeroU64;
 
 pub(crate) struct ElfBuilderContext {
     pub(crate) entrypoint: String,
-    pub(crate) env: ElfEnvironment,
     pub(crate) object: Object<SectionLayout>,
     pub(crate) section_merges: Vec<SectionMerge>,
 }
@@ -41,7 +40,7 @@ impl ElfBuilder {
         let segments = self.prepare_segments(&sections);
 
         Ok(ElfObject {
-            env: self.ctx.env,
+            env: self.ctx.object.env,
             type_: ElfType::Executable,
             entry,
             sections,

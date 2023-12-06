@@ -1,110 +1,21 @@
 use crate::repr::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::repr::relocator::{RelocationError, Relocator};
-use crate::repr::strings::{MissingStringError, Strings};
+use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
-use plink_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
-use plink_elf::{
-    ElfEndian, ElfObject, ElfPermissions, ElfRelocation, ElfSectionContent, ElfSymbolDefinition,
-    RawBytes,
-};
+use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
+use plink_elf::{ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(crate) struct Object<L> {
-    endian: Option<ElfEndian>,
-    sections: BTreeMap<SectionId, Section<L>>,
-    strings: Strings,
-    symbols: Symbols,
+    pub(crate) env: ElfEnvironment,
+    pub(crate) sections: BTreeMap<SectionId, Section<L>>,
+    pub(crate) strings: Strings,
+    pub(crate) symbols: Symbols,
 }
 
 impl Object<()> {
-    pub(crate) fn new() -> Self {
-        Self {
-            endian: None,
-            sections: BTreeMap::new(),
-            strings: Strings::new(),
-            symbols: Symbols::new(),
-        }
-    }
-
-    pub(crate) fn merge_elf(
-        &mut self,
-        object: ElfObject<SerialIds>,
-    ) -> Result<(), ObjectLoadError> {
-        self.endian = Some(object.env.endian);
-
-        let mut symbol_tables = Vec::new();
-        let mut program_sections = Vec::new();
-        let mut relocations = BTreeMap::new();
-
-        for (section_id, section) in object.sections.into_iter() {
-            match section.content {
-                ElfSectionContent::Null => {}
-                ElfSectionContent::Program(program) => {
-                    program_sections.push((section_id, section.name, program))
-                }
-                ElfSectionContent::Uninitialized(uninit) => {
-                    self.sections.insert(
-                        section_id,
-                        Section {
-                            name: section.name,
-                            perms: uninit.perms,
-                            content: SectionContent::Uninitialized(UninitializedSection {
-                                len: uninit.len,
-                            }),
-                            layout: (),
-                        },
-                    );
-                }
-                ElfSectionContent::SymbolTable(table) => symbol_tables.push(table),
-                ElfSectionContent::StringTable(table) => self.strings.load_table(section_id, table),
-                ElfSectionContent::RelocationsTable(table) => {
-                    relocations.insert(table.applies_to_section, table.relocations);
-                }
-                ElfSectionContent::Note(table) => {
-                    for note in table.notes {
-                        match note {
-                            plink_elf::ElfNote::Unknown(unknown) => {
-                                return Err(ObjectLoadError::UnsupportedUnknownNote {
-                                    name: unknown.name,
-                                    type_: unknown.type_,
-                                })
-                            }
-                        }
-                    }
-                }
-                ElfSectionContent::Unknown(unknown) => {
-                    return Err(ObjectLoadError::UnsupportedUnknownSection { id: unknown.id });
-                }
-            }
-        }
-
-        // This is loaded after the string tables are loaded by the previous iteration, as we need
-        // to resolve the strings as part of symbol loading.
-        for table in symbol_tables {
-            self.symbols.load_table(table, &self.strings)?;
-        }
-
-        for (section_id, name, program) in program_sections {
-            let relocations = relocations.remove(&section_id).unwrap_or_else(Vec::new);
-            self.sections.insert(
-                section_id,
-                Section {
-                    name,
-                    perms: program.perms,
-                    content: SectionContent::Data(DataSection {
-                        bytes: program.raw,
-                        relocations,
-                    }),
-                    layout: (),
-                },
-            );
-        }
-
-        Ok(())
-    }
-
     pub(crate) fn calculate_layout(
         self,
     ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
@@ -123,7 +34,7 @@ impl Object<()> {
 
         let mut layout = calculator.calculate()?;
         let object = Object {
-            endian: self.endian,
+            env: self.env,
             sections: self
                 .sections
                 .into_iter()
@@ -212,20 +123,6 @@ pub(crate) struct DataSection {
 #[derive(Debug)]
 pub(crate) struct UninitializedSection {
     pub(crate) len: u64,
-}
-
-#[derive(Debug, Error, Display)]
-pub(crate) enum ObjectLoadError {
-    #[display("unsupported note with name {name} and type {type_}")]
-    UnsupportedUnknownNote { name: String, type_: u32 },
-    #[display("unknown section with type {id:#x?} is not supported")]
-    UnsupportedUnknownSection { id: u32 },
-    #[display("unknown symbol bindings are not supported")]
-    UnsupportedUnknownSymbolBinding,
-    #[display("missing name for symbol {f0:?}")]
-    MissingSymbolName(SymbolId, #[source] MissingStringError),
-    #[display("duplicate global symbol {f0}")]
-    DuplicateGlobalSymbol(String),
 }
 
 #[derive(Debug, Error, Display)]

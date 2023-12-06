@@ -75,6 +75,26 @@ fn read_section(
         return Err(LoadError::UnsupportedInfoLinkFlag(current_section.0));
     }
 
+    if header.flags.strings {
+        // The spec says the entries_size field determines how long each char is, but there is no
+        // point implementing support for this unless an actual object needs it. Error out for now
+        // if this happens, to avoid malformed programs being emitted.
+        if header.entries_size != 1 {
+            return Err(LoadError::UnsupportedStringsWithSizeNotOne {
+                section_idx: current_section.0,
+                size: header.entries_size,
+            });
+        }
+        // Not sure if there is any valid use of SHF_STRINGS outside of SHF_MERGE or it being
+        // redundantly applied to string tables. Error out for now, if a valid use is found the
+        // linker will need to be updated to handle it.
+        if !(header.flags.merge || matches!(ty, SectionType::StringTable)) {
+            return Err(LoadError::UnexpectedStringsFlag {
+                section_idx: current_section.0,
+            });
+        }
+    }
+
     let content = match ty {
         SectionType::Null => ElfSectionContent::Null,
         SectionType::Program => ElfSectionContent::Program(ElfProgramSection {

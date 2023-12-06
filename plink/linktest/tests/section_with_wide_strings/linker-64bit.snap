@@ -1,0 +1,12 @@
+---
+source: plink/linktest/harness/main.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: failed to read ELF file at test.o
+caused by: only strings with char size of 1 are supported, while section 1 has size 4 (due to SHF_STRINGS)
+
+

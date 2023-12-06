@@ -39,8 +39,16 @@ pub enum LoadError {
     MissingSection(u16),
     #[display("SHF_INFO_LINK flag set for section {f0} even though it's not a relocation")]
     UnsupportedInfoLinkFlag(u32),
+    #[display("only strings with char size of 1 are supported, while section {section_idx} has size {size} (due to SHF_STRINGS)")]
+    UnsupportedStringsWithSizeNotOne { section_idx: u32, size: u64 },
+    #[display("flag SHF_STRINGS is only expected in sections with SHF_MERGE or in string tables")]
+    UnexpectedStringsFlag { section_idx: u32 },
     #[display("failed to parse section header number {idx}")]
-    FailedToParseSectionHeader { idx: u32, #[source] inner: Box<LoadError> },
+    FailedToParseSectionHeader {
+        idx: u32,
+        #[source]
+        inner: Box<LoadError>,
+    },
     #[display("misaligned file: parsed until {current:#x}, expected to be at {expected:#x}")]
     MisalignedFile { current: usize, expected: usize },
 }

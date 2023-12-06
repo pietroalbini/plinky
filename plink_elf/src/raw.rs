@@ -65,7 +65,7 @@ pub(crate) struct RawSectionHeaderFlags {
     #[bit(4)]
     pub(crate) merge: bool, // TODO: handle this flag
     #[bit(5)]
-    pub(crate) strings: bool, // TODO: handle this flag
+    pub(crate) strings: bool,
     #[bit(6)]
     pub(crate) info_link: bool,
     #[bit(9)]

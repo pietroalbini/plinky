@@ -1,14 +1,14 @@
 use crate::cli::CliOptions;
 use crate::passes;
+use crate::passes::build_elf::ElfBuilderError;
+use crate::passes::layout::LayoutCalculatorError;
 use crate::passes::load_inputs::LoadInputsError;
-use crate::repr::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
+use crate::passes::relocate::RelocationError;
 use crate::repr::object::{Object, SectionLayout, SectionMerge};
 use crate::write_to_disk::{write_to_disk, WriteToDiskError};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use plink_macros::Error;
-use crate::passes::layout::LayoutCalculatorError;
-use crate::passes::relocate::RelocationError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -27,12 +27,7 @@ pub(crate) fn link_driver(
     passes::relocate::run(&mut object)?;
     callbacks.on_relocations_applied(&object).result()?;
 
-    let elf_builder = ElfBuilder::new(ElfBuilderContext {
-        entrypoint: options.entry.clone(),
-        object,
-        section_merges,
-    });
-    let elf = elf_builder.build()?;
+    let elf = passes::build_elf::run(object, section_merges, &options)?;
     callbacks.on_elf_built(&elf).result()?;
 
     write_to_disk(elf, &options.output)?;

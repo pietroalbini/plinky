@@ -1,5 +1,5 @@
-use super::object::SectionContent;
-use crate::repr::object::{GetSymbolAddressError, Object, SectionLayout, SectionMerge};
+use crate::cli::CliOptions;
+use crate::repr::object::{GetSymbolAddressError, Object, SectionLayout, SectionMerge, SectionContent};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfDeduplication, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
@@ -9,37 +9,41 @@ use plink_macros::Error;
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(crate) struct ElfBuilderContext {
-    pub(crate) entrypoint: String,
-    pub(crate) object: Object<SectionLayout>,
-    pub(crate) section_merges: Vec<SectionMerge>,
+pub(crate) fn run(
+    object: Object<SectionLayout>,
+    section_merges: Vec<SectionMerge>,
+    options: &CliOptions,
+) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
+    let mut ids = SerialIds::new();
+    let builder = ElfBuilder {
+        entrypoint: options.entry.clone(),
+        object,
+        section_merges,
+        section_zero_id: ids.allocate_section_id(),
+        section_names: PendingStringsTable::new(&mut ids),
+        ids,
+    };
+    builder.build()
 }
 
-pub(crate) struct ElfBuilder {
-    ctx: ElfBuilderContext,
+struct ElfBuilder {
+    entrypoint: String,
+    object: Object<SectionLayout>,
+    section_merges: Vec<SectionMerge>,
+
     ids: SerialIds,
     section_names: PendingStringsTable,
     section_zero_id: SectionId,
 }
 
 impl ElfBuilder {
-    pub(crate) fn new(ctx: ElfBuilderContext) -> Self {
-        let mut ids = SerialIds::new();
-        Self {
-            ctx,
-            section_zero_id: ids.allocate_section_id(),
-            section_names: PendingStringsTable::new(&mut ids),
-            ids,
-        }
-    }
-
-    pub(crate) fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
+    fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
         let sections = self.prepare_sections();
         let segments = self.prepare_segments(&sections);
 
         Ok(ElfObject {
-            env: self.ctx.object.env,
+            env: self.object.env,
             type_: ElfType::Executable,
             entry,
             sections,
@@ -50,12 +54,11 @@ impl ElfBuilder {
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
         Ok(Some(
             NonZeroU64::new(
-                self.ctx
-                    .object
-                    .global_symbol_address(&self.ctx.entrypoint)
+                self.object
+                    .global_symbol_address(&self.entrypoint)
                     .map_err(ElfBuilderError::InvalidEntrypoint)?,
             )
-            .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.ctx.entrypoint.clone()))?,
+            .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.entrypoint.clone()))?,
         ))
     }
 
@@ -72,7 +75,7 @@ impl ElfBuilder {
             },
         );
 
-        while let Some(merge) = self.ctx.section_merges.pop() {
+        while let Some(merge) = self.section_merges.pop() {
             if let Some(section) = self.prepare_section(merge) {
                 sections.insert(self.ids.allocate_section_id(), section);
             }
@@ -86,7 +89,7 @@ impl ElfBuilder {
     fn prepare_section(&mut self, merge: SectionMerge) -> Option<ElfSection<SerialIds>> {
         let mut content = None;
         for section in merge.sections {
-            let section = self.ctx.object.take_section(section);
+            let section = self.object.take_section(section);
             match (&mut content, section.content) {
                 (None, SectionContent::Data(data)) => {
                     content = Some(ElfSectionContent::Program(ElfProgramSection {

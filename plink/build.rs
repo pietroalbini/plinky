@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=tests/linktest/");
+    println!("cargo:rerun-if-changed=linktest/tests/");
 
     let mut tests_list = String::new();
     for test in std::fs::read_dir("linktest/tests/").unwrap() {

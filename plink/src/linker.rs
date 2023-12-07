@@ -3,12 +3,12 @@ use crate::passes;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::repr::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
 use crate::repr::object::{Object, SectionLayout, SectionMerge};
-use crate::repr::relocator::RelocationError;
 use crate::write_to_disk::{write_to_disk, WriteToDiskError};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use plink_macros::Error;
 use crate::passes::layout::LayoutCalculatorError;
+use crate::passes::relocate::RelocationError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -24,7 +24,7 @@ pub(crate) fn link_driver(
         .on_layout_calculated(&object, &section_merges)
         .result()?;
 
-    object.relocate()?;
+    passes::relocate::run(&mut object)?;
     callbacks.on_relocations_applied(&object).result()?;
 
     let elf_builder = ElfBuilder::new(ElfBuilderContext {

@@ -1,4 +1,3 @@
-use crate::repr::relocator::{RelocationError, Relocator};
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
@@ -15,17 +14,6 @@ pub(crate) struct Object<L> {
 }
 
 impl Object<SectionLayout> {
-    pub(crate) fn relocate(&mut self) -> Result<(), RelocationError> {
-        let relocator = Relocator::new(self.section_layouts(), &self.symbols);
-        for (id, section) in &mut self.sections.iter_mut() {
-            match &mut section.content {
-                SectionContent::Data(data) => relocator.relocate(*id, data)?,
-                SectionContent::Uninitialized(_) => {}
-            }
-        }
-        Ok(())
-    }
-
     pub(crate) fn take_section(&mut self, id: SectionId) -> Section<SectionLayout> {
         self.sections.remove(&id).expect("invalid section id")
     }
@@ -47,12 +35,6 @@ impl Object<SectionLayout> {
                 Ok(section_offset + symbol.value)
             }
         }
-    }
-
-    pub(crate) fn section_layouts(&self) -> impl Iterator<Item = (SectionId, &'_ SectionLayout)> {
-        self.sections
-            .iter()
-            .map(|(id, section)| (*id, &section.layout))
     }
 }
 

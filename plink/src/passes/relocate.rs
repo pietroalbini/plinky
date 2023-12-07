@@ -1,27 +1,35 @@
-use crate::repr::object::{DataSection, SectionLayout};
+use crate::repr::object::{DataSection, Object, SectionLayout, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
 use plink_macros::Error;
 use std::collections::BTreeMap;
 
-pub(crate) struct Relocator<'a> {
+pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationError> {
+    let relocator = Relocator {
+        section_addresses: object
+            .sections
+            .iter()
+            .map(|(id, section)| (*id, section.layout.address))
+            .collect(),
+        symbols: &object.symbols,
+    };
+    for (id, section) in &mut object.sections {
+        match &mut section.content {
+            SectionContent::Data(data) => relocator.relocate(*id, data)?,
+            SectionContent::Uninitialized(_) => {},
+        }
+    }
+    Ok(())
+}
+
+struct Relocator<'a> {
     section_addresses: BTreeMap<SectionId, u64>,
     symbols: &'a Symbols,
 }
 
 impl<'a> Relocator<'a> {
-    pub(crate) fn new<'b>(
-        layouts: impl Iterator<Item = (SectionId, &'b SectionLayout)>,
-        symbols: &'a Symbols,
-    ) -> Self {
-        Self {
-            section_addresses: layouts.map(|(id, layout)| (id, layout.address)).collect(),
-            symbols,
-        }
-    }
-
-    pub(crate) fn relocate(
+    fn relocate(
         &self,
         section_id: SectionId,
         data_section: &mut DataSection,

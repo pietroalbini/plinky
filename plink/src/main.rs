@@ -48,8 +48,8 @@ impl LinkerCallbacks for DebugCallbacks {
     ) -> CallbackOutcome {
         if let Some(DebugPrint::Layout) = self.print {
             let addresses: BTreeMap<_, _> = object
-                .section_layouts()
-                .map(|(id, layout)| (id, layout.address))
+                .sections.iter()
+                .map(|(id, section)| (*id, section.layout.address))
                 .collect();
 
             println!("Section addresses");

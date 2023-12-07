@@ -1,6 +1,5 @@
 use super::object::SectionContent;
-use crate::repr::layout::{SectionLayout, SectionMerge};
-use crate::repr::object::{GetSymbolAddressError, Object};
+use crate::repr::object::{GetSymbolAddressError, Object, SectionLayout, SectionMerge};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfDeduplication, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,

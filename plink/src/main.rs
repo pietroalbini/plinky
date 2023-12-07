@@ -1,7 +1,6 @@
 use crate::cli::DebugPrint;
 use crate::linker::{link_driver, CallbackOutcome, LinkerCallbacks, LinkerError};
-use crate::repr::layout::{SectionLayout, SectionMerge};
-use crate::repr::object::Object;
+use crate::repr::object::{Object, SectionMerge, SectionLayout};
 use plink_elf::ids::serial::SerialIds;
 use std::collections::BTreeMap;
 use std::error::Error;

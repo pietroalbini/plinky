@@ -1,26 +1,68 @@
+use crate::repr::object::{Object, Section, SectionContent, SectionLayout, SectionMerge};
 use crate::repr::strings::{MissingStringError, Strings};
 use plink_elf::ids::serial::{SectionId, StringId};
 use plink_elf::ElfPermissions;
-use plink_macros::Error;
+use plink_macros::{Error, Display};
 use std::collections::BTreeMap;
 
 const BASE_ADDRESS: u64 = 0x400000;
 const PAGE_SIZE: u64 = 0x1000;
 
-pub(crate) struct LayoutCalculator<'a> {
+pub(crate) fn run(
+    object: Object<()>,
+) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
+    let mut calculator = LayoutCalculator::new(&object.strings);
+    for (id, section) in &object.sections {
+        calculator.learn_section(
+            *id,
+            section.name,
+            match &section.content {
+                SectionContent::Data(data) => data.bytes.len(),
+                SectionContent::Uninitialized(uninit) => uninit.len as usize,
+            },
+            section.perms,
+        )?;
+    }
+
+    let mut layout = calculator.calculate()?;
+    let object = Object {
+        env: object.env,
+        sections: object
+            .sections
+            .into_iter()
+            .map(|(id, section)| {
+                (
+                    id,
+                    Section {
+                        name: section.name,
+                        perms: section.perms,
+                        content: section.content,
+                        layout: layout.sections.remove(&id).unwrap(),
+                    },
+                )
+            })
+            .collect(),
+        strings: object.strings,
+        symbols: object.symbols,
+    };
+
+    Ok((object, layout.merges))
+}
+
+struct LayoutCalculator<'a> {
     sections: BTreeMap<String, Vec<SectionToLayout>>,
     strings: &'a Strings,
 }
 
 impl<'a> LayoutCalculator<'a> {
-    pub(crate) fn new(strings: &'a Strings) -> Self {
+    fn new(strings: &'a Strings) -> Self {
         Self {
             sections: BTreeMap::new(),
             strings,
         }
     }
 
-    pub(crate) fn learn_section(
+    fn learn_section(
         &mut self,
         id: SectionId,
         name: StringId,
@@ -38,7 +80,7 @@ impl<'a> LayoutCalculator<'a> {
         Ok(())
     }
 
-    pub(crate) fn calculate(self) -> Result<CalculatedLayout, LayoutCalculatorError> {
+    fn calculate(self) -> Result<CalculatedLayout, LayoutCalculatorError> {
         let mut calculated = CalculatedLayout {
             sections: BTreeMap::new(),
             merges: Vec::new(),
@@ -89,42 +131,15 @@ struct SectionToLayout {
     perms: ElfPermissions,
 }
 
-pub(crate) struct CalculatedLayout {
-    pub(crate) sections: BTreeMap<SectionId, SectionLayout>,
-    pub(crate) merges: Vec<SectionMerge>,
+struct CalculatedLayout {
+    sections: BTreeMap<SectionId, SectionLayout>,
+    merges: Vec<SectionMerge>,
 }
 
-#[derive(Debug)]
-pub(crate) struct SectionLayout {
-    pub(crate) address: u64,
-}
-
-#[derive(Debug)]
-pub(crate) struct SectionMerge {
-    pub(crate) name: String,
-    pub(crate) address: u64,
-    pub(crate) perms: ElfPermissions,
-    pub(crate) sections: Vec<SectionId>,
-}
-
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
 pub(crate) enum LayoutCalculatorError {
+    #[display("failed to read name for section {f0:?}")]
     MissingSectionName(SectionId, #[source] MissingStringError),
+    #[display("instances of section {f0} have different perms: {f1:?} vs {f2:?}")]
     SectionWithDifferentPerms(String, ElfPermissions, ElfPermissions),
-}
-
-impl std::fmt::Display for LayoutCalculatorError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LayoutCalculatorError::MissingSectionName(id, _) => {
-                write!(f, "failed to read name for section {id:?}")
-            }
-            LayoutCalculatorError::SectionWithDifferentPerms(name, perms1, perms2) => {
-                write!(
-                    f,
-                    "instances of section {name} have different perms: {perms1:?} vs {perms2:?}"
-                )
-            }
-        }
-    }
 }

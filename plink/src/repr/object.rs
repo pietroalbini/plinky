@@ -1,4 +1,3 @@
-use crate::repr::layout::{LayoutCalculator, LayoutCalculatorError, SectionLayout, SectionMerge};
 use crate::repr::relocator::{RelocationError, Relocator};
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
@@ -13,49 +12,6 @@ pub(crate) struct Object<L> {
     pub(crate) sections: BTreeMap<SectionId, Section<L>>,
     pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
-}
-
-impl Object<()> {
-    pub(crate) fn calculate_layout(
-        self,
-    ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
-        let mut calculator = LayoutCalculator::new(&self.strings);
-        for (id, section) in &self.sections {
-            calculator.learn_section(
-                *id,
-                section.name,
-                match &section.content {
-                    SectionContent::Data(data) => data.bytes.len(),
-                    SectionContent::Uninitialized(uninit) => uninit.len as usize,
-                },
-                section.perms,
-            )?;
-        }
-
-        let mut layout = calculator.calculate()?;
-        let object = Object {
-            env: self.env,
-            sections: self
-                .sections
-                .into_iter()
-                .map(|(id, section)| {
-                    (
-                        id,
-                        Section {
-                            name: section.name,
-                            perms: section.perms,
-                            content: section.content,
-                            layout: layout.sections.remove(&id).unwrap(),
-                        },
-                    )
-                })
-                .collect(),
-            strings: self.strings,
-            symbols: self.symbols,
-        };
-
-        Ok((object, layout.merges))
-    }
 }
 
 impl Object<SectionLayout> {
@@ -123,6 +79,19 @@ pub(crate) struct DataSection {
 #[derive(Debug)]
 pub(crate) struct UninitializedSection {
     pub(crate) len: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct SectionLayout {
+    pub(crate) address: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct SectionMerge {
+    pub(crate) name: String,
+    pub(crate) address: u64,
+    pub(crate) perms: ElfPermissions,
+    pub(crate) sections: Vec<SectionId>,
 }
 
 #[derive(Debug, Error, Display)]

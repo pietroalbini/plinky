@@ -2,13 +2,13 @@ use crate::cli::CliOptions;
 use crate::passes;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::repr::elf_builder::{ElfBuilder, ElfBuilderContext, ElfBuilderError};
-use crate::repr::layout::{LayoutCalculatorError, SectionLayout, SectionMerge};
-use crate::repr::object::Object;
+use crate::repr::object::{Object, SectionLayout, SectionMerge};
 use crate::repr::relocator::RelocationError;
 use crate::write_to_disk::{write_to_disk, WriteToDiskError};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use plink_macros::Error;
+use crate::passes::layout::LayoutCalculatorError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -19,7 +19,7 @@ pub(crate) fn link_driver(
     let object = passes::load_inputs::run(&options.inputs, &mut ids)?;
     callbacks.on_inputs_loaded(&object).result()?;
 
-    let (mut object, section_merges) = object.calculate_layout()?;
+    let (mut object, section_merges) = passes::layout::run(object)?;
     callbacks
         .on_layout_calculated(&object, &section_merges)
         .result()?;

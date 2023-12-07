@@ -1,5 +1,4 @@
-use crate::repr::layout::SectionLayout;
-use crate::repr::object::DataSection;
+use crate::repr::object::{DataSection, SectionLayout};
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};

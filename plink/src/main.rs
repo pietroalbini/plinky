@@ -1,6 +1,6 @@
 use crate::cli::DebugPrint;
 use crate::linker::{link_driver, CallbackOutcome, LinkerCallbacks, LinkerError};
-use crate::repr::object::{Object, SectionMerge, SectionLayout};
+use crate::repr::object::{Object, SectionLayout, SectionMerge};
 use plink_elf::ids::serial::SerialIds;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -8,8 +8,8 @@ use std::process::ExitCode;
 
 mod cli;
 mod linker;
-mod repr;
 mod passes;
+mod repr;
 
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
@@ -47,7 +47,8 @@ impl LinkerCallbacks for DebugCallbacks {
     ) -> CallbackOutcome {
         if let Some(DebugPrint::Layout) = self.print {
             let addresses: BTreeMap<_, _> = object
-                .sections.iter()
+                .sections
+                .iter()
                 .map(|(id, section)| (*id, section.layout.address))
                 .collect();
 

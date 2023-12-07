@@ -2,7 +2,7 @@ use crate::repr::object::{Object, Section, SectionContent, SectionLayout, Sectio
 use crate::repr::strings::{MissingStringError, Strings};
 use plink_elf::ids::serial::{SectionId, StringId};
 use plink_elf::ElfPermissions;
-use plink_macros::{Error, Display};
+use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 const BASE_ADDRESS: u64 = 0x400000;

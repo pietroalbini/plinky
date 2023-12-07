@@ -1,4 +1,4 @@
-use crate::repr::object::{DataSection, Object, SectionLayout, SectionContent};
+use crate::repr::object::{DataSection, Object, SectionContent, SectionLayout};
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
@@ -17,7 +17,7 @@ pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationEr
     for (id, section) in &mut object.sections {
         match &mut section.content {
             SectionContent::Data(data) => relocator.relocate(*id, data)?,
-            SectionContent::Uninitialized(_) => {},
+            SectionContent::Uninitialized(_) => {}
         }
     }
     Ok(())

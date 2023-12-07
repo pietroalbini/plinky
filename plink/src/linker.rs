@@ -4,8 +4,8 @@ use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::layout::LayoutCalculatorError;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::relocate::RelocationError;
+use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::{Object, SectionLayout, SectionMerge};
-use crate::write_to_disk::{write_to_disk, WriteToDiskError};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use plink_macros::Error;
@@ -30,7 +30,7 @@ pub(crate) fn link_driver(
     let elf = passes::build_elf::run(object, section_merges, &options)?;
     callbacks.on_elf_built(&elf).result()?;
 
-    write_to_disk(elf, &options.output)?;
+    passes::write_to_disk::run(elf, &options.output)?;
 
     Ok(())
 }

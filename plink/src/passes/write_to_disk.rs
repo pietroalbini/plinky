@@ -7,10 +7,7 @@ use std::io::BufWriter;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn write_to_disk(
-    object: ElfObject<SerialIds>,
-    dest: &Path,
-) -> Result<(), WriteToDiskError> {
+pub(crate) fn run(object: ElfObject<SerialIds>, dest: &Path) -> Result<(), WriteToDiskError> {
     let mut file = BufWriter::new(
         File::create(dest).map_err(|e| WriteToDiskError::FileCreation(dest.into(), e))?,
     );

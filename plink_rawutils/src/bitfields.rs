@@ -87,9 +87,9 @@ impl<R: BitfieldRepr> BitfieldReader<R> {
     pub fn check_for_unknown_bits(&self) -> Result<(), BitfieldReadError> {
         let masked = self.value.and(&self.mask.invert());
         if masked == R::empty() {
-            return Ok(());
+            Ok(())
         } else {
-            return Err(BitfieldReadError::UnknownBit(masked.first_set_bit_idx()));
+            Err(BitfieldReadError::UnknownBit(masked.first_set_bit_idx()))
         }
     }
 }

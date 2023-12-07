@@ -58,9 +58,9 @@ pub enum ElfClass {
     Elf64,
 }
 
-impl Into<Bits> for ElfClass {
-    fn into(self) -> Bits {
-        match self {
+impl From<ElfClass> for Bits {
+    fn from(val: ElfClass) -> Self {
+        match val {
             ElfClass::Elf32 => Bits::Bits32,
             ElfClass::Elf64 => Bits::Bits64,
         }

@@ -27,7 +27,7 @@ pub(crate) fn link_driver(
     passes::relocate::run(&mut object)?;
     callbacks.on_relocations_applied(&object).result()?;
 
-    let elf = passes::build_elf::run(object, section_merges, &options)?;
+    let elf = passes::build_elf::run(object, section_merges, options)?;
     callbacks.on_elf_built(&elf).result()?;
 
     passes::write_to_disk::run(elf, &options.output)?;

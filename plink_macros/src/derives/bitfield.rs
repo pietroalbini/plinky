@@ -30,7 +30,7 @@ fn type_repr(output: &mut String, struct_: &Struct) -> Result<(), Error> {
         let parsed = attribute
             .value
             .strip_prefix("bitfield_repr(")
-            .and_then(|s| s.strip_suffix(")"));
+            .and_then(|s| s.strip_suffix(')'));
         match (parsed, &repr) {
             (None, _) => {}
             (Some(parsed), None) => repr = Some(parsed),
@@ -74,11 +74,11 @@ fn fn_read(output: &mut String, fields: &Fields) {
             output.push('}');
         }
     }
-    output.push_str(";");
+    output.push(';');
 
     output.push_str("reader.check_for_unknown_bits()?;");
     output.push_str("Ok(result)");
-    output.push_str("}");
+    output.push('}');
 }
 
 fn fn_write(output: &mut String, fields: &Fields) {
@@ -100,7 +100,7 @@ fn fn_write(output: &mut String, fields: &Fields) {
     }
 
     output.push_str("writer.value()");
-    output.push_str("}");
+    output.push('}');
 }
 
 fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
@@ -172,7 +172,7 @@ impl BitCalculator {
     fn parse_bit_attribute(&self, attr: &Attribute) -> Result<Option<usize>, Error> {
         attr.value
             .strip_prefix("bit(")
-            .and_then(|s| s.strip_suffix(")"))
+            .and_then(|s| s.strip_suffix(')'))
             .map(|s| {
                 s.parse::<usize>()
                     .map_err(|_| Error::new("failed to parse bit").span(attr.span))

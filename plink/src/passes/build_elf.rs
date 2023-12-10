@@ -117,7 +117,7 @@ impl ElfBuilder {
         }
 
         Some(ElfSection {
-            name: self.section_names.add(&merge.name),
+            name: self.section_names.add(&merge.name.resolve()),
             memory_address: merge.address,
             content: content?,
         })

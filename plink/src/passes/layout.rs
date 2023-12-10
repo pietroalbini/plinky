@@ -1,6 +1,6 @@
+use crate::interner::Interned;
 use crate::repr::object::{Object, Section, SectionContent, SectionLayout, SectionMerge};
-use crate::repr::strings::{MissingStringError, Strings};
-use plink_elf::ids::serial::{SectionId, StringId};
+use plink_elf::ids::serial::SectionId;
 use plink_elf::ElfPermissions;
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -11,7 +11,7 @@ const PAGE_SIZE: u64 = 0x1000;
 pub(crate) fn run(
     object: Object<()>,
 ) -> Result<(Object<SectionLayout>, Vec<SectionMerge>), LayoutCalculatorError> {
-    let mut calculator = LayoutCalculator::new(&object.strings);
+    let mut calculator = LayoutCalculator::new();
     for (id, section) in &object.sections {
         calculator.learn_section(
             *id,
@@ -49,32 +49,26 @@ pub(crate) fn run(
     Ok((object, layout.merges))
 }
 
-struct LayoutCalculator<'a> {
-    sections: BTreeMap<String, Vec<SectionToLayout>>,
-    strings: &'a Strings,
+struct LayoutCalculator {
+    sections: BTreeMap<Interned<String>, Vec<SectionToLayout>>,
 }
 
-impl<'a> LayoutCalculator<'a> {
-    fn new(strings: &'a Strings) -> Self {
+impl<'a> LayoutCalculator {
+    fn new() -> Self {
         Self {
             sections: BTreeMap::new(),
-            strings,
         }
     }
 
     fn learn_section(
         &mut self,
         id: SectionId,
-        name: StringId,
+        name: Interned<String>,
         len: usize,
         perms: ElfPermissions,
     ) -> Result<(), LayoutCalculatorError> {
-        let name = self
-            .strings
-            .get(name)
-            .map_err(|e| LayoutCalculatorError::MissingSectionName(id, e))?;
         self.sections
-            .entry(name.into())
+            .entry(name)
             .or_default()
             .push(SectionToLayout { id, len, perms });
         Ok(())
@@ -138,8 +132,6 @@ struct CalculatedLayout {
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum LayoutCalculatorError {
-    #[display("failed to read name for section {f0:?}")]
-    MissingSectionName(SectionId, #[source] MissingStringError),
     #[display("instances of section {f0} have different perms: {f1:?} vs {f2:?}")]
-    SectionWithDifferentPerms(String, ElfPermissions, ElfPermissions),
+    SectionWithDifferentPerms(Interned<String>, ElfPermissions, ElfPermissions),
 }

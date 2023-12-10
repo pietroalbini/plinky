@@ -13,7 +13,7 @@ Object {
     },
     sections: {
         section#1: Section {
-            name: section#3:string#1,
+            name: ".rodata",
             perms: ElfPermissions(R),
             content: Data(
                 DataSection {
@@ -30,7 +30,7 @@ Object {
             },
         },
         section#2: Section {
-            name: section#3:string#9,
+            name: ".text",
             perms: ElfPermissions(RX),
             content: Data(
                 DataSection {
@@ -48,7 +48,7 @@ Object {
             },
         },
         section#8: Section {
-            name: section#10:string#1,
+            name: ".rodata",
             perms: ElfPermissions(R),
             content: Data(
                 DataSection {
@@ -65,7 +65,7 @@ Object {
             },
         },
         section#9: Section {
-            name: section#10:string#9,
+            name: ".text",
             perms: ElfPermissions(RX),
             content: Data(
                 DataSection {

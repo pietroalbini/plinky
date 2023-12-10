@@ -1,6 +1,7 @@
+use crate::interner::Interned;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
-use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
+use plink_elf::ids::serial::{SectionId, SerialIds};
 use plink_elf::{ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -40,7 +41,7 @@ impl Object<SectionLayout> {
 
 #[derive(Debug)]
 pub(crate) struct Section<L> {
-    pub(crate) name: StringId,
+    pub(crate) name: Interned<String>,
     pub(crate) perms: ElfPermissions,
     pub(crate) content: SectionContent,
     pub(crate) layout: L,
@@ -70,7 +71,7 @@ pub(crate) struct SectionLayout {
 
 #[derive(Debug)]
 pub(crate) struct SectionMerge {
-    pub(crate) name: String,
+    pub(crate) name: Interned<String>,
     pub(crate) address: u64,
     pub(crate) perms: ElfPermissions,
     pub(crate) sections: Vec<SectionId>,

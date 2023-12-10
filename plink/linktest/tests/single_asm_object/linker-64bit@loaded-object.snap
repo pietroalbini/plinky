@@ -13,7 +13,7 @@ Object {
     },
     sections: {
         section#1: Section {
-            name: section#3:string#1,
+            name: ".data",
             perms: ElfPermissions(RW),
             content: Data(
                 DataSection {
@@ -28,7 +28,7 @@ Object {
             layout: (),
         },
         section#2: Section {
-            name: section#3:string#7,
+            name: ".text",
             perms: ElfPermissions(RX),
             content: Data(
                 DataSection {

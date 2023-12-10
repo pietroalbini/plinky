@@ -10,6 +10,7 @@ mod cli;
 mod linker;
 mod passes;
 mod repr;
+mod interner;
 
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;

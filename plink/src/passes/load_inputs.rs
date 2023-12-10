@@ -1,8 +1,9 @@
+use crate::interner::intern;
 use crate::repr::object::{DataSection, Object, Section, SectionContent, UninitializedSection};
-use crate::repr::strings::Strings;
+use crate::repr::strings::{MissingStringError, Strings};
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plink_elf::errors::LoadError;
-use plink_elf::ids::serial::SerialIds;
+use plink_elf::ids::serial::{SectionId, SerialIds};
 use plink_elf::{ElfEnvironment, ElfNote, ElfObject, ElfSectionContent};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -49,6 +50,7 @@ pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, 
 fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), LoadInputsError> {
     let mut symbol_tables = Vec::new();
     let mut program_sections = Vec::new();
+    let mut uninitialized_sections = Vec::new();
     let mut relocations = BTreeMap::new();
 
     for (section_id, section) in elf.sections.into_iter() {
@@ -58,17 +60,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                 program_sections.push((section_id, section.name, program))
             }
             ElfSectionContent::Uninitialized(uninit) => {
-                object.sections.insert(
-                    section_id,
-                    Section {
-                        name: section.name,
-                        perms: uninit.perms,
-                        content: SectionContent::Uninitialized(UninitializedSection {
-                            len: uninit.len,
-                        }),
-                        layout: (),
-                    },
-                );
+                uninitialized_sections.push((section_id, section.name, uninit));
             }
             ElfSectionContent::SymbolTable(table) => symbol_tables.push((section.name, table)),
             ElfSectionContent::StringTable(table) => object.strings.load_table(section_id, table),
@@ -105,12 +97,34 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
             })?;
     }
 
+    for (section_id, name, uninit) in uninitialized_sections {
+        object.sections.insert(
+            section_id,
+            Section {
+                name: intern(object.strings.get(name).map_err(|err| {
+                    LoadInputsError::MissingSectionName {
+                        id: section_id,
+                        err,
+                    }
+                })?),
+                perms: uninit.perms,
+                content: SectionContent::Uninitialized(UninitializedSection { len: uninit.len }),
+                layout: (),
+            },
+        );
+    }
+
     for (section_id, name, program) in program_sections {
         let relocations = relocations.remove(&section_id).unwrap_or_else(Vec::new);
         object.sections.insert(
             section_id,
             Section {
-                name,
+                name: intern(object.strings.get(name).map_err(|err| {
+                    LoadInputsError::MissingSectionName {
+                        id: section_id,
+                        err,
+                    }
+                })?),
                 perms: program.perms,
                 content: SectionContent::Data(DataSection {
                     bytes: program.raw,
@@ -147,5 +161,11 @@ pub(crate) enum LoadInputsError {
         first_env: ElfEnvironment,
         current_path: PathBuf,
         current_env: ElfEnvironment,
+    },
+    #[display("failed to fetch section name for section {id:?}")]
+    MissingSectionName {
+        id: SectionId,
+        #[source]
+        err: MissingStringError,
     },
 }

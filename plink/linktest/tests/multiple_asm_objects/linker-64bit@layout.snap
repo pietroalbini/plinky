@@ -1,5 +1,5 @@
 ---
-source: plink/tests/linktest/main.rs
+source: plink/linktest/harness/main.rs
 ---
 linking exited with exit status: 0
 
@@ -7,31 +7,14 @@ linking exited with exit status: 0
 Section addresses
 -----------------
 {
-    section#1: 0x400000,
-    section#2: 0x401000,
-    section#8: 0x40000f,
-    section#9: 0x40101f,
-}
-
-Section merges
---------------
-SectionMerge {
-    name: ".rodata",
-    address: 0x400000,
-    perms: ElfPermissions(R),
-    sections: [
-        section#1,
-        section#8,
-    ],
-}
-SectionMerge {
-    name: ".text",
-    address: 0x401000,
-    perms: ElfPermissions(RX),
-    sections: [
-        section#2,
-        section#9,
-    ],
+    ".rodata": {
+        section#1: 0x400000,
+        section#8: 0x40000f,
+    },
+    ".text": {
+        section#2: 0x401000,
+        section#9: 0x40101f,
+    },
 }
 
 

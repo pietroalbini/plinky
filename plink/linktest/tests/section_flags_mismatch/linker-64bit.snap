@@ -1,12 +1,12 @@
 ---
-source: plink/tests/linktest/main.rs
+source: plink/linktest/harness/main.rs
 ---
 linking exited with exit status: 1
 
 no stdout present
 
 === stderr ===
-error: failed to calculate the resulting layout
-caused by: instances of section .text have different perms: ElfPermissions(RX) vs ElfPermissions(RWX)
+error: failed to load input files
+caused by: instances of section .text have different permissions: one is ElfPermissions(RX), while the other is ElfPermissions(RWX)
 
 

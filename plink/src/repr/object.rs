@@ -9,16 +9,13 @@ use std::collections::BTreeMap;
 #[derive(Debug)]
 pub(crate) struct Object<L> {
     pub(crate) env: ElfEnvironment,
-    pub(crate) sections: BTreeMap<SectionId, Section<L>>,
+    pub(crate) sections: BTreeMap<Interned<String>, Section<L>>,
+    pub(crate) section_ids_to_names: BTreeMap<SectionId, Interned<String>>,
     pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
 }
 
 impl Object<SectionLayout> {
-    pub(crate) fn take_section(&mut self, id: SectionId) -> Section<SectionLayout> {
-        self.sections.remove(&id).expect("invalid section id")
-    }
-
     pub(crate) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
         let symbol = self.symbols.get_global(name)?;
 
@@ -27,13 +24,20 @@ impl Object<SectionLayout> {
             ElfSymbolDefinition::Absolute => Err(GetSymbolAddressError::NotAnAddress(name.into())),
             ElfSymbolDefinition::Common => todo!(),
             ElfSymbolDefinition::Section(section_id) => {
-                let section_offset = self
-                    .sections
+                let section_addr = self
+                    .section_ids_to_names
                     .get(&section_id)
-                    .expect("invalid section id")
-                    .layout
-                    .address;
-                Ok(section_offset + symbol.value)
+                    .and_then(|name| self.sections.get(name))
+                    .and_then(|section| match &section.content {
+                        SectionContent::Data(data) => {
+                            data.parts.get(&section_id).map(|p| p.layout.address)
+                        }
+                        SectionContent::Uninitialized(uninit) => {
+                            uninit.get(&section_id).map(|p| p.layout.address)
+                        }
+                    })
+                    .expect("invalid section id");
+                Ok(section_addr + symbol.value)
             }
         }
     }
@@ -41,40 +45,37 @@ impl Object<SectionLayout> {
 
 #[derive(Debug)]
 pub(crate) struct Section<L> {
-    pub(crate) name: Interned<String>,
     pub(crate) perms: ElfPermissions,
-    pub(crate) content: SectionContent,
+    pub(crate) content: SectionContent<L>,
+}
+
+#[derive(Debug)]
+pub(crate) enum SectionContent<L> {
+    Data(DataSection<L>),
+    Uninitialized(BTreeMap<SectionId, UninitializedSectionPart<L>>),
+}
+
+#[derive(Debug)]
+pub(crate) struct DataSection<L> {
+    pub(crate) parts: BTreeMap<SectionId, DataSectionPart<L>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct DataSectionPart<L> {
+    pub(crate) bytes: RawBytes,
+    pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
     pub(crate) layout: L,
 }
 
 #[derive(Debug)]
-pub(crate) enum SectionContent {
-    Data(DataSection),
-    Uninitialized(UninitializedSection),
-}
-
-#[derive(Debug)]
-pub(crate) struct DataSection {
-    pub(crate) bytes: RawBytes,
-    pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct UninitializedSection {
+pub(crate) struct UninitializedSectionPart<L> {
     pub(crate) len: u64,
+    pub(crate) layout: L,
 }
 
 #[derive(Debug)]
 pub(crate) struct SectionLayout {
     pub(crate) address: u64,
-}
-
-#[derive(Debug)]
-pub(crate) struct SectionMerge {
-    pub(crate) name: Interned<String>,
-    pub(crate) address: u64,
-    pub(crate) perms: ElfPermissions,
-    pub(crate) sections: Vec<SectionId>,
 }
 
 #[derive(Debug, Error, Display)]

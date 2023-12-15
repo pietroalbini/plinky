@@ -28,8 +28,8 @@ ElfObject {
                 ElfStringTable {
                     strings: {
                         0x0: "",
-                        0x1: ".text",
-                        0x7: ".custom_messages",
+                        0x1: ".custom_messages",
+                        0x12: ".text",
                         0x18: ".shstrtab",
                     },
                 },
@@ -37,6 +37,22 @@ ElfObject {
         },
         section#2: ElfSection {
             name: section#1:string#1,
+            memory_address: 0x400000,
+            content: Program(
+                ElfProgramSection {
+                    perms: ElfPermissions(R),
+                    deduplication: Disabled,
+                    raw: RawBytes {
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x20)
+                           +-------------------------------------------------+
+                        0? | 48 65 6c 6c 6f 00 20 77 6f 72 6c 64 21 0a 00 47 | Hello. world!..G
+                        1? | 6f 6f 64 62 79 65 00 20 77 6f 72 6c 64 21 0a 00 | oodbye. world!..
+                    },
+                },
+            ),
+        },
+        section#3: ElfSection {
+            name: section#1:string#18,
             memory_address: 0x401000,
             content: Program(
                 ElfProgramSection {
@@ -56,22 +72,6 @@ ElfObject {
                 },
             ),
         },
-        section#3: ElfSection {
-            name: section#1:string#7,
-            memory_address: 0x400000,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(R),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x20)
-                           +-------------------------------------------------+
-                        0? | 48 65 6c 6c 6f 00 20 77 6f 72 6c 64 21 0a 00 47 | Hello. world!..G
-                        1? | 6f 6f 64 62 79 65 00 20 77 6f 72 6c 64 21 0a 00 | oodbye. world!..
-                    },
-                },
-            ),
-        },
     },
     segments: [
         ElfSegment {
@@ -79,7 +79,7 @@ ElfObject {
             perms: ElfPermissions(R),
             content: [
                 Section(
-                    section#3,
+                    section#2,
                 ),
             ],
             align: 0x1000,
@@ -89,7 +89,7 @@ ElfObject {
             perms: ElfPermissions(RX),
             content: [
                 Section(
-                    section#2,
+                    section#3,
                 ),
             ],
             align: 0x1000,

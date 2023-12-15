@@ -1,10 +1,12 @@
-use crate::interner::intern;
-use crate::repr::object::{DataSection, Object, Section, SectionContent, UninitializedSection};
+use crate::interner::{intern, Interned};
+use crate::repr::object::{
+    DataSection, DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
+};
 use crate::repr::strings::{MissingStringError, Strings};
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plink_elf::errors::LoadError;
-use plink_elf::ids::serial::{SectionId, SerialIds};
-use plink_elf::{ElfEnvironment, ElfNote, ElfObject, ElfSectionContent};
+use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
+use plink_elf::{ElfEnvironment, ElfNote, ElfObject, ElfPermissions, ElfSectionContent};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -24,6 +26,7 @@ pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, 
                 let mut object = Object {
                     env: elf.env,
                     sections: BTreeMap::new(),
+                    section_ids_to_names: BTreeMap::new(),
                     strings: Strings::new(),
                     symbols: Symbols::new(),
                 };
@@ -97,43 +100,100 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
             })?;
     }
 
-    for (section_id, name, uninit) in uninitialized_sections {
-        object.sections.insert(
-            section_id,
-            Section {
-                name: intern(object.strings.get(name).map_err(|err| {
-                    LoadInputsError::MissingSectionName {
-                        id: section_id,
-                        err,
-                    }
-                })?),
-                perms: uninit.perms,
-                content: SectionContent::Uninitialized(UninitializedSection { len: uninit.len }),
-                layout: (),
+    for (id, name, uninit) in uninitialized_sections {
+        add_section(
+            object,
+            id,
+            name,
+            uninit.perms,
+            || SectionContent::Uninitialized(BTreeMap::new()),
+            |name, content| match content {
+                SectionContent::Data(_) => Err(LoadInputsError::MismatchedSectionTypes {
+                    name,
+                    first_type: "data",
+                    second_type: "uninitialized",
+                }),
+                SectionContent::Uninitialized(c) => {
+                    c.insert(
+                        id,
+                        UninitializedSectionPart {
+                            len: uninit.len,
+                            layout: (),
+                        },
+                    );
+                    Ok(())
+                }
             },
-        );
+        )?;
     }
 
-    for (section_id, name, program) in program_sections {
-        let relocations = relocations.remove(&section_id).unwrap_or_else(Vec::new);
-        object.sections.insert(
-            section_id,
-            Section {
-                name: intern(object.strings.get(name).map_err(|err| {
-                    LoadInputsError::MissingSectionName {
-                        id: section_id,
-                        err,
-                    }
-                })?),
-                perms: program.perms,
-                content: SectionContent::Data(DataSection {
-                    bytes: program.raw,
-                    relocations,
-                }),
-                layout: (),
+    for (id, name, program) in program_sections {
+        add_section(
+            object,
+            id,
+            name,
+            program.perms,
+            || {
+                SectionContent::Data(DataSection {
+                    parts: BTreeMap::new(),
+                })
             },
-        );
+            |name, content| match content {
+                SectionContent::Uninitialized(_) => Err(LoadInputsError::MismatchedSectionTypes {
+                    name,
+                    first_type: "uninitialized",
+                    second_type: "data",
+                }),
+                SectionContent::Data(c) => {
+                    c.parts.insert(
+                        id,
+                        DataSectionPart {
+                            bytes: program.raw,
+                            relocations: relocations.remove(&id).unwrap_or_else(Vec::new),
+                            layout: (),
+                        },
+                    );
+                    Ok(())
+                }
+            },
+        )?;
     }
+    Ok(())
+}
+
+fn add_section<I, U>(
+    object: &mut Object<()>,
+    id: SectionId,
+    name: StringId,
+    perms: ElfPermissions,
+    init_content: I,
+    update_content: U,
+) -> Result<(), LoadInputsError>
+where
+    I: FnOnce() -> SectionContent<()>,
+    U: FnOnce(Interned<String>, &mut SectionContent<()>) -> Result<(), LoadInputsError>,
+{
+    let name = intern(
+        object
+            .strings
+            .get(name)
+            .map_err(|err| LoadInputsError::MissingSectionName { id, err })?,
+    );
+
+    let section = object.sections.entry(name).or_insert_with(|| Section {
+        perms,
+        content: init_content(),
+    });
+    if section.perms != perms {
+        return Err(LoadInputsError::MismatchedSectionPerms {
+            name,
+            first_perms: section.perms,
+            second_perms: perms,
+        });
+    }
+    update_content(name, &mut section.content)?;
+
+    object.section_ids_to_names.insert(id, name);
     Ok(())
 }
 
@@ -161,6 +221,18 @@ pub(crate) enum LoadInputsError {
         first_env: ElfEnvironment,
         current_path: PathBuf,
         current_env: ElfEnvironment,
+    },
+    #[display("instances of section {name} have different types: one is of type {first_type}, while the other is of type {second_type}")]
+    MismatchedSectionTypes {
+        name: Interned<String>,
+        first_type: &'static str,
+        second_type: &'static str,
+    },
+    #[display("instances of section {name} have different permissions: one is {first_perms:?}, while the other is {second_perms:?}")]
+    MismatchedSectionPerms {
+        name: Interned<String>,
+        first_perms: ElfPermissions,
+        second_perms: ElfPermissions,
     },
     #[display("failed to fetch section name for section {id:?}")]
     MissingSectionName {

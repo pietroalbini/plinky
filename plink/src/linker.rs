@@ -1,11 +1,10 @@
 use crate::cli::CliOptions;
 use crate::passes;
 use crate::passes::build_elf::ElfBuilderError;
-use crate::passes::layout::LayoutCalculatorError;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::relocate::RelocationError;
 use crate::passes::write_to_disk::WriteToDiskError;
-use crate::repr::object::{Object, SectionLayout, SectionMerge};
+use crate::repr::object::{Object, SectionLayout};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use plink_macros::Error;
@@ -19,15 +18,13 @@ pub(crate) fn link_driver(
     let object = passes::load_inputs::run(&options.inputs, &mut ids)?;
     callbacks.on_inputs_loaded(&object).result()?;
 
-    let (mut object, section_merges) = passes::layout::run(object)?;
-    callbacks
-        .on_layout_calculated(&object, &section_merges)
-        .result()?;
+    let mut object = passes::layout::run(object);
+    callbacks.on_layout_calculated(&object).result()?;
 
     passes::relocate::run(&mut object)?;
     callbacks.on_relocations_applied(&object).result()?;
 
-    let elf = passes::build_elf::run(object, section_merges, options)?;
+    let elf = passes::build_elf::run(object, options)?;
     callbacks.on_elf_built(&elf).result()?;
 
     passes::write_to_disk::run(elf, &options.output)?;
@@ -40,11 +37,7 @@ pub(crate) trait LinkerCallbacks {
         CallbackOutcome::Continue
     }
 
-    fn on_layout_calculated(
-        &self,
-        _object: &Object<SectionLayout>,
-        _merges: &[SectionMerge],
-    ) -> CallbackOutcome {
+    fn on_layout_calculated(&self, _object: &Object<SectionLayout>) -> CallbackOutcome {
         CallbackOutcome::Continue
     }
 
@@ -76,7 +69,6 @@ impl CallbackOutcome {
 pub(crate) enum LinkerError {
     CallbackEarlyExit,
     LoadInputsFailed(#[from] LoadInputsError),
-    LayoutCalculationFailed(#[from] LayoutCalculatorError),
     RelocationFailed(#[from] RelocationError),
     ElfBuildFailed(#[from] ElfBuilderError),
     WriteToDiskFailed(#[from] WriteToDiskError),
@@ -87,9 +79,6 @@ impl std::fmt::Display for LinkerError {
         match self {
             LinkerError::CallbackEarlyExit => f.write_str("early exit caused by a callback"),
             LinkerError::LoadInputsFailed(_) => f.write_str("failed to load input files"),
-            LinkerError::LayoutCalculationFailed(_) => {
-                f.write_str("failed to calculate the resulting layout")
-            }
             LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
             LinkerError::ElfBuildFailed(_) => f.write_str("failed to prepare the resulting object"),
             LinkerError::WriteToDiskFailed(_) => {

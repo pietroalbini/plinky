@@ -28,8 +28,8 @@ ElfObject {
                 ElfStringTable {
                     strings: {
                         0x0: "",
-                        0x1: ".text",
-                        0x7: ".bss",
+                        0x1: ".bss",
+                        0x6: ".text",
                         0xc: ".shstrtab",
                     },
                 },
@@ -37,6 +37,16 @@ ElfObject {
         },
         section#2: ElfSection {
             name: section#1:string#1,
+            memory_address: 0x400000,
+            content: Uninitialized(
+                ElfUninitializedSection {
+                    perms: ElfPermissions(RW),
+                    len: 0x6,
+                },
+            ),
+        },
+        section#3: ElfSection {
+            name: section#1:string#6,
             memory_address: 0x401000,
             content: Program(
                 ElfProgramSection {
@@ -55,16 +65,6 @@ ElfObject {
                 },
             ),
         },
-        section#3: ElfSection {
-            name: section#1:string#7,
-            memory_address: 0x400000,
-            content: Uninitialized(
-                ElfUninitializedSection {
-                    perms: ElfPermissions(RW),
-                    len: 0x6,
-                },
-            ),
-        },
     },
     segments: [
         ElfSegment {
@@ -72,7 +72,7 @@ ElfObject {
             perms: ElfPermissions(RW),
             content: [
                 Section(
-                    section#3,
+                    section#2,
                 ),
             ],
             align: 0x1000,
@@ -82,7 +82,7 @@ ElfObject {
             perms: ElfPermissions(RX),
             content: [
                 Section(
-                    section#2,
+                    section#3,
                 ),
             ],
             align: 0x1000,

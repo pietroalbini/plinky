@@ -1,11 +1,10 @@
 use crate::cli::CliOptions;
-use crate::repr::object::{
-    GetSymbolAddressError, Object, SectionContent, SectionLayout, SectionMerge,
-};
+use crate::interner::Interned;
+use crate::repr::object::{GetSymbolAddressError, Object, Section, SectionContent, SectionLayout};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfDeduplication, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
-    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plink_macros::Error;
 use std::collections::BTreeMap;
@@ -13,14 +12,12 @@ use std::num::NonZeroU64;
 
 pub(crate) fn run(
     object: Object<SectionLayout>,
-    section_merges: Vec<SectionMerge>,
     options: &CliOptions,
 ) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
     let mut ids = SerialIds::new();
     let builder = ElfBuilder {
         entrypoint: options.entry.clone(),
         object,
-        section_merges,
         section_zero_id: ids.allocate_section_id(),
         section_names: PendingStringsTable::new(&mut ids),
         ids,
@@ -31,7 +28,6 @@ pub(crate) fn run(
 struct ElfBuilder {
     entrypoint: String,
     object: Object<SectionLayout>,
-    section_merges: Vec<SectionMerge>,
 
     ids: SerialIds,
     section_names: PendingStringsTable,
@@ -77,10 +73,11 @@ impl ElfBuilder {
             },
         );
 
-        while let Some(merge) = self.section_merges.pop() {
-            if let Some(section) = self.prepare_section(merge) {
-                sections.insert(self.ids.allocate_section_id(), section);
-            }
+        while let Some((name, section)) = self.object.sections.pop_first() {
+            sections.insert(
+                self.ids.allocate_section_id(),
+                self.prepare_section(name, section),
+            );
         }
 
         sections.insert(self.section_names.id, self.prepare_section_names_table());
@@ -88,39 +85,48 @@ impl ElfBuilder {
         sections
     }
 
-    fn prepare_section(&mut self, merge: SectionMerge) -> Option<ElfSection<SerialIds>> {
-        let mut content = None;
-        for section in merge.sections {
-            let section = self.object.take_section(section);
-            match (&mut content, section.content) {
-                (None, SectionContent::Data(data)) => {
-                    content = Some(ElfSectionContent::Program(ElfProgramSection {
-                        perms: merge.perms,
-                        deduplication: ElfDeduplication::Disabled, // TODO: implement merging.
-                        raw: data.bytes,
-                    }));
-                }
-                (None, SectionContent::Uninitialized(uninit)) => {
-                    content = Some(ElfSectionContent::Uninitialized(ElfUninitializedSection {
-                        perms: merge.perms,
-                        len: uninit.len,
-                    }));
-                }
-                (Some(ElfSectionContent::Program(elf)), SectionContent::Data(data)) => {
-                    elf.raw.0.extend_from_slice(&data.bytes.0);
-                }
-                (Some(ElfSectionContent::Uninitialized(elf)), SectionContent::Uninitialized(u)) => {
-                    elf.len += u.len;
-                }
-                _ => panic!("mixed different section content types in the same merge"),
-            }
-        }
+    fn prepare_section(
+        &mut self,
+        name: Interned<String>,
+        section: Section<SectionLayout>,
+    ) -> ElfSection<SerialIds> {
+        let mut memory_address: Option<u64> = None;
+        let mut update_memory_address = |new| match memory_address {
+            None => memory_address = Some(new),
+            Some(existing) => memory_address = Some(existing.min(new)),
+        };
 
-        Some(ElfSection {
-            name: self.section_names.add(&merge.name.resolve()),
-            memory_address: merge.address,
-            content: content?,
-        })
+        let content = match section.content {
+            SectionContent::Data(data) => {
+                let mut raw = Vec::new();
+                for part in data.parts.into_values() {
+                    update_memory_address(part.layout.address);
+                    raw.extend_from_slice(&part.bytes);
+                }
+                ElfSectionContent::Program(ElfProgramSection {
+                    perms: section.perms,
+                    deduplication: ElfDeduplication::Disabled,
+                    raw: RawBytes(raw),
+                })
+            }
+            SectionContent::Uninitialized(uninit) => {
+                let mut len = 0;
+                for part in uninit.into_values() {
+                    update_memory_address(part.layout.address);
+                    len += part.len;
+                }
+                ElfSectionContent::Uninitialized(ElfUninitializedSection {
+                    perms: section.perms,
+                    len,
+                })
+            }
+        };
+
+        ElfSection {
+            name: self.section_names.add(&name.resolve()),
+            memory_address: memory_address.expect("empty section"),
+            content,
+        }
     }
 
     fn prepare_section_names_table(&mut self) -> ElfSection<SerialIds> {

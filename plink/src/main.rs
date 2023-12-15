@@ -1,16 +1,16 @@
 use crate::cli::DebugPrint;
 use crate::linker::{link_driver, CallbackOutcome, LinkerCallbacks, LinkerError};
-use crate::repr::object::{Object, SectionLayout, SectionMerge};
+use crate::repr::object::{Object, SectionContent, SectionLayout};
 use plink_elf::ids::serial::SerialIds;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::process::ExitCode;
 
 mod cli;
+mod interner;
 mod linker;
 mod passes;
 mod repr;
-mod interner;
 
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
@@ -41,27 +41,30 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_layout_calculated(
-        &self,
-        object: &Object<SectionLayout>,
-        merges: &[SectionMerge],
-    ) -> CallbackOutcome {
+    fn on_layout_calculated(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
         if let Some(DebugPrint::Layout) = self.print {
             let addresses: BTreeMap<_, _> = object
                 .sections
                 .iter()
-                .map(|(id, section)| (*id, section.layout.address))
+                .map(|(name, section)| {
+                    let addresses: BTreeMap<_, _> = match &section.content {
+                        SectionContent::Data(data) => data
+                            .parts
+                            .iter()
+                            .map(|(id, part)| (id, part.layout.address))
+                            .collect(),
+                        SectionContent::Uninitialized(uninit) => uninit
+                            .iter()
+                            .map(|(id, part)| (id, part.layout.address))
+                            .collect(),
+                    };
+                    (name, addresses)
+                })
                 .collect();
 
             println!("Section addresses");
             println!("-----------------");
             println!("{addresses:#x?}");
-            println!();
-            println!("Section merges");
-            println!("--------------");
-            for merge in merges {
-                println!("{merge:#x?}");
-            }
 
             CallbackOutcome::Stop
         } else {

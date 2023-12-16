@@ -7,7 +7,8 @@ use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::{Object, SectionLayout};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
-use plink_macros::Error;
+use plink_macros::{Error, Display};
+use crate::passes::deduplicate::DeduplicationError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -15,8 +16,10 @@ pub(crate) fn link_driver(
 ) -> Result<(), LinkerError> {
     let mut ids = SerialIds::new();
 
-    let object = passes::load_inputs::run(&options.inputs, &mut ids)?;
+    let mut object = passes::load_inputs::run(&options.inputs, &mut ids)?;
     callbacks.on_inputs_loaded(&object).result()?;
+
+    passes::deduplicate::run(&mut object, &mut ids)?;
 
     let mut object = passes::layout::run(object);
     callbacks.on_layout_calculated(&object).result()?;
@@ -65,25 +68,18 @@ impl CallbackOutcome {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Display, Error)]
 pub(crate) enum LinkerError {
+    #[display("early exit caused by a callback")]
     CallbackEarlyExit,
+    #[display("failed to load input files")]
     LoadInputsFailed(#[from] LoadInputsError),
+    #[display("failed to deduplicate sections")]
+    DeduplicationFailed(#[from] DeduplicationError),
+    #[display("failed to relocate the object")]
     RelocationFailed(#[from] RelocationError),
+    #[display("failed to prepare the resulting object")]
     ElfBuildFailed(#[from] ElfBuilderError),
+    #[display("failed to write the linked object to disk")]
     WriteToDiskFailed(#[from] WriteToDiskError),
-}
-
-impl std::fmt::Display for LinkerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LinkerError::CallbackEarlyExit => f.write_str("early exit caused by a callback"),
-            LinkerError::LoadInputsFailed(_) => f.write_str("failed to load input files"),
-            LinkerError::RelocationFailed(_) => f.write_str("failed to relocate the object"),
-            LinkerError::ElfBuildFailed(_) => f.write_str("failed to prepare the resulting object"),
-            LinkerError::WriteToDiskFailed(_) => {
-                f.write_str("failed to write the linked object to disk")
-            }
-        }
-    }
 }

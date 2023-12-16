@@ -110,7 +110,7 @@ pub enum ElfSectionContent<I: ElfIds> {
     Unknown(ElfUnknownSection),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ElfDeduplication {
     Disabled,
     ZeroTerminatedStrings,

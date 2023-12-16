@@ -21,6 +21,7 @@ pub(crate) fn run(object: Object<()>) -> Object<SectionLayout> {
                         perms: section.perms,
                         content: match section.content {
                             SectionContent::Data(data) => SectionContent::Data(DataSection {
+                                deduplication: data.deduplication,
                                 parts: data
                                     .parts
                                     .into_iter()

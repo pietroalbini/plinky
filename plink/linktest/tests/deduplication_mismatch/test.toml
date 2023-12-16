@@ -1,6 +1,5 @@
 cmd = ["foo.o", "bar.o"]
-kind = "run-pass"
-debug-print = ["relocated-object", "final-elf"]
+kind = "link-fail"
 
 [[asm]]
 source = "foo.S"

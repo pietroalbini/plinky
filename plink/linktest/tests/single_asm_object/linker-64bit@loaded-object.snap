@@ -16,6 +16,7 @@ Object {
             perms: ElfPermissions(RW),
             content: Data(
                 DataSection {
+                    deduplication: Disabled,
                     parts: {
                         section#1: DataSectionPart {
                             bytes: RawBytes {
@@ -34,6 +35,7 @@ Object {
             perms: ElfPermissions(RX),
             content: Data(
                 DataSection {
+                    deduplication: Disabled,
                     parts: {
                         section#2: DataSectionPart {
                             bytes: RawBytes {

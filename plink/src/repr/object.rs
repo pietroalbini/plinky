@@ -2,7 +2,7 @@ use crate::interner::Interned;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds};
-use plink_elf::{ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes};
+use plink_elf::{ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes, ElfDeduplication};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 
@@ -57,6 +57,7 @@ pub(crate) enum SectionContent<L> {
 
 #[derive(Debug)]
 pub(crate) struct DataSection<L> {
+    pub(crate) deduplication: ElfDeduplication,
     pub(crate) parts: BTreeMap<SectionId, DataSectionPart<L>>,
 }
 

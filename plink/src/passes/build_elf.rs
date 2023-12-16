@@ -3,8 +3,8 @@ use crate::interner::Interned;
 use crate::repr::object::{GetSymbolAddressError, Object, Section, SectionContent, SectionLayout};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
-    ElfDeduplication, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
-    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
+    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plink_macros::Error;
 use std::collections::BTreeMap;
@@ -105,7 +105,7 @@ impl ElfBuilder {
                 }
                 ElfSectionContent::Program(ElfProgramSection {
                     perms: section.perms,
-                    deduplication: ElfDeduplication::Disabled,
+                    deduplication: data.deduplication,
                     raw: RawBytes(raw),
                 })
             }

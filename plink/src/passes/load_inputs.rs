@@ -6,7 +6,9 @@ use crate::repr::strings::{MissingStringError, Strings};
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
-use plink_elf::{ElfEnvironment, ElfNote, ElfObject, ElfPermissions, ElfSectionContent};
+use plink_elf::{
+    ElfDeduplication, ElfEnvironment, ElfNote, ElfObject, ElfPermissions, ElfSectionContent,
+};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -135,6 +137,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
             program.perms,
             || {
                 SectionContent::Data(DataSection {
+                    deduplication: program.deduplication,
                     parts: BTreeMap::new(),
                 })
             },
@@ -145,6 +148,13 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                     second_type: "data",
                 }),
                 SectionContent::Data(c) => {
+                    if c.deduplication != program.deduplication {
+                        return Err(LoadInputsError::MismatchedDeduplication {
+                            name,
+                            first_dedup: c.deduplication,
+                            second_dedup: program.deduplication,
+                        });
+                    }
                     c.parts.insert(
                         id,
                         DataSectionPart {
@@ -233,6 +243,12 @@ pub(crate) enum LoadInputsError {
         name: Interned<String>,
         first_perms: ElfPermissions,
         second_perms: ElfPermissions,
+    },
+    #[display("instances of section {name} have different deduplications: one is {first_dedup:?}, while the other is {second_dedup:?}")]
+    MismatchedDeduplication {
+        name: Interned<String>,
+        first_dedup: ElfDeduplication,
+        second_dedup: ElfDeduplication,
     },
     #[display("failed to fetch section name for section {id:?}")]
     MissingSectionName {

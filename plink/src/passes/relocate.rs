@@ -1,4 +1,6 @@
-use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
+use crate::repr::object::{
+    DataSectionPart, DataSectionPartReal, Object, SectionContent, SectionLayout,
+};
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
@@ -11,8 +13,10 @@ pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationEr
     for section in object.sections.values_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
-                for (id, part) in &mut data.parts {
-                    relocator.relocate(*id, part)?;
+                for (&id, part) in &mut data.parts {
+                    match part {
+                        DataSectionPart::Real(real) => relocator.relocate(id, real)?,
+                    }
                 }
             }
             SectionContent::Uninitialized(_) => {}
@@ -27,9 +31,14 @@ fn fetch_section_addresses(object: &Object<SectionLayout>) -> BTreeMap<SectionId
         .values()
         .flat_map(|section| -> Box<dyn Iterator<Item = _>> {
             match &section.content {
-                SectionContent::Data(data) => {
-                    Box::new(data.parts.iter().map(|(&id, part)| (id, part.layout.address)))
-                }
+                SectionContent::Data(data) => Box::new(data.parts.iter().map(|(&id, part)| {
+                    (
+                        id,
+                        match part {
+                            DataSectionPart::Real(real) => real.layout.address,
+                        },
+                    )
+                })),
                 SectionContent::Uninitialized(uninit) => {
                     Box::new(uninit.iter().map(|(&id, part)| (id, part.layout.address)))
                 }
@@ -47,7 +56,7 @@ impl<'a> Relocator<'a> {
     fn relocate(
         &self,
         section_id: SectionId,
-        data_section: &mut DataSectionPart<SectionLayout>,
+        data_section: &mut DataSectionPartReal<SectionLayout>,
     ) -> Result<(), RelocationError> {
         for relocation in data_section.relocations.drain(..) {
             self.relocate_one(section_id, &relocation, &mut data_section.bytes.0)?;

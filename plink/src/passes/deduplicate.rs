@@ -1,5 +1,7 @@
 use crate::interner::Interned;
-use crate::repr::object::{DataSection, DataSectionPart, Object, SectionContent};
+use crate::repr::object::{
+    DataSection, DataSectionPart, DataSectionPartReal, Object, SectionContent,
+};
 use plink_elf::ids::serial::{SectionId, SerialIds};
 use plink_elf::{ElfDeduplication, RawBytes};
 use plink_macros::{Display, Error};
@@ -20,11 +22,15 @@ pub(crate) fn run(object: &mut Object<()>, ids: &mut SerialIds) -> Result<(), De
         // Not sure exactly whether relocations inside of deduplicatable sections are ever used in
         // the wild, so for now let's error out if we encounter this.
         for part in data.parts.values() {
-            if !part.relocations.is_empty() {
-                return Err(DeduplicationError {
-                    section_name,
-                    kind: DeduplicationErrorKind::RelocationsUnsupported,
-                });
+            match part {
+                DataSectionPart::Real(real) => {
+                    if !real.relocations.is_empty() {
+                        return Err(DeduplicationError {
+                            section_name,
+                            kind: DeduplicationErrorKind::RelocationsUnsupported,
+                        });
+                    }
+                }
             }
         }
 
@@ -46,7 +52,10 @@ fn deduplicate(
     let mut seen = BTreeMap::new();
 
     for part in data.parts.values() {
-        for chunk in split(split_rule, &part.bytes.0) {
+        let bytes = match part {
+            DataSectionPart::Real(real) => &real.bytes.0,
+        };
+        for chunk in split(split_rule, &bytes) {
             let chunk = chunk?;
             match seen.get(&chunk) {
                 Some(_idx) => {}
@@ -62,7 +71,11 @@ fn deduplicate(
     let id = ids.allocate_section_id();
     data.parts.insert(
         id,
-        DataSectionPart { bytes: RawBytes(merged), relocations: Vec::new(), layout: () },
+        DataSectionPart::Real(DataSectionPartReal {
+            bytes: RawBytes(merged),
+            relocations: Vec::new(),
+            layout: (),
+        }),
     );
     section_ids_to_names.insert(id, section_name);
 

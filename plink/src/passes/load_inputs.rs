@@ -1,6 +1,7 @@
 use crate::interner::{intern, Interned};
 use crate::repr::object::{
-    DataSection, DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
+    DataSection, DataSectionPart, DataSectionPartReal, Object, Section, SectionContent,
+    UninitializedSectionPart,
 };
 use crate::repr::strings::{MissingStringError, Strings};
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
@@ -150,11 +151,11 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                     }
                     c.parts.insert(
                         id,
-                        DataSectionPart {
+                        DataSectionPart::Real(DataSectionPartReal {
                             bytes: program.raw,
                             relocations: relocations.remove(&id).unwrap_or_else(Vec::new),
                             layout: (),
-                        },
+                        }),
                     );
                     Ok(())
                 }

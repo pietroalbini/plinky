@@ -18,24 +18,28 @@ Object {
                 DataSection {
                     deduplication: Disabled,
                     parts: {
-                        section#1: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
-                                   +----------------------------------------------+
-                                0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
+                        section#1: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+                                       +----------------------------------------------+
+                                    0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
+                                },
+                                relocations: [],
+                                layout: (),
                             },
-                            relocations: [],
-                            layout: (),
-                        },
-                        section#8: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
-                                   +----------------------------------------+
-                                0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                        ),
+                        section#8: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
+                                       +----------------------------------------+
+                                    0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+                                },
+                                relocations: [],
+                                layout: (),
                             },
-                            relocations: [],
-                            layout: (),
-                        },
+                        ),
                     },
                 },
             ),
@@ -46,46 +50,50 @@ Object {
                 DataSection {
                     deduplication: Disabled,
                     parts: {
-                        section#2: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
-                                   +-------------------------------------------------+
-                                0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
-                                1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+                        section#2: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+                                       +-------------------------------------------------+
+                                    0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
+                                    1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+                                },
+                                relocations: [
+                                    ElfRelocation {
+                                        offset: 0xb,
+                                        symbol: symbol#2,
+                                        relocation_type: X86_32,
+                                        addend: None,
+                                    },
+                                ],
+                                layout: (),
                             },
-                            relocations: [
-                                ElfRelocation {
-                                    offset: 0xb,
-                                    symbol: symbol#2,
-                                    relocation_type: X86_32,
-                                    addend: None,
+                        ),
+                        section#9: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
+                                       +-------------------------------------------------+
+                                    0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
+                                    1? | 0d 00 00 00 cd 80 e9 fc ff ff ff                | ...........
                                 },
-                            ],
-                            layout: (),
-                        },
-                        section#9: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
-                                   +-------------------------------------------------+
-                                0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
-                                1? | 0d 00 00 00 cd 80 e9 fc ff ff ff                | ...........
+                                relocations: [
+                                    ElfRelocation {
+                                        offset: 0xb,
+                                        symbol: symbol#9,
+                                        relocation_type: X86_32,
+                                        addend: None,
+                                    },
+                                    ElfRelocation {
+                                        offset: 0x17,
+                                        symbol: symbol#13,
+                                        relocation_type: X86_PC32,
+                                        addend: None,
+                                    },
+                                ],
+                                layout: (),
                             },
-                            relocations: [
-                                ElfRelocation {
-                                    offset: 0xb,
-                                    symbol: symbol#9,
-                                    relocation_type: X86_32,
-                                    addend: None,
-                                },
-                                ElfRelocation {
-                                    offset: 0x17,
-                                    symbol: symbol#13,
-                                    relocation_type: X86_PC32,
-                                    addend: None,
-                                },
-                            ],
-                            layout: (),
-                        },
+                        ),
                     },
                 },
             ),

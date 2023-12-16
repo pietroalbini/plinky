@@ -1,6 +1,6 @@
 use crate::repr::object::{
-    DataSection, DataSectionPart, Object, Section, SectionContent, SectionLayout,
-    UninitializedSectionPart,
+    DataSection, DataSectionPart, DataSectionPartReal, Object, Section, SectionContent,
+    SectionLayout, UninitializedSectionPart,
 };
 
 const BASE_ADDRESS: u64 = 0x400000;
@@ -28,10 +28,15 @@ pub(crate) fn run(object: Object<()>) -> Object<SectionLayout> {
                                     .map(|(id, part)| {
                                         (
                                             id,
-                                            DataSectionPart {
-                                                layout: calculator.layout_of(part.bytes.len() as _),
-                                                bytes: part.bytes,
-                                                relocations: part.relocations,
+                                            match part {
+                                                DataSectionPart::Real(real) => {
+                                                    DataSectionPart::Real(DataSectionPartReal {
+                                                        layout: calculator
+                                                            .layout_of(real.bytes.len() as _),
+                                                        bytes: real.bytes,
+                                                        relocations: real.relocations,
+                                                    })
+                                                }
                                             },
                                         )
                                     })

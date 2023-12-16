@@ -32,7 +32,9 @@ impl Object<SectionLayout> {
                     .and_then(|name| self.sections.get(name))
                     .and_then(|section| match &section.content {
                         SectionContent::Data(data) => {
-                            data.parts.get(&section_id).map(|p| p.layout.address)
+                            data.parts.get(&section_id).map(|part| match part {
+                                DataSectionPart::Real(real) => real.layout.address,
+                            })
                         }
                         SectionContent::Uninitialized(uninit) => {
                             uninit.get(&section_id).map(|p| p.layout.address)
@@ -64,7 +66,12 @@ pub(crate) struct DataSection<L> {
 }
 
 #[derive(Debug)]
-pub(crate) struct DataSectionPart<L> {
+pub(crate) enum DataSectionPart<L> {
+    Real(DataSectionPartReal<L>),
+}
+
+#[derive(Debug)]
+pub(crate) struct DataSectionPartReal<L> {
     pub(crate) bytes: RawBytes,
     pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
     pub(crate) layout: L,

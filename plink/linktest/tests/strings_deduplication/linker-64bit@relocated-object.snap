@@ -18,41 +18,47 @@ Object {
                 DataSection {
                     deduplication: ZeroTerminatedStrings,
                     parts: {
-                        section#1: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
-                                   +----------------------------------------------+
-                                0? | 48 65 6c 6c 6f 00 20 77 6f 72 6c 64 21 0a 00 | Hello. world!..
+                        section#1: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+                                       +----------------------------------------------+
+                                    0? | 48 65 6c 6c 6f 00 20 77 6f 72 6c 64 21 0a 00 | Hello. world!..
+                                },
+                                relocations: [],
+                                layout: SectionLayout {
+                                    address: 0x400000,
+                                },
                             },
-                            relocations: [],
-                            layout: SectionLayout {
-                                address: 0x400000,
+                        ),
+                        section#8: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x11)
+                                       +-------------------------------------------------+
+                                    0? | 47 6f 6f 64 62 79 65 00 20 77 6f 72 6c 64 21 0a | Goodbye. world!.
+                                    1? | 00                                              | .
+                                },
+                                relocations: [],
+                                layout: SectionLayout {
+                                    address: 0x40000f,
+                                },
                             },
-                        },
-                        section#8: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x11)
-                                   +-------------------------------------------------+
-                                0? | 47 6f 6f 64 62 79 65 00 20 77 6f 72 6c 64 21 0a | Goodbye. world!.
-                                1? | 00                                              | .
+                        ),
+                        section#14: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x17)
+                                       +-------------------------------------------------+
+                                    0? | 48 65 6c 6c 6f 00 20 77 6f 72 6c 64 21 0a 00 47 | Hello. world!..G
+                                    1? | 6f 6f 64 62 79 65 00                            | oodbye.
+                                },
+                                relocations: [],
+                                layout: SectionLayout {
+                                    address: 0x400020,
+                                },
                             },
-                            relocations: [],
-                            layout: SectionLayout {
-                                address: 0x40000f,
-                            },
-                        },
-                        section#14: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x17)
-                                   +-------------------------------------------------+
-                                0? | 48 65 6c 6c 6f 00 20 77 6f 72 6c 64 21 0a 00 47 | Hello. world!..G
-                                1? | 6f 6f 64 62 79 65 00                            | oodbye.
-                            },
-                            relocations: [],
-                            layout: SectionLayout {
-                                address: 0x400020,
-                            },
-                        },
+                        ),
                     },
                 },
             ),
@@ -63,34 +69,38 @@ Object {
                 DataSection {
                     deduplication: Disabled,
                     parts: {
-                        section#2: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x31)
-                                   +-------------------------------------------------+
-                                0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
-                                1? | 05 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
-                                2? | b9 06 00 40 00 ba 08 00 00 00 cd 80 e9 00 00 00 | ...@............
-                                3? | 00                                              | .
+                        section#2: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x31)
+                                       +-------------------------------------------------+
+                                    0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+                                    1? | 05 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
+                                    2? | b9 06 00 40 00 ba 08 00 00 00 cd 80 e9 00 00 00 | ...@............
+                                    3? | 00                                              | .
+                                },
+                                relocations: [],
+                                layout: SectionLayout {
+                                    address: 0x401000,
+                                },
                             },
-                            relocations: [],
-                            layout: SectionLayout {
-                                address: 0x401000,
+                        ),
+                        section#9: Real(
+                            DataSectionPartReal {
+                                bytes: RawBytes {
+                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x38)
+                                       +-------------------------------------------------+
+                                    0? | b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba | .............@..
+                                    1? | 07 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
+                                    2? | b9 17 00 40 00 ba 08 00 00 00 cd 80 b8 01 00 00 | ...@............
+                                    3? | 00 bb 00 00 00 00 cd 80                         | ........
+                                },
+                                relocations: [],
+                                layout: SectionLayout {
+                                    address: 0x401031,
+                                },
                             },
-                        },
-                        section#9: DataSectionPart {
-                            bytes: RawBytes {
-                                     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x38)
-                                   +-------------------------------------------------+
-                                0? | b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba | .............@..
-                                1? | 07 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
-                                2? | b9 17 00 40 00 ba 08 00 00 00 cd 80 b8 01 00 00 | ...@............
-                                3? | 00 bb 00 00 00 00 cd 80                         | ........
-                            },
-                            relocations: [],
-                            layout: SectionLayout {
-                                address: 0x401031,
-                            },
-                        },
+                        ),
                     },
                 },
             ),

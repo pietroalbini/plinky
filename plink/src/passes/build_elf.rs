@@ -1,6 +1,8 @@
 use crate::cli::CliOptions;
 use crate::interner::Interned;
-use crate::repr::object::{GetSymbolAddressError, Object, Section, SectionContent, SectionLayout};
+use crate::repr::object::{
+    DataSectionPart, GetSymbolAddressError, Object, Section, SectionContent, SectionLayout,
+};
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
@@ -97,8 +99,12 @@ impl ElfBuilder {
             SectionContent::Data(data) => {
                 let mut raw = Vec::new();
                 for part in data.parts.into_values() {
-                    update_memory_address(part.layout.address);
-                    raw.extend_from_slice(&part.bytes);
+                    match part {
+                        DataSectionPart::Real(real) => {
+                            update_memory_address(real.layout.address);
+                            raw.extend_from_slice(&real.bytes);
+                        }
+                    }
                 }
                 ElfSectionContent::Program(ElfProgramSection {
                     perms: section.perms,

@@ -1,6 +1,6 @@
 use crate::cli::DebugPrint;
 use crate::linker::{CallbackOutcome, LinkerCallbacks};
-use crate::repr::object::{Object, SectionContent, SectionLayout};
+use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use std::collections::BTreeMap;
@@ -26,9 +26,18 @@ impl LinkerCallbacks for DebugCallbacks {
                 .iter()
                 .map(|(name, section)| {
                     let addresses: BTreeMap<_, _> = match &section.content {
-                        SectionContent::Data(data) => {
-                            data.parts.iter().map(|(id, part)| (id, part.layout.address)).collect()
-                        }
+                        SectionContent::Data(data) => data
+                            .parts
+                            .iter()
+                            .map(|(id, part)| {
+                                (
+                                    id,
+                                    match part {
+                                        DataSectionPart::Real(real) => real.layout.address,
+                                    },
+                                )
+                            })
+                            .collect(),
                         SectionContent::Uninitialized(uninit) => {
                             uninit.iter().map(|(id, part)| (id, part.layout.address)).collect()
                         }

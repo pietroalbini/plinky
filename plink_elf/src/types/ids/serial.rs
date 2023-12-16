@@ -71,8 +71,7 @@ where
         let mut map = IdConversionMap::<F, Self>::new();
 
         for (old_id, section) in &object.sections {
-            map.section_ids
-                .insert(old_id.clone(), self.allocate_section_id());
+            map.section_ids.insert(old_id.clone(), self.allocate_section_id());
 
             if let ElfSectionContent::SymbolTable(table) = &section.content {
                 for id in table.symbols.keys() {
@@ -85,9 +84,7 @@ where
             map.string_ids.insert(
                 string_id.clone(),
                 StringId::new(
-                    *map.section_ids
-                        .get(string_id.section())
-                        .expect("missing section"),
+                    *map.section_ids.get(string_id.section()).expect("missing section"),
                     string_id.offset(),
                 ),
             );
@@ -99,10 +96,7 @@ where
 
 impl SerialIds {
     pub fn new() -> Self {
-        Self {
-            next_section_id: 0,
-            next_symbol_id: 0,
-        }
+        Self { next_section_id: 0, next_symbol_id: 0 }
     }
 
     pub fn allocate_section_id(&mut self) -> SectionId {

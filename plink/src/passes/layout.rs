@@ -68,9 +68,7 @@ struct LayoutCalculator {
 
 impl LayoutCalculator {
     fn new() -> Self {
-        Self {
-            address: BASE_ADDRESS,
-        }
+        Self { address: BASE_ADDRESS }
     }
 
     fn begin_section(&mut self) -> SectionLayoutCalculator<'_> {
@@ -84,9 +82,7 @@ struct SectionLayoutCalculator<'a> {
 
 impl SectionLayoutCalculator<'_> {
     fn layout_of(&mut self, len: u64) -> SectionLayout {
-        let layout = SectionLayout {
-            address: self.parent.address,
-        };
+        let layout = SectionLayout { address: self.parent.address };
         self.parent.address += len;
         layout
     }

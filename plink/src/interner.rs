@@ -14,12 +14,7 @@ pub(crate) struct Interner<T: Internable> {
 
 impl<T: Internable> Interner<T> {
     const fn new() -> Self {
-        Self {
-            state: Mutex::new(InternerState {
-                data: Vec::new(),
-                mapping: BTreeMap::new(),
-            }),
-        }
+        Self { state: Mutex::new(InternerState { data: Vec::new(), mapping: BTreeMap::new() }) }
     }
 
     fn intern(&self, value: T) -> Interned<T> {

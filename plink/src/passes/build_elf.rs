@@ -74,10 +74,7 @@ impl ElfBuilder {
         );
 
         while let Some((name, section)) = self.object.sections.pop_first() {
-            sections.insert(
-                self.ids.allocate_section_id(),
-                self.prepare_section(name, section),
-            );
+            sections.insert(self.ids.allocate_section_id(), self.prepare_section(name, section));
         }
 
         sections.insert(self.section_names.id, self.prepare_section_names_table());
@@ -175,10 +172,7 @@ impl ElfBuilder {
 
         // Segments have to be in order in memory, otherwise they will not be loaded.
         segments.sort_by_key(|(addr, _segment)| *addr);
-        segments
-            .into_iter()
-            .map(|(_addr, segment)| segment)
-            .collect()
+        segments.into_iter().map(|(_addr, segment)| segment).collect()
     }
 }
 
@@ -192,11 +186,7 @@ impl PendingStringsTable {
     fn new(ids: &mut SerialIds) -> Self {
         let mut strings = BTreeMap::new();
         strings.insert(0, String::new()); // First string has to always be empty.
-        Self {
-            id: ids.allocate_section_id(),
-            strings,
-            next_offset: 1,
-        }
+        Self { id: ids.allocate_section_id(), strings, next_offset: 1 }
     }
 
     fn add(&mut self, string: &str) -> StringId {

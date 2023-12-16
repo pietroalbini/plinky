@@ -16,9 +16,7 @@ struct Test {
 impl Test {
     fn run(self) -> Result<(), Error> {
         let settings: TestSettings = toml::from_str(std::str::from_utf8(
-            self.files
-                .get("test.toml")
-                .ok_or_else(|| anyhow!("missing test.toml"))?,
+            self.files.get("test.toml").ok_or_else(|| anyhow!("missing test.toml"))?,
         )?)?;
 
         for arch in &settings.archs {
@@ -102,10 +100,7 @@ impl TestExecution<'_> {
 
     fn link_and_snapshot_inner(&self, debug_print: Option<&str>) -> Result<bool, Error> {
         let mut command = Command::new(env!("CARGO_BIN_EXE_plink"));
-        command
-            .current_dir(self.root)
-            .args(&self.settings.cmd)
-            .env("RUST_BACKTRACE", "1");
+        command.current_dir(self.root).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
         if let Some(debug_print) = debug_print {
             command.args(["--debug-print", debug_print]);
         }
@@ -137,10 +132,7 @@ impl TestExecution<'_> {
                 }
                 (output_repr, output.status.success())
             }
-            Err(err) => (
-                format!("{action} failed to execute with error: {err}"),
-                false,
-            ),
+            Err(err) => (format!("{action} failed to execute with error: {err}"), false),
         };
 
         let mut insta_settings = insta::Settings::clone_current();

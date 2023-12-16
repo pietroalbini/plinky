@@ -27,10 +27,8 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 fn type_repr(output: &mut String, struct_: &Struct) -> Result<(), Error> {
     let mut repr = None;
     for attribute in &struct_.attrs {
-        let parsed = attribute
-            .value
-            .strip_prefix("bitfield_repr(")
-            .and_then(|s| s.strip_suffix(')'));
+        let parsed =
+            attribute.value.strip_prefix("bitfield_repr(").and_then(|s| s.strip_suffix(')'));
         match (parsed, &repr) {
             (None, _) => {}
             (Some(parsed), None) => repr = Some(parsed),
@@ -133,9 +131,7 @@ struct BitCalculator {
 
 impl BitCalculator {
     fn new() -> Self {
-        Self {
-            has_custom_bit: false,
-        }
+        Self { has_custom_bit: false }
     }
 
     fn index_of(&mut self, attrs: &[Attribute], position: usize) -> Result<BitIndex, Error> {
@@ -146,9 +142,7 @@ impl BitCalculator {
             }
             None => {
                 if self.has_custom_bit {
-                    return Err(Error::new(
-                        "bit attribute required after other bit attributes",
-                    ));
+                    return Err(Error::new("bit attribute required after other bit attributes"));
                 }
                 Ok(BitIndex(position))
             }
@@ -174,8 +168,7 @@ impl BitCalculator {
             .strip_prefix("bit(")
             .and_then(|s| s.strip_suffix(')'))
             .map(|s| {
-                s.parse::<usize>()
-                    .map_err(|_| Error::new("failed to parse bit").span(attr.span))
+                s.parse::<usize>().map_err(|_| Error::new("failed to parse bit").span(attr.span))
             })
             .transpose()
     }

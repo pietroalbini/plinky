@@ -70,10 +70,7 @@ pub struct BitfieldReader<R: BitfieldRepr> {
 
 impl<R: BitfieldRepr> BitfieldReader<R> {
     pub fn new(value: R) -> Self {
-        Self {
-            value,
-            mask: R::empty(),
-        }
+        Self { value, mask: R::empty() }
     }
 
     pub fn bit(&mut self, idx: u64) -> bool {

@@ -26,15 +26,12 @@ impl LinkerCallbacks for DebugCallbacks {
                 .iter()
                 .map(|(name, section)| {
                     let addresses: BTreeMap<_, _> = match &section.content {
-                        SectionContent::Data(data) => data
-                            .parts
-                            .iter()
-                            .map(|(id, part)| (id, part.layout.address))
-                            .collect(),
-                        SectionContent::Uninitialized(uninit) => uninit
-                            .iter()
-                            .map(|(id, part)| (id, part.layout.address))
-                            .collect(),
+                        SectionContent::Data(data) => {
+                            data.parts.iter().map(|(id, part)| (id, part.layout.address)).collect()
+                        }
+                        SectionContent::Uninitialized(uninit) => {
+                            uninit.iter().map(|(id, part)| (id, part.layout.address)).collect()
+                        }
                     };
                     (name, addresses)
                 })

@@ -6,10 +6,8 @@ use plink_macros::Error;
 use std::collections::BTreeMap;
 
 pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationError> {
-    let relocator = Relocator {
-        section_addresses: fetch_section_addresses(&object),
-        symbols: &object.symbols,
-    };
+    let relocator =
+        Relocator { section_addresses: fetch_section_addresses(&object), symbols: &object.symbols };
     for section in object.sections.values_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
@@ -29,11 +27,9 @@ fn fetch_section_addresses(object: &Object<SectionLayout>) -> BTreeMap<SectionId
         .values()
         .flat_map(|section| -> Box<dyn Iterator<Item = _>> {
             match &section.content {
-                SectionContent::Data(data) => Box::new(
-                    data.parts
-                        .iter()
-                        .map(|(&id, part)| (id, part.layout.address)),
-                ),
+                SectionContent::Data(data) => {
+                    Box::new(data.parts.iter().map(|(&id, part)| (id, part.layout.address)))
+                }
                 SectionContent::Uninitialized(uninit) => {
                     Box::new(uninit.iter().map(|(&id, part)| (id, part.layout.address)))
                 }
@@ -87,10 +83,8 @@ impl<'a> Relocator<'a> {
             ElfSymbolDefinition::Absolute => Ok(symbol.value as i64),
             ElfSymbolDefinition::Common => todo!(),
             ElfSymbolDefinition::Section(section) => {
-                let section_addr = self
-                    .section_addresses
-                    .get(&section)
-                    .expect("inconsistent section id");
+                let section_addr =
+                    self.section_addresses.get(&section).expect("inconsistent section id");
                 Ok((*section_addr + symbol.value) as i64)
             }
         }

@@ -34,18 +34,12 @@ where
         let mut map = IdConversionMap::<F, Self>::new();
 
         for string_id in string_ids {
-            let ElfSectionContent::StringTable(ref table) = object
-                .sections
-                .get(string_id.section())
-                .expect("missing string table")
-                .content
+            let ElfSectionContent::StringTable(ref table) =
+                object.sections.get(string_id.section()).expect("missing string table").content
             else {
                 panic!("invalid type of string table")
             };
-            let string = table
-                .get(string_id.offset())
-                .expect("missing string")
-                .to_string();
+            let string = table.get(string_id.offset()).expect("missing string").to_string();
             map.string_ids.insert(string_id.clone(), string);
         }
 
@@ -67,11 +61,7 @@ where
                         format!(
                             "{} {}",
                             format_number(i, table.symbols.len()),
-                            if symbol_name.is_empty() {
-                                "<empty>"
-                            } else {
-                                &symbol_name
-                            }
+                            if symbol_name.is_empty() { "<empty>" } else { &symbol_name }
                         ),
                     );
                 }

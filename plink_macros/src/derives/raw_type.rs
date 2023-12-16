@@ -145,14 +145,7 @@ fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Err
                 _ => return Err(Error::new("unknown attribute").span(attribute.span)),
             }
         }
-        fields.insert(
-            insert_at,
-            Field {
-                name: &field.name,
-                field_ty: &field.ty,
-                trait_ty,
-            },
-        );
+        fields.insert(insert_at, Field { name: &field.name, field_ty: &field.ty, trait_ty });
     }
 
     Ok(fields)

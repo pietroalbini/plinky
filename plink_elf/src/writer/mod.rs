@@ -37,11 +37,7 @@ where
         writer: &'a mut dyn Write,
         object: &'a ElfObject<I>,
     ) -> Result<Self, WriteError<I>> {
-        Ok(Self {
-            writer,
-            layout: WriteLayout::new(object)?,
-            object,
-        })
+        Ok(Self { writer, layout: WriteLayout::new(object)?, object })
     }
 
     pub(crate) fn write(mut self) -> Result<(), WriteError<I>> {
@@ -162,10 +158,9 @@ where
                 type_,
                 flags: match &section.content {
                     ElfSectionContent::Program(p) => self.perms_to_section_flags(&p.perms),
-                    ElfSectionContent::RelocationsTable(_) => RawSectionHeaderFlags {
-                        info_link: true,
-                        ..RawSectionHeaderFlags::zero()
-                    },
+                    ElfSectionContent::RelocationsTable(_) => {
+                        RawSectionHeaderFlags { info_link: true, ..RawSectionHeaderFlags::zero() }
+                    }
                     _ => RawSectionHeaderFlags::zero(),
                 },
                 memory_address: section.memory_address,
@@ -378,15 +373,14 @@ where
                 ElfRelocationType::X86_64_IRelative => 37,
                 ElfRelocationType::Unknown(other) => other as u64,
             };
-            let symbol = symbol_table
-                .symbols
-                .keys()
-                .position(|id| *id == relocation.symbol)
-                .ok_or_else(|| WriteError::MissingSymbolInRelocation {
-                    symbol_id: relocation.symbol.clone(),
-                    relocations_table: id.clone(),
-                    relocation_idx: idx,
-                })? as u64;
+            let symbol =
+                symbol_table.symbols.keys().position(|id| *id == relocation.symbol).ok_or_else(
+                    || WriteError::MissingSymbolInRelocation {
+                        symbol_id: relocation.symbol.clone(),
+                        relocations_table: id.clone(),
+                        relocation_idx: idx,
+                    },
+                )? as u64;
             let info = match self.object.env.class {
                 ElfClass::Elf32 => relocation_type | (symbol << 8),
                 ElfClass::Elf64 => relocation_type | (symbol << 32),
@@ -399,10 +393,7 @@ where
                     addend: relocation.addend.expect("rela relocation without addend"),
                 })?;
             } else {
-                self.write_raw(RawRel {
-                    offset: relocation.offset,
-                    info,
-                })?;
+                self.write_raw(RawRel { offset: relocation.offset, info })?;
             }
         }
 
@@ -441,11 +432,7 @@ where
     }
 
     fn section_idx(&self, id: &I::SectionId) -> usize {
-        self.object
-            .sections
-            .keys()
-            .position(|k| k == id)
-            .expect("inconsistent section id")
+        self.object.sections.keys().position(|k| k == id).expect("inconsistent section id")
     }
 
     fn perms_to_section_flags(&self, perms: &ElfPermissions) -> RawSectionHeaderFlags {

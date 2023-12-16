@@ -47,10 +47,7 @@ impl<'a> ReadCursor<'a> {
         &mut self,
         new_reader: &'new mut dyn ReadSeek,
     ) -> ReadCursor<'new> {
-        ReadCursor {
-            reader: new_reader,
-            class: self.class,
-        }
+        ReadCursor { reader: new_reader, class: self.class }
     }
 }
 

@@ -56,9 +56,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             // If the flag value was not consumed in the previous iteration when the flag itself
             // was parsed, it means the flag didn't accept a value and we should error out.
             CliToken::FlagValue(_) => {
-                return Err(CliError::FlagDoesNotAcceptValues(
-                    previous_token.unwrap().to_string(),
-                ));
+                return Err(CliError::FlagDoesNotAcceptValues(previous_token.unwrap().to_string()));
             }
 
             CliToken::ShortFlag(_) | CliToken::LongFlag(_) => {
@@ -130,11 +128,7 @@ struct CliLexer<'a> {
 
 impl<'a> CliLexer<'a> {
     fn new(args: &'a [String]) -> Self {
-        Self {
-            iter: args.iter(),
-            verbatim: false,
-            force_next: None,
-        }
+        Self { iter: args.iter(), verbatim: false, force_next: None }
     }
 
     fn expect_flag_value(&mut self, flag: &CliToken<'_>) -> Result<&'a str, CliError> {
@@ -227,10 +221,7 @@ mod tests {
     #[test]
     fn test_no_flags() {
         assert_eq!(
-            Ok(CliOptions {
-                inputs: Vec::new(),
-                ..default_options()
-            }),
+            Ok(CliOptions { inputs: Vec::new(), ..default_options() }),
             parse(std::iter::empty::<String>())
         );
     }
@@ -238,10 +229,7 @@ mod tests {
     #[test]
     fn test_one_input() {
         assert_eq!(
-            Ok(CliOptions {
-                inputs: vec!["foo".into()],
-                ..default_options()
-            }),
+            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options() }),
             parse(["foo"].into_iter())
         )
     }
@@ -249,10 +237,7 @@ mod tests {
     #[test]
     fn test_two_inputs() {
         assert_eq!(
-            Ok(CliOptions {
-                inputs: vec!["foo".into(), "bar".into()],
-                ..default_options()
-            }),
+            Ok(CliOptions { inputs: vec!["foo".into(), "bar".into()], ..default_options() }),
             parse(["foo", "bar"].into_iter())
         )
     }
@@ -335,10 +320,8 @@ mod tests {
 
     #[test]
     fn test_debug_print() {
-        const VARIANTS: &[(DebugPrint, &[&str])] = &[(
-            DebugPrint::LoadedObject,
-            &["foo", "--debug-print", "loaded-object"],
-        )];
+        const VARIANTS: &[(DebugPrint, &[&str])] =
+            &[(DebugPrint::LoadedObject, &["foo", "--debug-print", "loaded-object"])];
         for (expected, flags) in VARIANTS {
             assert_eq!(
                 Ok(CliOptions {
@@ -364,14 +347,8 @@ mod tests {
         assert_eq!(
             Err(CliError::DuplicateFlag("--debug-print".into())),
             parse(
-                [
-                    "input_file",
-                    "--debug-print",
-                    "loaded-object",
-                    "--debug-print",
-                    "loaded-object"
-                ]
-                .into_iter()
+                ["input_file", "--debug-print", "loaded-object", "--debug-print", "loaded-object"]
+                    .into_iter()
             )
         );
     }

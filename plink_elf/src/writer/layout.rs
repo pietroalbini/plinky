@@ -68,10 +68,7 @@ impl<I: ElfIds> WriteLayout<I> {
                     }
                     let rela = rela.unwrap_or(false);
                     layout.add_part(
-                        Part::RelocationsTable {
-                            id: id.clone(),
-                            rela,
-                        },
+                        Part::RelocationsTable { id: id.clone(), rela },
                         if rela {
                             (RawRela::size(layout.class) * table.relocations.len()) as _
                         } else {
@@ -100,13 +97,7 @@ impl<I: ElfIds> WriteLayout<I> {
     fn add_part(&mut self, part: Part<I::SectionId>, len: usize) {
         let len = len as u64;
         self.parts.push(part.clone());
-        self.metadata.insert(
-            part,
-            PartMetadata {
-                len,
-                offset: self.current_offset,
-            },
-        );
+        self.metadata.insert(part, PartMetadata { len, offset: self.current_offset });
         self.current_offset += len;
     }
 
@@ -116,10 +107,7 @@ impl<I: ElfIds> WriteLayout<I> {
             return;
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
-        self.add_part(
-            Part::Padding(PaddingId(self.next_padding_id)),
-            bytes_to_pad as _,
-        );
+        self.add_part(Part::Padding(PaddingId(self.next_padding_id)), bytes_to_pad as _);
         self.next_padding_id += 1;
     }
 

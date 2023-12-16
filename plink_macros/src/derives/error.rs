@@ -84,10 +84,7 @@ fn maybe_set_source(
     name: &str,
     attrs: &[Attribute],
 ) -> Result<(), Error> {
-    if let Some(attr) = attrs
-        .iter()
-        .find(|a| a.value == "from" || a.value == "source")
-    {
+    if let Some(attr) = attrs.iter().find(|a| a.value == "from" || a.value == "source") {
         if source.is_some() {
             Err(Error::new("multiple sources for a single error").span(attr.span))
         } else {
@@ -174,9 +171,7 @@ fn generate_from_impl(
     span: Span,
     fields: &[FromImplField<'_>],
 ) -> Result<(), Error> {
-    let has_from = fields
-        .iter()
-        .any(|f| f.attrs.iter().any(|a| a.value == "from"));
+    let has_from = fields.iter().any(|f| f.attrs.iter().any(|a| a.value == "from"));
     if !has_from {
         return Ok(());
     } else if fields.len() > 1 {
@@ -185,10 +180,7 @@ fn generate_from_impl(
     let field = fields.last().unwrap();
 
     generate_impl_for(output, item, &format!("From<{}>", field.ty), |output| {
-        output.push_str(&format!(
-            "fn from({}: {}) -> Self {{",
-            field.field, field.ty
-        ));
+        output.push_str(&format!("fn from({}: {}) -> Self {{", field.field, field.ty));
         output.push_str(&format!(
             "{constructor}{}{}{}",
             field.open_assign, field.field, field.close_assign

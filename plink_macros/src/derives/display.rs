@@ -18,13 +18,12 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 fn generate_struct_impl(output: &mut String, item: &Item, struct_: &Struct) -> Result<(), Error> {
     let args = match &struct_.fields {
         StructFields::None => Vec::new(),
-        StructFields::TupleLike(fields) => (0..fields.len())
-            .map(|idx| (format!("f{idx}"), format!("&self.{idx}")))
-            .collect(),
-        StructFields::StructLike(fields) => fields
-            .iter()
-            .map(|f| (f.name.clone(), format!("&self.{}", f.name)))
-            .collect(),
+        StructFields::TupleLike(fields) => {
+            (0..fields.len()).map(|idx| (format!("f{idx}"), format!("&self.{idx}"))).collect()
+        }
+        StructFields::StructLike(fields) => {
+            fields.iter().map(|f| (f.name.clone(), format!("&self.{}", f.name))).collect()
+        }
     };
 
     generate_impl_for(output, item, "std::fmt::Display", |output| {
@@ -49,23 +48,13 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
                 match_arms.push((name.to_string(), &variant.attrs, variant.span))
             }
             EnumVariantData::TupleLike(fields) => {
-                let fields = (0..fields.len())
-                    .map(|idx| format!("f{idx}"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let fields =
+                    (0..fields.len()).map(|idx| format!("f{idx}")).collect::<Vec<_>>().join(", ");
                 match_arms.push((format!("{name}({fields})"), &variant.attrs, variant.span));
             }
             EnumVariantData::StructLike(fields) => {
-                let fields = fields
-                    .iter()
-                    .map(|f| f.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                match_arms.push((
-                    format!("{name} {{ {fields} }}"),
-                    &variant.attrs,
-                    variant.span,
-                ));
+                let fields = fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
+                match_arms.push((format!("{name} {{ {fields} }}"), &variant.attrs, variant.span));
             }
         }
     }
@@ -90,10 +79,7 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
 fn generate_write(output: &mut String, attrs: &[Attribute], span: Span) -> Result<(), Error> {
     let mut format_str = None;
     for attr in attrs {
-        let stripped = attr
-            .value
-            .strip_prefix("display(\"")
-            .and_then(|s| s.strip_suffix("\")"));
+        let stripped = attr.value.strip_prefix("display(\"").and_then(|s| s.strip_suffix("\")"));
         match (stripped, &format_str) {
             (None, None) => {}
             (None, Some(_)) => {}

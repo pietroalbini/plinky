@@ -12,9 +12,7 @@ pub(crate) fn run(object: ElfObject<SerialIds>, dest: &Path) -> Result<(), Write
         File::create(dest).map_err(|e| WriteToDiskError::FileCreation(dest.into(), e))?,
     );
 
-    object
-        .write(&mut file)
-        .map_err(|e| WriteToDiskError::WriteFailed(dest.into(), e))?;
+    object.write(&mut file).map_err(|e| WriteToDiskError::WriteFailed(dest.into(), e))?;
 
     std::fs::set_permissions(dest, Permissions::from_mode(0o755))
         .map_err(|e| WriteToDiskError::PermissionSetFailed(dest.into(), e))?;

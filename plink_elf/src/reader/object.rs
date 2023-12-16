@@ -72,12 +72,7 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
     }
 
     Ok(ElfObject::<PendingIds> {
-        env: ElfEnvironment {
-            class,
-            endian,
-            abi,
-            machine,
-        },
+        env: ElfEnvironment { class, endian, abi, machine },
         type_,
         entry: NonZeroU64::new(header.entry),
         sections,

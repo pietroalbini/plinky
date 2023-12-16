@@ -28,14 +28,8 @@ pub(crate) fn run(object: &mut Object<()>, ids: &mut SerialIds) -> Result<(), De
             }
         }
 
-        deduplicate(
-            ids,
-            &mut object.section_ids_to_names,
-            section_name,
-            split_rule,
-            data,
-        )
-        .map_err(|kind| DeduplicationError { section_name, kind })?;
+        deduplicate(ids, &mut object.section_ids_to_names, section_name, split_rule, data)
+            .map_err(|kind| DeduplicationError { section_name, kind })?;
     }
 
     Ok(())
@@ -68,11 +62,7 @@ fn deduplicate(
     let id = ids.allocate_section_id();
     data.parts.insert(
         id,
-        DataSectionPart {
-            bytes: RawBytes(merged),
-            relocations: Vec::new(),
-            layout: (),
-        },
+        DataSectionPart { bytes: RawBytes(merged), relocations: Vec::new(), layout: () },
     );
     section_ids_to_names.insert(id, section_name);
 
@@ -147,9 +137,7 @@ mod tests {
         assert_eq!(
             &[&[1, 2, 3, 4], &[5, 6, 7, 8], &[9, 10, 11, 12]],
             split(
-                SplitRule::FixedSizeChunks {
-                    size: NonZeroU64::new(4).unwrap()
-                },
+                SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
                 &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
             )
             .collect::<Result<Vec<_>, _>>()
@@ -161,30 +149,21 @@ mod tests {
     #[test]
     fn test_split_fixed_chunks_uneven() {
         let mut split = split(
-            SplitRule::FixedSizeChunks {
-                size: NonZeroU64::new(4).unwrap(),
-            },
+            SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
             &[1, 2, 3, 4, 5],
         );
 
         assert_eq!(Some(Ok(&[1u8, 2, 3, 4] as &[u8])), split.next());
         assert_eq!(
-            Some(Err(DeduplicationErrorKind::UnevenChunkSize {
-                len: 5,
-                chunks: 4
-            })),
+            Some(Err(DeduplicationErrorKind::UnevenChunkSize { len: 5, chunks: 4 })),
             split.next()
         );
     }
 
     #[test]
     fn test_split_fixed_chunks_empty() {
-        let mut split = split(
-            SplitRule::FixedSizeChunks {
-                size: NonZeroU64::new(4).unwrap(),
-            },
-            &[],
-        );
+        let mut split =
+            split(SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() }, &[]);
         assert_eq!(None, split.next());
     }
 
@@ -192,13 +171,10 @@ mod tests {
     fn test_split_zero_terminated_ok() {
         assert_eq!(
             &[&[1u8, 2, 3, 0] as &[u8], &[4, 5, 0], &[0], &[6, 0]],
-            split(
-                SplitRule::ZeroTerminatedString,
-                &[1, 2, 3, 0, 4, 5, 0, 0, 6, 0]
-            )
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap()
-            .as_slice()
+            split(SplitRule::ZeroTerminatedString, &[1, 2, 3, 0, 4, 5, 0, 0, 6, 0])
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap()
+                .as_slice()
         );
     }
 
@@ -207,10 +183,7 @@ mod tests {
         let mut split = split(SplitRule::ZeroTerminatedString, &[1, 2, 3, 4, 0, 5]);
 
         assert_eq!(Some(Ok(&[1u8, 2, 3, 4, 0] as &[u8])), split.next());
-        assert_eq!(
-            Some(Err(DeduplicationErrorKind::NonZeroTerminatedString)),
-            split.next()
-        );
+        assert_eq!(Some(Err(DeduplicationErrorKind::NonZeroTerminatedString)), split.next());
     }
 
     #[test]

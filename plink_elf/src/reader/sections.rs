@@ -48,13 +48,9 @@ fn read_section(
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
-    let header: RawSectionHeader =
-        cursor
-            .read_raw()
-            .map_err(|e| LoadError::FailedToParseSectionHeader {
-                idx: current_section.0,
-                inner: Box::new(e),
-            })?;
+    let header: RawSectionHeader = cursor.read_raw().map_err(|e| {
+        LoadError::FailedToParseSectionHeader { idx: current_section.0, inner: Box::new(e) }
+    })?;
 
     let ty = match header.type_ {
         0 => SectionType::Null,
@@ -90,9 +86,7 @@ fn read_section(
         // redundantly applied to string tables. Error out for now, if a valid use is found the
         // linker will need to be updated to handle it.
         if !(header.flags.merge || matches!(ty, SectionType::StringTable)) {
-            return Err(LoadError::UnexpectedStringsFlag {
-                section_idx: current_section.0,
-            });
+            return Err(LoadError::UnexpectedStringsFlag { section_idx: current_section.0 });
         }
     }
 
@@ -156,15 +150,11 @@ fn read_section(
     };
 
     if deduplication.is_some() {
-        return Err(LoadError::MergeFlagOnUnsupportedSection {
-            section_idx: current_section.0,
-        });
+        return Err(LoadError::MergeFlagOnUnsupportedSection { section_idx: current_section.0 });
     }
 
-    segment_content_map.insert(
-        (header.offset, header.size),
-        ElfSegmentContent::Section(current_section),
-    );
+    segment_content_map
+        .insert((header.offset, header.size), ElfSegmentContent::Section(current_section));
 
     Ok(ElfSection {
         name: PendingStringId(section_names_table, header.name_offset),

@@ -7,10 +7,7 @@ pub(crate) struct Error {
 
 impl Error {
     pub(crate) fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            span: None,
-        }
+        Self { message: message.into(), span: None }
     }
 
     pub(crate) fn span(mut self, span: Span) -> Self {
@@ -24,9 +21,8 @@ pub(crate) fn emit_compiler_error(result: Result<TokenStream, Error>) -> TokenSt
         Ok(stream) => stream,
         Err(err) => {
             let message = format!("derive macro error: {}", err.message);
-            let mut compile_error: TokenStream = format!("compile_error!(r#\"{message}\"#);")
-                .parse()
-                .unwrap();
+            let mut compile_error: TokenStream =
+                format!("compile_error!(r#\"{message}\"#);").parse().unwrap();
 
             if let Some(span) = err.span {
                 compile_error = set_span(span, compile_error);

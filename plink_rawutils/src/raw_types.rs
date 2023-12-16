@@ -88,9 +88,7 @@ impl<const N: usize> RawType for RawPadding<N> {
 
     fn read(_bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
         let mut buf = [0; N];
-        reader
-            .read_exact(&mut buf)
-            .map_err(RawReadError::io::<Self>)?;
+        reader.read_exact(&mut buf).map_err(RawReadError::io::<Self>)?;
         Ok(Self)
     }
 
@@ -182,10 +180,7 @@ impl RawReadError {
         match result {
             Ok(ok) => Ok(ok),
             Err(err) => Err(RawReadError {
-                source: ErrorSource::StructField {
-                    field,
-                    struct_: std::any::type_name::<T>(),
-                },
+                source: ErrorSource::StructField { field, struct_: std::any::type_name::<T>() },
                 inner: RawReadErrorInner::Itself(Box::new(err)),
             }),
         }
@@ -241,10 +236,7 @@ impl RawWriteError {
         match result {
             Ok(ok) => Ok(ok),
             Err(err) => Err(RawWriteError {
-                source: ErrorSource::StructField {
-                    field,
-                    struct_: std::any::type_name::<T>(),
-                },
+                source: ErrorSource::StructField { field, struct_: std::any::type_name::<T>() },
                 inner: RawWriteErrorInner::Itself(Box::new(err)),
             }),
         }
@@ -271,8 +263,5 @@ enum ErrorSource {
     #[display("{f0}")]
     Type(&'static str),
     #[display("field {field} of struct {struct_}")]
-    StructField {
-        field: &'static str,
-        struct_: &'static str,
-    },
+    StructField { field: &'static str, struct_: &'static str },
 }

@@ -70,10 +70,7 @@ pub enum WriteError<I: ElfIds> {
     #[display("different symbols point to different string tables for their name")]
     InconsistentSymbolNamesTableId,
     #[display("missing symbol table {symbol_table:?} for relocations table {relocations_table:?}")]
-    MissingSymbolTableForRelocations {
-        symbol_table: I::SectionId,
-        relocations_table: I::SectionId,
-    },
+    MissingSymbolTableForRelocations { symbol_table: I::SectionId, relocations_table: I::SectionId },
     #[display("missing symbol {symbol_id:?} for relocation {relocation_idx} in table {relocations_table:?}")]
     MissingSymbolInRelocation {
         symbol_id: I::SymbolId,

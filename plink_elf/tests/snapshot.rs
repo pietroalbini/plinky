@@ -62,22 +62,14 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
     settings.set_snapshot_suffix(meta.snapshot_suffix());
     let _guard = settings.bind_to_scope();
 
-    let name = source
-        .rsplit_once('/')
-        .map(|(_dir, name)| name)
-        .unwrap_or(source);
-    let name = name
-        .rsplit_once('.')
-        .map(|(name, _ext)| name)
-        .unwrap_or(name);
+    let name = source.rsplit_once('/').map(|(_dir, name)| name).unwrap_or(source);
+    let name = name.rsplit_once('.').map(|(name, _ext)| name).unwrap_or(name);
 
     match meta.mode {
         Mode::Read => {}
         Mode::WriteThenRead => {
             let mut buf = Vec::new();
-            parsed
-                .write(&mut buf)
-                .context("failed to write back the ELF file")?;
+            parsed.write(&mut buf).context("failed to write back the ELF file")?;
             parsed = ElfObject::load(&mut std::io::Cursor::new(&mut buf), &mut SerialIds::new())?;
         }
     }

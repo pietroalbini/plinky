@@ -79,10 +79,7 @@ pub(crate) struct Parser {
 
 impl Parser {
     pub(crate) fn new(stream: TokenStream) -> Self {
-        Self {
-            tokens: vec![stream.into_iter().peekable()],
-            last_span: None,
-        }
+        Self { tokens: vec![stream.into_iter().peekable()], last_span: None }
     }
 
     pub(crate) fn parse_item(&mut self) -> Result<Item, Error> {
@@ -136,13 +133,7 @@ impl Parser {
             other => return Err(Error::new("expected struct content").span(other.span())),
         };
 
-        Ok(Struct {
-            attrs,
-            name,
-            generics,
-            fields,
-            span,
-        })
+        Ok(Struct { attrs, name, generics, fields, span })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, Error> {
@@ -192,12 +183,7 @@ impl Parser {
             EnumVariantData::None
         };
 
-        Ok(EnumVariant {
-            span,
-            attrs,
-            name,
-            data,
-        })
+        Ok(EnumVariant { span, attrs, name, data })
     }
 
     fn parse_tuple_field(&mut self) -> Result<TupleField, Error> {
@@ -312,10 +298,8 @@ impl Parser {
                             Error::new("expected braces surrounding attribute").span(group.span())
                         );
                     }
-                    attributes.push(Attribute {
-                        span: group.span(),
-                        value: group.stream().to_string(),
-                    });
+                    attributes
+                        .push(Attribute { span: group.span(), value: group.stream().to_string() });
                 }
                 other => return Err(Error::new("expected attribute").span(other.span())),
             }

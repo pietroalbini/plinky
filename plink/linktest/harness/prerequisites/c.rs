@@ -25,10 +25,7 @@ impl CFile {
             Some(output) => output.clone(),
             None => format!(
                 "{}.o",
-                self.source
-                    .rsplit_once('.')
-                    .map(|(name, _ext)| name)
-                    .unwrap_or(&self.source)
+                self.source.rsplit_once('.').map(|(name, _ext)| name).unwrap_or(&self.source)
             ),
         };
 

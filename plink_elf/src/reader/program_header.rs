@@ -29,15 +29,14 @@ pub(super) fn read_program_header(
             write: header.flags.write,
             execute: header.flags.execute,
         },
-        content: vec![content_map
-            .get(&(header.file_offset, header.file_size))
-            .cloned()
-            .unwrap_or(ElfSegmentContent::Unknown(ElfUnknownSegmentContent {
+        content: vec![content_map.get(&(header.file_offset, header.file_size)).cloned().unwrap_or(
+            ElfSegmentContent::Unknown(ElfUnknownSegmentContent {
                 file_offset: header.file_offset,
                 virtual_address: header.virtual_address,
                 file_size: header.file_size,
                 memory_size: header.memory_size,
-            }))],
+            }),
+        )],
         align: header.align,
     })
 }

@@ -93,13 +93,12 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
     // This is loaded after the string tables are loaded by the previous iteration, as we need
     // to resolve the strings as part of symbol loading.
     for (name_id, table) in symbol_tables {
-        object
-            .symbols
-            .load_table(table, &object.strings)
-            .map_err(|inner| LoadInputsError::SymbolsLoadingFailed {
+        object.symbols.load_table(table, &object.strings).map_err(|inner| {
+            LoadInputsError::SymbolsLoadingFailed {
                 section_name: object.strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,
-            })?;
+            }
+        })?;
     }
 
     for (id, name, uninit) in uninitialized_sections {
@@ -116,13 +115,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                     second_type: "uninitialized",
                 }),
                 SectionContent::Uninitialized(c) => {
-                    c.insert(
-                        id,
-                        UninitializedSectionPart {
-                            len: uninit.len,
-                            layout: (),
-                        },
-                    );
+                    c.insert(id, UninitializedSectionPart { len: uninit.len, layout: () });
                     Ok(())
                 }
             },
@@ -184,16 +177,11 @@ where
     U: FnOnce(Interned<String>, &mut SectionContent<()>) -> Result<(), LoadInputsError>,
 {
     let name = intern(
-        object
-            .strings
-            .get(name)
-            .map_err(|err| LoadInputsError::MissingSectionName { id, err })?,
+        object.strings.get(name).map_err(|err| LoadInputsError::MissingSectionName { id, err })?,
     );
 
-    let section = object.sections.entry(name).or_insert_with(|| Section {
-        perms,
-        content: init_content(),
-    });
+    let section =
+        object.sections.entry(name).or_insert_with(|| Section { perms, content: init_content() });
     if section.perms != perms {
         return Err(LoadInputsError::MismatchedSectionPerms {
             name,

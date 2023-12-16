@@ -11,9 +11,7 @@ pub(crate) struct Strings {
 
 impl Strings {
     pub(crate) fn new() -> Self {
-        Self {
-            tables: BTreeMap::new(),
-        }
+        Self { tables: BTreeMap::new() }
     }
 
     pub(crate) fn load_table(&mut self, section_id: SectionId, table: ElfStringTable) {

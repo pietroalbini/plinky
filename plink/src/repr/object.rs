@@ -2,7 +2,9 @@ use crate::interner::Interned;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds};
-use plink_elf::{ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes, ElfDeduplication};
+use plink_elf::{
+    ElfDeduplication, ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes,
+};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 

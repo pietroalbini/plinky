@@ -1,6 +1,6 @@
 use crate::interner::Interned;
-use crate::repr::object::{DataSection, Object, SectionContent, DataSectionPart};
-use plink_elf::ids::serial::{SerialIds, SectionId};
+use crate::repr::object::{DataSection, DataSectionPart, Object, SectionContent};
+use plink_elf::ids::serial::{SectionId, SerialIds};
 use plink_elf::{ElfDeduplication, RawBytes};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -28,8 +28,14 @@ pub(crate) fn run(object: &mut Object<()>, ids: &mut SerialIds) -> Result<(), De
             }
         }
 
-        deduplicate(ids, &mut object.section_ids_to_names, section_name, split_rule, data)
-            .map_err(|kind| DeduplicationError { section_name, kind })?;
+        deduplicate(
+            ids,
+            &mut object.section_ids_to_names,
+            section_name,
+            split_rule,
+            data,
+        )
+        .map_err(|kind| DeduplicationError { section_name, kind })?;
     }
 
     Ok(())
@@ -60,11 +66,14 @@ fn deduplicate(
     }
 
     let id = ids.allocate_section_id();
-    data.parts.insert(id, DataSectionPart {
-        bytes: RawBytes(merged),
-        relocations: Vec::new(),
-        layout: (),
-    });
+    data.parts.insert(
+        id,
+        DataSectionPart {
+            bytes: RawBytes(merged),
+            relocations: Vec::new(),
+            layout: (),
+        },
+    );
     section_ids_to_names.insert(id, section_name);
 
     Ok(())

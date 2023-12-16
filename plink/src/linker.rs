@@ -1,14 +1,14 @@
 use crate::cli::CliOptions;
 use crate::passes;
 use crate::passes::build_elf::ElfBuilderError;
+use crate::passes::deduplicate::DeduplicationError;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::relocate::RelocationError;
 use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::{Object, SectionLayout};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
-use plink_macros::{Error, Display};
-use crate::passes::deduplicate::DeduplicationError;
+use plink_macros::{Display, Error};
 
 pub(crate) fn link_driver(
     options: &CliOptions,

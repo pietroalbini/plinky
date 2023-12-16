@@ -1,8 +1,8 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use std::cmp::Ordering;
 
 pub(crate) fn intern<T: Internable>(value: impl Into<T>) -> Interned<T> {
     T::interner().intern(value.into())

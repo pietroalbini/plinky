@@ -37,6 +37,11 @@ pub(crate) fn run(object: Object<()>) -> Object<SectionLayout> {
                                                         relocations: real.relocations,
                                                     })
                                                 }
+                                                // Deduplication facades won't be written out to
+                                                // disk, so the layout for them is not needed.
+                                                DataSectionPart::DeduplicationFacade(d) => {
+                                                    DataSectionPart::DeduplicationFacade(d)
+                                                }
                                             },
                                         )
                                     })

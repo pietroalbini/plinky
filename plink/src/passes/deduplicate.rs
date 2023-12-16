@@ -31,6 +31,9 @@ pub(crate) fn run(object: &mut Object<()>, ids: &mut SerialIds) -> Result<(), De
                         });
                     }
                 }
+                DataSectionPart::DeduplicationFacade(_) => {
+                    unreachable!("deduplication facades should not be present at this stage")
+                }
             }
         }
 
@@ -54,6 +57,9 @@ fn deduplicate(
     for part in data.parts.values() {
         let bytes = match part {
             DataSectionPart::Real(real) => &real.bytes.0,
+            DataSectionPart::DeduplicationFacade(_) => {
+                unreachable!("deduplication facades should not be present at this stage")
+            }
         };
         for chunk in split(split_rule, &bytes) {
             let chunk = chunk?;

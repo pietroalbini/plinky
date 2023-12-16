@@ -16,6 +16,7 @@ pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationEr
                 for (&id, part) in &mut data.parts {
                     match part {
                         DataSectionPart::Real(real) => relocator.relocate(id, real)?,
+                        DataSectionPart::DeduplicationFacade(_) => {}
                     }
                 }
             }
@@ -36,6 +37,7 @@ fn fetch_section_addresses(object: &Object<SectionLayout>) -> BTreeMap<SectionId
                         id,
                         match part {
                             DataSectionPart::Real(real) => real.layout.address,
+                            DataSectionPart::DeduplicationFacade(_) => todo!(),
                         },
                     )
                 })),

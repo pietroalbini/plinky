@@ -4,6 +4,7 @@ use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: Option<DebugPrint>,
@@ -33,14 +34,20 @@ impl LinkerCallbacks for DebugCallbacks {
                                 (
                                     id,
                                     match part {
-                                        DataSectionPart::Real(real) => real.layout.address,
+                                        DataSectionPart::Real(real) => {
+                                            DebugEither::A(real.layout.address)
+                                        }
+                                        DataSectionPart::DeduplicationFacade(_) => {
+                                            DebugEither::B("<deduplication facade>")
+                                        }
                                     },
                                 )
                             })
                             .collect(),
-                        SectionContent::Uninitialized(uninit) => {
-                            uninit.iter().map(|(id, part)| (id, part.layout.address)).collect()
-                        }
+                        SectionContent::Uninitialized(uninit) => uninit
+                            .iter()
+                            .map(|(id, part)| (id, DebugEither::A(part.layout.address)))
+                            .collect(),
                     };
                     (name, addresses)
                 })
@@ -71,6 +78,20 @@ impl LinkerCallbacks for DebugCallbacks {
             CallbackOutcome::Stop
         } else {
             CallbackOutcome::Continue
+        }
+    }
+}
+
+enum DebugEither<T: Debug, U: Debug> {
+    A(T),
+    B(U),
+}
+
+impl<T: Debug, U: Debug> Debug for DebugEither<T, U> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::A(v) => Debug::fmt(v, f),
+            Self::B(v) => Debug::fmt(v, f),
         }
     }
 }

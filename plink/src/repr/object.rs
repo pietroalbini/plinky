@@ -34,6 +34,7 @@ impl Object<SectionLayout> {
                         SectionContent::Data(data) => {
                             data.parts.get(&section_id).map(|part| match part {
                                 DataSectionPart::Real(real) => real.layout.address,
+                                DataSectionPart::DeduplicationFacade(_) => todo!(),
                             })
                         }
                         SectionContent::Uninitialized(uninit) => {
@@ -68,6 +69,7 @@ pub(crate) struct DataSection<L> {
 #[derive(Debug)]
 pub(crate) enum DataSectionPart<L> {
     Real(DataSectionPartReal<L>),
+    DeduplicationFacade(DeduplicationFacade),
 }
 
 #[derive(Debug)]
@@ -75,6 +77,12 @@ pub(crate) struct DataSectionPartReal<L> {
     pub(crate) bytes: RawBytes,
     pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
     pub(crate) layout: L,
+}
+
+#[derive(Debug)]
+pub(crate) struct DeduplicationFacade {
+    pub(crate) section_id: SectionId,
+    pub(crate) offset_map: BTreeMap<u64, u64>,
 }
 
 #[derive(Debug)]

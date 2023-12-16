@@ -104,6 +104,8 @@ impl ElfBuilder {
                             update_memory_address(real.layout.address);
                             raw.extend_from_slice(&real.bytes);
                         }
+                        // We shouldn't write deduplication facades.
+                        DataSectionPart::DeduplicationFacade(_) => {}
                     }
                 }
                 ElfSectionContent::Program(ElfProgramSection {

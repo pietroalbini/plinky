@@ -68,8 +68,6 @@ pub(crate) struct RawSectionHeaderFlags {
     pub(crate) strings: bool,
     #[bit(6)]
     pub(crate) info_link: bool,
-    #[bit(9)]
-    pub(crate) group: bool, // TODO: handle this flag
 }
 
 #[derive(RawType)]

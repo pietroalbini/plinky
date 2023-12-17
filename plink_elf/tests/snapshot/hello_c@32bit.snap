@@ -16,21 +16,7 @@ ElfObject {
             memory_address: 0x0,
             content: Null,
         },
-        "#01 .group": ElfSection {
-            name: ".group",
-            memory_address: 0x0,
-            content: Unknown(
-                ElfUnknownSection {
-                    id: 0x11,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7   (len: 0x8)
-                           +-------------------------+
-                        0? | 01 00 00 00 07 00 00 00 | ........
-                    },
-                },
-            ),
-        },
-        "#02 .text": ElfSection {
+        "#01 .text": ElfSection {
             name: ".text",
             memory_address: 0x0,
             content: Program(
@@ -38,59 +24,40 @@ ElfObject {
                     perms: ElfPermissions(RX),
                     deduplication: Disabled,
                     raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x3c)
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x2e)
                            +-------------------------------------------------+
-                        0? | 8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 53 51 e8 | .L$.....q.U..SQ.
-                        1? | fc ff ff ff 05 01 00 00 00 83 ec 0c 8d 90 00 00 | ................
-                        2? | 00 00 52 89 c3 e8 fc ff ff ff 83 c4 10 b8 00 00 | ..R.............
-                        3? | 00 00 8d 65 f8 59 5b 5d 8d 61 fc c3             | ...e.Y[].a..
+                        0? | 8d 4c 24 04 83 e4 f0 ff 71 fc 55 89 e5 51 83 ec | .L$.....q.U..Q..
+                        1? | 04 83 ec 0c 68 00 00 00 00 e8 fc ff ff ff 83 c4 | ....h...........
+                        2? | 10 b8 00 00 00 00 8b 4d fc c9 8d 61 fc c3       | .......M...a..
                     },
                 },
             ),
         },
-        "#03 .rel.text": ElfSection {
+        "#02 .rel.text": ElfSection {
             name: ".rel.text",
             memory_address: 0x0,
             content: RelocationsTable(
                 ElfRelocationsTable {
-                    symbol_table: "#12 .symtab",
-                    applies_to_section: "#02 .text",
+                    symbol_table: "#10 .symtab",
+                    applies_to_section: "#01 .text",
                     relocations: [
                         ElfRelocation {
-                            offset: 0x10,
-                            symbol: "#6 __x86.get_pc_thunk.ax",
-                            relocation_type: X86_PC32,
-                            addend: None,
-                        },
-                        ElfRelocation {
                             offset: 0x15,
-                            symbol: "#7 _GLOBAL_OFFSET_TABLE_",
-                            relocation_type: Unknown(
-                                0xa,
-                            ),
-                            addend: None,
-                        },
-                        ElfRelocation {
-                            offset: 0x1e,
                             symbol: "#3 <empty>",
-                            relocation_type: Unknown(
-                                0x9,
-                            ),
+                            relocation_type: X86_32,
                             addend: None,
                         },
                         ElfRelocation {
-                            offset: 0x26,
-                            symbol: "#8 puts",
-                            relocation_type: Unknown(
-                                0x4,
-                            ),
+                            offset: 0x1a,
+                            symbol: "#5 puts",
+                            relocation_type: X86_PC32,
                             addend: None,
                         },
                     ],
                 },
             ),
         },
-        "#04 .data": ElfSection {
+        "#03 .data": ElfSection {
             name: ".data",
             memory_address: 0x0,
             content: Program(
@@ -101,7 +68,7 @@ ElfObject {
                 },
             ),
         },
-        "#05 .bss": ElfSection {
+        "#04 .bss": ElfSection {
             name: ".bss",
             memory_address: 0x0,
             content: Uninitialized(
@@ -111,7 +78,7 @@ ElfObject {
                 },
             ),
         },
-        "#06 .rodata": ElfSection {
+        "#05 .rodata": ElfSection {
             name: ".rodata",
             memory_address: 0x0,
             content: Program(
@@ -126,22 +93,7 @@ ElfObject {
                 },
             ),
         },
-        "#07 .text.__x86.get_pc_thunk.ax": ElfSection {
-            name: ".text.__x86.get_pc_thunk.ax",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(RX),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3   (len: 0x4)
-                           +-------------+
-                        0? | 8b 04 24 c3 | ..$.
-                    },
-                },
-            ),
-        },
-        "#08 .comment": ElfSection {
+        "#06 .comment": ElfSection {
             name: ".comment",
             memory_address: 0x0,
             content: Program(
@@ -158,7 +110,7 @@ ElfObject {
                 },
             ),
         },
-        "#09 .note.GNU-stack": ElfSection {
+        "#07 .note.GNU-stack": ElfSection {
             name: ".note.GNU-stack",
             memory_address: 0x0,
             content: Program(
@@ -169,7 +121,7 @@ ElfObject {
                 },
             ),
         },
-        "#10 .eh_frame": ElfSection {
+        "#08 .eh_frame": ElfSection {
             name: ".eh_frame",
             memory_address: 0x0,
             content: Program(
@@ -177,25 +129,24 @@ ElfObject {
                     perms: ElfPermissions(R),
                     deduplication: Disabled,
                     raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x60)
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x44)
                            +-------------------------------------------------+
                         0? | 14 00 00 00 00 00 00 00 01 7a 52 00 01 7c 08 01 | .........zR..|..
-                        1? | 1b 0c 04 04 88 01 00 00 30 00 00 00 1c 00 00 00 | ........0.......
-                        2? | 00 00 00 00 3c 00 00 00 00 44 0c 01 00 49 10 05 | ....<....D...I..
-                        3? | 02 75 00 42 0f 03 75 78 06 10 03 02 75 7c 67 c1 | .u.B..ux....u|g.
-                        4? | 0c 01 00 41 c3 41 c5 43 0c 04 04 00 10 00 00 00 | ...A.A.C........
-                        5? | 50 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 | P...............
+                        1? | 1b 0c 04 04 88 01 00 00 28 00 00 00 1c 00 00 00 | ........(.......
+                        2? | 00 00 00 00 2e 00 00 00 00 44 0c 01 00 49 10 05 | .........D...I..
+                        3? | 02 75 00 41 0f 03 75 7c 06 5b 0c 01 00 41 c5 43 | .u.A..u|.[...A.C
+                        4? | 0c 04 04 00                                     | ....
                     },
                 },
             ),
         },
-        "#11 .rel.eh_frame": ElfSection {
+        "#09 .rel.eh_frame": ElfSection {
             name: ".rel.eh_frame",
             memory_address: 0x0,
             content: RelocationsTable(
                 ElfRelocationsTable {
-                    symbol_table: "#12 .symtab",
-                    applies_to_section: "#10 .eh_frame",
+                    symbol_table: "#10 .symtab",
+                    applies_to_section: "#08 .eh_frame",
                     relocations: [
                         ElfRelocation {
                             offset: 0x20,
@@ -203,17 +154,11 @@ ElfObject {
                             relocation_type: X86_PC32,
                             addend: None,
                         },
-                        ElfRelocation {
-                            offset: 0x54,
-                            symbol: "#4 <empty>",
-                            relocation_type: X86_PC32,
-                            addend: None,
-                        },
                     ],
                 },
             ),
         },
-        "#12 .symtab": ElfSection {
+        "#10 .symtab": ElfSection {
             name: ".symtab",
             memory_address: 0x0,
             content: SymbolTable(
@@ -240,7 +185,7 @@ ElfObject {
                             binding: Local,
                             type_: Section,
                             definition: Section(
-                                "#02 .text",
+                                "#01 .text",
                             ),
                             value: 0x0,
                             size: 0x0,
@@ -250,50 +195,22 @@ ElfObject {
                             binding: Local,
                             type_: Section,
                             definition: Section(
-                                "#06 .rodata",
+                                "#05 .rodata",
                             ),
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#4 <empty>": ElfSymbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                "#07 .text.__x86.get_pc_thunk.ax",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#5 main": ElfSymbol {
+                        "#4 main": ElfSymbol {
                             name: "main",
                             binding: Global,
                             type_: Function,
                             definition: Section(
-                                "#02 .text",
+                                "#01 .text",
                             ),
                             value: 0x0,
-                            size: 0x3c,
+                            size: 0x2e,
                         },
-                        "#6 __x86.get_pc_thunk.ax": ElfSymbol {
-                            name: "__x86.get_pc_thunk.ax",
-                            binding: Global,
-                            type_: Function,
-                            definition: Section(
-                                "#07 .text.__x86.get_pc_thunk.ax",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#7 _GLOBAL_OFFSET_TABLE_": ElfSymbol {
-                            name: "_GLOBAL_OFFSET_TABLE_",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#8 puts": ElfSymbol {
+                        "#5 puts": ElfSymbol {
                             name: "puts",
                             binding: Global,
                             type_: NoType,
@@ -305,7 +222,7 @@ ElfObject {
                 },
             ),
         },
-        "#13 .strtab": ElfSection {
+        "#11 .strtab": ElfSection {
             name: ".strtab",
             memory_address: 0x0,
             content: StringTable(
@@ -314,14 +231,12 @@ ElfObject {
                         0x0: "",
                         0x1: "hello_c.c",
                         0xb: "main",
-                        0x10: "__x86.get_pc_thunk.ax",
-                        0x26: "_GLOBAL_OFFSET_TABLE_",
-                        0x3c: "puts",
+                        0x10: "puts",
                     },
                 },
             ),
         },
-        "#14 .shstrtab": ElfSection {
+        "#12 .shstrtab": ElfSection {
             name: ".shstrtab",
             memory_address: 0x0,
             content: StringTable(
@@ -335,11 +250,9 @@ ElfObject {
                         0x25: ".data",
                         0x2b: ".bss",
                         0x30: ".rodata",
-                        0x38: ".text.__x86.get_pc_thunk.ax",
-                        0x54: ".comment",
-                        0x5d: ".note.GNU-stack",
-                        0x6d: ".rel.eh_frame",
-                        0x7b: ".group",
+                        0x38: ".comment",
+                        0x41: ".note.GNU-stack",
+                        0x51: ".rel.eh_frame",
                     },
                 },
             ),

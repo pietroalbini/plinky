@@ -24,11 +24,11 @@ ElfObject {
                     perms: ElfPermissions(RX),
                     deduplication: Disabled,
                     raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x29)
+                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x24)
                            +-------------------------------------------------+
                         0? | f3 0f 1e fa 55 48 89 e5 48 83 ec 10 89 7d fc 48 | ....UH..H....}.H
-                        1? | 89 75 f0 48 8d 05 00 00 00 00 48 89 c7 e8 00 00 | .u.H......H.....
-                        2? | 00 00 b8 00 00 00 00 c9 c3                      | .........
+                        1? | 89 75 f0 bf 00 00 00 00 e8 00 00 00 00 b8 00 00 | .u..............
+                        2? | 00 00 c9 c3                                     | ....
                     },
                 },
             ),
@@ -42,15 +42,15 @@ ElfObject {
                     applies_to_section: "#01 .text",
                     relocations: [
                         ElfRelocation {
-                            offset: 0x16,
+                            offset: 0x14,
                             symbol: "#3 <empty>",
-                            relocation_type: X86_64_PC32,
+                            relocation_type: X86_64_32,
                             addend: Some(
-                                0xfffffffffffffffc,
+                                0x0,
                             ),
                         },
                         ElfRelocation {
-                            offset: 0x1e,
+                            offset: 0x19,
                             symbol: "#5 puts",
                             relocation_type: X86_64_PLT32,
                             addend: Some(
@@ -158,8 +158,8 @@ ElfObject {
                            +-------------------------------------------------+
                         0? | 14 00 00 00 00 00 00 00 01 7a 52 00 01 78 10 01 | .........zR..x..
                         1? | 1b 0c 07 08 90 01 00 00 1c 00 00 00 1c 00 00 00 | ................
-                        2? | 00 00 00 00 29 00 00 00 00 45 0e 10 86 02 43 0d | ....)....E....C.
-                        3? | 06 60 0c 07 08 00 00 00                         | .`......
+                        2? | 00 00 00 00 24 00 00 00 00 45 0e 10 86 02 43 0d | ....$....E....C.
+                        3? | 06 5b 0c 07 08 00 00 00                         | .[......
                     },
                 },
             ),
@@ -234,7 +234,7 @@ ElfObject {
                                 "#01 .text",
                             ),
                             value: 0x0,
-                            size: 0x29,
+                            size: 0x24,
                         },
                         "#5 puts": ElfSymbol {
                             name: "puts",

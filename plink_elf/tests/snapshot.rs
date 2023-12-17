@@ -103,6 +103,7 @@ fn compile_c(source: &str, variant: Variant) -> Result<NamedTempFile, Error> {
         .arg("-o")
         .arg(dest.path())
         .arg(source)
+        .arg("-fno-pic")
         .arg(match variant {
             Variant::X86 => "-m32",
             Variant::X86_64 => "-m64",

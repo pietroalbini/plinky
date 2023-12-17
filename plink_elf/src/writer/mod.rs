@@ -10,9 +10,9 @@ use crate::raw::{
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
-    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfRelocationType,
-    ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition,
-    ElfSymbolType, ElfType,
+    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
+    ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
+    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfType,
 };
 use plink_rawutils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
@@ -157,7 +157,20 @@ where
                 name_offset: section.name.offset(),
                 type_,
                 flags: match &section.content {
-                    ElfSectionContent::Program(p) => self.perms_to_section_flags(&p.perms),
+                    ElfSectionContent::Program(p) => {
+                        let mut flags = self.perms_to_section_flags(&p.perms);
+                        match p.deduplication {
+                            ElfDeduplication::Disabled => {}
+                            ElfDeduplication::ZeroTerminatedStrings => {
+                                flags.merge = true;
+                                flags.strings = true;
+                            }
+                            ElfDeduplication::FixedSizeChunks { .. } => {
+                                flags.merge = true;
+                            }
+                        }
+                        flags
+                    }
                     ElfSectionContent::RelocationsTable(_) => {
                         RawSectionHeaderFlags { info_link: true, ..RawSectionHeaderFlags::zero() }
                     }
@@ -197,7 +210,13 @@ where
                     _ => 0,
                 },
                 addr_align: 0x1,
-                entries_size: 0,
+                entries_size: match &section.content {
+                    ElfSectionContent::Program(ElfProgramSection {
+                        deduplication: ElfDeduplication::FixedSizeChunks { size },
+                        ..
+                    }) => size.get(),
+                    _ => 0,
+                },
             })?;
         }
         Ok(())

@@ -86,7 +86,9 @@ impl<'a> Relocator<'a> {
             | ElfRelocationType::X86_32 => {
                 editor.write_32(self.symbol(relocation, editor.addend_32())?)
             }
-            ElfRelocationType::X86_64_PC32 | ElfRelocationType::X86_PC32 => {
+            ElfRelocationType::X86_64_PC32
+            | ElfRelocationType::X86_PC32
+            | ElfRelocationType::X86_64_PLT32 => {
                 let offset = self.resolve(section_id, relocation.offset as i64)?;
                 editor.write_32(self.symbol(relocation, editor.addend_32())? - offset as i64)
             }

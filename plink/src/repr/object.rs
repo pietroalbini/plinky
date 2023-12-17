@@ -21,6 +21,7 @@ impl Object<SectionLayout> {
     pub(crate) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
         let symbol = self.symbols.get_global(name)?;
 
+        // TODO: find a way to deduplicate this with the copy of the function in the relocation.
         match symbol.definition {
             ElfSymbolDefinition::Undefined => Err(GetSymbolAddressError::Undefined(name.into())),
             ElfSymbolDefinition::Absolute => Err(GetSymbolAddressError::NotAnAddress(name.into())),

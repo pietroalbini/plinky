@@ -79,7 +79,7 @@ pub(crate) struct DataSectionPartReal<L> {
     pub(crate) layout: L,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct DeduplicationFacade {
     pub(crate) section_id: SectionId,
     pub(crate) offset_map: BTreeMap<u64, u64>,

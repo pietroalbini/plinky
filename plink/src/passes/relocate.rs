@@ -1,15 +1,16 @@
 use crate::repr::object::{
-    DataSectionPart, DataSectionPartReal, Object, SectionContent, SectionLayout,
+    DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, SectionContent,
+    SectionLayout,
 };
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
 use plink_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plink_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
-use plink_macros::Error;
+use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationError> {
     let relocator =
-        Relocator { section_addresses: fetch_section_addresses(&object), symbols: &object.symbols };
+        Relocator { section_resolvers: fetch_section_resolvers(&object), symbols: &object.symbols };
     for section in object.sections.values_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
@@ -26,7 +27,7 @@ pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationEr
     Ok(())
 }
 
-fn fetch_section_addresses(object: &Object<SectionLayout>) -> BTreeMap<SectionId, u64> {
+fn fetch_section_resolvers(object: &Object<SectionLayout>) -> BTreeMap<SectionId, AddressResolver> {
     object
         .sections
         .values()
@@ -36,13 +37,19 @@ fn fetch_section_addresses(object: &Object<SectionLayout>) -> BTreeMap<SectionId
                     (
                         id,
                         match part {
-                            DataSectionPart::Real(real) => real.layout.address,
-                            DataSectionPart::DeduplicationFacade(_) => todo!(),
+                            DataSectionPart::Real(real) => {
+                                AddressResolver::Section { address: real.layout.address }
+                            }
+                            DataSectionPart::DeduplicationFacade(facade) => {
+                                AddressResolver::DeduplicationFacade(facade.clone())
+                            }
                         },
                     )
                 })),
                 SectionContent::Uninitialized(uninit) => {
-                    Box::new(uninit.iter().map(|(&id, part)| (id, part.layout.address)))
+                    Box::new(uninit.iter().map(|(&id, part)| {
+                        (id, AddressResolver::Section { address: part.layout.address })
+                    }))
                 }
             }
         })
@@ -50,7 +57,7 @@ fn fetch_section_addresses(object: &Object<SectionLayout>) -> BTreeMap<SectionId
 }
 
 struct Relocator<'a> {
-    section_addresses: BTreeMap<SectionId, u64>,
+    section_resolvers: BTreeMap<SectionId, AddressResolver>,
     symbols: &'a Symbols,
 }
 
@@ -77,26 +84,61 @@ impl<'a> Relocator<'a> {
             ElfRelocationType::X86_64_32
             | ElfRelocationType::X86_64_32S
             | ElfRelocationType::X86_32 => {
-                editor.write_32(self.symbol(relocation)? + editor.addend_32())
+                editor.write_32(self.symbol(relocation, editor.addend_32())?)
             }
             ElfRelocationType::X86_64_PC32 | ElfRelocationType::X86_PC32 => {
-                let offset = self.section_addresses.get(&section_id).unwrap() + relocation.offset;
-                editor.write_32(self.symbol(relocation)? + editor.addend_32() - offset as i64)
+                let offset = self.resolve(section_id, relocation.offset as i64)?;
+                editor.write_32(self.symbol(relocation, editor.addend_32())? - offset as i64)
             }
             other => Err(RelocationError::UnsupportedRelocation(other)),
         }
     }
 
-    fn symbol(&self, rel: &ElfRelocation<SerialIds>) -> Result<i64, RelocationError> {
+    fn symbol(&self, rel: &ElfRelocation<SerialIds>, offset: i64) -> Result<i64, RelocationError> {
         let symbol = self.symbols.get(rel.symbol)?;
         match symbol.definition {
             ElfSymbolDefinition::Undefined => Err(RelocationError::UndefinedSymbol(rel.symbol)),
-            ElfSymbolDefinition::Absolute => Ok(symbol.value as i64),
+            ElfSymbolDefinition::Absolute => Ok(symbol.value as i64 + offset),
             ElfSymbolDefinition::Common => todo!(),
             ElfSymbolDefinition::Section(section) => {
-                let section_addr =
-                    self.section_addresses.get(&section).expect("inconsistent section id");
-                Ok((*section_addr + symbol.value) as i64)
+                Ok(self.resolve(section, symbol.value as i64 + offset)?)
+            }
+        }
+    }
+
+    fn resolve(&self, section: SectionId, offset: i64) -> Result<i64, RelocationError> {
+        let resolver = self.section_resolvers.get(&section).expect("inconsistent section id");
+        resolver.resolve(self, offset)
+    }
+}
+
+enum AddressResolver {
+    Section { address: u64 },
+    DeduplicationFacade(DeduplicationFacade),
+}
+
+impl AddressResolver {
+    fn resolve(&self, relocator: &Relocator<'_>, offset: i64) -> Result<i64, RelocationError> {
+        match self {
+            AddressResolver::Section { address } => Ok(*address as i64 + offset),
+            AddressResolver::DeduplicationFacade(facade) => {
+                let base = match relocator.section_resolvers.get(&facade.section_id) {
+                    Some(AddressResolver::Section { address }) => *address,
+                    Some(AddressResolver::DeduplicationFacade(_)) => {
+                        return Err(RelocationError::RecursiveDuplicationFacadesNotAllowed);
+                    }
+                    None => panic!("facade points to missing section"),
+                };
+                let map_key = u64::try_from(offset)
+                    .map_err(|_| RelocationError::NegativeOffsetToAccessDeduplications)?;
+                match facade.offset_map.get(&map_key) {
+                    Some(&mapped) => Ok(base as i64 + mapped as i64),
+                    None => {
+                        return Err(
+                            RelocationError::UnsupportedUnalignedReferenceInDeduplicatedSections,
+                        );
+                    }
+                }
             }
         }
     }
@@ -131,27 +173,20 @@ impl ByteEditor<'_> {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
 pub(crate) enum RelocationError {
+    #[display("missing symbol found during relocation")]
     MissingSymbol(#[from] MissingGlobalSymbol),
+    #[display("undefined symbol {f0:?}")]
     UndefinedSymbol(SymbolId),
+    #[display("unsupported relocation type {f0:?}")]
     UnsupportedRelocation(ElfRelocationType),
+    #[display("relocated address {f0:#x} is too large")]
     RelocatedAddressTooLarge(i64),
-}
-
-impl std::fmt::Display for RelocationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RelocationError::MissingSymbol(_) => {
-                f.write_str("missing symbol found during relocation")
-            }
-            RelocationError::UndefinedSymbol(symbol) => write!(f, "undefined symbol {symbol:?}"),
-            RelocationError::UnsupportedRelocation(type_) => {
-                write!(f, "unsupported relocation type {type_:?}")
-            }
-            RelocationError::RelocatedAddressTooLarge(addr) => {
-                write!(f, "relocated address {addr:#x} is too large")
-            }
-        }
-    }
+    #[display("recursive relocation facades are not allowed")]
+    RecursiveDuplicationFacadesNotAllowed,
+    #[display("unsupported unaligned reference in deduplicated sections")]
+    UnsupportedUnalignedReferenceInDeduplicatedSections,
+    #[display("a negative offset was used to access deduplications")]
+    NegativeOffsetToAccessDeduplications,
 }

@@ -1,6 +1,6 @@
 use crate::interner::Interned;
 use crate::repr::object::{
-    DataSection, DataSectionPart, DataSectionPartReal, Object, SectionContent,
+    DataSection, DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, SectionContent,
 };
 use plink_elf::ids::serial::{SectionId, SerialIds};
 use plink_elf::{ElfDeduplication, RawBytes};
@@ -51,10 +51,13 @@ fn deduplicate(
     split_rule: SplitRule,
     data: &mut DataSection<()>,
 ) -> Result<(), DeduplicationErrorKind> {
+    let merged_id = ids.allocate_section_id();
     let mut merged = Vec::new();
     let mut seen = BTreeMap::new();
+    let mut facades_to_replace = BTreeMap::new();
 
-    for part in data.parts.values() {
+    for (&section_id, part) in data.parts.iter() {
+        let mut facade = DeduplicationFacade { section_id: merged_id, offset_map: BTreeMap::new() };
         let bytes = match part {
             DataSectionPart::Real(real) => &real.bytes.0,
             DataSectionPart::DeduplicationFacade(_) => {
@@ -62,28 +65,37 @@ fn deduplicate(
             }
         };
         for chunk in split(split_rule, &bytes) {
-            let chunk = chunk?;
+            let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
-                Some(_idx) => {}
+                Some(idx) => {
+                    facade.offset_map.insert(chunk_start as _, *idx as _);
+                }
                 None => {
                     let idx = merged.len();
                     merged.extend_from_slice(chunk);
                     seen.insert(chunk, idx);
+                    facade.offset_map.insert(chunk_start as _, idx as _);
                 }
             }
         }
+        facades_to_replace.insert(section_id, facade);
     }
 
-    let id = ids.allocate_section_id();
     data.parts.insert(
-        id,
+        merged_id,
         DataSectionPart::Real(DataSectionPartReal {
             bytes: RawBytes(merged),
             relocations: Vec::new(),
             layout: (),
         }),
     );
-    section_ids_to_names.insert(id, section_name);
+    section_ids_to_names.insert(merged_id, section_name);
+
+    for (section_id, part) in data.parts.iter_mut() {
+        if let Some(facade) = facades_to_replace.remove(section_id) {
+            *part = DataSectionPart::DeduplicationFacade(facade);
+        }
+    }
 
     Ok(())
 }
@@ -97,34 +109,38 @@ enum SplitRule {
 fn split(
     rule: SplitRule,
     mut input: &[u8],
-) -> impl Iterator<Item = Result<&[u8], DeduplicationErrorKind>> {
+) -> impl Iterator<Item = Result<(usize, &[u8]), DeduplicationErrorKind>> {
     let initial_len = input.len();
+    let mut current_pos = 0;
     std::iter::from_fn(move || {
         if input.is_empty() {
             None
         } else {
-            Some(match rule {
+            let chunk = match rule {
                 SplitRule::ZeroTerminatedString => match input.iter().position(|&b| b == 0) {
                     Some(cutoff) => {
                         let chunk = &input[..cutoff + 1];
                         input = &input[cutoff + 1..];
-                        Ok(chunk)
+                        chunk
                     }
-                    None => Err(DeduplicationErrorKind::NonZeroTerminatedString),
+                    None => return Some(Err(DeduplicationErrorKind::NonZeroTerminatedString)),
                 },
                 SplitRule::FixedSizeChunks { size } => {
                     if (input.len() as u64) < size.get() {
-                        Err(DeduplicationErrorKind::UnevenChunkSize {
+                        return Some(Err(DeduplicationErrorKind::UnevenChunkSize {
                             len: initial_len as _,
                             chunks: size.get(),
-                        })
+                        }));
                     } else {
                         let chunk = &input[..size.get() as usize];
                         input = &input[size.get() as usize..];
-                        Ok(chunk)
+                        chunk
                     }
                 }
-            })
+            };
+            let chunk_start = current_pos;
+            current_pos += chunk.len();
+            Some(Ok((chunk_start, chunk)))
         }
     })
 }
@@ -154,7 +170,7 @@ mod tests {
     #[test]
     fn test_split_fixed_sized_chunks_ok() {
         assert_eq!(
-            &[&[1, 2, 3, 4], &[5, 6, 7, 8], &[9, 10, 11, 12]],
+            &[(0usize, &[1u8, 2, 3, 4] as &[u8]), (4, &[5, 6, 7, 8]), (8, &[9, 10, 11, 12])],
             split(
                 SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
                 &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -172,7 +188,7 @@ mod tests {
             &[1, 2, 3, 4, 5],
         );
 
-        assert_eq!(Some(Ok(&[1u8, 2, 3, 4] as &[u8])), split.next());
+        assert_eq!(Some(Ok((0, &[1u8, 2, 3, 4] as &[u8]))), split.next());
         assert_eq!(
             Some(Err(DeduplicationErrorKind::UnevenChunkSize { len: 5, chunks: 4 })),
             split.next()
@@ -189,7 +205,7 @@ mod tests {
     #[test]
     fn test_split_zero_terminated_ok() {
         assert_eq!(
-            &[&[1u8, 2, 3, 0] as &[u8], &[4, 5, 0], &[0], &[6, 0]],
+            &[(0, &[1u8, 2, 3, 0] as &[u8]), (4, &[4, 5, 0]), (7, &[0]), (8, &[6, 0])],
             split(SplitRule::ZeroTerminatedString, &[1, 2, 3, 0, 4, 5, 0, 0, 6, 0])
                 .collect::<Result<Vec<_>, _>>()
                 .unwrap()
@@ -201,7 +217,7 @@ mod tests {
     fn test_split_zero_terminated_missing_terminator() {
         let mut split = split(SplitRule::ZeroTerminatedString, &[1, 2, 3, 4, 0, 5]);
 
-        assert_eq!(Some(Ok(&[1u8, 2, 3, 4, 0] as &[u8])), split.next());
+        assert_eq!(Some(Ok((0, &[1u8, 2, 3, 4, 0] as &[u8]))), split.next());
         assert_eq!(Some(Err(DeduplicationErrorKind::NonZeroTerminatedString)), split.next());
     }
 

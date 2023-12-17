@@ -63,7 +63,7 @@ pub(crate) struct RawSectionHeaderFlags {
     pub(crate) alloc: bool,
     pub(crate) exec: bool,
     #[bit(4)]
-    pub(crate) merge: bool, // TODO: handle this flag
+    pub(crate) merge: bool,
     #[bit(5)]
     pub(crate) strings: bool,
     #[bit(6)]

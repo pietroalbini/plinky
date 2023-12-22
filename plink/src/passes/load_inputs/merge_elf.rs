@@ -3,57 +3,17 @@ use crate::repr::object::{
     DataSection, DataSectionPart, DataSectionPartReal, Object, Section, SectionContent,
     UninitializedSectionPart,
 };
-use crate::repr::strings::{MissingStringError, Strings};
-use crate::repr::symbols::{LoadSymbolsError, Symbols};
-use plink_elf::errors::LoadError;
+use crate::repr::strings::MissingStringError;
+use crate::repr::symbols::LoadSymbolsError;
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
-use plink_elf::{
-    ElfDeduplication, ElfEnvironment, ElfNote, ElfObject, ElfPermissions, ElfSectionContent,
-};
+use plink_elf::{ElfDeduplication, ElfNote, ElfObject, ElfPermissions, ElfSectionContent};
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
 
-pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, LoadInputsError> {
-    let mut state = None;
-
-    for path in paths {
-        let mut file = File::open(path).map_err(|e| LoadInputsError::OpenFailed(path.into(), e))?;
-        let elf = ElfObject::load(&mut BufReader::new(&mut file), ids)
-            .map_err(|e| LoadInputsError::ParseError(path.into(), e))?;
-
-        match &mut state {
-            None => {
-                let mut object = Object {
-                    env: elf.env,
-                    sections: BTreeMap::new(),
-                    section_ids_to_names: BTreeMap::new(),
-                    strings: Strings::new(),
-                    symbols: Symbols::new(),
-                };
-                merge_elf(&mut object, elf)?;
-                state = Some((object, path));
-            }
-            Some((object, first_path)) => {
-                if object.env != elf.env {
-                    return Err(LoadInputsError::MismatchedEnv {
-                        first_path: (*first_path).into(),
-                        first_env: object.env,
-                        current_path: path.into(),
-                        current_env: elf.env,
-                    });
-                }
-                merge_elf(object, elf)?;
-            }
-        }
-    }
-
-    state.map(|(o, _)| o).ok_or(LoadInputsError::NoInputFiles)
-}
-
-fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), LoadInputsError> {
+pub(super) fn merge(
+    object: &mut Object<()>,
+    elf: ElfObject<SerialIds>,
+) -> Result<(), MergeElfError> {
     let mut symbol_tables = Vec::new();
     let mut program_sections = Vec::new();
     let mut uninitialized_sections = Vec::new();
@@ -77,7 +37,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                 for note in table.notes {
                     match note {
                         ElfNote::Unknown(unknown) => {
-                            return Err(LoadInputsError::UnsupportedUnknownNote {
+                            return Err(MergeElfError::UnsupportedUnknownNote {
                                 name: unknown.name,
                                 type_: unknown.type_,
                             })
@@ -86,7 +46,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                 }
             }
             ElfSectionContent::Unknown(unknown) => {
-                return Err(LoadInputsError::UnsupportedUnknownSection { id: unknown.id });
+                return Err(MergeElfError::UnsupportedUnknownSection { id: unknown.id });
             }
         }
     }
@@ -95,7 +55,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
     // to resolve the strings as part of symbol loading.
     for (name_id, table) in symbol_tables {
         object.symbols.load_table(table, &object.strings).map_err(|inner| {
-            LoadInputsError::SymbolsLoadingFailed {
+            MergeElfError::SymbolsLoadingFailed {
                 section_name: object.strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,
             }
@@ -110,7 +70,7 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
             uninit.perms,
             || SectionContent::Uninitialized(BTreeMap::new()),
             |name, content| match content {
-                SectionContent::Data(_) => Err(LoadInputsError::MismatchedSectionTypes {
+                SectionContent::Data(_) => Err(MergeElfError::MismatchedSectionTypes {
                     name,
                     first_type: "data",
                     second_type: "uninitialized",
@@ -136,14 +96,14 @@ fn merge_elf(object: &mut Object<()>, elf: ElfObject<SerialIds>) -> Result<(), L
                 })
             },
             |name, content| match content {
-                SectionContent::Uninitialized(_) => Err(LoadInputsError::MismatchedSectionTypes {
+                SectionContent::Uninitialized(_) => Err(MergeElfError::MismatchedSectionTypes {
                     name,
                     first_type: "uninitialized",
                     second_type: "data",
                 }),
                 SectionContent::Data(c) => {
                     if c.deduplication != program.deduplication {
-                        return Err(LoadInputsError::MismatchedDeduplication {
+                        return Err(MergeElfError::MismatchedDeduplication {
                             name,
                             first_dedup: c.deduplication,
                             second_dedup: program.deduplication,
@@ -172,19 +132,19 @@ fn add_section<I, U>(
     perms: ElfPermissions,
     init_content: I,
     update_content: U,
-) -> Result<(), LoadInputsError>
+) -> Result<(), MergeElfError>
 where
     I: FnOnce() -> SectionContent<()>,
-    U: FnOnce(Interned<String>, &mut SectionContent<()>) -> Result<(), LoadInputsError>,
+    U: FnOnce(Interned<String>, &mut SectionContent<()>) -> Result<(), MergeElfError>,
 {
     let name = intern(
-        object.strings.get(name).map_err(|err| LoadInputsError::MissingSectionName { id, err })?,
+        object.strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
     );
 
     let section =
         object.sections.entry(name).or_insert_with(|| Section { perms, content: init_content() });
     if section.perms != perms {
-        return Err(LoadInputsError::MismatchedSectionPerms {
+        return Err(MergeElfError::MismatchedSectionPerms {
             name,
             first_perms: section.perms,
             second_perms: perms,
@@ -197,13 +157,7 @@ where
 }
 
 #[derive(Debug, Error, Display)]
-pub(crate) enum LoadInputsError {
-    #[display("failed to open file {f0:?}")]
-    OpenFailed(PathBuf, #[source] std::io::Error),
-    #[display("failed to parse ELF file at {f0:?}")]
-    ParseError(PathBuf, #[source] LoadError),
-    #[display("no input files were provided")]
-    NoInputFiles,
+pub(crate) enum MergeElfError {
     #[display("unsupported note with name {name} and type {type_}")]
     UnsupportedUnknownNote { name: String, type_: u32 },
     #[display("unknown section with type {id:#x?} is not supported")]
@@ -213,13 +167,6 @@ pub(crate) enum LoadInputsError {
         section_name: String,
         #[source]
         inner: LoadSymbolsError,
-    },
-    #[display("environment of {first_path:?} is {first_env:?}, while environment of {current_path:?} is {current_env:?}")]
-    MismatchedEnv {
-        first_path: PathBuf,
-        first_env: ElfEnvironment,
-        current_path: PathBuf,
-        current_env: ElfEnvironment,
     },
     #[display("instances of section {name} have different types: one is of type {first_type}, while the other is of type {second_type}")]
     MismatchedSectionTypes {

@@ -1,0 +1,14 @@
+cmd = ["entry.o", "archived.a"]
+kind = "link-fail"
+
+[[asm]]
+source = "entry.S"
+
+[[ar]]
+name = "archived.a"
+
+[[ar.asm]]
+source = "hello.S"
+
+[[ar.asm]]
+source = "goodbye.S"

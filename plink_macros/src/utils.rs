@@ -1,4 +1,4 @@
-use crate::parser::Item;
+use crate::parser::{GenericParam, Item};
 
 pub(crate) fn generate_impl_for<T, F: FnOnce(&mut String) -> T>(
     output: &mut String,
@@ -15,9 +15,19 @@ pub(crate) fn generate_impl_for<T, F: FnOnce(&mut String) -> T>(
     if !generics.is_empty() {
         output.push('<');
         for generic in generics {
-            output.push_str(&generic.name);
-            output.push_str(": ");
-            output.push_str(&generic.bound);
+            match generic {
+                GenericParam::Normal(param) => {
+                    output.push_str(&param.name);
+                    output.push_str(": ");
+                    output.push_str(&param.bound);
+                }
+                GenericParam::Const(param) => {
+                    output.push_str("const ");
+                    output.push_str(&param.name);
+                    output.push_str(": ");
+                    output.push_str(&param.type_);
+                }
+            }
             output.push(',');
         }
         output.push('>');
@@ -29,7 +39,10 @@ pub(crate) fn generate_impl_for<T, F: FnOnce(&mut String) -> T>(
     if !generics.is_empty() {
         output.push('<');
         for generic in generics {
-            output.push_str(&generic.name);
+            output.push_str(match generic {
+                GenericParam::Normal(param) => &param.name,
+                GenericParam::Const(param) => &param.name,
+            });
             output.push(',');
         }
         output.push('>');

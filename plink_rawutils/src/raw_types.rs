@@ -1,6 +1,6 @@
 use crate::bitfields::BitfieldReadError;
 use crate::Bits;
-use plink_macros::Display;
+use plink_macros::{Display, Error};
 use std::io::{Read, Write};
 
 pub trait RawType: Sized {
@@ -163,6 +163,13 @@ impl RawReadError {
         }
     }
 
+    pub fn custom<T>(err: String) -> Self {
+        Self {
+            source: ErrorSource::Type(std::any::type_name::<T>()),
+            inner: RawReadErrorInner::Custom(CustomError(err)),
+        }
+    }
+
     pub fn wrap_type<T, R>(result: Result<R, RawReadError>) -> Result<R, RawReadError> {
         match result {
             Ok(ok) => Ok(ok),
@@ -191,6 +198,7 @@ impl RawReadError {
 enum RawReadErrorInner {
     Itself(Box<RawReadError>),
     Bitfield(BitfieldReadError),
+    Custom(CustomError),
     IO(std::io::Error),
 }
 
@@ -200,9 +208,14 @@ impl std::error::Error for RawReadError {
             RawReadErrorInner::IO(io) => Some(io),
             RawReadErrorInner::Bitfield(bitfield) => Some(bitfield),
             RawReadErrorInner::Itself(itself) => Some(itself),
+            RawReadErrorInner::Custom(custom) => Some(custom),
         }
     }
 }
+
+#[derive(Debug, Display, Error)]
+#[display("{f0}")]
+struct CustomError(String);
 
 #[derive(Debug, Display)]
 #[display("failed to write {source}")]

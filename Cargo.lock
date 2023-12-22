@@ -139,6 +139,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "plink_ar"
+version = "0.1.0"
+dependencies = [
+ "plink_macros",
+ "plink_rawutils",
+]
+
+[[package]]
 name = "plink_elf"
 version = "0.1.0"
 dependencies = [

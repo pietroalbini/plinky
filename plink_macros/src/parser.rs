@@ -67,9 +67,22 @@ pub(crate) struct TupleField {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct GenericParam {
+pub(crate) enum GenericParam {
+    Normal(GenericParamNormal),
+    Const(GenericParamConst),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct GenericParamNormal {
     pub(crate) name: String,
     pub(crate) bound: String,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct GenericParamConst {
+    pub(crate) name: String,
+    pub(crate) type_: String,
+    pub(crate) _default: Option<String>,
 }
 
 pub(crate) struct Parser {
@@ -319,28 +332,63 @@ impl Parser {
                 return Ok(IterationOutcome::Break);
             }
 
-            let name = match this.next()? {
-                TokenTree::Ident(ident) => ident.to_string(),
-                other => return Err(Error::new("expected generic name").span(other.span())),
-            };
-            this.expect_punct(':')?;
-
-            let mut bound = Vec::new();
             let mut constructor: fn(GenericParam) -> _ = IterationOutcome::Value;
-            loop {
-                if this.peek()?.is_punct('>') {
-                    constructor = IterationOutcome::Last;
-                    break;
-                } else if this.peek()?.is_punct(',') {
-                    break;
-                }
-                bound.push(this.next()?);
-            }
+            if this.peek()?.is_ident("const") {
+                this.next()?;
 
-            Ok(constructor(GenericParam {
-                name,
-                bound: bound.into_iter().collect::<TokenStream>().to_string(),
-            }))
+                let name = match this.next()? {
+                    TokenTree::Ident(ident) => ident.to_string(),
+                    other => return Err(Error::new("expected generic name").span(other.span())),
+                };
+                this.expect_punct(':')?;
+                let type_ = this.parse_type()?;
+
+                let default = if this.peek()?.is_punct('=') {
+                    this.next()?;
+
+                    let mut default = Vec::new();
+                    loop {
+                        if this.peek()?.is_punct('>') {
+                            constructor = IterationOutcome::Last;
+                            break;
+                        } else if this.peek()?.is_punct(',') {
+                            break;
+                        } else {
+                            default.push(this.next()?);
+                        }
+                    }
+
+                    Some(default.into_iter().collect::<TokenStream>().to_string())
+                } else {
+                    if this.peek()?.is_punct('>') {
+                        constructor = IterationOutcome::Last;
+                    }
+                    None
+                };
+                Ok(constructor(GenericParam::Const(GenericParamConst { name, type_, _default: default })))
+            } else {
+                let name = match this.next()? {
+                    TokenTree::Ident(ident) => ident.to_string(),
+                    other => return Err(Error::new("expected generic name").span(other.span())),
+                };
+                this.expect_punct(':')?;
+
+                let mut bound = Vec::new();
+                let mut constructor: fn(GenericParam) -> _ = IterationOutcome::Value;
+                loop {
+                    if this.peek()?.is_punct('>') {
+                        constructor = IterationOutcome::Last;
+                        break;
+                    } else if this.peek()?.is_punct(',') {
+                        break;
+                    }
+                    bound.push(this.next()?);
+                }
+                Ok(constructor(GenericParam::Normal(GenericParamNormal {
+                    name,
+                    bound: bound.into_iter().collect::<TokenStream>().to_string(),
+                })))
+            }
         })?;
 
         self.expect_punct('>')?;

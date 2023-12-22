@@ -311,12 +311,12 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        assert_eq!(Vec::<ArchiveFile>::new(), parse!("empty.ar").unwrap());
+        assert_eq!(Vec::<ArchiveFile>::new(), parse!("empty.a").unwrap());
     }
 
     #[test]
     fn test_bsd_multiple_files() {
-        match parse!("bsd-multiple-files.ar").unwrap_err() {
+        match parse!("bsd-multiple-files.a").unwrap_err() {
             ArReadError::BsdFormatUnsupported => {}
             other => panic!("unexpected error: {other:?}"),
         }
@@ -333,7 +333,7 @@ mod tests {
                 group_id: 0,
                 mode: 0o644,
             }],
-            parse!("gnu-one-file.ar").unwrap()
+            parse!("gnu-one-file.a").unwrap()
         );
     }
 
@@ -366,7 +366,7 @@ mod tests {
                     mode: 0o644,
                 },
             ],
-            parse!("gnu-multiple-files.ar").unwrap()
+            parse!("gnu-multiple-files.a").unwrap()
         );
     }
 
@@ -375,7 +375,7 @@ mod tests {
         // This tests both various errors that could occur with GNU-formatted archives, and that we
         // can continue the parsing if any archive member is invalid.
 
-        let mut content = include_bytes!("../sample-archives/gnu-various-errors.ar") as &[u8];
+        let mut content = include_bytes!("../sample-archives/gnu-various-errors.a") as &[u8];
         let mut reader = ArReader::new(&mut content).unwrap();
 
         match reader.next().unwrap().unwrap_err() {

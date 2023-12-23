@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::parser::{Attribute, EnumVariantData, Item, Parser, StructFields};
+use crate::parser::{Attributes, EnumVariantData, Item, Parser, StructFields};
 use crate::utils::generate_impl_for;
 use proc_macro::{Span, TokenStream};
 
@@ -82,18 +82,19 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
 fn maybe_set_source(
     source: &mut Option<String>,
     name: &str,
-    attrs: &[Attribute],
+    attrs: &Attributes,
 ) -> Result<(), Error> {
-    if let Some(attr) = attrs.iter().find(|a| a.value == "from" || a.value == "source") {
-        if source.is_some() {
-            Err(Error::new("multiple sources for a single error").span(attr.span))
-        } else {
-            *source = Some(name.into());
-            Ok(())
+    for attr_name in ["from", "source"] {
+        if let Some(attr) = attrs.get(attr_name)? {
+            attr.must_be_empty()?;
+            if source.is_some() {
+                return Err(Error::new("multiple sources for a single error").span(attr.span));
+            } else {
+                *source = Some(name.into());
+            }
         }
-    } else {
-        Ok(())
     }
+    Ok(())
 }
 
 fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
@@ -171,13 +172,21 @@ fn generate_from_impl(
     span: Span,
     fields: &[FromImplField<'_>],
 ) -> Result<(), Error> {
-    let has_from = fields.iter().any(|f| f.attrs.iter().any(|a| a.value == "from"));
-    if !has_from {
+    let field = if let [field] = fields {
+        field
+    } else {
+        for field in fields {
+            if field.attrs.get("from")?.is_some() {
+                return Err(Error::new("#[from] in error with multiple fields").span(span));
+            }
+        }
         return Ok(());
-    } else if fields.len() > 1 {
-        return Err(Error::new("#[from] in error with multiple fields").span(span));
+    };
+    if let Some(attr) = field.attrs.get("from")? {
+        attr.must_be_empty()?;
+    } else {
+        return Ok(());
     }
-    let field = fields.last().unwrap();
 
     generate_impl_for(output, item, &format!("From<{}>", field.ty), |output| {
         output.push_str(&format!("fn from({}: {}) -> Self {{", field.field, field.ty));
@@ -191,7 +200,7 @@ fn generate_from_impl(
 }
 
 struct FromImplField<'a> {
-    attrs: &'a [Attribute],
+    attrs: &'a Attributes,
     field: &'a str,
     ty: &'a str,
     open_assign: &'a str,

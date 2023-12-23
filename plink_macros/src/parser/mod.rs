@@ -1,5 +1,6 @@
 mod types;
 mod utils;
+mod attributes;
 
 use crate::error::Error;
 pub(crate) use crate::parser::types::*;
@@ -36,7 +37,7 @@ impl Parser {
         self.parse_struct_after_keyword(attrs)
     }
 
-    fn parse_struct_after_keyword(&mut self, attrs: Vec<Attribute>) -> Result<Struct, Error> {
+    fn parse_struct_after_keyword(&mut self, attrs: Attributes) -> Result<Struct, Error> {
         let (name, span) = match self.next()? {
             TokenTree::Ident(name) => (name.to_string(), name.span()),
             other => return Err(Error::new("expected struct name").span(other.span())),
@@ -80,7 +81,7 @@ impl Parser {
         Ok(StructField { attrs, name, ty })
     }
 
-    fn parse_enum_after_keyword(&mut self, attrs: Vec<Attribute>) -> Result<Enum, Error> {
+    fn parse_enum_after_keyword(&mut self, attrs: Attributes) -> Result<Enum, Error> {
         Ok(Enum {
             _attrs: attrs,
             name: self.parse_ident()?,
@@ -214,33 +215,6 @@ impl Parser {
         }
 
         Ok(generic)
-    }
-
-    fn parse_attributes(&mut self) -> Result<Vec<Attribute>, Error> {
-        let mut attributes = Vec::new();
-
-        loop {
-            if self.peek()?.is_punct('#') {
-                self.next()?;
-            } else {
-                break;
-            }
-
-            match self.next()? {
-                TokenTree::Group(group) => {
-                    if group.delimiter() != Delimiter::Bracket {
-                        return Err(
-                            Error::new("expected braces surrounding attribute").span(group.span())
-                        );
-                    }
-                    attributes
-                        .push(Attribute { span: group.span(), value: group.stream().to_string() });
-                }
-                other => return Err(Error::new("expected attribute").span(other.span())),
-            }
-        }
-
-        Ok(attributes)
     }
 
     fn parse_generic_params(&mut self) -> Result<Vec<GenericParam>, Error> {

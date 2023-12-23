@@ -99,6 +99,13 @@ impl Parser {
             }
         }
     }
+
+    pub(super) fn is_end_of_input(&mut self) -> bool {
+        match self.tokens.last_mut() {
+            Some(last) => last.peek().is_none(),
+            None => true,
+        }
+    }
 }
 
 pub(super) trait TokenTreeExt {

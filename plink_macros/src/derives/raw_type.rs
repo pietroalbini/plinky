@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::parser::{Item, Parser, Struct, StructFields};
 use crate::utils::generate_impl_for;
-use proc_macro::{Span, TokenStream};
+use proc_macro::TokenStream;
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let parsed = Parser::new(tokens).parse_struct()?;
@@ -117,45 +117,32 @@ fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Err
     for field in parsed_fields {
         let mut trait_ty = "RawType";
         let mut insert_at = fields.len();
-        for attribute in &field.attrs {
-            let (name, value) = match attribute.value.split_once('=') {
-                Some((n, v)) => (n.trim(), Some(unquote(v.trim(), attribute.span)?)),
-                None => (&*attribute.value, None),
-            };
-            match (name, value) {
-                ("pointer_size", None) => trait_ty = "RawTypeAsPointerSize",
-                ("placed_on_elf32_after", Some(after)) => {
-                    if is_elf32 {
-                        insert_at =
-                            fields.iter().position(|i| i.name == after).ok_or_else(|| {
-                                Error::new(format!("could not find field called {after}"))
-                                    .span(attribute.span)
-                            })? + 1;
-                    }
-                }
-                ("placed_on_elf64_after", Some(after)) => {
-                    if !is_elf32 {
-                        insert_at =
-                            fields.iter().position(|i| i.name == after).ok_or_else(|| {
-                                Error::new(format!("could not find field called {after}"))
-                                    .span(attribute.span)
-                            })? + 1;
-                    }
-                }
-                _ => return Err(Error::new("unknown attribute").span(attribute.span)),
+
+        if let Some(attr) = field.attrs.get("pointer_size")? {
+            attr.must_be_empty()?;
+            trait_ty = "RawTypeAsPointerSize";
+        }
+        if let Some(attr) = field.attrs.get("placed_on_elf32_after")? {
+            let after = attr.get_equals_to_str()?;
+            if is_elf32 {
+                insert_at = fields.iter().position(|i| i.name == after).ok_or_else(|| {
+                    Error::new(format!("could not find field called {after}")).span(attr.span)
+                })? + 1;
             }
         }
+        if let Some(attr) = field.attrs.get("placed_on_elf64_after")? {
+            let after = attr.get_equals_to_str()?;
+            if !is_elf32 {
+                insert_at = fields.iter().position(|i| i.name == after).ok_or_else(|| {
+                    Error::new(format!("could not find field called {after}")).span(attr.span)
+                })? + 1;
+            }
+        }
+
         fields.insert(insert_at, Field { name: &field.name, field_ty: &field.ty, trait_ty });
     }
 
     Ok(fields)
-}
-
-fn unquote(input: &str, span: Span) -> Result<&str, Error> {
-    input
-        .strip_prefix('"')
-        .and_then(|i| i.strip_suffix('"'))
-        .ok_or_else(|| Error::new("attribute value must be quoted").span(span))
 }
 
 #[derive(PartialEq, Eq)]

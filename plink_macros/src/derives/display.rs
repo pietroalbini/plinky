@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::parser::{Attribute, Enum, EnumVariantData, Item, Parser, Struct, StructFields};
+use crate::parser::{Attributes, Enum, EnumVariantData, Item, Parser, Struct, StructFields};
 use crate::utils::generate_impl_for;
 use proc_macro::{Span, TokenStream};
 
@@ -76,18 +76,10 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
     })
 }
 
-fn generate_write(output: &mut String, attrs: &[Attribute], span: Span) -> Result<(), Error> {
-    let mut format_str = None;
-    for attr in attrs {
-        let stripped = attr.value.strip_prefix("display(\"").and_then(|s| s.strip_suffix("\")"));
-        match (stripped, &format_str) {
-            (None, None) => {}
-            (None, Some(_)) => {}
-            (Some(new), None) => format_str = Some(new),
-            (Some(_), Some(_)) => return Err(Error::new("duplicate #[display]").span(attr.span)),
-        }
-    }
-    let Some(format_str) = format_str else {
+fn generate_write(output: &mut String, attrs: &Attributes, span: Span) -> Result<(), Error> {
+    let format_str = if let Some(attr) = attrs.get("display")? {
+        attr.get_parenthesis_one_str()?
+    } else {
         return Err(Error::new("missing #[display] attribute").span(span));
     };
 

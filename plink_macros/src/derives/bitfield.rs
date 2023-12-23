@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::parser::{Attribute, Item, Parser, Struct, StructFields};
+use crate::parser::{Attributes, Item, Parser, Struct, StructFields};
 use crate::utils::generate_impl_for;
 use proc_macro::TokenStream;
 
@@ -25,19 +25,9 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 }
 
 fn type_repr(output: &mut String, struct_: &Struct) -> Result<(), Error> {
-    let mut repr = None;
-    for attribute in &struct_.attrs {
-        let parsed =
-            attribute.value.strip_prefix("bitfield_repr(").and_then(|s| s.strip_suffix(')'));
-        match (parsed, &repr) {
-            (None, _) => {}
-            (Some(parsed), None) => repr = Some(parsed),
-            (Some(_), Some(_)) => {
-                return Err(Error::new("duplicate attribute").span(attribute.span));
-            }
-        }
-    }
-    let Some(repr) = repr else {
+    let repr = if let Some(attr) = struct_.attrs.get("bitfield_repr")? {
+        attr.get_parenthesis_one_expr()?
+    } else {
         return Err(Error::new("missing attribute bitfield_repr"));
     };
 
@@ -134,7 +124,7 @@ impl BitCalculator {
         Self { has_custom_bit: false }
     }
 
-    fn index_of(&mut self, attrs: &[Attribute], position: usize) -> Result<BitIndex, Error> {
+    fn index_of(&mut self, attrs: &Attributes, position: usize) -> Result<BitIndex, Error> {
         match self.find_bit_attribute(attrs)? {
             Some(bit) => {
                 self.has_custom_bit = true;
@@ -149,28 +139,16 @@ impl BitCalculator {
         }
     }
 
-    fn find_bit_attribute(&self, attrs: &[Attribute]) -> Result<Option<usize>, Error> {
-        let mut found = None;
-        for attr in attrs {
-            match (&found, self.parse_bit_attribute(attr)?) {
-                (None, Some(value)) => found = Some(value),
-                (Some(_), Some(_)) => {
-                    return Err(Error::new("duplicate bit attribute").span(attr.span))
-                }
-                _ => {}
-            }
+    fn find_bit_attribute(&self, attrs: &Attributes) -> Result<Option<usize>, Error> {
+        if let Some(attr) = attrs.get("bit")? {
+            Ok(Some(
+                attr.get_parenthesis_one_expr()?
+                    .parse()
+                    .map_err(|_| Error::new("failed to parse bit").span(attr.span))?,
+            ))
+        } else {
+            Ok(None)
         }
-        Ok(found)
-    }
-
-    fn parse_bit_attribute(&self, attr: &Attribute) -> Result<Option<usize>, Error> {
-        attr.value
-            .strip_prefix("bit(")
-            .and_then(|s| s.strip_suffix(')'))
-            .map(|s| {
-                s.parse::<usize>().map_err(|_| Error::new("failed to parse bit").span(attr.span))
-            })
-            .transpose()
     }
 }
 

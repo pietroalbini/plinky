@@ -72,14 +72,14 @@ impl CallbackOutcome {
 pub(crate) enum LinkerError {
     #[display("early exit caused by a callback")]
     CallbackEarlyExit,
-    #[display("failed to load input files")]
-    LoadInputsFailed(#[from] LoadInputsError),
-    #[display("failed to deduplicate sections")]
-    DeduplicationFailed(#[from] DeduplicationError),
-    #[display("failed to relocate the object")]
-    RelocationFailed(#[from] RelocationError),
-    #[display("failed to prepare the resulting object")]
-    ElfBuildFailed(#[from] ElfBuilderError),
-    #[display("failed to write the linked object to disk")]
-    WriteToDiskFailed(#[from] WriteToDiskError),
+    #[transparent]
+    LoadInputsFailed(LoadInputsError),
+    #[transparent]
+    DeduplicationFailed(DeduplicationError),
+    #[transparent]
+    RelocationFailed(RelocationError),
+    #[transparent]
+    ElfBuildFailed(ElfBuilderError),
+    #[transparent]
+    WriteToDiskFailed(WriteToDiskError),
 }

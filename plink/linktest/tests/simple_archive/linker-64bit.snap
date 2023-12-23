@@ -6,9 +6,7 @@ linking exited with exit status: 1
 no stdout present
 
 === stderr ===
-error: failed to load input files
-caused by: failed to read an object
-caused by: failed to parse archive member / of "archived.a"
+error: failed to parse archive member / of "archived.a"
 caused by: bad ELF magic number: [0, 0, 0, 4]
 
 

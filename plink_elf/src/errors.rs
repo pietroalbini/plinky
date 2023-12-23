@@ -5,10 +5,10 @@ use plink_macros::{Display, Error};
 
 #[derive(Debug, Error, Display)]
 pub enum LoadError {
-    #[display("I/O error")]
-    IO(#[from] std::io::Error),
-    #[display("failed to read data")]
-    RawRead(#[from] plink_rawutils::raw_types::RawReadError),
+    #[transparent]
+    IO(std::io::Error),
+    #[transparent]
+    RawRead(plink_rawutils::raw_types::RawReadError),
     #[display("bad ELF magic number: {f0:?}")]
     BadMagic([u8; 4]),
     #[display("bad ELF class: {f0}")]
@@ -27,8 +27,8 @@ pub enum LoadError {
     BadMachine(u16),
     #[display("unterminated string")]
     UnterminatedString,
-    #[display("non-UTF-8 string")]
-    NonUtf8String(#[from] std::string::FromUtf8Error),
+    #[transparent]
+    NonUtf8String(std::string::FromUtf8Error),
     #[display("there is no string table in section {f0}")]
     MissingStringTable(u16),
     #[display("the type of section {f0} is not a string table")]
@@ -59,8 +59,8 @@ pub enum LoadError {
 
 #[derive(Debug, Error, Display)]
 pub enum WriteError<I: ElfIds> {
-    #[display("I/O error")]
-    IO(#[from] std::io::Error),
+    #[transparent]
+    IO(std::io::Error),
     #[display("failed to write data")]
     RawWrite(#[from] plink_rawutils::raw_types::RawWriteError),
     #[display("missing section names table")]

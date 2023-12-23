@@ -23,17 +23,40 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
                     StructFields::None => {}
                     StructFields::TupleLike(fields) => {
                         for (idx, field) in fields.iter().enumerate() {
-                            maybe_set_source(&mut source, &idx.to_string(), &field.attrs)?;
+                            if fields.len() == 1 {
+                                maybe_set_source_container(
+                                    &mut source,
+                                    &idx.to_string(),
+                                    &field.ty,
+                                    &struct_.attrs,
+                                )?;
+                            }
+                            maybe_set_source_field(&mut source, &idx.to_string(), &field.attrs)?;
                         }
                     }
                     StructFields::StructLike(fields) => {
                         for field in fields {
-                            maybe_set_source(&mut source, &field.name, &field.attrs)?;
+                            if fields.len() == 1 {
+                                maybe_set_source_container(
+                                    &mut source,
+                                    &field.name,
+                                    &field.ty,
+                                    &struct_.attrs,
+                                )?;
+                            }
+                            maybe_set_source_field(&mut source, &field.name, &field.attrs)?;
                         }
                     }
                 }
                 match source {
-                    Some(source) => output.push_str(&format!("Some(&self.{source})")),
+                    Some(SourceKind::Field(source)) => {
+                        output.push_str(&format!("Some(&self.{source})"));
+                    }
+                    Some(SourceKind::Transparent { ty, field }) => {
+                        output.push_str(&format!(
+                            "<{ty} as std::error::Error>::source(&self.{field})"
+                        ));
+                    }
                     None => output.push_str("None"),
                 }
             }
@@ -50,7 +73,15 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
                                 let name = format!("field{}", idx);
                                 output.push_str(&name);
                                 output.push(',');
-                                maybe_set_source(&mut source, &name, &field.attrs)?;
+                                if fields.len() == 1 {
+                                    maybe_set_source_container(
+                                        &mut source,
+                                        &name,
+                                        &field.ty,
+                                        &variant.attrs,
+                                    )?;
+                                }
+                                maybe_set_source_field(&mut source, &name, &field.attrs)?;
                             }
                             output.push(')');
                         }
@@ -59,14 +90,28 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
                             for field in fields {
                                 output.push_str(&field.name);
                                 output.push(',');
-                                maybe_set_source(&mut source, &field.name, &field.attrs)?;
+                                if fields.len() == 1 {
+                                    maybe_set_source_container(
+                                        &mut source,
+                                        &field.name,
+                                        &field.ty,
+                                        &variant.attrs,
+                                    )?;
+                                }
+                                maybe_set_source_field(&mut source, &field.name, &field.attrs)?;
                             }
                             output.push('}');
                         }
                     }
                     output.push_str(" => ");
                     match source {
-                        Some(source) => output.push_str(&format!("Some({source})")),
+                        Some(SourceKind::Field(source)) => {
+                            output.push_str(&format!("Some({source})"));
+                        }
+                        Some(SourceKind::Transparent { ty, field }) => {
+                            output
+                                .push_str(&format!("<{ty} as std::error::Error>::source({field})"));
+                        }
                         None => output.push_str("None"),
                     }
                     output.push(',');
@@ -79,22 +124,51 @@ fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
     })
 }
 
-fn maybe_set_source(
-    source: &mut Option<String>,
+fn maybe_set_source_field(
+    source: &mut Option<SourceKind>,
     name: &str,
     attrs: &Attributes,
 ) -> Result<(), Error> {
-    for attr_name in ["from", "source"] {
+    maybe_set_source_inner(source, SourceKind::Field(name.into()), attrs, &["from", "source"])
+}
+
+fn maybe_set_source_container(
+    source: &mut Option<SourceKind>,
+    name: &str,
+    ty: &str,
+    attrs: &Attributes,
+) -> Result<(), Error> {
+    maybe_set_source_inner(
+        source,
+        SourceKind::Transparent { ty: ty.into(), field: name.into() },
+        attrs,
+        &["transparent"],
+    )
+}
+
+fn maybe_set_source_inner(
+    source: &mut Option<SourceKind>,
+    new: SourceKind,
+    attrs: &Attributes,
+    possible_attrs: &[&str],
+) -> Result<(), Error> {
+    for attr_name in possible_attrs {
         if let Some(attr) = attrs.get(attr_name)? {
             attr.must_be_empty()?;
             if source.is_some() {
                 return Err(Error::new("multiple sources for a single error").span(attr.span));
             } else {
-                *source = Some(name.into());
+                *source = Some(new.clone());
             }
         }
     }
     Ok(())
+}
+
+#[derive(Clone)]
+enum SourceKind {
+    Field(String),
+    Transparent { ty: String, field: String },
 }
 
 fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
@@ -124,7 +198,7 @@ fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
                     .collect::<Vec<_>>(),
             };
 
-            generate_from_impl(output, item, &struct_.name, struct_.span, &fields)?;
+            generate_from_impl(output, item, &struct_.name, struct_.span, &struct_.attrs, &fields)?;
         }
         Item::Enum(enum_) => {
             for variant in &enum_.variants {
@@ -157,6 +231,7 @@ fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
                     item,
                     &format!("{}::{}", enum_.name, variant.name),
                     variant.span,
+                    &variant.attrs,
                     &fields,
                 )?;
             }
@@ -170,11 +245,15 @@ fn generate_from_impl(
     item: &Item,
     constructor: &str,
     span: Span,
+    container_attrs: &Attributes,
     fields: &[FromImplField<'_>],
 ) -> Result<(), Error> {
     let field = if let [field] = fields {
         field
     } else {
+        if let Some(attr) = container_attrs.get("transparent")? {
+            return Err(Error::new("#[transparent] in error with multiple fields").span(attr.span));
+        }
         for field in fields {
             if field.attrs.get("from")?.is_some() {
                 return Err(Error::new("#[from] in error with multiple fields").span(span));
@@ -182,10 +261,25 @@ fn generate_from_impl(
         }
         return Ok(());
     };
-    if let Some(attr) = field.attrs.get("from")? {
+
+    let from = if let Some(attr) = field.attrs.get("from")? {
         attr.must_be_empty()?;
+        true
     } else {
-        return Ok(());
+        false
+    };
+    let transparent = if let Some(attr) = container_attrs.get("transparent")? {
+        attr.must_be_empty()?;
+        true
+    } else {
+        false
+    };
+    match (from, transparent) {
+        (true, false) | (false, true) => {}
+        (false, false) => return Ok(()),
+        (true, true) => {
+            return Err(Error::new("both #[transparent] and #[from] present").span(span));
+        }
     }
 
     generate_impl_for(output, item, &format!("From<{}>", field.ty), |output| {

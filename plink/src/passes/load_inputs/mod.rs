@@ -70,8 +70,8 @@ impl std::fmt::Display for ObjectLocation {
 pub(crate) enum LoadInputsError {
     #[display("no input files were provided")]
     NoInputFiles,
-    #[display("failed to read an object")]
-    ReadFailed(#[from] ReadObjectsError),
+    #[transparent]
+    ReadFailed(ReadObjectsError),
     #[display("failed to include the ELF file {f0}")]
     MergeFailed(ObjectLocation, #[source] MergeElfError),
     #[display("environment of {current_location} is {first_env:?}, while environment of {current_location} is {current_env:?}")]

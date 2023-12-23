@@ -6,9 +6,7 @@ linking exited with exit status: 1
 no stdout present
 
 === stderr ===
-error: failed to load input files
-caused by: failed to read an object
-caused by: failed to parse "test.o"
+error: failed to parse "test.o"
 caused by: flag SHF_STRINGS is only expected in sections with SHF_MERGE or in string tables
 
 

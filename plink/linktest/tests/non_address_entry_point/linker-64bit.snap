@@ -1,13 +1,12 @@
 ---
-source: plink/tests/linktest/main.rs
+source: plink/linktest/harness/main.rs
 ---
 linking exited with exit status: 1
 
 no stdout present
 
 === stderr ===
-error: failed to prepare the resulting object
-caused by: failed to find the entry point of the executable
+error: failed to find the entry point of the executable
 caused by: symbol _start is not an address
 
 

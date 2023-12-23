@@ -99,8 +99,8 @@ pub(crate) struct SectionLayout {
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum GetSymbolAddressError {
-    #[display("could not find the symbol")]
-    Missing(#[from] MissingGlobalSymbol),
+    #[transparent]
+    Missing(MissingGlobalSymbol),
     #[display("symbol {f0} is undefined")]
     Undefined(String),
     #[display("symbol {f0} is not an address")]

@@ -254,8 +254,8 @@ impl<R: BufRead> BufRead for CountingRead<R> {
 
 #[derive(Debug, Error, Display)]
 pub enum ArReadError {
-    #[display("failed to read and parse the archive contents")]
-    Raw(#[from] RawReadError),
+    #[transparent]
+    Raw(RawReadError),
     #[display("unexpected magic value {f0:?}, is this an ar archive?")]
     UnexpectedMagic(String),
     #[display("failed to align the reader in preparation for the next item")]

@@ -18,21 +18,37 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 fn generate_struct_impl(output: &mut String, item: &Item, struct_: &Struct) -> Result<(), Error> {
     let args = match &struct_.fields {
         StructFields::None => Vec::new(),
-        StructFields::TupleLike(fields) => {
-            (0..fields.len()).map(|idx| (format!("f{idx}"), format!("&self.{idx}"))).collect()
-        }
+        StructFields::TupleLike(fields) => fields
+            .iter()
+            .enumerate()
+            .map(|(idx, f)| (format!("f{idx}"), format!("&self.{idx}"), &f.ty))
+            .collect(),
         StructFields::StructLike(fields) => {
-            fields.iter().map(|f| (f.name.clone(), format!("&self.{}", f.name))).collect()
+            fields.iter().map(|f| (f.name.clone(), format!("&self.{}", f.name), &f.ty)).collect()
         }
     };
 
     generate_impl_for(output, item, "std::fmt::Display", |output| {
         output.push_str("fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {");
 
-        for (name, value) in &args {
-            output.push_str(&format!("let {name} = {value};"));
+        if let Some(attr) = struct_.attrs.get("transparent")? {
+            attr.must_be_empty()?;
+            match args.as_slice() {
+                [(_name, value, ty)] => {
+                    output.push_str(&format!("<{ty} as std::fmt::Display>::fmt({value}, f)"));
+                }
+                _ => {
+                    return Err(
+                        Error::new("#[transparent] structs must have one field").span(attr.span)
+                    );
+                }
+            }
+        } else {
+            for (name, value, _ty) in &args {
+                output.push_str(&format!("let {name} = {value};"));
+            }
+            generate_write(output, &struct_.attrs, struct_.span)?;
         }
-        generate_write(output, &struct_.attrs, struct_.span)?;
 
         output.push('}');
         Ok(())
@@ -40,21 +56,85 @@ fn generate_struct_impl(output: &mut String, item: &Item, struct_: &Struct) -> R
 }
 
 fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<(), Error> {
+    enum MatchArm<'a> {
+        Variant { variant: String, attrs: &'a Attributes, span: Span },
+        Transparent { variant: String, ty: &'a str, field: &'a str },
+    }
+
     let mut match_arms = Vec::new();
     for variant in &enum_.variants {
         let name = &variant.name;
         match &variant.data {
             EnumVariantData::None => {
-                match_arms.push((name.to_string(), &variant.attrs, variant.span))
+                if let Some(attr) = variant.attrs.get("transparent")? {
+                    attr.must_be_empty()?;
+                    return Err(
+                        Error::new("#[transparent] on a variant with no fields").span(attr.span)
+                    );
+                }
+                match_arms.push(MatchArm::Variant {
+                    variant: name.into(),
+                    attrs: &variant.attrs,
+                    span: variant.span,
+                });
             }
             EnumVariantData::TupleLike(fields) => {
-                let fields =
-                    (0..fields.len()).map(|idx| format!("f{idx}")).collect::<Vec<_>>().join(", ");
-                match_arms.push((format!("{name}({fields})"), &variant.attrs, variant.span));
+                if let Some(attr) = variant.attrs.get("transparent")? {
+                    attr.must_be_empty()?;
+                    match fields.as_slice() {
+                        [field] => {
+                            match_arms.push(MatchArm::Transparent {
+                                variant: format!("{name}(field)"),
+                                ty: &field.ty,
+                                field: "field",
+                            });
+                        }
+                        _ => {
+                            return Err(Error::new(
+                                "#[transparent] only supported on variants with one field",
+                            )
+                            .span(attr.span))
+                        }
+                    }
+                } else {
+                    let fields = (0..fields.len())
+                        .map(|idx| format!("f{idx}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    match_arms.push(MatchArm::Variant {
+                        variant: format!("{name}({fields})"),
+                        attrs: &variant.attrs,
+                        span: variant.span,
+                    });
+                }
             }
             EnumVariantData::StructLike(fields) => {
-                let fields = fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
-                match_arms.push((format!("{name} {{ {fields} }}"), &variant.attrs, variant.span));
+                if let Some(attr) = variant.attrs.get("transparent")? {
+                    attr.must_be_empty()?;
+                    match fields.as_slice() {
+                        [field] => {
+                            match_arms.push(MatchArm::Transparent {
+                                variant: format!("{name} {{ {} }}", field.name),
+                                ty: &field.ty,
+                                field: &field.name,
+                            });
+                        }
+                        _ => {
+                            return Err(Error::new(
+                                "#[transparent] only supported on variants with one field",
+                            )
+                            .span(attr.span))
+                        }
+                    }
+                } else {
+                    let fields =
+                        fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
+                    match_arms.push(MatchArm::Variant {
+                        variant: format!("{name} {{ {fields} }}"),
+                        attrs: &variant.attrs,
+                        span: variant.span,
+                    });
+                }
             }
         }
     }
@@ -62,13 +142,25 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
     generate_impl_for(output, item, "std::fmt::Display", |output| {
         output.push_str("fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {");
         output.push_str("match self {");
-        for (variant, attrs, span) in match_arms {
-            output.push_str(&enum_.name);
-            output.push_str("::");
-            output.push_str(&variant);
-            output.push_str(" => ");
-            generate_write(output, attrs, span)?;
-            output.push(',');
+        for match_arm in match_arms {
+            match match_arm {
+                MatchArm::Variant { variant, attrs, span } => {
+                    output.push_str(&enum_.name);
+                    output.push_str("::");
+                    output.push_str(&variant);
+                    output.push_str(" => ");
+                    generate_write(output, attrs, span)?;
+                    output.push(',');
+                }
+                MatchArm::Transparent { variant, ty, field } => {
+                    output.push_str(&enum_.name);
+                    output.push_str("::");
+                    output.push_str(&variant);
+                    output.push_str(" => ");
+                    output.push_str(&format!("<{ty} as std::fmt::Display>::fmt({field}, f)"));
+                    output.push_str(",");
+                }
+            }
         }
         output.push_str("}}");
 

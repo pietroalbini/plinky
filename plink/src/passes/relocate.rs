@@ -177,8 +177,8 @@ impl ByteEditor<'_> {
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum RelocationError {
-    #[display("missing symbol found during relocation")]
-    MissingSymbol(#[from] MissingGlobalSymbol),
+    #[transparent]
+    MissingSymbol(MissingGlobalSymbol),
     #[display("undefined symbol {f0:?}")]
     UndefinedSymbol(SymbolId),
     #[display("unsupported relocation type {f0:?}")]

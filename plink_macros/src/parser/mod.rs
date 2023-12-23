@@ -1,89 +1,11 @@
+mod types;
+mod utils;
+
 use crate::error::Error;
+pub(crate) use crate::parser::types::*;
+use crate::parser::utils::*;
 use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 use std::iter::Peekable;
-
-#[derive(Debug, Clone)]
-pub(crate) enum Item {
-    Struct(Struct),
-    Enum(Enum),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Struct {
-    pub(crate) attrs: Vec<Attribute>,
-    pub(crate) name: String,
-    pub(crate) generics: Vec<GenericParam>,
-    pub(crate) fields: StructFields,
-    pub(crate) span: Span,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum StructFields {
-    None,
-    TupleLike(Vec<TupleField>),
-    StructLike(Vec<StructField>),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct StructField {
-    pub(crate) attrs: Vec<Attribute>,
-    pub(crate) name: String,
-    pub(crate) ty: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Attribute {
-    pub(crate) span: Span,
-    pub(crate) value: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Enum {
-    pub(crate) _attrs: Vec<Attribute>,
-    pub(crate) name: String,
-    pub(crate) generics: Vec<GenericParam>,
-    pub(crate) variants: Vec<EnumVariant>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct EnumVariant {
-    pub(crate) span: Span,
-    pub(crate) attrs: Vec<Attribute>,
-    pub(crate) name: String,
-    pub(crate) data: EnumVariantData,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum EnumVariantData {
-    None,
-    TupleLike(Vec<TupleField>),
-    StructLike(Vec<StructField>),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct TupleField {
-    pub(crate) attrs: Vec<Attribute>,
-    pub(crate) ty: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum GenericParam {
-    Normal(GenericParamNormal),
-    Const(GenericParamConst),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct GenericParamNormal {
-    pub(crate) name: String,
-    pub(crate) bound: String,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct GenericParamConst {
-    pub(crate) name: String,
-    pub(crate) type_: String,
-    pub(crate) _default: Option<String>,
-}
 
 pub(crate) struct Parser {
     tokens: Vec<Peekable<proc_macro::token_stream::IntoIter>>,
@@ -365,7 +287,11 @@ impl Parser {
                     }
                     None
                 };
-                Ok(constructor(GenericParam::Const(GenericParamConst { name, type_, _default: default })))
+                Ok(constructor(GenericParam::Const(GenericParamConst {
+                    name,
+                    type_,
+                    _default: default,
+                })))
             } else {
                 let name = match this.next()? {
                     TokenTree::Ident(ident) => ident.to_string(),
@@ -395,35 +321,6 @@ impl Parser {
         Ok(params)
     }
 
-    fn parse_comma_list<F, T>(&mut self, mut f: F) -> Result<Vec<T>, Error>
-    where
-        F: FnMut(&mut Self) -> Result<IterationOutcome<T>, Error>,
-    {
-        let mut values = Vec::new();
-        loop {
-            match f(self)? {
-                IterationOutcome::Value(v) => values.push(v),
-                IterationOutcome::Last(v) => {
-                    values.push(v);
-                    break;
-                }
-                IterationOutcome::Break => break,
-            }
-            match self.next() {
-                Ok(comma) => {
-                    if !comma.is_punct(',') {
-                        return Err(Error::new("expected comma").span(comma.span()));
-                    }
-                    if self.peek().is_err() {
-                        break; // End of fields list with trailing comma
-                    }
-                }
-                Err(_) => break, // End of fields list
-            }
-        }
-        Ok(values)
-    }
-
     fn skip_visibility(&mut self) -> Result<(), Error> {
         if self.peek()?.is_ident("pub") {
             self.next()?;
@@ -432,105 +329,5 @@ impl Parser {
             }
         }
         Ok(())
-    }
-
-    fn expect_keyword(&mut self, keyword: &str) -> Result<(), Error> {
-        let next = self.next()?;
-        if next.is_ident(keyword) {
-            Ok(())
-        } else {
-            Err(Error::new(format!("expected keyword {keyword}")).span(next.span()))
-        }
-    }
-
-    fn expect_punct(&mut self, punct: char) -> Result<(), Error> {
-        let next = self.next()?;
-        if next.is_punct(punct) {
-            Ok(())
-        } else {
-            Err(Error::new(format!("expected punctuation {punct}")).span(next.span()))
-        }
-    }
-
-    fn peek(&mut self) -> Result<TokenTree, Error> {
-        self.access_iter(|tokens| tokens.peek().cloned())
-    }
-
-    fn next(&mut self) -> Result<TokenTree, Error> {
-        self.access_iter(|tokens| tokens.next())
-    }
-
-    fn within_braces<F, T>(&mut self, f: F) -> Result<T, Error>
-    where
-        F: FnOnce(&mut Self) -> Result<T, Error>,
-    {
-        match self.next()? {
-            TokenTree::Group(group) => {
-                if group.delimiter() != Delimiter::Brace {
-                    return Err(Error::new("expected group delimited by braces").span(group.span()));
-                }
-                self.within_stream(group.stream(), |this| f(this))
-            }
-            other => Err(Error::new("expected group delimited by braces").span(other.span())),
-        }
-    }
-
-    fn within_stream<F, T>(&mut self, stream: TokenStream, f: F) -> Result<T, Error>
-    where
-        F: FnOnce(&mut Self) -> Result<T, Error>,
-    {
-        self.tokens.push(stream.into_iter().peekable());
-        let result = f(self);
-        self.tokens.pop();
-        result
-    }
-
-    fn access_iter<F, T>(&mut self, f: F) -> Result<T, Error>
-    where
-        F: Fn(&mut Peekable<proc_macro::token_stream::IntoIter>) -> Option<T>,
-    {
-        match self.tokens.last_mut().and_then(f) {
-            Some(result) => Ok(result),
-            None => {
-                let err = Error::new("end of input");
-                Err(match self.last_span {
-                    Some(span) => err.span(span),
-                    None => err,
-                })
-            }
-        }
-    }
-}
-
-trait TokenTreeExt {
-    fn is_ident(&self, ident: &str) -> bool;
-    fn is_punct(&self, punct: char) -> bool;
-}
-
-impl TokenTreeExt for TokenTree {
-    fn is_ident(&self, expected: &str) -> bool {
-        match self {
-            TokenTree::Ident(ident) => ident.to_string() == expected,
-            _ => false,
-        }
-    }
-
-    fn is_punct(&self, expected: char) -> bool {
-        match self {
-            TokenTree::Punct(punct) => punct.as_char() == expected,
-            _ => false,
-        }
-    }
-}
-
-enum IterationOutcome<T> {
-    Value(T),
-    Last(T),
-    Break,
-}
-
-impl<T> From<T> for IterationOutcome<T> {
-    fn from(value: T) -> Self {
-        IterationOutcome::Value(value)
     }
 }

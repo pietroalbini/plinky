@@ -7,6 +7,6 @@ no stdout present
 
 === stderr ===
 error: failed to load input files
-caused by: environment of "sample32.o" is ElfEnvironment { class: Elf32, endian: Little, abi: SystemV, machine: X86 }, while environment of "sample64.o" is ElfEnvironment { class: Elf64, endian: Little, abi: SystemV, machine: X86_64 }
+caused by: environment of sample64.o is ElfEnvironment { class: Elf32, endian: Little, abi: SystemV, machine: X86 }, while environment of sample64.o is ElfEnvironment { class: Elf64, endian: Little, abi: SystemV, machine: X86_64 }
 
 

@@ -7,7 +7,8 @@ no stdout present
 
 === stderr ===
 error: failed to load input files
-caused by: failed to parse ELF file at "archived.a"
-caused by: bad ELF magic number: [33, 60, 97, 114]
+caused by: failed to read an object
+caused by: failed to parse archive member / of "archived.a"
+caused by: bad ELF magic number: [0, 0, 0, 4]
 
 

@@ -131,6 +131,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "insta",
+ "plink_ar",
  "plink_elf",
  "plink_macros",
  "serde",

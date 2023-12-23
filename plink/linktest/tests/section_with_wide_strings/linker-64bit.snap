@@ -7,7 +7,8 @@ no stdout present
 
 === stderr ===
 error: failed to load input files
-caused by: failed to parse ELF file at "test.o"
+caused by: failed to read an object
+caused by: failed to parse "test.o"
 caused by: only strings with char size of 1 are supported, while section 1 has size 4 (due to SHF_STRINGS)
 
 

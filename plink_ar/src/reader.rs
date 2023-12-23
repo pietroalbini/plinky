@@ -11,13 +11,13 @@ use plink_rawutils::Bits;
 use std::collections::HashMap;
 use std::io::{BufRead, Read};
 
-pub struct ArReader<'a> {
-    read: CountingRead<'a>,
+pub struct ArReader<R: BufRead> {
+    read: CountingRead<R>,
     gnu_file_names: Option<HashMap<u64, String>>,
 }
 
-impl<'a> ArReader<'a> {
-    pub fn new(read: &'a mut dyn BufRead) -> Result<Self, ArReadError> {
+impl<R: BufRead> ArReader<R> {
+    pub fn new(read: R) -> Result<Self, ArReadError> {
         let mut reader = Self { read: CountingRead::new(read), gnu_file_names: None };
 
         let magic: [u8; 8] = reader.read_raw()?;
@@ -131,7 +131,7 @@ impl<'a> ArReader<'a> {
     }
 }
 
-impl<'a> Iterator for ArReader<'a> {
+impl<R: BufRead> Iterator for ArReader<R> {
     type Item = Result<ArchiveFile, ArReadError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -218,18 +218,18 @@ impl<const LEN: usize, const RADIX: u32> RawType for RawStringAsU64<LEN, RADIX> 
     }
 }
 
-struct CountingRead<'a> {
-    inner: &'a mut dyn BufRead,
+struct CountingRead<R: BufRead> {
+    inner: R,
     count: usize,
 }
 
-impl<'a> CountingRead<'a> {
-    fn new(inner: &'a mut dyn BufRead) -> Self {
+impl<R: BufRead> CountingRead<R> {
+    fn new(inner: R) -> Self {
         Self { inner, count: 0 }
     }
 }
 
-impl Read for CountingRead<'_> {
+impl<R: BufRead> Read for CountingRead<R> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
         match self.inner.read(buf) {
             Ok(len) => {
@@ -241,7 +241,7 @@ impl Read for CountingRead<'_> {
     }
 }
 
-impl BufRead for CountingRead<'_> {
+impl<R: BufRead> BufRead for CountingRead<R> {
     fn fill_buf(&mut self) -> Result<&[u8], std::io::Error> {
         self.inner.fill_buf()
     }

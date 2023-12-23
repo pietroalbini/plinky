@@ -7,6 +7,7 @@ no stdout present
 
 === stderr ===
 error: failed to load input files
+caused by: failed to include the ELF file bar.o
 caused by: instances of section .bad have different deduplications: one is ZeroTerminatedStrings, while the other is Disabled
 
 

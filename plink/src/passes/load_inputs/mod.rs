@@ -1,25 +1,22 @@
 use crate::passes::load_inputs::merge_elf::MergeElfError;
+use crate::passes::load_inputs::read_objects::{objects_iter, ReadObjectsError};
 use crate::repr::object::Object;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::Symbols;
-use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
-use plink_elf::{ElfEnvironment, ElfObject};
+use plink_elf::ElfEnvironment;
 use plink_macros::{Display, Error};
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::BufReader;
 use std::path::PathBuf;
 
 mod merge_elf;
+mod read_objects;
 
 pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, LoadInputsError> {
     let mut state = None;
 
-    for path in paths {
-        let mut file = File::open(path).map_err(|e| LoadInputsError::OpenFailed(path.into(), e))?;
-        let elf = ElfObject::load(&mut BufReader::new(&mut file), ids)
-            .map_err(|e| LoadInputsError::ParseError(path.into(), e))?;
+    for result in objects_iter(paths, ids) {
+        let (location, elf) = result?;
 
         match &mut state {
             None => {
@@ -31,20 +28,20 @@ pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, 
                     symbols: Symbols::new(),
                 };
                 merge_elf::merge(&mut object, elf)
-                    .map_err(|e| LoadInputsError::MergeFailed(path.clone(), e))?;
-                state = Some((object, path));
+                    .map_err(|e| LoadInputsError::MergeFailed(location.clone(), e))?;
+                state = Some((object, location));
             }
-            Some((object, first_path)) => {
+            Some((object, first_location)) => {
                 if object.env != elf.env {
                     return Err(LoadInputsError::MismatchedEnv {
-                        first_path: (*first_path).into(),
+                        first_location: first_location.clone(),
                         first_env: object.env,
-                        current_path: path.into(),
+                        current_location: location,
                         current_env: elf.env,
                     });
                 }
                 merge_elf::merge(object, elf)
-                    .map_err(|e| LoadInputsError::MergeFailed(path.clone(), e))?;
+                    .map_err(|e| LoadInputsError::MergeFailed(location.clone(), e))?;
             }
         }
     }
@@ -52,21 +49,36 @@ pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, 
     state.map(|(o, _)| o).ok_or(LoadInputsError::NoInputFiles)
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum ObjectLocation {
+    File(PathBuf),
+    Archive { archive: PathBuf, member: String },
+}
+
+impl std::fmt::Display for ObjectLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ObjectLocation::File(file) => write!(f, "{}", file.display()),
+            ObjectLocation::Archive { archive, member } => {
+                write!(f, "{member} inside archive {}", archive.display())
+            }
+        }
+    }
+}
+
 #[derive(Debug, Error, Display)]
 pub(crate) enum LoadInputsError {
-    #[display("failed to open file {f0:?}")]
-    OpenFailed(PathBuf, #[source] std::io::Error),
-    #[display("failed to parse ELF file at {f0:?}")]
-    ParseError(PathBuf, #[source] LoadError),
     #[display("no input files were provided")]
     NoInputFiles,
-    #[display("failed to include the ELF file {f0:?}")]
-    MergeFailed(PathBuf, #[source] MergeElfError),
-    #[display("environment of {first_path:?} is {first_env:?}, while environment of {current_path:?} is {current_env:?}")]
+    #[display("failed to read an object")]
+    ReadFailed(#[from] ReadObjectsError),
+    #[display("failed to include the ELF file {f0}")]
+    MergeFailed(ObjectLocation, #[source] MergeElfError),
+    #[display("environment of {current_location} is {first_env:?}, while environment of {current_location} is {current_env:?}")]
     MismatchedEnv {
-        first_path: PathBuf,
+        first_location: ObjectLocation,
         first_env: ElfEnvironment,
-        current_path: PathBuf,
+        current_location: ObjectLocation,
         current_env: ElfEnvironment,
     },
 }

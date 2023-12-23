@@ -9,6 +9,7 @@ name = "linktest"
 path = "linktest/harness/main.rs"
 
 [dependencies]
+plink_ar = { path = "../plink_ar" }
 plink_macros = { path = "../plink_macros" }
 plink_elf = { path = "../plink_elf" }
 

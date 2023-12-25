@@ -52,7 +52,7 @@ impl<T: Internable> Copy for Interned<T> {}
 
 impl<T: Internable> Clone for Interned<T> {
     fn clone(&self) -> Self {
-        Self(self.0, PhantomData)
+        *self
     }
 }
 
@@ -66,7 +66,7 @@ impl<T: Internable> Eq for Interned<T> {}
 
 impl<T: Internable + PartialOrd> PartialOrd for Interned<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.resolve().partial_cmp(&other.resolve())
+        Some(self.cmp(other))
     }
 }
 

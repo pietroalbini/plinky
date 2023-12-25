@@ -32,6 +32,7 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
     };
 
     cursor.class = class;
+    cursor.endian = endian;
     let header: RawHeader = cursor.read_raw()?;
     if header.version != 1 {
         return Err(LoadError::BadVersion(header.version));

@@ -1,5 +1,5 @@
 use crate::raw_types::{RawReadError, RawType, RawTypeAsPointerSize, RawWriteError};
-use crate::Bits;
+use crate::{Bits, Endian};
 use plink_macros::{Display, Error};
 use std::io::{Read, Write};
 
@@ -24,14 +24,24 @@ where
         T::Repr::size(bits)
     }
 
-    fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
-        let raw = RawReadError::wrap_type::<T, _>(<T::Repr as RawType>::read(bits, reader))?;
+    fn read(
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        reader: &mut dyn Read,
+    ) -> Result<Self, RawReadError> {
+        let raw =
+            RawReadError::wrap_type::<T, _>(<T::Repr as RawType>::read(bits, endian, reader))?;
         <T as Bitfield>::read(raw).map_err(RawReadError::bitfield::<T>)
     }
 
-    fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError> {
+    fn write(
+        &self,
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        writer: &mut dyn Write,
+    ) -> Result<(), RawWriteError> {
         let raw = <T as Bitfield>::write(self);
-        RawWriteError::wrap_type::<Self, _>(<T::Repr as RawType>::write(&raw, bits, writer))
+        RawWriteError::wrap_type::<Self, _>(<T::Repr as RawType>::write(&raw, bits, endian, writer))
     }
 }
 
@@ -49,16 +59,26 @@ where
         T::Repr::size(bits)
     }
 
-    fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
-        let raw =
-            RawReadError::wrap_type::<T, _>(<T::Repr as RawTypeAsPointerSize>::read(bits, reader))?;
+    fn read(
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        reader: &mut dyn Read,
+    ) -> Result<Self, RawReadError> {
+        let raw = RawReadError::wrap_type::<T, _>(<T::Repr as RawTypeAsPointerSize>::read(
+            bits, endian, reader,
+        ))?;
         <T as Bitfield>::read(raw).map_err(RawReadError::bitfield::<T>)
     }
 
-    fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError> {
+    fn write(
+        &self,
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        writer: &mut dyn Write,
+    ) -> Result<(), RawWriteError> {
         let raw = <T as Bitfield>::write(self);
         RawWriteError::wrap_type::<Self, _>(<T::Repr as RawTypeAsPointerSize>::write(
-            &raw, bits, writer,
+            &raw, bits, endian, writer,
         ))
     }
 }

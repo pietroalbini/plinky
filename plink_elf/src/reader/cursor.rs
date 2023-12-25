@@ -1,17 +1,18 @@
 use crate::errors::LoadError;
 use crate::utils::ReadSeek;
-use crate::ElfClass;
+use crate::{ElfClass, ElfEndian};
 use plink_rawutils::raw_types::RawType;
 use std::io::SeekFrom;
 
 pub(crate) struct ReadCursor<'a> {
     reader: &'a mut dyn ReadSeek,
     pub(crate) class: ElfClass,
+    pub(crate) endian: ElfEndian,
 }
 
 impl<'a> ReadCursor<'a> {
-    pub(crate) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass) -> Self {
-        Self { reader, class }
+    pub(crate) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass, endian: ElfEndian) -> Self {
+        Self { reader, class, endian }
     }
 
     pub(super) fn seek_to(&mut self, position: u64) -> Result<(), LoadError> {
@@ -26,7 +27,7 @@ impl<'a> ReadCursor<'a> {
     }
 
     pub(super) fn read_raw<T: RawType>(&mut self) -> Result<T, LoadError> {
-        Ok(T::read(self.class, self)?)
+        Ok(T::read(self.class, self.endian, self)?)
     }
 
     pub(super) fn align_with_padding(&mut self, align: u64) -> Result<(), LoadError> {
@@ -47,7 +48,7 @@ impl<'a> ReadCursor<'a> {
         &mut self,
         new_reader: &'new mut dyn ReadSeek,
     ) -> ReadCursor<'new> {
-        ReadCursor { reader: new_reader, class: self.class }
+        ReadCursor { reader: new_reader, class: self.class, endian: self.endian }
     }
 }
 

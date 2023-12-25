@@ -7,7 +7,7 @@
 use crate::ArchiveFile;
 use plink_macros::{Display, Error, RawType};
 use plink_rawutils::raw_types::{RawReadError, RawType, RawWriteError};
-use plink_rawutils::Bits;
+use plink_rawutils::{Bits, Endian};
 use std::collections::HashMap;
 use std::io::{BufRead, Read};
 
@@ -114,8 +114,9 @@ impl<R: BufRead> ArReader<R> {
 
     fn read_raw<T: RawType>(&mut self) -> Result<T, ArReadError> {
         // There are no types we need to read that depend on the bits of the processor, so we just
-        // pick any of them to parse the raw types.
-        Ok(T::read(Bits::Bits64, &mut self.read)?)
+        // pick any of them to parse the raw types. The binary part of AR archives is also encoded
+        // in big endian, so treat all raw data as big.
+        Ok(T::read(Bits::Bits64, Endian::Big, &mut self.read)?)
     }
 
     fn align(&mut self) -> Result<(), ArReadError> {
@@ -163,7 +164,11 @@ impl<const LEN: usize> RawType for RawString<LEN> {
         LEN
     }
 
-    fn read(_bits: impl Into<Bits>, reader: &mut dyn std::io::Read) -> Result<Self, RawReadError> {
+    fn read(
+        _bits: impl Into<Bits>,
+        _endian: impl Into<Endian>,
+        reader: &mut dyn std::io::Read,
+    ) -> Result<Self, RawReadError> {
         let mut buf = [0; LEN];
         reader.read_exact(&mut buf).map_err(RawReadError::io::<Self>)?;
         Ok(Self {
@@ -176,6 +181,7 @@ impl<const LEN: usize> RawType for RawString<LEN> {
     fn write(
         &self,
         _bits: impl Into<Bits>,
+        _endian: impl Into<Endian>,
         _writer: &mut dyn std::io::Write,
     ) -> Result<(), RawWriteError> {
         unimplemented!();
@@ -195,8 +201,13 @@ impl<const LEN: usize, const RADIX: u32> RawType for RawStringAsU64<LEN, RADIX> 
         RawString::<LEN>::size(bits)
     }
 
-    fn read(bits: impl Into<Bits>, reader: &mut dyn std::io::Read) -> Result<Self, RawReadError> {
-        let string = RawReadError::wrap_type::<Self, _>(RawString::<LEN>::read(bits, reader))?;
+    fn read(
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        reader: &mut dyn std::io::Read,
+    ) -> Result<Self, RawReadError> {
+        let string =
+            RawReadError::wrap_type::<Self, _>(RawString::<LEN>::read(bits, endian, reader))?;
         let string = string.value.trim_end_matches(' ');
         if string.is_empty() {
             Ok(Self { value: 0 })
@@ -212,6 +223,7 @@ impl<const LEN: usize, const RADIX: u32> RawType for RawStringAsU64<LEN, RADIX> 
     fn write(
         &self,
         _bits: impl Into<Bits>,
+        _endian: impl Into<Endian>,
         _writer: &mut dyn std::io::Write,
     ) -> Result<(), RawWriteError> {
         unimplemented!();

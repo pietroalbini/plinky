@@ -468,7 +468,7 @@ where
     }
 
     fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError<I>> {
-        value.write(self.object.env.class, self.writer)?;
+        value.write(self.object.env.class, self.object.env.endian, self.writer)?;
         Ok(())
     }
 }

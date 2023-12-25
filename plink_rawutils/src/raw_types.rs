@@ -1,13 +1,22 @@
 use crate::bitfields::BitfieldReadError;
-use crate::Bits;
+use crate::{Bits, Endian};
 use plink_macros::{Display, Error};
 use std::io::{Read, Write};
 
 pub trait RawType: Sized {
     fn zero() -> Self;
     fn size(bits: impl Into<Bits>) -> usize;
-    fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError>;
-    fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError>;
+    fn read(
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        reader: &mut dyn Read,
+    ) -> Result<Self, RawReadError>;
+    fn write(
+        &self,
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        writer: &mut dyn Write,
+    ) -> Result<(), RawWriteError>;
 }
 
 impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
@@ -19,11 +28,16 @@ impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
         T::size(bits) * N
     }
 
-    fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
+    fn read(
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        reader: &mut dyn Read,
+    ) -> Result<Self, RawReadError> {
         let bits = bits.into();
+        let endian = endian.into();
         let mut items = Vec::new();
         for _ in 0..N {
-            items.push(RawReadError::wrap_type::<Self, _>(T::read(bits, reader))?);
+            items.push(RawReadError::wrap_type::<Self, _>(T::read(bits, endian, reader))?);
         }
         match items.try_into() {
             Ok(items) => Ok(items),
@@ -31,10 +45,16 @@ impl<const N: usize, T: RawType + Copy> RawType for [T; N] {
         }
     }
 
-    fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError> {
+    fn write(
+        &self,
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        writer: &mut dyn Write,
+    ) -> Result<(), RawWriteError> {
         let bits = bits.into();
+        let endian = endian.into();
         for item in self {
-            RawWriteError::wrap_type::<Self, _>(T::write(item, bits, writer))?;
+            RawWriteError::wrap_type::<Self, _>(T::write(item, bits, endian, writer))?;
         }
         Ok(())
     }
@@ -54,19 +74,27 @@ macro_rules! impl_rawtype_for_int {
 
                 fn read(
                     _bits: impl Into<Bits>,
+                    endian: impl Into<Endian>,
                     reader: &mut dyn std::io::Read,
                 ) -> Result<Self, RawReadError> {
                     let mut buf = [0; std::mem::size_of::<$int>()];
                     reader.read_exact(&mut buf).map_err(RawReadError::io::<$int>)?;
-                    Ok(<$int>::from_le_bytes(buf))
+                    Ok(match endian.into() {
+                        Endian::Big => <$int>::from_be_bytes(buf),
+                        Endian::Little => <$int>::from_le_bytes(buf),
+                    })
                 }
 
                 fn write(
                     &self,
                     _bits: impl Into<Bits>,
+                    endian: impl Into<Endian>,
                     writer: &mut dyn std::io::Write,
                 ) -> Result<(), RawWriteError> {
-                    writer.write_all(&self.to_le_bytes()).map_err(RawWriteError::io::<$int>)
+                    writer.write_all(&match endian.into() {
+                        Endian::Big => self.to_be_bytes(),
+                        Endian::Little => self.to_le_bytes(),
+                    }).map_err(RawWriteError::io::<$int>)
                 }
             }
         )*
@@ -86,13 +114,22 @@ impl<const N: usize> RawType for RawPadding<N> {
         N
     }
 
-    fn read(_bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
+    fn read(
+        _bits: impl Into<Bits>,
+        _endian: impl Into<Endian>,
+        reader: &mut dyn Read,
+    ) -> Result<Self, RawReadError> {
         let mut buf = [0; N];
         reader.read_exact(&mut buf).map_err(RawReadError::io::<Self>)?;
         Ok(Self)
     }
 
-    fn write(&self, _bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError> {
+    fn write(
+        &self,
+        _bits: impl Into<Bits>,
+        _endian: impl Into<Endian>,
+        writer: &mut dyn Write,
+    ) -> Result<(), RawWriteError> {
         writer.write_all(&[0; N]).map_err(RawWriteError::io::<Self>)
     }
 }
@@ -100,8 +137,17 @@ impl<const N: usize> RawType for RawPadding<N> {
 pub trait RawTypeAsPointerSize: Sized {
     fn zero() -> Self;
     fn size(bits: impl Into<Bits>) -> usize;
-    fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError>;
-    fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError>;
+    fn read(
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        reader: &mut dyn Read,
+    ) -> Result<Self, RawReadError>;
+    fn write(
+        &self,
+        bits: impl Into<Bits>,
+        endian: impl Into<Endian>,
+        writer: &mut dyn Write,
+    ) -> Result<(), RawWriteError>;
 }
 
 macro_rules! impl_rawtypeaspointersize_for_int {
@@ -119,19 +165,28 @@ macro_rules! impl_rawtypeaspointersize_for_int {
                     }
                 }
 
-                fn read(bits: impl Into<Bits>, reader: &mut dyn Read) -> Result<Self, RawReadError> {
+                fn read(
+                    bits: impl Into<Bits>,
+                    endian: impl Into<Endian>,
+                    reader: &mut dyn Read,
+                ) -> Result<Self, RawReadError> {
                     let bits = bits.into();
                     match bits {
-                        Bits::Bits32 => <$smallint as RawType>::read(bits, reader).map(|v| v as _),
-                        Bits::Bits64 => <$int as RawType>::read(bits, reader),
+                        Bits::Bits32 => <$smallint as RawType>::read(bits, endian, reader).map(|v| v as _),
+                        Bits::Bits64 => <$int as RawType>::read(bits, endian, reader),
                     }
                 }
 
-                fn write(&self, bits: impl Into<Bits>, writer: &mut dyn Write) -> Result<(), RawWriteError> {
+                fn write(
+                    &self,
+                    bits: impl Into<Bits>,
+                    endian: impl Into<Endian>,
+                    writer: &mut dyn Write,
+                ) -> Result<(), RawWriteError> {
                     let bits = bits.into();
                     match bits {
-                        Bits::Bits32 => <$smallint as RawType>::write(&(*self as _), bits, writer),
-                        Bits::Bits64 => <$int as RawType>::write(self, bits, writer),
+                        Bits::Bits32 => <$smallint as RawType>::write(&(*self as _), bits, endian, writer),
+                        Bits::Bits64 => <$int as RawType>::write(self, bits, endian, writer),
                     }
                 }
             }

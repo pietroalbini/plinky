@@ -9,7 +9,7 @@ use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
-use plink_rawutils::Bits;
+use plink_rawutils::{Bits, Endian};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::num::NonZeroU64;
@@ -29,8 +29,8 @@ impl<I: ElfIds> ElfObject<I> {
     where
         I: ConvertibleElfIds<PendingIds>,
     {
-        // Default to elf32 for the header, it will be switched automatically.
-        let mut cursor = ReadCursor::new(reader, ElfClass::Elf32);
+        // Default to elf32 LE for the header, it will be switched automatically.
+        let mut cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
         let object = read_object(&mut cursor)?;
         Ok(convert(ids, object))
     }
@@ -75,6 +75,14 @@ pub enum ElfABI {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElfEndian {
     Little,
+}
+
+impl From<ElfEndian> for Endian {
+    fn from(value: ElfEndian) -> Self {
+        match value {
+            ElfEndian::Little => Endian::Little,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

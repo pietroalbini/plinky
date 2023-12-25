@@ -1,6 +1,6 @@
 mod reader;
 
-pub use crate::reader::{ArReader, ArReadError};
+pub use crate::reader::{ArReadError, ArReader};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ArchiveFile {

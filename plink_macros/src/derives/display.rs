@@ -158,7 +158,7 @@ fn generate_enum_impl(output: &mut String, item: &Item, enum_: &Enum) -> Result<
                     output.push_str(&variant);
                     output.push_str(" => ");
                     output.push_str(&format!("<{ty} as std::fmt::Display>::fmt({field}, f)"));
-                    output.push_str(",");
+                    output.push(',');
                 }
             }
         }

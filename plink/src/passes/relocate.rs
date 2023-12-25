@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationError> {
     let relocator =
-        Relocator { section_resolvers: fetch_section_resolvers(&object), symbols: &object.symbols };
+        Relocator { section_resolvers: fetch_section_resolvers(object), symbols: &object.symbols };
     for section in object.sections.values_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
@@ -90,7 +90,7 @@ impl<'a> Relocator<'a> {
             | ElfRelocationType::X86_PC32
             | ElfRelocationType::X86_64_PLT32 => {
                 let offset = self.resolve(section_id, relocation.offset as i64)?;
-                editor.write_32(self.symbol(relocation, editor.addend_32())? - offset as i64)
+                editor.write_32(self.symbol(relocation, editor.addend_32())? - offset)
             }
             other => Err(RelocationError::UnsupportedRelocation(other)),
         }
@@ -136,9 +136,9 @@ impl AddressResolver {
                 match facade.offset_map.get(&map_key) {
                     Some(&mapped) => Ok(base as i64 + mapped as i64),
                     None => {
-                        return Err(
+                        Err(
                             RelocationError::UnsupportedUnalignedReferenceInDeduplicatedSections,
-                        );
+                        )
                     }
                 }
             }

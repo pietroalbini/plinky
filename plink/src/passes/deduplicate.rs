@@ -64,7 +64,7 @@ fn deduplicate(
                 unreachable!("deduplication facades should not be present at this stage")
             }
         };
-        for chunk in split(split_rule, &bytes) {
+        for chunk in split(split_rule, bytes) {
             let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
                 Some(idx) => {

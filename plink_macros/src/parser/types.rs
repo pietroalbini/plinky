@@ -117,17 +117,15 @@ impl Attribute {
 
     pub(crate) fn get_equals_to_str(&self) -> Result<&str, Error> {
         if let AttributeContent::EqualsTo(AttributeValue::String(string)) = &self.content {
-            return Ok(&string);
+            return Ok(string);
         }
-        Err(Error::new("expected attribute to have one string after =")
-            .span(self.span))
-
+        Err(Error::new("expected attribute to have one string after =").span(self.span))
     }
 
     pub(crate) fn get_parenthesis_one_str(&self) -> Result<&str, Error> {
         if let AttributeContent::ParenthesisList(list) = &self.content {
             if let [AttributeValue::String(string)] = list.as_slice() {
-                return Ok(&string);
+                return Ok(string);
             }
         }
         Err(Error::new("expected attribute to have one quoted string inside parenthesis")
@@ -137,7 +135,7 @@ impl Attribute {
     pub(crate) fn get_parenthesis_one_expr(&self) -> Result<&str, Error> {
         if let AttributeContent::ParenthesisList(list) = &self.content {
             if let [AttributeValue::Expr(expr)] = list.as_slice() {
-                return Ok(&expr);
+                return Ok(expr);
             }
         }
         Err(Error::new("expected attribute to have one expression inside parenthesis")

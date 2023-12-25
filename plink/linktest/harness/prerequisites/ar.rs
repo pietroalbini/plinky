@@ -20,7 +20,7 @@ impl ArArchive {
         self.content.build(execution, inputs_dir.path())?;
 
         let mut to_archive = Vec::new();
-        for entry in std::fs::read_dir(&inputs_dir.path())? {
+        for entry in std::fs::read_dir(inputs_dir.path())? {
             let path = entry?.path();
             if path.is_file() {
                 to_archive.push(path.file_name().unwrap().to_os_string());

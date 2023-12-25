@@ -52,11 +52,14 @@ impl Parser {
                     AttributeContent::EqualsTo(value)
                 }
                 TokenTree::Group(group) if group.delimiter() == Delimiter::Parenthesis => {
-                    AttributeContent::ParenthesisList(self.within_stream(group.stream(), |this| {
-                        this.parse_comma_list(|this| {
-                            Ok(IterationOutcome::Value(this.parse_attribute_value()?))
-                        })
-                    })?)
+                    AttributeContent::ParenthesisList(self.within_stream(
+                        group.stream(),
+                        |this| {
+                            this.parse_comma_list(|this| {
+                                Ok(IterationOutcome::Value(this.parse_attribute_value()?))
+                            })
+                        },
+                    )?)
                 }
                 _ => return Err(Error::new("unsupported attribute syntax").span(span)),
             }

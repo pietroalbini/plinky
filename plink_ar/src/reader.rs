@@ -157,7 +157,7 @@ struct RawString<const LEN: usize> {
 
 impl<const LEN: usize> RawType for RawString<LEN> {
     fn zero() -> Self {
-        Self { value: std::iter::repeat(' ').take(LEN).collect() }
+        Self { value: " ".repeat(LEN) }
     }
 
     fn size(_bits: impl Into<Bits>) -> usize {

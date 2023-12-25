@@ -1,6 +1,6 @@
+mod attributes;
 mod types;
 mod utils;
-mod attributes;
 
 use crate::error::Error;
 pub(crate) use crate::parser::types::*;

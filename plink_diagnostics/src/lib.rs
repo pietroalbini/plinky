@@ -1,8 +1,10 @@
 mod table;
 mod span;
+mod diagnostic;
 
 pub use crate::table::Table;
 pub use crate::span::ObjectSpan;
+pub use crate::diagnostic::{Diagnostic, DiagnosticKind};
 
 #[cfg(test)]
 #[must_use]

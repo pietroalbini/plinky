@@ -8,9 +8,9 @@ plink_rawutils = { path = "../plink_rawutils" }
 plink_macros = { path = "../plink_macros" }
 
 [dev-dependencies]
-anyhow = "1.0.71"
-insta = "1.30.0"
-tempfile = "3.6.0"
+anyhow.workspace = true
+insta.workspace = true
+tempfile.workspace = true
 
 [lints]
 workspace = true

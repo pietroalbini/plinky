@@ -148,6 +148,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "plink_diagnostics"
+version = "0.1.0"
+dependencies = [
+ "insta",
+]
+
+[[package]]
 name = "plink_elf"
 version = "0.1.0"
 dependencies = [

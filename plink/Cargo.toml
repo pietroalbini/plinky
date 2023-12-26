@@ -14,11 +14,11 @@ plink_macros = { path = "../plink_macros" }
 plink_elf = { path = "../plink_elf" }
 
 [dev-dependencies]
-anyhow = "1.0.71"
-insta = "1.30.0"
-serde = { version = "1.0.190", features = ["derive"] }
-tempfile = "3.8.1"
-toml = "0.8.6"
+anyhow.workspace = true
+insta.workspace = true
+serde.workspace = true
+tempfile.workspace = true
+toml.workspace = true
 
 [lints]
 workspace = true

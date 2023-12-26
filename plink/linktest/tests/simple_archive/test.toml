@@ -1,5 +1,6 @@
 cmd = ["entry.o", "archived.a"]
-kind = "link-fail"
+kind = "run-pass"
+debug-print = ["loaded-object"]
 
 [[asm]]
 source = "entry.S"

@@ -136,9 +136,7 @@ impl AddressResolver {
                 match facade.offset_map.get(&map_key) {
                     Some(&mapped) => Ok(base as i64 + mapped as i64),
                     None => {
-                        Err(
-                            RelocationError::UnsupportedUnalignedReferenceInDeduplicatedSections,
-                        )
+                        Err(RelocationError::UnsupportedUnalignedReferenceInDeduplicatedSections)
                     }
                 }
             }

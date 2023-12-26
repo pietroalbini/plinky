@@ -84,7 +84,10 @@ impl Symbols {
     ) -> Result<&ElfSymbol<SerialIds>, MissingGlobalSymbol> {
         match self.global_symbols.get(name) {
             Some(GlobalSymbol::Strong(symbol)) => Ok(symbol),
-            Some(GlobalSymbol::Undefined) | None => Err(MissingGlobalSymbol(name.into())),
+            Some(GlobalSymbol::Undefined) => {
+                Err(MissingGlobalSymbol { name: name.into(), requested: true })
+            }
+            None => Err(MissingGlobalSymbol { name: name.into(), requested: false }),
         }
     }
 }
@@ -96,8 +99,17 @@ enum GlobalSymbol {
 }
 
 #[derive(Debug, Error, Display)]
-#[display("missing global symbol: {f0}")]
-pub(crate) struct MissingGlobalSymbol(String);
+#[display("missing global symbol: {name}")]
+pub(crate) struct MissingGlobalSymbol {
+    name: String,
+    requested: bool,
+}
+
+impl MissingGlobalSymbol {
+    pub(crate) fn is_requested(&self) -> bool {
+        self.requested
+    }
+}
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum LoadSymbolsError {

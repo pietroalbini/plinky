@@ -7,9 +7,11 @@ use std::process::Command;
 use tempfile::TempDir;
 
 #[derive(serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(super) struct ArArchive {
     name: String,
+    #[serde(default)]
+    symbol_table: Option<bool>,
     #[serde(flatten)]
     content: Prerequisites,
 }
@@ -28,10 +30,16 @@ impl ArArchive {
         }
         to_archive.sort();
 
+        let mut flags = "rc".to_string();
+        match self.symbol_table {
+            None | Some(true) => flags.push('s'),
+            Some(false) => flags.push('S'),
+        }
+
         println!("archiving {to_archive:?} into {}...", self.name);
         run(Command::new("ar")
             .current_dir(inputs_dir.path())
-            .arg("rc")
+            .arg(flags)
             .arg(dest_dir.join(&self.name))
             .args(&to_archive))?;
         Ok(())

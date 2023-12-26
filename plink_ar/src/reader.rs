@@ -4,21 +4,30 @@
 // [1]: https://en.wikipedia.org/wiki/Ar_(Unix)
 // [2]: https://man.freebsd.org/cgi/man.cgi?query=ar&sektion=5
 
-use crate::ArchiveFile;
+use crate::utils::{RawString, RawStringAsU64};
+use crate::{ArFile, ArMember, ArMemberId, ArSymbolTable};
 use plink_macros::{Display, Error, RawType};
-use plink_rawutils::raw_types::{RawReadError, RawType, RawWriteError};
+use plink_rawutils::raw_types::{RawReadError, RawType};
 use plink_rawutils::{Bits, Endian};
 use std::collections::HashMap;
-use std::io::{BufRead, Read};
+use std::io::{BufRead, Seek, SeekFrom};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-pub struct ArReader<R: BufRead> {
-    read: CountingRead<R>,
+static NEXT_READER_SERIAL: AtomicU64 = AtomicU64::new(0);
+
+pub struct ArReader<R: BufRead + Seek> {
+    read: R,
     gnu_file_names: Option<HashMap<u64, String>>,
+    serial: u64,
 }
 
-impl<R: BufRead> ArReader<R> {
+impl<R: BufRead + Seek> ArReader<R> {
     pub fn new(read: R) -> Result<Self, ArReadError> {
-        let mut reader = Self { read: CountingRead::new(read), gnu_file_names: None };
+        let mut reader = Self {
+            read,
+            gnu_file_names: None,
+            serial: NEXT_READER_SERIAL.fetch_add(1, Ordering::Relaxed),
+        };
 
         let magic: [u8; 8] = reader.read_raw()?;
         if &magic != b"!<arch>\n" {
@@ -28,7 +37,24 @@ impl<R: BufRead> ArReader<R> {
         Ok(reader)
     }
 
-    fn read_file(&mut self) -> Result<Option<ArchiveFile>, ArReadError> {
+    pub fn read_member_by_id(&mut self, id: &ArMemberId) -> Result<ArFile, ArReadError> {
+        if id.reader_serial != self.serial {
+            panic!("passed an ArMemberId to a different ArReader than the one that generated it");
+        }
+
+        let old_position =
+            self.read.stream_position().map_err(ArReadError::GetCurrentPositionFailed)?;
+        self.seek(id.header_offset)?;
+        let result = self.read_file();
+        self.seek(old_position)?;
+
+        match result? {
+            Some(ArMember::File(file)) => Ok(file),
+            _ => Err(ArReadError::InvalidReferenceInSymbolTable),
+        }
+    }
+
+    fn read_file(&mut self) -> Result<Option<ArMember>, ArReadError> {
         loop {
             // Terminate if we reach the end of the file.
             if self.read.fill_buf().map(|buf| buf.is_empty()).unwrap_or(false) {
@@ -48,7 +74,7 @@ impl<R: BufRead> ArReader<R> {
             let raw_name = header.name.value.trim_end_matches(' ');
             let name = if raw_name == "/" {
                 // GNU format, symbol table
-                raw_name.to_string()
+                return Ok(Some(ArMember::SymbolTable(self.read_gnu_symbol_table(&content)?)));
             } else if raw_name == "//" {
                 // GNU format, file names table
                 match &self.gnu_file_names {
@@ -80,14 +106,14 @@ impl<R: BufRead> ArReader<R> {
                 return Err(ArReadError::BsdFormatUnsupported);
             };
 
-            return Ok(Some(ArchiveFile {
+            return Ok(Some(ArMember::File(ArFile {
                 name,
                 content,
                 modification_time: header.mtime.value,
                 owner_id: header.uid.value,
                 group_id: header.gid.value,
                 mode: header.mode.value,
-            }));
+            })));
         }
     }
 
@@ -97,7 +123,6 @@ impl<R: BufRead> ArReader<R> {
         let mut result = HashMap::new();
         let mut pos = 0;
         while !raw.is_empty() && raw != b"\n" {
-            dbg!(std::str::from_utf8(raw).unwrap());
             match raw.windows(SEPARATOR.len()).position(|v| v == SEPARATOR) {
                 Some(end) => {
                     let name = std::str::from_utf8(&raw[..end])
@@ -112,6 +137,41 @@ impl<R: BufRead> ArReader<R> {
         Ok(result)
     }
 
+    fn read_gnu_symbol_table(
+        &self,
+        mut raw: &[u8],
+    ) -> Result<ArSymbolTable, ArSymbolTableReadError> {
+        let count = u32::read(Bits::Bits64, Endian::Big, &mut raw)?;
+
+        let mut offsets = Vec::new();
+        for _ in 0..count {
+            offsets.push(u32::read(Bits::Bits64, Endian::Big, &mut raw)?);
+        }
+
+        let mut symbols = HashMap::new();
+        for offset in offsets {
+            let Some(end) = raw.iter().position(|&c| c == 0) else {
+                return Err(ArSymbolTableReadError::UnterminatedString);
+            };
+
+            let name = std::str::from_utf8(&raw[..end])
+                .map_err(|_| ArSymbolTableReadError::NonUtf8SymbolName)?;
+            raw = &raw[end + 1..];
+            symbols.insert(
+                name.to_string(),
+                ArMemberId { reader_serial: self.serial, header_offset: offset as _ },
+            );
+        }
+
+        if !raw.is_empty() {
+            if raw.iter().any(|&byte| byte != 0) {
+                return Err(ArSymbolTableReadError::ExtraDataAtEnd);
+            }
+        }
+
+        Ok(ArSymbolTable { symbols })
+    }
+
     fn read_raw<T: RawType>(&mut self) -> Result<T, ArReadError> {
         // There are no types we need to read that depend on the bits of the processor, so we just
         // pick any of them to parse the raw types. The binary part of AR archives is also encoded
@@ -120,7 +180,8 @@ impl<R: BufRead> ArReader<R> {
     }
 
     fn align(&mut self) -> Result<(), ArReadError> {
-        if self.read.count % 2 == 1 {
+        let pos = self.read.stream_position().map_err(ArReadError::GetCurrentPositionFailed)?;
+        if pos % 2 == 1 {
             let mut buf = [0; 1];
             self.read.read_exact(&mut buf).map_err(ArReadError::AlignFailed)?;
             if buf[0] != b'\n' {
@@ -130,10 +191,17 @@ impl<R: BufRead> ArReader<R> {
 
         Ok(())
     }
+
+    fn seek(&mut self, position: u64) -> Result<(), ArReadError> {
+        self.read
+            .seek(SeekFrom::Start(position))
+            .map_err(|e| ArReadError::SeekFailed(position, e))?;
+        Ok(())
+    }
 }
 
-impl<R: BufRead> Iterator for ArReader<R> {
-    type Item = Result<ArchiveFile, ArReadError>;
+impl<R: BufRead + Seek> Iterator for ArReader<R> {
+    type Item = Result<ArMember, ArReadError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.read_file().transpose()
@@ -151,123 +219,14 @@ struct RawHeader {
     end_magic: [u8; 2],
 }
 
-struct RawString<const LEN: usize> {
-    value: String,
-}
-
-impl<const LEN: usize> RawType for RawString<LEN> {
-    fn zero() -> Self {
-        Self { value: " ".repeat(LEN) }
-    }
-
-    fn size(_bits: impl Into<Bits>) -> usize {
-        LEN
-    }
-
-    fn read(
-        _bits: impl Into<Bits>,
-        _endian: impl Into<Endian>,
-        reader: &mut dyn std::io::Read,
-    ) -> Result<Self, RawReadError> {
-        let mut buf = [0; LEN];
-        reader.read_exact(&mut buf).map_err(RawReadError::io::<Self>)?;
-        Ok(Self {
-            value: std::str::from_utf8(&buf)
-                .map_err(|_| RawReadError::custom::<Self>("failed to decode string".into()))?
-                .to_string(),
-        })
-    }
-
-    fn write(
-        &self,
-        _bits: impl Into<Bits>,
-        _endian: impl Into<Endian>,
-        _writer: &mut dyn std::io::Write,
-    ) -> Result<(), RawWriteError> {
-        unimplemented!();
-    }
-}
-
-struct RawStringAsU64<const LEN: usize, const RADIX: u32> {
-    value: u64,
-}
-
-impl<const LEN: usize, const RADIX: u32> RawType for RawStringAsU64<LEN, RADIX> {
-    fn zero() -> Self {
-        Self { value: 0 }
-    }
-
-    fn size(bits: impl Into<Bits>) -> usize {
-        RawString::<LEN>::size(bits)
-    }
-
-    fn read(
-        bits: impl Into<Bits>,
-        endian: impl Into<Endian>,
-        reader: &mut dyn std::io::Read,
-    ) -> Result<Self, RawReadError> {
-        let string =
-            RawReadError::wrap_type::<Self, _>(RawString::<LEN>::read(bits, endian, reader))?;
-        let string = string.value.trim_end_matches(' ');
-        if string.is_empty() {
-            Ok(Self { value: 0 })
-        } else {
-            Ok(Self {
-                value: u64::from_str_radix(string, RADIX).map_err(|_| {
-                    RawReadError::custom::<Self>(format!("failed to parse number from {string:?}",))
-                })?,
-            })
-        }
-    }
-
-    fn write(
-        &self,
-        _bits: impl Into<Bits>,
-        _endian: impl Into<Endian>,
-        _writer: &mut dyn std::io::Write,
-    ) -> Result<(), RawWriteError> {
-        unimplemented!();
-    }
-}
-
-struct CountingRead<R: BufRead> {
-    inner: R,
-    count: usize,
-}
-
-impl<R: BufRead> CountingRead<R> {
-    fn new(inner: R) -> Self {
-        Self { inner, count: 0 }
-    }
-}
-
-impl<R: BufRead> Read for CountingRead<R> {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        match self.inner.read(buf) {
-            Ok(len) => {
-                self.count += len;
-                Ok(len)
-            }
-            Err(err) => Err(err),
-        }
-    }
-}
-
-impl<R: BufRead> BufRead for CountingRead<R> {
-    fn fill_buf(&mut self) -> Result<&[u8], std::io::Error> {
-        self.inner.fill_buf()
-    }
-
-    fn consume(&mut self, amt: usize) {
-        self.count += amt;
-        self.inner.consume(amt);
-    }
-}
-
 #[derive(Debug, Error, Display)]
 pub enum ArReadError {
     #[transparent]
     Raw(RawReadError),
+    #[display("failed to determine the current position in the file")]
+    GetCurrentPositionFailed(#[source] std::io::Error),
+    #[display("failed to seek to position {f0:#x} in the file")]
+    SeekFailed(u64, #[source] std::io::Error),
     #[display("unexpected magic value {f0:?}, is this an ar archive?")]
     UnexpectedMagic(String),
     #[display("failed to align the reader in preparation for the next item")]
@@ -290,13 +249,30 @@ pub enum ArReadError {
     LongNameWithoutGnuFileNamesTable,
     #[display("invalid offset for long GNU file name: {f0:?}")]
     InvalidOffsetForGnuLongName(String, #[source] std::num::ParseIntError),
+    #[display("failed to read the symbol table")]
+    SymbolTableReadFailed(#[from] ArSymbolTableReadError),
+    #[display("invalid reference in symbol table")]
+    InvalidReferenceInSymbolTable,
     #[display("the BSD ar format is not supported")]
     BsdFormatUnsupported,
+}
+
+#[derive(Debug, Error, Display)]
+pub enum ArSymbolTableReadError {
+    #[transparent]
+    Raw(RawReadError),
+    #[display("unterminated zero-terminated string")]
+    UnterminatedString,
+    #[display("non-utf-8 symbol name")]
+    NonUtf8SymbolName,
+    #[display("extra data was found at the end of the symbol table")]
+    ExtraDataAtEnd,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     macro_rules! parse {
         ($name:expr) => {
@@ -323,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        assert_eq!(Vec::<ArchiveFile>::new(), parse!("empty.a").unwrap());
+        assert_eq!(Vec::<ArMember>::new(), parse!("empty.a").unwrap());
     }
 
     #[test]
@@ -337,14 +313,14 @@ mod tests {
     #[test]
     fn test_gnu_one_file() {
         assert_eq!(
-            vec![ArchiveFile {
+            vec![ArMember::File(ArFile {
                 name: "example.txt".into(),
                 content: b"hello\n".into(),
                 modification_time: 0,
                 owner_id: 0,
                 group_id: 0,
                 mode: 0o644,
-            }],
+            })],
             parse!("gnu-one-file.a").unwrap()
         );
     }
@@ -353,33 +329,81 @@ mod tests {
     fn test_gnu_multiple_files() {
         assert_eq!(
             vec![
-                ArchiveFile {
+                ArMember::File(ArFile {
                     name: "unaligned-with-very-very-long-file-name.txt".into(),
                     content: b"unaligned body\n".into(),
                     modification_time: 0,
                     owner_id: 0,
                     group_id: 0,
                     mode: 0o644,
-                },
-                ArchiveFile {
+                }),
+                ArMember::File(ArFile {
                     name: "aligned.txt".into(),
                     content: b"hello\n".into(),
                     modification_time: 0,
                     owner_id: 0,
                     group_id: 0,
                     mode: 0o644,
-                },
-                ArchiveFile {
+                }),
+                ArMember::File(ArFile {
                     name: "also-aligned.txt".into(),
                     content: b"aligned\n".into(),
                     modification_time: 0,
                     owner_id: 0,
                     group_id: 0,
                     mode: 0o644,
-                },
+                }),
             ],
             parse!("gnu-multiple-files.a").unwrap()
         );
+    }
+
+    #[test]
+    fn test_metadata() {
+        assert_eq!(
+            vec![ArMember::File(ArFile {
+                name: "hello.txt".into(),
+                content: b"data\n".into(),
+                modification_time: 1703532181,
+                owner_id: 1000,
+                group_id: 1000,
+                mode: 0o100664
+            })],
+            parse!("metadata.a").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_objects() {
+        let mut content = Cursor::new(include_bytes!("../sample-archives/gnu-objects.a"));
+        let mut reader = ArReader::new(&mut content).unwrap();
+
+        let ArMember::SymbolTable(table) = reader.next().unwrap().unwrap() else {
+            panic!("first element is not the symbol table");
+        };
+
+        assert_eq!(3, table.symbols.len());
+        assert_eq!(
+            "foo.o",
+            reader.read_member_by_id(table.symbols.get("hello").unwrap()).unwrap().name
+        );
+        assert_eq!(
+            "bar.o",
+            reader.read_member_by_id(table.symbols.get("goodbye").unwrap()).unwrap().name
+        );
+        assert_eq!(
+            "bar.o",
+            reader.read_member_by_id(table.symbols.get("world").unwrap()).unwrap().name
+        );
+
+        // Ensure the iterator continues to work after calling read_member_by_id.
+        for expected_name in ["foo.o", "bar.o"] {
+            let ArMember::File(file) = reader.next().unwrap().unwrap() else {
+                panic!("found multiple symbol tables");
+            };
+            assert_eq!(expected_name, file.name);
+        }
+        assert!(reader.next().is_none());
     }
 
     #[test]
@@ -387,7 +411,7 @@ mod tests {
         // This tests both various errors that could occur with GNU-formatted archives, and that we
         // can continue the parsing if any archive member is invalid.
 
-        let mut content = include_bytes!("../sample-archives/gnu-various-errors.a") as &[u8];
+        let mut content = Cursor::new(include_bytes!("../sample-archives/gnu-various-errors.a"));
         let mut reader = ArReader::new(&mut content).unwrap();
 
         match reader.next().unwrap().unwrap_err() {
@@ -415,7 +439,21 @@ mod tests {
         assert!(reader.next().is_none());
     }
 
-    fn parse_archive(mut content: &[u8]) -> Result<Vec<ArchiveFile>, ArReadError> {
-        ArReader::new(&mut content)?.collect()
+    #[test]
+    #[should_panic = "passed an ArMemberId to a different ArReader than the one that generated it"]
+    fn test_mixing_armemberid_from_multiple_readers() {
+        let mut content1 = Cursor::new(include_bytes!("../sample-archives/gnu-objects.a"));
+        let mut content2 = Cursor::new(include_bytes!("../sample-archives/gnu-objects.a"));
+        let mut reader1 = ArReader::new(&mut content1).unwrap();
+        let mut reader2 = ArReader::new(&mut content2).unwrap();
+
+        let ArMember::SymbolTable(table1) = reader1.next().unwrap().unwrap() else {
+            panic!("expected symbol table as the first item");
+        };
+        reader2.read_member_by_id(table1.symbols.get("hello").unwrap()).unwrap();
+    }
+
+    fn parse_archive(content: &[u8]) -> Result<Vec<ArMember>, ArReadError> {
+        ArReader::new(&mut Cursor::new(content))?.collect()
     }
 }

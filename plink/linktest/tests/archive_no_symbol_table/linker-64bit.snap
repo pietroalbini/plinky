@@ -1,0 +1,11 @@
+---
+source: plink/linktest/harness/main.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: the first member of the archive "archive.a" is not a symbol table, it's file foo.o
+
+

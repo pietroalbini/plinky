@@ -1,0 +1,9 @@
+cmd = ["archive.a"]
+kind = "link-fail"
+
+[[ar]]
+name = "archive.a"
+symbol-table = false
+
+[[ar.asm]]
+source = "foo.S"

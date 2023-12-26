@@ -1,5 +1,5 @@
 use crate::passes::load_inputs::merge_elf::MergeElfError;
-use crate::passes::load_inputs::read_objects::{objects_iter, ReadObjectsError};
+use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::repr::object::Object;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::Symbols;
@@ -13,10 +13,16 @@ mod merge_elf;
 mod read_objects;
 
 pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, LoadInputsError> {
-    let mut state = None;
+    let mut state: Option<(Object<()>, ObjectLocation)> = None;
+    let mut reader = ObjectsReader::new(paths, ids);
+    let empty_symbols = Symbols::new();
 
-    for result in objects_iter(paths, ids) {
-        let (location, elf) = result?;
+    loop {
+        let symbols = match &state {
+            Some((object, _)) => &object.symbols,
+            None => &empty_symbols,
+        };
+        let Some((location, elf)) = reader.next_object(symbols)? else { break };
 
         match &mut state {
             None => {

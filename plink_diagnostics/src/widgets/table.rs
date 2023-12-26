@@ -81,6 +81,7 @@ impl Widget for Table {
         let mut rows = content.chunks_exact(*cells_count);
         let mut idx = 0;
         while let Some(row) = rows.next() {
+            let last_row = idx == content.len() / cells_count - 1;
             writer.push(self.charset.vertical_separator);
             for (idx, cell) in row.iter().enumerate() {
                 writer.push(' ');
@@ -98,13 +99,11 @@ impl Widget for Table {
             self.render_horizontal_border(
                 writer,
                 cells_len,
-                if idx == content.len() / cells_count - 1 {
-                    &self.charset.last_junction
-                } else {
-                    &self.charset.middle_junction
-                },
+                if last_row { &self.charset.last_junction } else { &self.charset.middle_junction },
             );
-            writer.push('\n');
+            if !last_row {
+                writer.push('\n');
+            }
 
             idx += 1;
         }

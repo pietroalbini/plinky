@@ -1,6 +1,10 @@
 mod table;
+mod group;
+mod text;
 
 pub use self::table::Table;
+pub use self::group::WidgetGroup;
+pub use self::text::Text;
 
 pub trait Widget {
     fn render(&self, writer: &mut dyn WidgetWriter);

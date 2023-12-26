@@ -1,0 +1,11 @@
+---
+source: plink_diagnostics/src/widgets/group.rs
+expression: group.render_to_string()
+---
+ │ 
+ │ A simple text message!
+ │ 
+ │ ╭─────┬─────╮
+ │ │ Foo │ Bar │
+ │ ╰─────┴─────╯
+ ┴

@@ -4,92 +4,95 @@ source: plink/linktest/harness/main.rs
 linking exited with exit status: 0
 
 === stdout ===
-ElfObject {
-    env: ElfEnvironment {
-        class: Elf32,
-        endian: Little,
-        abi: SystemV,
-        machine: X86,
-    },
-    type_: Executable,
-    entry: Some(
-        0x401000,
-    ),
-    sections: {
-        section#0: ElfSection {
-            name: section#1:string#0,
-            memory_address: 0x0,
-            content: Null,
-        },
-        section#1: ElfSection {
-            name: section#1:string#13,
-            memory_address: 0x0,
-            content: StringTable(
-                ElfStringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: ".data",
-                        0x7: ".text",
-                        0xd: ".shstrtab",
-                    },
-                },
-            ),
-        },
-        section#2: ElfSection {
-            name: section#1:string#1,
-            memory_address: 0x400000,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(RW),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
-                           +----------------------------------------+
-                        0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
-                    },
-                },
-            ),
-        },
-        section#3: ElfSection {
-            name: section#1:string#7,
-            memory_address: 0x401000,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(RX),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
-                           +-------------------------------------------------+
-                        0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
-                        1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
-                    },
-                },
-            ),
-        },
-    },
-    segments: [
-        ElfSegment {
-            type_: Load,
-            perms: ElfPermissions(RW),
-            content: [
-                Section(
-                    section#2,
-                ),
-            ],
-            align: 0x1000,
-        },
-        ElfSegment {
-            type_: Load,
-            perms: ElfPermissions(RX),
-            content: [
-                Section(
-                    section#3,
-                ),
-            ],
-            align: 0x1000,
-        },
-    ],
-}
+debug print: built elf
+ │  
+ │  ElfObject {
+ │      env: ElfEnvironment {
+ │          class: Elf32,
+ │          endian: Little,
+ │          abi: SystemV,
+ │          machine: X86,
+ │      },
+ │      type_: Executable,
+ │      entry: Some(
+ │          0x401000,
+ │      ),
+ │      sections: {
+ │          section#0: ElfSection {
+ │              name: section#1:string#0,
+ │              memory_address: 0x0,
+ │              content: Null,
+ │          },
+ │          section#1: ElfSection {
+ │              name: section#1:string#13,
+ │              memory_address: 0x0,
+ │              content: StringTable(
+ │                  ElfStringTable {
+ │                      strings: {
+ │                          0x0: "",
+ │                          0x1: ".data",
+ │                          0x7: ".text",
+ │                          0xd: ".shstrtab",
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#2: ElfSection {
+ │              name: section#1:string#1,
+ │              memory_address: 0x400000,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(RW),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
+ │                             +----------------------------------------+
+ │                          0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#3: ElfSection {
+ │              name: section#1:string#7,
+ │              memory_address: 0x401000,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(RX),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+ │                             +-------------------------------------------------+
+ │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+ │                          1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │      },
+ │      segments: [
+ │          ElfSegment {
+ │              type_: Load,
+ │              perms: ElfPermissions(RW),
+ │              content: [
+ │                  Section(
+ │                      section#2,
+ │                  ),
+ │              ],
+ │              align: 0x1000,
+ │          },
+ │          ElfSegment {
+ │              type_: Load,
+ │              perms: ElfPermissions(RX),
+ │              content: [
+ │                  Section(
+ │                      section#3,
+ │                  ),
+ │              ],
+ │              align: 0x1000,
+ │          },
+ │      ],
+ │  }
+ ┴
 
 
 no stderr present

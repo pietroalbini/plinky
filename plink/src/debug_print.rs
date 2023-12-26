@@ -1,7 +1,8 @@
 use crate::cli::DebugPrint;
 use crate::linker::{CallbackOutcome, LinkerCallbacks};
 use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
-use plink_diagnostics::widgets::{Table, Widget};
+use plink_diagnostics::widgets::{Table, Text, Widget};
+use plink_diagnostics::{Diagnostic, DiagnosticKind};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 
@@ -12,7 +13,7 @@ pub(crate) struct DebugCallbacks {
 impl LinkerCallbacks for DebugCallbacks {
     fn on_inputs_loaded(&self, object: &Object<()>) -> CallbackOutcome {
         if let Some(DebugPrint::LoadedObject) = self.print {
-            println!("{object:#x?}");
+            render("loaded object", Text::new(format!("{object:#x?}")));
             CallbackOutcome::Stop
         } else {
             CallbackOutcome::Continue
@@ -57,10 +58,7 @@ impl LinkerCallbacks for DebugCallbacks {
                 }
             }
 
-            println!("Section addresses");
-            println!("-----------------");
-            println!("{}", table.render_to_string());
-
+            render("calculated layout", table);
             CallbackOutcome::Stop
         } else {
             CallbackOutcome::Continue
@@ -69,7 +67,7 @@ impl LinkerCallbacks for DebugCallbacks {
 
     fn on_relocations_applied(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
         if let Some(DebugPrint::RelocatedObject) = self.print {
-            println!("{object:#x?}");
+            render("object after relocations are applied", Text::new(format!("{object:#x?}")));
             CallbackOutcome::Stop
         } else {
             CallbackOutcome::Continue
@@ -78,10 +76,15 @@ impl LinkerCallbacks for DebugCallbacks {
 
     fn on_elf_built(&self, elf: &ElfObject<SerialIds>) -> CallbackOutcome {
         if let Some(DebugPrint::FinalElf) = self.print {
-            println!("{elf:#x?}");
+            render("built elf", Text::new(format!("{elf:#x?}")));
             CallbackOutcome::Stop
         } else {
             CallbackOutcome::Continue
         }
     }
+}
+
+fn render<T: Widget + 'static>(message: &str, widget: T) {
+    let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message).add(widget);
+    println!("{diagnostic}");
 }

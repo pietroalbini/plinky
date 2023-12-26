@@ -58,18 +58,22 @@ fn deduplicate(
     let mut source = None;
 
     for (&section_id, part) in data.parts.iter() {
-        let mut facade = DeduplicationFacade { section_id: merged_id, offset_map: BTreeMap::new() };
-        let bytes = match part {
+        let (bytes, facade_source) = match part {
             DataSectionPart::Real(real) => {
                 match source {
                     None => source = Some(real.source.clone()),
                     Some(other_source) => source = Some(other_source.merge(&real.source)),
                 }
-                &real.bytes.0
+                (&real.bytes.0, real.source.clone())
             }
             DataSectionPart::DeduplicationFacade(_) => {
                 unreachable!("deduplication facades should not be present at this stage")
             }
+        };
+        let mut facade = DeduplicationFacade {
+            section_id: merged_id,
+            source: facade_source,
+            offset_map: BTreeMap::new(),
         };
         for chunk in split(split_rule, bytes) {
             let (chunk_start, chunk) = chunk?;

@@ -85,6 +85,7 @@ pub(crate) struct DataSectionPartReal<L> {
 #[derive(Debug, Clone)]
 pub(crate) struct DeduplicationFacade {
     pub(crate) section_id: SectionId,
+    pub(crate) source: ObjectSpan,
     pub(crate) offset_map: BTreeMap<u64, u64>,
 }
 

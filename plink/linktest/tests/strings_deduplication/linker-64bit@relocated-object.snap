@@ -21,6 +21,7 @@ Object {
                         section#1: DeduplicationFacade(
                             DeduplicationFacade {
                                 section_id: section#14,
+                                source: foo.o,
                                 offset_map: {
                                     0x0: 0x0,
                                     0x6: 0x6,
@@ -30,6 +31,7 @@ Object {
                         section#8: DeduplicationFacade(
                             DeduplicationFacade {
                                 section_id: section#14,
+                                source: bar.o,
                                 offset_map: {
                                     0x0: 0xf,
                                     0x8: 0x6,

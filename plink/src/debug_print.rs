@@ -22,7 +22,7 @@ impl LinkerCallbacks for DebugCallbacks {
     fn on_layout_calculated(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
         if let Some(DebugPrint::Layout) = self.print {
             let mut table = Table::new();
-            table.add_row(["ID", "Name", "Object", "Address"]);
+            table.add_row(["Internal ID", "Section name", "Source object", "Memory address"]);
 
             for (name, section) in &object.sections {
                 match &section.content {

@@ -22,23 +22,25 @@ impl LinkerCallbacks for DebugCallbacks {
     fn on_layout_calculated(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
         if let Some(DebugPrint::Layout) = self.print {
             let mut table = Table::new();
-            table.add_row(["ID", "Name", "Address"]);
+            table.add_row(["ID", "Name", "Object", "Address"]);
 
             for (name, section) in &object.sections {
                 match &section.content {
                     SectionContent::Data(data) => {
                         for (id, part) in &data.parts {
+                            let (source, address) = match part {
+                                DataSectionPart::Real(real) => {
+                                    (&real.source, format!("{:#x}", real.layout.address))
+                                }
+                                DataSectionPart::DeduplicationFacade(facade) => {
+                                    (&facade.source, "N/A (deduplication facade)".into())
+                                }
+                            };
                             table.add_row([
                                 format!("{id:?}"),
                                 name.to_string(),
-                                match part {
-                                    DataSectionPart::Real(real) => {
-                                        format!("{:#x}", real.layout.address)
-                                    }
-                                    DataSectionPart::DeduplicationFacade(_) => {
-                                        "N/A (deduplication facade)".into()
-                                    }
-                                },
+                                source.to_string(),
+                                address,
                             ]);
                         }
                     }
@@ -47,6 +49,7 @@ impl LinkerCallbacks for DebugCallbacks {
                             table.add_row([
                                 format!("{id:?}"),
                                 name.to_string(),
+                                part.source.to_string(),
                                 format!("{:#x}", part.layout.address),
                             ]);
                         }

@@ -5,6 +5,7 @@ use crate::repr::object::{
 };
 use crate::repr::strings::MissingStringError;
 use crate::repr::symbols::LoadSymbolsError;
+use plink_diagnostics::ObjectSpan;
 use plink_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plink_elf::{ElfDeduplication, ElfNote, ElfObject, ElfPermissions, ElfSectionContent};
 use plink_macros::{Display, Error};
@@ -12,6 +13,7 @@ use std::collections::BTreeMap;
 
 pub(super) fn merge(
     object: &mut Object<()>,
+    source: ObjectSpan,
     elf: ElfObject<SerialIds>,
 ) -> Result<(), MergeElfError> {
     let mut symbol_tables = Vec::new();
@@ -76,7 +78,14 @@ pub(super) fn merge(
                     second_type: "uninitialized",
                 }),
                 SectionContent::Uninitialized(c) => {
-                    c.insert(id, UninitializedSectionPart { len: uninit.len, layout: () });
+                    c.insert(
+                        id,
+                        UninitializedSectionPart {
+                            source: source.clone(),
+                            len: uninit.len,
+                            layout: (),
+                        },
+                    );
                     Ok(())
                 }
             },
@@ -112,6 +121,7 @@ pub(super) fn merge(
                     c.parts.insert(
                         id,
                         DataSectionPart::Real(DataSectionPartReal {
+                            source: source.clone(),
                             bytes: program.raw,
                             relocations: relocations.remove(&id).unwrap_or_else(Vec::new),
                             layout: (),

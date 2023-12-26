@@ -3,6 +3,7 @@ use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::repr::object::Object;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::Symbols;
+use plink_diagnostics::ObjectSpan;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfEnvironment;
 use plink_macros::{Display, Error};
@@ -13,7 +14,7 @@ mod merge_elf;
 mod read_objects;
 
 pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, LoadInputsError> {
-    let mut state: Option<(Object<()>, ObjectLocation)> = None;
+    let mut state: Option<(Object<()>, ObjectSpan)> = None;
     let mut reader = ObjectsReader::new(paths, ids);
     let empty_symbols = Symbols::new();
 
@@ -22,7 +23,7 @@ pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, 
             Some((object, _)) => &object.symbols,
             None => &empty_symbols,
         };
-        let Some((location, elf)) = reader.next_object(symbols)? else { break };
+        let Some((source, elf)) = reader.next_object(symbols)? else { break };
 
         match &mut state {
             None => {
@@ -33,43 +34,26 @@ pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, 
                     strings: Strings::new(),
                     symbols: Symbols::new(),
                 };
-                merge_elf::merge(&mut object, elf)
-                    .map_err(|e| LoadInputsError::MergeFailed(location.clone(), e))?;
-                state = Some((object, location));
+                merge_elf::merge(&mut object, source.clone(), elf)
+                    .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
+                state = Some((object, source));
             }
-            Some((object, first_location)) => {
+            Some((object, first_source)) => {
                 if object.env != elf.env {
                     return Err(LoadInputsError::MismatchedEnv {
-                        first_location: first_location.clone(),
+                        first_span: first_source.clone(),
                         first_env: object.env,
-                        current_location: location,
+                        current_span: source,
                         current_env: elf.env,
                     });
                 }
-                merge_elf::merge(object, elf)
-                    .map_err(|e| LoadInputsError::MergeFailed(location.clone(), e))?;
+                merge_elf::merge(object, source.clone(), elf)
+                    .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
             }
         }
     }
 
     state.map(|(o, _)| o).ok_or(LoadInputsError::NoInputFiles)
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum ObjectLocation {
-    File(PathBuf),
-    Archive { archive: PathBuf, member: String },
-}
-
-impl std::fmt::Display for ObjectLocation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ObjectLocation::File(file) => write!(f, "{}", file.display()),
-            ObjectLocation::Archive { archive, member } => {
-                write!(f, "{member} inside archive {}", archive.display())
-            }
-        }
-    }
 }
 
 #[derive(Debug, Error, Display)]
@@ -79,12 +63,12 @@ pub(crate) enum LoadInputsError {
     #[transparent]
     ReadFailed(ReadObjectsError),
     #[display("failed to include the ELF file {f0}")]
-    MergeFailed(ObjectLocation, #[source] MergeElfError),
-    #[display("environment of {current_location} is {first_env:?}, while environment of {current_location} is {current_env:?}")]
+    MergeFailed(ObjectSpan, #[source] MergeElfError),
+    #[display("environment of {first_span} is {first_env:?}, while environment of {current_span} is {current_env:?}")]
     MismatchedEnv {
-        first_location: ObjectLocation,
+        first_span: ObjectSpan,
         first_env: ElfEnvironment,
-        current_location: ObjectLocation,
+        current_span: ObjectSpan,
         current_env: ElfEnvironment,
     },
 }

@@ -1,6 +1,8 @@
 mod table;
+mod span;
 
 pub use crate::table::Table;
+pub use crate::span::ObjectSpan;
 
 #[cfg(test)]
 #[must_use]

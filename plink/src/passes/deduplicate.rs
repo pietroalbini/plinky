@@ -55,11 +55,18 @@ fn deduplicate(
     let mut merged = Vec::new();
     let mut seen = BTreeMap::new();
     let mut facades_to_replace = BTreeMap::new();
+    let mut source = None;
 
     for (&section_id, part) in data.parts.iter() {
         let mut facade = DeduplicationFacade { section_id: merged_id, offset_map: BTreeMap::new() };
         let bytes = match part {
-            DataSectionPart::Real(real) => &real.bytes.0,
+            DataSectionPart::Real(real) => {
+                match source {
+                    None => source = Some(real.source.clone()),
+                    Some(other_source) => source = Some(other_source.merge(&real.source)),
+                }
+                &real.bytes.0
+            }
             DataSectionPart::DeduplicationFacade(_) => {
                 unreachable!("deduplication facades should not be present at this stage")
             }
@@ -84,6 +91,7 @@ fn deduplicate(
     data.parts.insert(
         merged_id,
         DataSectionPart::Real(DataSectionPartReal {
+            source: source.expect("no deduplicated sections"),
             bytes: RawBytes(merged),
             relocations: Vec::new(),
             layout: (),

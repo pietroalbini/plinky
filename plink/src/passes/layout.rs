@@ -31,6 +31,7 @@ pub(crate) fn run(object: Object<()>) -> Object<SectionLayout> {
                                             match part {
                                                 DataSectionPart::Real(real) => {
                                                     DataSectionPart::Real(DataSectionPartReal {
+                                                        source: real.source,
                                                         layout: calculator
                                                             .layout_of(real.bytes.len() as _),
                                                         bytes: real.bytes,
@@ -54,6 +55,7 @@ pub(crate) fn run(object: Object<()>) -> Object<SectionLayout> {
                                         (
                                             id,
                                             UninitializedSectionPart {
+                                                source: part.source,
                                                 layout: calculator.layout_of(part.len),
                                                 len: part.len,
                                             },

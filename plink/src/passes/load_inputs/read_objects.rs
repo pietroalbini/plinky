@@ -1,6 +1,6 @@
-use crate::passes::load_inputs::ObjectLocation;
 use crate::repr::symbols::Symbols;
 use plink_ar::{ArFile, ArMember, ArMemberId, ArReadError, ArReader};
+use plink_diagnostics::ObjectSpan;
 use plink_elf::errors::LoadError;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
@@ -10,7 +10,7 @@ use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::{Path, PathBuf};
 
-type ObjectItem = (ObjectLocation, ElfObject<SerialIds>);
+type ObjectItem = (ObjectSpan, ElfObject<SerialIds>);
 
 pub(super) struct ObjectsReader<'a> {
     remaining_files: &'a [PathBuf],
@@ -44,7 +44,7 @@ impl<'a> ObjectsReader<'a> {
             match FileType::from_magic_number(path, &mut r)? {
                 FileType::Elf => {
                     return Ok(Some((
-                        ObjectLocation::File(path.clone()),
+                        ObjectSpan::new_file(&path),
                         ElfObject::load(&mut r, self.ids)
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     )))
@@ -64,10 +64,7 @@ impl<'a> ObjectsReader<'a> {
         match pending_archive.next()? {
             Some(file) => match ElfObject::load(&mut Cursor::new(file.content), self.ids) {
                 Ok(object) => Ok(Some((
-                    ObjectLocation::Archive {
-                        archive: pending_archive.path.clone(),
-                        member: file.name,
-                    },
+                    ObjectSpan::new_archive_member(&pending_archive.path, file.name),
                     object,
                 ))),
                 Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(

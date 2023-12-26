@@ -20,6 +20,7 @@ Object {
                     parts: {
                         section#1: Real(
                             DataSectionPartReal {
+                                source: hello.o,
                                 bytes: RawBytes {
                                          ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
                                        +----------------------------------------+
@@ -43,6 +44,7 @@ Object {
                     parts: {
                         section#2: Real(
                             DataSectionPartReal {
+                                source: hello.o,
                                 bytes: RawBytes {
                                          ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
                                        +-------------------------------------------------+

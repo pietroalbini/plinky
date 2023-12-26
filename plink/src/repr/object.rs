@@ -1,6 +1,7 @@
 use crate::interner::Interned;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
+use plink_diagnostics::ObjectSpan;
 use plink_elf::ids::serial::{SectionId, SerialIds};
 use plink_elf::{
     ElfDeduplication, ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes,
@@ -75,6 +76,7 @@ pub(crate) enum DataSectionPart<L> {
 
 #[derive(Debug)]
 pub(crate) struct DataSectionPartReal<L> {
+    pub(crate) source: ObjectSpan,
     pub(crate) bytes: RawBytes,
     pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
     pub(crate) layout: L,
@@ -88,6 +90,7 @@ pub(crate) struct DeduplicationFacade {
 
 #[derive(Debug)]
 pub(crate) struct UninitializedSectionPart<L> {
+    pub(crate) source: ObjectSpan,
     pub(crate) len: u64,
     pub(crate) layout: L,
 }

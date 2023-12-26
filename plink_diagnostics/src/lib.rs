@@ -1,10 +1,9 @@
-mod table;
-mod span;
 mod diagnostic;
+mod span;
+pub mod widgets;
 
-pub use crate::table::Table;
-pub use crate::span::ObjectSpan;
 pub use crate::diagnostic::{Diagnostic, DiagnosticKind};
+pub use crate::span::ObjectSpan;
 
 #[cfg(test)]
 #[must_use]

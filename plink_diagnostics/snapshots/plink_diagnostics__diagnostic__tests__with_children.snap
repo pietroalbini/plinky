@@ -1,0 +1,12 @@
+---
+source: plink_diagnostics/src/diagnostic.rs
+expression: diagnostic.to_string()
+---
+error: something went wrong
+ │  
+ │  you can learn more from this table:
+ │  
+ │  ╭─────┬─────╮
+ │  │ Foo │ Bar │
+ │  ╰─────┴─────╯
+ ┴

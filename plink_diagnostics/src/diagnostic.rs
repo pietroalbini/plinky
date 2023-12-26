@@ -1,17 +1,32 @@
+use crate::widgets::{Widget, WidgetGroup};
+
 pub struct Diagnostic {
     kind: DiagnosticKind,
     message: String,
+    children: WidgetGroup,
 }
 
 impl Diagnostic {
     pub fn new(kind: DiagnosticKind, message: impl Into<String>) -> Self {
-        Self { kind, message: message.into() }
+        Self { kind, message: message.into(), children: WidgetGroup::new() }
+    }
+
+    pub fn add<T: Widget + 'static>(mut self, widget: T) -> Self {
+        self.children = self.children.add(widget);
+        self
     }
 }
 
 impl std::fmt::Display for Diagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.kind, self.message)
+        write!(f, "{}: {}", self.kind, self.message)?;
+
+        let children = self.children.render_to_string();
+        if !children.is_empty() {
+            write!(f, "\n{children}")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -35,6 +50,7 @@ impl std::fmt::Display for DiagnosticKind {
 mod tests {
     use super::*;
     use crate::configure_insta;
+    use crate::widgets::{Table, Text};
     use insta::assert_snapshot;
 
     #[test]
@@ -58,6 +74,19 @@ mod tests {
         let _config = configure_insta();
 
         let diagnostic = Diagnostic::new(DiagnosticKind::Warning, "something bad might happen");
+        assert_snapshot!(diagnostic.to_string());
+    }
+
+    #[test]
+    fn test_with_children() {
+        let _config = configure_insta();
+
+        let mut table = Table::new();
+        table.add_row(["Foo", "Bar"]);
+
+        let diagnostic = Diagnostic::new(DiagnosticKind::Error, "something went wrong")
+            .add(Text::new("you can learn more from this table:"))
+            .add(table);
         assert_snapshot!(diagnostic.to_string());
     }
 }

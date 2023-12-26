@@ -21,7 +21,7 @@ impl Widget for WidgetGroup {
         let mut indent_writer = IndentWriter {
             initial: true,
             last_char_is_newline: false,
-            pattern: " │ ",
+            pattern: " │  ",
             inner: writer,
         };
         for (idx, widget) in self.widgets.iter().enumerate() {

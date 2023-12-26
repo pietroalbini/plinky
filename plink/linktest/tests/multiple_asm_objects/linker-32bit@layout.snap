@@ -6,16 +6,18 @@ linking exited with exit status: 0
 === stdout ===
 Section addresses
 -----------------
-{
-    ".rodata": {
-        section#1: 0x400000,
-        section#8: 0x40000f,
-    },
-    ".text": {
-        section#2: 0x401000,
-        section#9: 0x40101f,
-    },
-}
+╭───────────┬─────────┬──────────╮
+│ ID        │ Name    │ Address  │
+├───────────┼─────────┼──────────┤
+│ section#1 │ .rodata │ 0x400000 │
+├───────────┼─────────┼──────────┤
+│ section#8 │ .rodata │ 0x40000f │
+├───────────┼─────────┼──────────┤
+│ section#2 │ .text   │ 0x401000 │
+├───────────┼─────────┼──────────┤
+│ section#9 │ .text   │ 0x40101f │
+╰───────────┴─────────┴──────────╯
+
 
 
 no stderr present

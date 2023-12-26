@@ -1,10 +1,9 @@
 use crate::cli::DebugPrint;
 use crate::linker::{CallbackOutcome, LinkerCallbacks};
 use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
+use plink_diagnostics::Table;
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
-use std::collections::BTreeMap;
-use std::fmt::Debug;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: Option<DebugPrint>,
@@ -22,40 +21,42 @@ impl LinkerCallbacks for DebugCallbacks {
 
     fn on_layout_calculated(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
         if let Some(DebugPrint::Layout) = self.print {
-            let addresses: BTreeMap<_, _> = object
-                .sections
-                .iter()
-                .map(|(name, section)| {
-                    let addresses: BTreeMap<_, _> = match &section.content {
-                        SectionContent::Data(data) => data
-                            .parts
-                            .iter()
-                            .map(|(id, part)| {
-                                (
-                                    id,
-                                    match part {
-                                        DataSectionPart::Real(real) => {
-                                            DebugEither::A(real.layout.address)
-                                        }
-                                        DataSectionPart::DeduplicationFacade(_) => {
-                                            DebugEither::B("<deduplication facade>")
-                                        }
-                                    },
-                                )
-                            })
-                            .collect(),
-                        SectionContent::Uninitialized(uninit) => uninit
-                            .iter()
-                            .map(|(id, part)| (id, DebugEither::A(part.layout.address)))
-                            .collect(),
-                    };
-                    (name, addresses)
-                })
-                .collect();
+            let mut table = Table::new();
+            table.add_row(["ID", "Name", "Address"]);
+
+            for (name, section) in &object.sections {
+                match &section.content {
+                    SectionContent::Data(data) => {
+                        for (id, part) in &data.parts {
+                            table.add_row([
+                                format!("{id:?}"),
+                                name.to_string(),
+                                match part {
+                                    DataSectionPart::Real(real) => {
+                                        format!("{:#x}", real.layout.address)
+                                    }
+                                    DataSectionPart::DeduplicationFacade(_) => {
+                                        "N/A (deduplication facade)".into()
+                                    }
+                                },
+                            ]);
+                        }
+                    }
+                    SectionContent::Uninitialized(parts) => {
+                        for (id, part) in parts {
+                            table.add_row([
+                                format!("{id:?}"),
+                                name.to_string(),
+                                format!("{:#x}", part.layout.address),
+                            ]);
+                        }
+                    }
+                }
+            }
 
             println!("Section addresses");
             println!("-----------------");
-            println!("{addresses:#x?}");
+            println!("{}", table.render());
 
             CallbackOutcome::Stop
         } else {
@@ -78,20 +79,6 @@ impl LinkerCallbacks for DebugCallbacks {
             CallbackOutcome::Stop
         } else {
             CallbackOutcome::Continue
-        }
-    }
-}
-
-enum DebugEither<T: Debug, U: Debug> {
-    A(T),
-    B(U),
-}
-
-impl<T: Debug, U: Debug> Debug for DebugEither<T, U> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::A(v) => Debug::fmt(v, f),
-            Self::B(v) => Debug::fmt(v, f),
         }
     }
 }

@@ -132,6 +132,7 @@ dependencies = [
  "anyhow",
  "insta",
  "plink_ar",
+ "plink_diagnostics",
  "plink_elf",
  "plink_macros",
  "serde",

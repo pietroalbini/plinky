@@ -77,7 +77,7 @@ mod tests {
     }
 
     #[test]
-    fn test_one_widget() {
+    fn test_multiple_widgets() {
         let _config = configure_insta();
 
         let mut table = Table::new();

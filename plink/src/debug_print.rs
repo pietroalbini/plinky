@@ -1,7 +1,7 @@
 use crate::cli::DebugPrint;
 use crate::linker::{CallbackOutcome, LinkerCallbacks};
 use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
-use plink_diagnostics::widgets::Table;
+use plink_diagnostics::widgets::{Table, Widget};
 use plink_elf::ids::serial::SerialIds;
 use plink_elf::ElfObject;
 
@@ -59,7 +59,7 @@ impl LinkerCallbacks for DebugCallbacks {
 
             println!("Section addresses");
             println!("-----------------");
-            println!("{}", table.render());
+            println!("{}", table.render_to_string());
 
             CallbackOutcome::Stop
         } else {

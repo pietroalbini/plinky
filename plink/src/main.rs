@@ -1,5 +1,5 @@
 use crate::debug_print::DebugCallbacks;
-use crate::linker::{link_driver, LinkerError};
+use crate::linker::link_driver;
 use std::error::Error;
 use std::process::ExitCode;
 
@@ -14,11 +14,7 @@ fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
 
     let callbacks = DebugCallbacks { print: options.debug_print.clone() };
-    match link_driver(&options, &callbacks) {
-        Ok(()) => {}
-        Err(LinkerError::CallbackEarlyExit) => {}
-        Err(err) => return Err(err.into()),
-    }
+    link_driver(&options, &callbacks)?;
 
     Ok(())
 }

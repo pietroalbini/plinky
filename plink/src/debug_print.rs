@@ -1,5 +1,5 @@
 use crate::cli::DebugPrint;
-use crate::linker::{CallbackOutcome, LinkerCallbacks};
+use crate::linker::LinkerCallbacks;
 use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
 use plink_diagnostics::widgets::{Table, Text, Widget};
 use plink_diagnostics::{Diagnostic, DiagnosticKind};
@@ -12,14 +12,13 @@ pub(crate) struct DebugCallbacks {
 }
 
 impl LinkerCallbacks for DebugCallbacks {
-    fn on_inputs_loaded(&self, object: &Object<()>) -> CallbackOutcome {
+    fn on_inputs_loaded(&self, object: &Object<()>) {
         if self.print.contains(&DebugPrint::LoadedObject) {
             render("loaded object", Text::new(format!("{object:#x?}")));
         }
-        CallbackOutcome::Continue
     }
 
-    fn on_layout_calculated(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
+    fn on_layout_calculated(&self, object: &Object<SectionLayout>) {
         if self.print.contains(&DebugPrint::Layout) {
             let mut table = Table::new();
             table.add_row(["Internal ID", "Section name", "Source object", "Memory address"]);
@@ -59,21 +58,18 @@ impl LinkerCallbacks for DebugCallbacks {
 
             render("calculated layout", table);
         }
-        CallbackOutcome::Continue
     }
 
-    fn on_relocations_applied(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
+    fn on_relocations_applied(&self, object: &Object<SectionLayout>) {
         if self.print.contains(&DebugPrint::RelocatedObject) {
             render("object after relocations are applied", Text::new(format!("{object:#x?}")));
         }
-        CallbackOutcome::Continue
     }
 
-    fn on_elf_built(&self, elf: &ElfObject<SerialIds>) -> CallbackOutcome {
+    fn on_elf_built(&self, elf: &ElfObject<SerialIds>) {
         if self.print.contains(&DebugPrint::FinalElf) {
             render("built elf", Text::new(format!("{elf:#x?}")));
         }
-        CallbackOutcome::Continue
     }
 }
 

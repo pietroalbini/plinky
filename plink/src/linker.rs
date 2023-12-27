@@ -17,18 +17,18 @@ pub(crate) fn link_driver(
     let mut ids = SerialIds::new();
 
     let mut object = passes::load_inputs::run(&options.inputs, &mut ids)?;
-    callbacks.on_inputs_loaded(&object).result()?;
+    callbacks.on_inputs_loaded(&object);
 
     passes::deduplicate::run(&mut object, &mut ids)?;
 
     let mut object = passes::layout::run(object);
-    callbacks.on_layout_calculated(&object).result()?;
+    callbacks.on_layout_calculated(&object);
 
     passes::relocate::run(&mut object)?;
-    callbacks.on_relocations_applied(&object).result()?;
+    callbacks.on_relocations_applied(&object);
 
     let elf = passes::build_elf::run(object, options)?;
-    callbacks.on_elf_built(&elf).result()?;
+    callbacks.on_elf_built(&elf);
 
     passes::write_to_disk::run(elf, &options.output)?;
 
@@ -36,42 +36,17 @@ pub(crate) fn link_driver(
 }
 
 pub(crate) trait LinkerCallbacks {
-    fn on_inputs_loaded(&self, _object: &Object<()>) -> CallbackOutcome {
-        CallbackOutcome::Continue
-    }
+    fn on_inputs_loaded(&self, _object: &Object<()>) {}
 
-    fn on_layout_calculated(&self, _object: &Object<SectionLayout>) -> CallbackOutcome {
-        CallbackOutcome::Continue
-    }
+    fn on_layout_calculated(&self, _object: &Object<SectionLayout>) {}
 
-    fn on_relocations_applied(&self, _object: &Object<SectionLayout>) -> CallbackOutcome {
-        CallbackOutcome::Continue
-    }
+    fn on_relocations_applied(&self, _object: &Object<SectionLayout>) {}
 
-    fn on_elf_built(&self, _elf: &ElfObject<SerialIds>) -> CallbackOutcome {
-        CallbackOutcome::Continue
-    }
-}
-
-#[must_use]
-pub(crate) enum CallbackOutcome {
-    Continue,
-    Stop,
-}
-
-impl CallbackOutcome {
-    fn result(self) -> Result<(), LinkerError> {
-        match self {
-            CallbackOutcome::Continue => Ok(()),
-            CallbackOutcome::Stop => Err(LinkerError::CallbackEarlyExit),
-        }
-    }
+    fn on_elf_built(&self, _elf: &ElfObject<SerialIds>) {}
 }
 
 #[derive(Debug, Display, Error)]
 pub(crate) enum LinkerError {
-    #[display("early exit caused by a callback")]
-    CallbackEarlyExit,
     #[transparent]
     LoadInputsFailed(LoadInputsError),
     #[transparent]

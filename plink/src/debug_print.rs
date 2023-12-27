@@ -15,10 +15,8 @@ impl LinkerCallbacks for DebugCallbacks {
     fn on_inputs_loaded(&self, object: &Object<()>) -> CallbackOutcome {
         if self.print.contains(&DebugPrint::LoadedObject) {
             render("loaded object", Text::new(format!("{object:#x?}")));
-            CallbackOutcome::Stop
-        } else {
-            CallbackOutcome::Continue
         }
+        CallbackOutcome::Continue
     }
 
     fn on_layout_calculated(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
@@ -60,32 +58,26 @@ impl LinkerCallbacks for DebugCallbacks {
             }
 
             render("calculated layout", table);
-            CallbackOutcome::Stop
-        } else {
-            CallbackOutcome::Continue
         }
+        CallbackOutcome::Continue
     }
 
     fn on_relocations_applied(&self, object: &Object<SectionLayout>) -> CallbackOutcome {
         if self.print.contains(&DebugPrint::RelocatedObject) {
             render("object after relocations are applied", Text::new(format!("{object:#x?}")));
-            CallbackOutcome::Stop
-        } else {
-            CallbackOutcome::Continue
         }
+        CallbackOutcome::Continue
     }
 
     fn on_elf_built(&self, elf: &ElfObject<SerialIds>) -> CallbackOutcome {
         if self.print.contains(&DebugPrint::FinalElf) {
             render("built elf", Text::new(format!("{elf:#x?}")));
-            CallbackOutcome::Stop
-        } else {
-            CallbackOutcome::Continue
         }
+        CallbackOutcome::Continue
     }
 }
 
 fn render<T: Widget + 'static>(message: &str, widget: T) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message).add(widget);
-    println!("{diagnostic}");
+    eprintln!("{diagnostic}\n");
 }

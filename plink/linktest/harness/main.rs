@@ -78,13 +78,13 @@ impl TestExecution<'_> {
     }
 
     fn link_and_snapshot(&self) -> Result<bool, Error> {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_plink"));
+        command.current_dir(self.root).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
         for debug_print in &self.settings.debug_print {
-            let outcome = self.link_and_snapshot_inner(Some(debug_print))?;
-            if !outcome {
-                anyhow::bail!("debug printing {debug_print} failed, but should always succeed");
-            }
+            command.args(["--debug-print", debug_print]);
         }
-        self.link_and_snapshot_inner(None)
+
+        self.record_snapshot("linker", "linking", &mut command)
     }
 
     fn run_and_snapshot(&self) -> Result<bool, Error> {
@@ -95,17 +95,7 @@ impl TestExecution<'_> {
         let mut command = Command::new(self.root.join("a.out"));
         command.current_dir(self.root);
 
-        self.record_snapshot("run", "running", &mut command, None)
-    }
-
-    fn link_and_snapshot_inner(&self, debug_print: Option<&str>) -> Result<bool, Error> {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_plink"));
-        command.current_dir(self.root).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
-        if let Some(debug_print) = debug_print {
-            command.args(["--debug-print", debug_print]);
-        }
-
-        self.record_snapshot("linker", "linking", &mut command, debug_print)
+        self.record_snapshot("run", "running", &mut command)
     }
 
     fn record_snapshot(
@@ -113,7 +103,6 @@ impl TestExecution<'_> {
         snapshot_name: &str,
         action: &str,
         command: &mut Command,
-        suffix: Option<&str>,
     ) -> Result<bool, Error> {
         let snapshot_name = format!("{snapshot_name}{}", self.suffix);
 
@@ -144,9 +133,6 @@ impl TestExecution<'_> {
                 .join("tests")
                 .join(self.test.name),
         )?);
-        if let Some(suffix) = suffix {
-            insta_settings.set_snapshot_suffix(suffix);
-        }
 
         insta_settings.bind(|| {
             insta::assert_snapshot!(snapshot_name, output_repr);

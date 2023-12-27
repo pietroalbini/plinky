@@ -13,7 +13,7 @@ mod repr;
 fn app() -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
 
-    let callbacks = DebugCallbacks { print: options.debug_print };
+    let callbacks = DebugCallbacks { print: options.debug_print.clone() };
     match link_driver(&options, &callbacks) {
         Ok(()) => {}
         Err(LinkerError::CallbackEarlyExit) => {}

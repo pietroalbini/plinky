@@ -1,4 +1,5 @@
 use plink_macros::{Display, Error};
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -6,10 +7,10 @@ pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<PathBuf>,
     pub(crate) output: PathBuf,
     pub(crate) entry: String,
-    pub(crate) debug_print: Option<DebugPrint>,
+    pub(crate) debug_print: BTreeSet<DebugPrint>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub(crate) enum DebugPrint {
     LoadedObject,
     RelocatedObject,
@@ -26,7 +27,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut inputs = Vec::new();
     let mut output = None;
     let mut entry = None;
-    let mut debug_print = None;
+    let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
     while let Some(token) = lexer.next() {
@@ -42,15 +43,17 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             }
 
             CliToken::LongFlag("debug-print") => {
-                reject_duplicate(&token, &mut debug_print, || {
-                    Ok(match lexer.expect_flag_value(&token)? {
-                        "loaded-object" => DebugPrint::LoadedObject,
-                        "relocated-object" => DebugPrint::RelocatedObject,
-                        "layout" => DebugPrint::Layout,
-                        "final-elf" => DebugPrint::FinalElf,
-                        other => return Err(CliError::UnsupportedDebugPrint(other.into())),
-                    })
-                })?;
+                let value = lexer.expect_flag_value(&token)?;
+                let newly_inserted = debug_print.insert(match value {
+                    "loaded-object" => DebugPrint::LoadedObject,
+                    "relocated-object" => DebugPrint::RelocatedObject,
+                    "layout" => DebugPrint::Layout,
+                    "final-elf" => DebugPrint::FinalElf,
+                    other => return Err(CliError::UnsupportedDebugPrint(other.into())),
+                });
+                if !newly_inserted {
+                    return Err(CliError::DuplicateDebugPrint(value.into()));
+                }
             }
 
             // If the flag value was not consumed in the previous iteration when the flag itself
@@ -92,6 +95,8 @@ fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
 pub(crate) enum CliError {
     #[display("unsupported debug print: {f0}")]
     UnsupportedDebugPrint(String),
+    #[display("debug print enabled multiple times: {f0}")]
+    DuplicateDebugPrint(String),
     #[display("flag {f0} is not supported")]
     UnsupportedFlag(String),
     #[display("flag {f0} provided multiple times")]
@@ -185,6 +190,14 @@ impl<'a> Iterator for CliLexer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    macro_rules! btreeset {
+        ($($val:expr),*$(,)?) => {{
+            let mut set = BTreeSet::new();
+            $(set.insert($val);)*
+            set
+        }}
+    }
 
     #[test]
     fn test_lexer() {
@@ -320,13 +333,22 @@ mod tests {
 
     #[test]
     fn test_debug_print() {
-        const VARIANTS: &[(DebugPrint, &[&str])] =
-            &[(DebugPrint::LoadedObject, &["foo", "--debug-print", "loaded-object"])];
-        for (expected, flags) in VARIANTS {
+        let variants = [
+            (
+                btreeset![DebugPrint::LoadedObject],
+                &["foo", "--debug-print", "loaded-object"] as &[&str],
+            ),
+            (btreeset![DebugPrint::RelocatedObject], &["foo", "--debug-print", "relocated-object"]),
+            (
+                btreeset![DebugPrint::LoadedObject, DebugPrint::RelocatedObject],
+                &["foo", "--debug-print", "loaded-object", "--debug-print=relocated-object"],
+            ),
+        ];
+        for (expected, flags) in variants {
             assert_eq!(
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
-                    debug_print: Some(*expected),
+                    debug_print: expected,
                     ..default_options()
                 }),
                 parse(flags.iter().copied())
@@ -345,10 +367,18 @@ mod tests {
     #[test]
     fn test_duplicate_debug_print() {
         assert_eq!(
-            Err(CliError::DuplicateFlag("--debug-print".into())),
+            Err(CliError::DuplicateDebugPrint("loaded-object".into())),
             parse(
-                ["input_file", "--debug-print", "loaded-object", "--debug-print", "loaded-object"]
-                    .into_iter()
+                [
+                    "input_file",
+                    "--debug-print",
+                    "relocated-object",
+                    "--debug-print",
+                    "loaded-object",
+                    "--debug-print",
+                    "loaded-object"
+                ]
+                .into_iter()
             )
         );
     }
@@ -366,7 +396,7 @@ mod tests {
             inputs: Vec::new(),
             output: "a.out".into(),
             entry: "_start".into(),
-            debug_print: None,
+            debug_print: BTreeSet::new(),
         }
     }
 }

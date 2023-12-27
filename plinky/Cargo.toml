@@ -1,0 +1,25 @@
+[package]
+name = "plinky"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[[test]]
+name = "linktest"
+path = "linktest/harness/main.rs"
+
+[dependencies]
+plinky_ar = { path = "../plinky_ar" }
+plinky_diagnostics = { path = "../plinky_diagnostics" }
+plinky_macros = { path = "../plinky_macros" }
+plinky_elf = { path = "../plinky_elf" }
+
+[dev-dependencies]
+anyhow.workspace = true
+insta.workspace = true
+serde.workspace = true
+tempfile.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true

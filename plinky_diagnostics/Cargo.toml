@@ -1,0 +1,10 @@
+[package]
+name = "plinky_diagnostics"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+insta.workspace = true
+
+[lints]
+workspace = true

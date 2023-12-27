@@ -1,0 +1,8 @@
+---
+source: plinky_diagnostics/src/table.rs
+expression: table.render()
+---
+╭───────╮
+│ alone │
+╰───────╯
+

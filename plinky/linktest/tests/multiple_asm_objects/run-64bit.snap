@@ -1,0 +1,12 @@
+---
+source: plinky/tests/linktest/main.rs
+---
+running exited with exit status: 0
+
+=== stdout ===
+Hello world!
+Goodbye world!
+
+
+no stderr present
+

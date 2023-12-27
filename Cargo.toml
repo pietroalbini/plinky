@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "plink",
-    "plink_ar",
-    "plink_diagnostics",
-    "plink_elf",
-    "plink_macros",
-    "plink_utils",
+    "plinky",
+    "plinky_ar",
+    "plinky_diagnostics",
+    "plinky_elf",
+    "plinky_macros",
+    "plinky_utils",
 ]
 
 [workspace.dependencies]

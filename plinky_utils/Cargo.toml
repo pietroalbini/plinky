@@ -1,0 +1,10 @@
+[package]
+name = "plinky_utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plinky_macros = { path = "../plinky_macros" }
+
+[lints]
+workspace = true

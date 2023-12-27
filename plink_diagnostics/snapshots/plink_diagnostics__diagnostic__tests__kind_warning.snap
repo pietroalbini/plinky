@@ -1,5 +1,0 @@
----
-source: plink_diagnostics/src/diagnostic.rs
-expression: diagnostic.to_string()
----
-warning: something bad might happen

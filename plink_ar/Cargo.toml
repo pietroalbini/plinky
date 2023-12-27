@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 plink_macros = { path = "../plink_macros/" }
-plink_rawutils = { path = "../plink_rawutils/" }
+plink_utils = { path = "../plink_utils/" }
 
 [lints]
 workspace = true

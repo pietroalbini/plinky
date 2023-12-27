@@ -1,5 +1,5 @@
-use plink_rawutils::raw_types::{RawReadError, RawType, RawWriteError};
-use plink_rawutils::{Bits, Endian};
+use plink_utils::raw_types::{RawReadError, RawType, RawWriteError};
+use plink_utils::{Bits, Endian};
 use std::io::Read;
 
 pub(crate) struct RawString<const LEN: usize> {

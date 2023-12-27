@@ -7,8 +7,8 @@
 use crate::utils::{RawString, RawStringAsU64};
 use crate::{ArFile, ArMember, ArMemberId, ArSymbolTable};
 use plink_macros::{Display, Error, RawType};
-use plink_rawutils::raw_types::{RawReadError, RawType};
-use plink_rawutils::{Bits, Endian};
+use plink_utils::raw_types::{RawReadError, RawType};
+use plink_utils::{Bits, Endian};
 use std::collections::HashMap;
 use std::io::{BufRead, Seek, SeekFrom};
 use std::sync::atomic::{AtomicU64, Ordering};

@@ -1,5 +1,5 @@
 use plink_macros::{Bitfield, RawType};
-use plink_rawutils::raw_types::RawPadding;
+use plink_utils::raw_types::RawPadding;
 
 #[derive(RawType)]
 pub(crate) struct RawIdentification {

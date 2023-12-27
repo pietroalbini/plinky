@@ -9,7 +9,7 @@ use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
-use plink_rawutils::{Bits, Endian};
+use plink_utils::{Bits, Endian};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::num::NonZeroU64;

@@ -4,7 +4,7 @@ use crate::raw::{
 };
 use crate::{ElfClass, ElfObject, ElfSectionContent};
 use plink_macros::{Display, Error};
-use plink_rawutils::raw_types::RawType;
+use plink_utils::raw_types::RawType;
 use std::collections::BTreeMap;
 
 const ALIGN: u64 = 0x1000;

@@ -145,7 +145,7 @@ name = "plink_ar"
 version = "0.1.0"
 dependencies = [
  "plink_macros",
- "plink_rawutils",
+ "plink_utils",
 ]
 
 [[package]]
@@ -162,7 +162,7 @@ dependencies = [
  "anyhow",
  "insta",
  "plink_macros",
- "plink_rawutils",
+ "plink_utils",
  "tempfile",
 ]
 
@@ -171,7 +171,7 @@ name = "plink_macros"
 version = "0.1.0"
 
 [[package]]
-name = "plink_rawutils"
+name = "plink_utils"
 version = "0.1.0"
 dependencies = [
  "plink_macros",

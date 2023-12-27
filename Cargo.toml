@@ -6,7 +6,7 @@ members = [
     "plink_diagnostics",
     "plink_elf",
     "plink_macros",
-    "plink_rawutils",
+    "plink_utils",
 ]
 
 [workspace.dependencies]

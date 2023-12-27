@@ -12,7 +12,7 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     generate_impl_for(
         &mut output,
         &Item::Struct(parsed.clone()),
-        "plink_rawutils::bitfields::Bitfield",
+        "plink_utils::bitfields::Bitfield",
         |output| {
             type_repr(output, &parsed)?;
             fn_read(output, &fields);
@@ -40,9 +40,9 @@ fn type_repr(output: &mut String, struct_: &Struct) -> Result<(), Error> {
 
 fn fn_read(output: &mut String, fields: &Fields) {
     output.push_str(
-        "fn read(raw: Self::Repr) -> Result<Self, plink_rawutils::bitfields::BitfieldReadError> {",
+        "fn read(raw: Self::Repr) -> Result<Self, plink_utils::bitfields::BitfieldReadError> {",
     );
-    output.push_str("let mut reader = plink_rawutils::bitfields::BitfieldReader::new(raw);");
+    output.push_str("let mut reader = plink_utils::bitfields::BitfieldReader::new(raw);");
 
     output.push_str("let result = Self ");
     match fields {
@@ -71,7 +71,7 @@ fn fn_read(output: &mut String, fields: &Fields) {
 
 fn fn_write(output: &mut String, fields: &Fields) {
     output.push_str("fn write(&self) -> Self::Repr {");
-    output.push_str("let mut writer = plink_rawutils::bitfields::BitfieldWriter::new();");
+    output.push_str("let mut writer = plink_utils::bitfields::BitfieldWriter::new();");
 
     match fields {
         Fields::None => {}

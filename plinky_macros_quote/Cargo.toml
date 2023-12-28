@@ -1,0 +1,10 @@
+[package]
+name = "plinky_macros_quote"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[lints]
+workspace = true

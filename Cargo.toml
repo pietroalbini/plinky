@@ -6,6 +6,8 @@ members = [
     "plinky_diagnostics",
     "plinky_elf",
     "plinky_macros",
+    "plinky_macros_quote",
+    "plinky_macros_quote_traits",
     "plinky_utils",
 ]
 

@@ -1,7 +1,9 @@
 use crate::error::Error;
 use crate::parser::{Attributes, Item, Parser, Struct, StructFields};
-use crate::utils::generate_impl_for;
-use proc_macro::TokenStream;
+use crate::utils::{generate_impl_for, ident, literal};
+use plinky_macros_quote::quote;
+use proc_macro::{TokenStream, TokenTree};
+use plinky_macros_quote_traits::Quote;
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let parsed = Parser::new(tokens).parse_struct()?;
@@ -14,9 +16,12 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
         &Item::Struct(parsed.clone()),
         "plinky_utils::bitfields::Bitfield",
         |output| {
-            type_repr(output, &parsed)?;
-            fn_read(output, &fields);
-            fn_write(output, &fields);
+            let quoted = quote! {
+                #{ type_repr(&parsed)? }
+                #{ fn_read(&fields) }
+                #{ fn_write(&fields) }
+            };
+            output.push_str(&quoted.to_string());
             Ok(())
         },
     )?;
@@ -24,71 +29,68 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     Ok(output.parse().unwrap())
 }
 
-fn type_repr(output: &mut String, struct_: &Struct) -> Result<(), Error> {
+fn type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
     let repr = if let Some(attr) = struct_.attrs.get("bitfield_repr")? {
         attr.get_parenthesis_one_expr()?
     } else {
         return Err(Error::new("missing attribute bitfield_repr"));
     };
 
-    output.push_str("type Repr = ");
-    output.push_str(repr);
-    output.push(';');
-
-    Ok(())
+    Ok(quote! { type Repr = #{ ident(repr) }; })
 }
 
-fn fn_read(output: &mut String, fields: &Fields) {
-    output.push_str(
-        "fn read(raw: Self::Repr) -> Result<Self, plinky_utils::bitfields::BitfieldReadError> {",
-    );
-    output.push_str("let mut reader = plinky_utils::bitfields::BitfieldReader::new(raw);");
-
-    output.push_str("let result = Self ");
-    match fields {
-        Fields::None => {}
+fn fn_read(fields: &Fields) -> TokenStream {
+    let result = match fields {
+        Fields::None => quote!(Self),
         Fields::TupleLike(fields) => {
-            output.push('(');
+            let mut parts = Vec::new();
             for bit in fields {
-                output.push_str(&format!("reader.bit({}),", bit.0));
+                parts.push(quote!(reader.bit(#bit),));
             }
-            output.push(')');
+            quote!(Self(#parts))
         }
         Fields::StructLike(fields) => {
-            output.push('{');
+            let mut parts = Vec::new();
             for (name, bit) in fields {
-                output.push_str(&format!("{}: reader.bit({}),", name, bit.0));
+                parts.push(quote!(#name: reader.bit(#bit),));
             }
-            output.push('}');
+            quote!(Self { #parts })
+        }
+    };
+
+    quote! {
+        fn read(raw: Self::Repr) -> Result<Self, plinky_utils::bitfields::BitfieldReadError> {
+            let mut reader = plinky_utils::bitfields::BitfieldReader::new(raw);
+            let result = #result;
+            reader.check_for_unknown_bits()?;
+            Ok(result)
         }
     }
-    output.push(';');
-
-    output.push_str("reader.check_for_unknown_bits()?;");
-    output.push_str("Ok(result)");
-    output.push('}');
 }
 
-fn fn_write(output: &mut String, fields: &Fields) {
-    output.push_str("fn write(&self) -> Self::Repr {");
-    output.push_str("let mut writer = plinky_utils::bitfields::BitfieldWriter::new();");
-
+fn fn_write(fields: &Fields) -> TokenStream {
+    let mut setters = Vec::new();
     match fields {
         Fields::None => {}
         Fields::TupleLike(fields) => {
             for (idx, bit) in fields.iter().enumerate() {
-                output.push_str(&format!("writer.set_bit({}, self.{});", bit.0, idx));
+                setters.push(quote! { writer.set_bit(#bit, self.#{ literal(idx) }); });
             }
         }
         Fields::StructLike(fields) => {
             for (name, bit) in fields.iter() {
-                output.push_str(&format!("writer.set_bit({}, self.{});", bit.0, name));
+                setters.push(quote! { writer.set_bit(#bit, self.#name); });
             }
         }
     }
 
-    output.push_str("writer.value()");
-    output.push('}');
+    quote! {
+        fn write(&self) -> Self::Repr {
+            let mut writer = plinky_utils::bitfields::BitfieldWriter::new();
+            #setters
+            writer.value()
+        }
+    }
 }
 
 fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
@@ -108,7 +110,7 @@ fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
                 .iter()
                 .enumerate()
                 .map(|(idx, field)| {
-                    Ok((field.name.clone(), calculator.index_of(&field.attrs, idx)?))
+                    Ok((ident(&field.name), calculator.index_of(&field.attrs, idx)?))
                 })
                 .collect::<Result<_, _>>()?,
         ),
@@ -155,7 +157,14 @@ impl BitCalculator {
 enum Fields {
     None,
     TupleLike(Vec<BitIndex>),
-    StructLike(Vec<(String, BitIndex)>),
+    StructLike(Vec<(TokenTree, BitIndex)>),
 }
 
+#[derive(Clone)]
 struct BitIndex(usize);
+
+impl Quote for BitIndex {
+    fn to_token_stream(&self) -> TokenStream {
+        literal(self.0).into()
+    }
+}

@@ -1,4 +1,14 @@
 use crate::parser::{GenericParam, Item};
+use proc_macro::{Ident, Span, TokenTree};
+use std::fmt::Display;
+
+pub(crate) fn literal(value: impl Display) -> TokenTree {
+    TokenTree::Literal(value.to_string().parse().expect("invalid literal"))
+}
+
+pub(crate) fn ident(ident: impl AsRef<str>) -> TokenTree {
+    TokenTree::Ident(Ident::new(ident.as_ref(), Span::call_site()))
+}
 
 pub(crate) fn generate_impl_for<T, F: FnOnce(&mut String) -> T>(
     output: &mut String,

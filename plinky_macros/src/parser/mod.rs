@@ -38,11 +38,7 @@ impl Parser {
     }
 
     fn parse_struct_after_keyword(&mut self, attrs: Attributes) -> Result<Struct, Error> {
-        let (name, span) = match self.next()? {
-            TokenTree::Ident(name) => (name.to_string(), name.span()),
-            other => return Err(Error::new("expected struct name").span(other.span())),
-        };
-
+        let name = self.parse_ident()?;
         let generics = self.parse_generic_params()?;
 
         let fields = match self.peek()? {
@@ -69,7 +65,7 @@ impl Parser {
             other => return Err(Error::new("expected struct content").span(other.span())),
         };
 
-        Ok(Struct { attrs, name, generics, fields, span })
+        Ok(Struct { span: name.span,  attrs, name, generics, fields })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, Error> {
@@ -95,10 +91,7 @@ impl Parser {
     fn parse_enum_variant(&mut self) -> Result<EnumVariant, Error> {
         let attrs = self.parse_attributes()?;
 
-        let (name, span) = match self.next()? {
-            TokenTree::Ident(ident) => (ident.to_string(), ident.span()),
-            other => return Err(Error::new("expected variant name").span(other.span())),
-        };
+        let name = self.parse_ident()?;
 
         let data = if let Ok(TokenTree::Group(group)) = self.peek() {
             self.next()?;
@@ -119,7 +112,7 @@ impl Parser {
             EnumVariantData::None
         };
 
-        Ok(EnumVariant { span, attrs, name, data })
+        Ok(EnumVariant { span: name.span, attrs, name, data })
     }
 
     fn parse_tuple_field(&mut self) -> Result<TupleField, Error> {
@@ -128,56 +121,49 @@ impl Parser {
         Ok(TupleField { attrs, ty })
     }
 
-    fn parse_ident(&mut self) -> Result<String, Error> {
+    fn parse_ident(&mut self) -> Result<Ident, Error> {
         match self.next()? {
-            TokenTree::Ident(ident) => Ok(ident.to_string()),
+            TokenTree::Ident(ident) => Ok(Ident { name: ident.to_string(), span: ident.span() }),
             other => Err(Error::new("expected an ident").span(other.span())),
         }
     }
 
-    fn parse_type(&mut self) -> Result<String, Error> {
-        let mut ty = String::new();
+    fn parse_type(&mut self) -> Result<Type, Error> {
+        let mut ty = Vec::new();
         let mut repeat_without_new_segment = false;
         loop {
             match self.peek()? {
                 // Generic, arrays or tuples.
-                TokenTree::Group(group) => {
-                    self.next()?;
-                    ty.push_str(&group.to_string());
+                TokenTree::Group(_) => {
+                    ty.push(self.next()?);
                 }
                 // Type names.
-                TokenTree::Ident(ident) => {
-                    self.next()?;
-                    ty.push_str(&ident.to_string());
+                TokenTree::Ident(_) => {
+                    ty.push(self.next()?);
                     if self.peek().map(|t| t.is_punct('<')).unwrap_or(false) {
-                        ty.push_str(&self.parse_generic_in_type_name()?);
+                        self.parse_generic_in_type_name(&mut ty)?
                     }
                 }
                 TokenTree::Punct(punct) if punct.as_char() == '<' => {
-                    ty.push_str(&self.parse_generic_in_type_name()?);
+                    self.parse_generic_in_type_name(&mut ty)?;
                 }
                 TokenTree::Punct(punct) if punct.as_char() == '&' => {
-                    self.next()?;
-                    ty.push('&');
+                    ty.push(self.next()?);
 
                     // Lifetimes
                     if self.peek()?.is_punct('\'') {
-                        self.next()?;
-                        ty.push('\'');
+                        ty.push(self.next()?);
                         match self.next()? {
-                            TokenTree::Ident(ident) => ty.push_str(&ident.to_string()),
+                            token @ TokenTree::Ident(_) => ty.push(token),
                             other => {
                                 return Err(Error::new("expected lifetime name").span(other.span()));
                             }
                         }
-                        ty.push(' ');
                     }
 
                     for keyword in ["mut", "dyn"] {
                         if self.peek()?.is_ident(keyword) {
-                            self.next()?;
-                            ty.push_str(keyword);
-                            ty.push(' ');
+                            ty.push(self.next()?);
                         }
                     }
 
@@ -189,23 +175,21 @@ impl Parser {
             if repeat_without_new_segment {
                 repeat_without_new_segment = false;
             } else if self.peek().map(|p| p.is_punct(':')).unwrap_or(false) {
-                self.next()?;
-                self.expect_punct(':')?;
-                ty.push_str("::");
+                ty.push(self.next()?);
+                ty.push(self.expect_punct(':')?);
             } else {
                 break;
             }
         }
-        Ok(ty)
+        Ok(Type(ty.into_iter().collect()))
     }
 
-    fn parse_generic_in_type_name(&mut self) -> Result<String, Error> {
-        self.expect_punct('<')?;
-        let mut generic = "<".to_string();
+    fn parse_generic_in_type_name(&mut self, out: &mut Vec<TokenTree>) -> Result<(), Error> {
+        out.push(self.expect_punct('<')?);
         let mut count = 1;
         while count > 0 {
             let next = self.next()?;
-            generic.push_str(&next.to_string());
+            out.push(next.clone());
 
             if next.is_punct('<') {
                 count += 1;
@@ -214,7 +198,7 @@ impl Parser {
             }
         }
 
-        Ok(generic)
+        Ok(())
     }
 
     fn parse_generic_params(&mut self) -> Result<Vec<GenericParam>, Error> {
@@ -232,10 +216,7 @@ impl Parser {
             if this.peek()?.is_ident("const") {
                 this.next()?;
 
-                let name = match this.next()? {
-                    TokenTree::Ident(ident) => ident.to_string(),
-                    other => return Err(Error::new("expected generic name").span(other.span())),
-                };
+                let name = this.parse_ident()?;
                 this.expect_punct(':')?;
                 let type_ = this.parse_type()?;
 
@@ -267,10 +248,7 @@ impl Parser {
                     _default: default,
                 })))
             } else {
-                let name = match this.next()? {
-                    TokenTree::Ident(ident) => ident.to_string(),
-                    other => return Err(Error::new("expected generic name").span(other.span())),
-                };
+                let name = this.parse_ident()?;
                 this.expect_punct(':')?;
 
                 let mut bound = Vec::new();
@@ -286,7 +264,7 @@ impl Parser {
                 }
                 Ok(constructor(GenericParam::Normal(GenericParamNormal {
                     name,
-                    bound: bound.into_iter().collect::<TokenStream>().to_string(),
+                    bound: bound.into_iter().collect(),
                 })))
             }
         })?;

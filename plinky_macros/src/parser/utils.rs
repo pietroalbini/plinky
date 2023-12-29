@@ -33,19 +33,19 @@ impl Parser {
         Ok(values)
     }
 
-    pub(super) fn expect_keyword(&mut self, keyword: &str) -> Result<(), Error> {
+    pub(super) fn expect_keyword(&mut self, keyword: &str) -> Result<TokenTree, Error> {
         let next = self.next()?;
         if next.is_ident(keyword) {
-            Ok(())
+            Ok(next)
         } else {
             Err(Error::new(format!("expected keyword {keyword}")).span(next.span()))
         }
     }
 
-    pub(super) fn expect_punct(&mut self, punct: char) -> Result<(), Error> {
+    pub(super) fn expect_punct(&mut self, punct: char) -> Result<TokenTree, Error> {
         let next = self.next()?;
         if next.is_punct(punct) {
-            Ok(())
+            Ok(next)
         } else {
             Err(Error::new(format!("expected punctuation {punct}")).span(next.span()))
         }

@@ -1,32 +1,24 @@
 use crate::error::Error;
-use crate::parser::{Attributes, Item, Parser, Struct, StructFields};
+use crate::parser::{Attributes, Ident, Item, Parser, Struct, StructFields};
 use crate::utils::{generate_impl_for, ident, literal};
 use plinky_macros_quote::quote;
-use proc_macro::{TokenStream, TokenTree};
 use plinky_macros_quote_traits::Quote;
+use proc_macro::TokenStream;
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let parsed = Parser::new(tokens).parse_struct()?;
-    let mut output = String::new();
 
     let fields = generate_fields(&parsed)?;
 
-    generate_impl_for(
-        &mut output,
+    Ok(generate_impl_for(
         &Item::Struct(parsed.clone()),
         "plinky_utils::bitfields::Bitfield",
-        |output| {
-            let quoted = quote! {
-                #{ type_repr(&parsed)? }
-                #{ fn_read(&fields) }
-                #{ fn_write(&fields) }
-            };
-            output.push_str(&quoted.to_string());
-            Ok(())
+        quote! {
+            #{ type_repr(&parsed)? }
+            #{ fn_read(&fields) }
+            #{ fn_write(&fields) }
         },
-    )?;
-
-    Ok(output.parse().unwrap())
+    ))
 }
 
 fn type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
@@ -110,7 +102,7 @@ fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
                 .iter()
                 .enumerate()
                 .map(|(idx, field)| {
-                    Ok((ident(&field.name), calculator.index_of(&field.attrs, idx)?))
+                    Ok((field.name.clone(), calculator.index_of(&field.attrs, idx)?))
                 })
                 .collect::<Result<_, _>>()?,
         ),
@@ -157,7 +149,7 @@ impl BitCalculator {
 enum Fields {
     None,
     TupleLike(Vec<BitIndex>),
-    StructLike(Vec<(TokenTree, BitIndex)>),
+    StructLike(Vec<(Ident, BitIndex)>),
 }
 
 #[derive(Clone)]

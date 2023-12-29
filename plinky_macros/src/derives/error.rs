@@ -1,302 +1,184 @@
 use crate::error::Error;
-use crate::parser::{Attributes, EnumVariantData, Item, Parser, StructFields};
-use crate::utils::generate_impl_for;
-use proc_macro::{Span, TokenStream};
+use crate::parser::{Attributes, EnumVariantData, Item, Parser, StructFields, Type};
+use crate::utils::{generate_for_each_variant, generate_impl_for, ident};
+use plinky_macros_quote::quote;
+use proc_macro::{TokenStream, TokenTree};
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let item = Parser::new(tokens).parse_item()?;
 
-    let mut output = String::new();
-    generate_error_impl(&mut output, &item)?;
-    generate_from_impls(&mut output, &item)?;
-
-    Ok(output.parse().unwrap())
-}
-
-fn generate_error_impl(output: &mut String, item: &Item) -> Result<(), Error> {
-    generate_impl_for(output, item, "std::error::Error", |output| {
-        output.push_str("fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {");
-        match item {
-            Item::Struct(struct_) => {
-                let mut source = None;
-                match &struct_.fields {
-                    StructFields::None => {}
-                    StructFields::TupleLike(fields) => {
-                        for (idx, field) in fields.iter().enumerate() {
-                            if fields.len() == 1 {
-                                maybe_set_source_container(
-                                    &mut source,
-                                    &idx.to_string(),
-                                    &field.ty,
-                                    &struct_.attrs,
-                                )?;
-                            }
-                            maybe_set_source_field(&mut source, &idx.to_string(), &field.attrs)?;
-                        }
-                    }
-                    StructFields::StructLike(fields) => {
-                        for field in fields {
-                            if fields.len() == 1 {
-                                maybe_set_source_container(
-                                    &mut source,
-                                    &field.name,
-                                    &field.ty,
-                                    &struct_.attrs,
-                                )?;
-                            }
-                            maybe_set_source_field(&mut source, &field.name, &field.attrs)?;
-                        }
-                    }
-                }
-                match source {
-                    Some(SourceKind::Field(source)) => {
-                        output.push_str(&format!("Some(&self.{source})"));
-                    }
-                    Some(SourceKind::Transparent { ty, field }) => {
-                        output.push_str(&format!(
-                            "<{ty} as std::error::Error>::source(&self.{field})"
-                        ));
-                    }
-                    None => output.push_str("None"),
-                }
-            }
-            Item::Enum(enum_) => {
-                output.push_str("match self {");
-                for variant in &enum_.variants {
-                    let mut source = None;
-                    output.push_str(&format!("Self::{}", variant.name));
-                    match &variant.data {
-                        EnumVariantData::None => {}
-                        EnumVariantData::TupleLike(fields) => {
-                            output.push('(');
-                            for (idx, field) in fields.iter().enumerate() {
-                                let name = format!("field{}", idx);
-                                output.push_str(&name);
-                                output.push(',');
-                                if fields.len() == 1 {
-                                    maybe_set_source_container(
-                                        &mut source,
-                                        &name,
-                                        &field.ty,
-                                        &variant.attrs,
-                                    )?;
-                                }
-                                maybe_set_source_field(&mut source, &name, &field.attrs)?;
-                            }
-                            output.push(')');
-                        }
-                        EnumVariantData::StructLike(fields) => {
-                            output.push('{');
-                            for field in fields {
-                                output.push_str(&field.name);
-                                output.push(',');
-                                if fields.len() == 1 {
-                                    maybe_set_source_container(
-                                        &mut source,
-                                        &field.name,
-                                        &field.ty,
-                                        &variant.attrs,
-                                    )?;
-                                }
-                                maybe_set_source_field(&mut source, &field.name, &field.attrs)?;
-                            }
-                            output.push('}');
-                        }
-                    }
-                    output.push_str(" => ");
-                    match source {
-                        Some(SourceKind::Field(source)) => {
-                            output.push_str(&format!("Some({source})"));
-                        }
-                        Some(SourceKind::Transparent { ty, field }) => {
-                            output
-                                .push_str(&format!("<{ty} as std::error::Error>::source({field})"));
-                        }
-                        None => output.push_str("None"),
-                    }
-                    output.push(',');
-                }
-                output.push('}');
-            }
-        }
-        output.push('}');
-        Ok(())
+    Ok(quote! {
+        #{ generate_error_impl(&item)? }
+        #{ generate_from_impls(&item)? }
     })
 }
 
-fn maybe_set_source_field(
-    source: &mut Option<SourceKind>,
-    name: &str,
-    attrs: &Attributes,
-) -> Result<(), Error> {
-    maybe_set_source_inner(source, SourceKind::Field(name.into()), attrs, &["from", "source"])
-}
-
-fn maybe_set_source_container(
-    source: &mut Option<SourceKind>,
-    name: &str,
-    ty: &str,
-    attrs: &Attributes,
-) -> Result<(), Error> {
-    maybe_set_source_inner(
-        source,
-        SourceKind::Transparent { ty: ty.into(), field: name.into() },
-        attrs,
-        &["transparent"],
-    )
-}
-
-fn maybe_set_source_inner(
-    source: &mut Option<SourceKind>,
-    new: SourceKind,
-    attrs: &Attributes,
-    possible_attrs: &[&str],
-) -> Result<(), Error> {
-    for attr_name in possible_attrs {
-        if let Some(attr) = attrs.get(attr_name)? {
+fn generate_error_impl(item: &Item) -> Result<TokenStream, Error> {
+    let body = generate_for_each_variant(item, |_span, attrs, fields| {
+        if let Some(attr) = attrs.get("transparent")? {
             attr.must_be_empty()?;
-            if source.is_some() {
-                return Err(Error::new("multiple sources for a single error").span(attr.span));
+
+            match fields {
+                [field] => {
+                    for attr_name in ["from", "source"] {
+                        if field.attrs.get(attr_name)?.is_some() {
+                            return Err(Error::new(format!(
+                                "#[transparent] is incompatible with #[{attr_name}]"
+                            ))
+                            .span(attr.span));
+                        }
+                    }
+                    Ok(quote! {
+                        <#{ &field.ty } as std::error::Error>::source(#{ &field.access_ref })
+                    })
+                }
+                _ => {
+                    return Err(Error::new("#[transparent] items must have exactly one field")
+                        .span(attr.span));
+                }
+            }
+        } else {
+            let mut source = None;
+            for field in fields {
+                for attr_name in ["from", "source"] {
+                    if let Some(attr) = field.attrs.get(attr_name)? {
+                        attr.must_be_empty()?;
+                        match source {
+                            None => source = Some(field),
+                            Some(_) => {
+                                return Err(Error::new("multiple error sources").span(attr.span));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(source) = source {
+                Ok(quote! { Some(#{ &source.access_ref }) })
             } else {
-                *source = Some(new.clone());
+                Ok(quote! { None })
             }
         }
-    }
-    Ok(())
+    })?;
+
+    Ok(generate_impl_for(
+        item,
+        "std::error::Error",
+        quote! {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                #body
+            }
+        },
+    ))
 }
 
-#[derive(Clone)]
-enum SourceKind {
-    Field(String),
-    Transparent { ty: String, field: String },
-}
+fn generate_from_impls(item: &Item) -> Result<Vec<TokenStream>, Error> {
+    fn should_generate<'a>(
+        container_attrs: &'a Attributes,
+        fields_attrs: impl Iterator<Item = &'a Attributes>,
+    ) -> Result<bool, Error> {
+        let mut generate = None;
 
-fn generate_from_impls(output: &mut String, item: &Item) -> Result<(), Error> {
-    match item {
-        Item::Struct(struct_) => {
-            let fields = match &struct_.fields {
-                StructFields::None => return Ok(()),
-                StructFields::TupleLike(fields) => fields
-                    .iter()
-                    .map(|f| FromImplField {
-                        attrs: &f.attrs,
-                        field: "value",
-                        ty: &f.ty,
-                        open_assign: "(",
-                        close_assign: ")",
-                    })
-                    .collect::<Vec<_>>(),
-                StructFields::StructLike(fields) => fields
-                    .iter()
-                    .map(|f| FromImplField {
-                        attrs: &f.attrs,
-                        field: &f.name,
-                        ty: &f.ty,
-                        open_assign: "{",
-                        close_assign: "}",
-                    })
-                    .collect::<Vec<_>>(),
-            };
-
-            generate_from_impl(output, item, &struct_.name, struct_.span, &struct_.attrs, &fields)?;
+        if let Some(attr) = container_attrs.get("transparent")? {
+            attr.must_be_empty()?;
+            generate = Some(attr.span);
         }
+
+        let mut fields_count = 0;
+        for field_attrs in fields_attrs {
+            fields_count += 1;
+            if let Some(attr) = field_attrs.get("from")? {
+                attr.must_be_empty()?;
+                match generate {
+                    None => generate = Some(attr.span),
+                    Some(_) => {
+                        return Err(
+                            Error::new("multiple attributes to generate From impl").span(attr.span)
+                        );
+                    }
+                }
+            }
+        }
+
+        if let Some(span) = generate {
+            if fields_count == 1 {
+                Ok(true)
+            } else {
+                Err(Error::new("From impl can be generated only with one field").span(span))
+            }
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn render<F>(item: &Item, ty: &Type, setter: F) -> TokenStream
+    where
+        F: FnOnce(TokenTree) -> TokenStream,
+    {
+        let variable = ident("__value__");
+        generate_impl_for(
+            item,
+            &format!("From<{}>", ty.0.to_string()),
+            quote! {
+                fn from(#variable: #ty) -> Self {
+                    #{ setter(variable) }
+                }
+            },
+        )
+    }
+
+    let mut generated = Vec::new();
+    match item {
+        Item::Struct(struct_) => match &struct_.fields {
+            StructFields::None => {
+                assert!(!should_generate(&struct_.attrs, std::iter::empty())?);
+            }
+            StructFields::TupleLike(fields) => {
+                if should_generate(&struct_.attrs, fields.iter().map(|f| &f.attrs))? {
+                    let field = &fields[0];
+                    generated.push(render(item, &field.ty, |var| quote! { Self(#var) }));
+                }
+            }
+            StructFields::StructLike(fields) => {
+                if should_generate(&struct_.attrs, fields.iter().map(|f| &f.attrs))? {
+                    let field = &fields[0];
+                    generated.push(render(
+                        item,
+                        &field.ty,
+                        |var| quote! { Self { #{ &field.name }: #var } },
+                    ));
+                }
+            }
+        },
         Item::Enum(enum_) => {
             for variant in &enum_.variants {
-                let fields = match &variant.data {
-                    EnumVariantData::None => continue,
-                    EnumVariantData::TupleLike(fields) => fields
-                        .iter()
-                        .map(|f| FromImplField {
-                            attrs: &f.attrs,
-                            field: "value",
-                            ty: &f.ty,
-                            open_assign: "(",
-                            close_assign: ")",
-                        })
-                        .collect::<Vec<_>>(),
-                    EnumVariantData::StructLike(fields) => fields
-                        .iter()
-                        .map(|f| FromImplField {
-                            attrs: &f.attrs,
-                            field: &f.name,
-                            ty: &f.ty,
-                            open_assign: "{",
-                            close_assign: "}",
-                        })
-                        .collect::<Vec<_>>(),
-                };
-
-                generate_from_impl(
-                    output,
-                    item,
-                    &format!("{}::{}", enum_.name, variant.name),
-                    variant.span,
-                    &variant.attrs,
-                    &fields,
-                )?;
+                match &variant.data {
+                    EnumVariantData::None => {
+                        assert!(!should_generate(&variant.attrs, std::iter::empty())?);
+                    }
+                    EnumVariantData::TupleLike(fields) => {
+                        if should_generate(&variant.attrs, fields.iter().map(|f| &f.attrs))? {
+                            let field = &fields[0];
+                            generated.push(render(
+                                item,
+                                &field.ty,
+                                |var| quote! { Self::#{ &variant.name }(#var) },
+                            ));
+                        }
+                    }
+                    EnumVariantData::StructLike(fields) => {
+                        if should_generate(&variant.attrs, fields.iter().map(|f| &f.attrs))? {
+                            let field = &fields[0];
+                            generated.push(render(
+                                item,
+                                &field.ty,
+                                |var| quote! { Self::#{ &variant.name } { #{ &field.name }: #var } },
+                            ));
+                        }
+                    }
+                }
             }
         }
     }
-    Ok(())
-}
-
-fn generate_from_impl(
-    output: &mut String,
-    item: &Item,
-    constructor: &str,
-    span: Span,
-    container_attrs: &Attributes,
-    fields: &[FromImplField<'_>],
-) -> Result<(), Error> {
-    let field = if let [field] = fields {
-        field
-    } else {
-        if let Some(attr) = container_attrs.get("transparent")? {
-            return Err(Error::new("#[transparent] in error with multiple fields").span(attr.span));
-        }
-        for field in fields {
-            if field.attrs.get("from")?.is_some() {
-                return Err(Error::new("#[from] in error with multiple fields").span(span));
-            }
-        }
-        return Ok(());
-    };
-
-    let from = if let Some(attr) = field.attrs.get("from")? {
-        attr.must_be_empty()?;
-        true
-    } else {
-        false
-    };
-    let transparent = if let Some(attr) = container_attrs.get("transparent")? {
-        attr.must_be_empty()?;
-        true
-    } else {
-        false
-    };
-    match (from, transparent) {
-        (true, false) | (false, true) => {}
-        (false, false) => return Ok(()),
-        (true, true) => {
-            return Err(Error::new("both #[transparent] and #[from] present").span(span));
-        }
-    }
-
-    generate_impl_for(output, item, &format!("From<{}>", field.ty), |output| {
-        output.push_str(&format!("fn from({}: {}) -> Self {{", field.field, field.ty));
-        output.push_str(&format!(
-            "{constructor}{}{}{}",
-            field.open_assign, field.field, field.close_assign
-        ));
-        output.push('}');
-        Ok(())
-    })
-}
-
-struct FromImplField<'a> {
-    attrs: &'a Attributes,
-    field: &'a str,
-    ty: &'a str,
-    open_assign: &'a str,
-    close_assign: &'a str,
+    Ok(generated)
 }

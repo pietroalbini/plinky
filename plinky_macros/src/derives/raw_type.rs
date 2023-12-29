@@ -1,6 +1,7 @@
 use crate::error::Error;
-use crate::parser::{Item, Parser, Struct, StructFields};
+use crate::parser::{Ident, Item, Parser, Struct, StructFields, Type};
 use crate::utils::generate_impl_for;
+use plinky_macros_quote::quote;
 use proc_macro::TokenStream;
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
@@ -9,106 +10,114 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let fields32 = prepare_field_list(&parsed, true)?;
     let fields64 = prepare_field_list(&parsed, false)?;
 
-    let mut output = String::new();
-    generate_impl_for(
-        &mut output,
+    Ok(generate_impl_for(
         &Item::Struct(parsed.clone()),
         "plinky_utils::raw_types::RawType",
-        |output| {
-            fn_zero(output, &fields32);
-            fn_size(output, &fields32);
-            fn_read(output, &fields32, &fields64);
-            fn_write(output, &fields32, &fields64);
+        quote! {
+            #{ fn_zero(&fields32) }
+            #{ fn_size(&fields32) }
+            #{ fn_read(&fields32, &fields64) }
+            #{ fn_write(&fields32, &fields64) }
         },
-    );
-
-    Ok(output.parse().unwrap())
+    ))
 }
 
-fn fn_zero(output: &mut String, fields: &[Field<'_>]) {
-    output.push_str("fn zero() -> Self {");
-    output.push_str("Self {");
-    for field in fields {
-        output.push_str(&format!(
-            "{}: <{} as plinky_utils::raw_types::{}>::zero(),",
-            field.name, field.field_ty, field.trait_ty
-        ));
+fn fn_zero(fields: &[Field<'_>]) -> TokenStream {
+    let mut initializers = Vec::new();
+    for Field { name, field_ty, trait_ty } in fields {
+        initializers.push(quote! { #name: <#field_ty as #trait_ty>::zero(), });
     }
-    output.push_str("}}");
-}
-
-fn fn_size(output: &mut String, fields: &[Field<'_>]) {
-    output.push_str("fn size(bits: impl Into<plinky_utils::Bits>) -> usize {\n");
-    output.push_str("let bits = bits.into();");
-    output.push('0');
-    for field in fields {
-        output.push_str(&format!(
-            " + <{} as plinky_utils::raw_types::{}>::size(bits)",
-            field.field_ty, field.trait_ty
-        ));
-    }
-    output.push_str("\n}\n");
-}
-
-fn fn_read(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) {
-    fn render(output: &mut String, fields: &[Field<'_>]) {
-        output.push_str("Ok(Self {");
-        for field in fields {
-            output.push_str(&format!(
-                "{}: plinky_utils::raw_types::RawReadError::wrap_field::<Self, _>(stringify!({}), <{} as plinky_utils::raw_types::{}>::read(bits, endian, reader))?,",
-                field.name, field.name, field.field_ty, field.trait_ty
-            ));
+    quote! {
+        fn zero() -> Self {
+            Self { #initializers }
         }
-        output.push_str("})");
     }
-
-    output.push_str("fn read(bits: impl Into<plinky_utils::Bits>, endian: impl Into<plinky_utils::Endian>, reader: &mut dyn std::io::Read) -> Result<Self, plinky_utils::raw_types::RawReadError> {");
-    output.push_str("let bits = bits.into();");
-    output.push_str("let endian = endian.into();");
-    if fields32 != fields64 {
-        output.push_str("match bits {");
-        for (bits, fields) in [("Bits32", fields32), ("Bits64", fields64)] {
-            output.push_str(&format!("plinky_utils::Bits::{bits} => {{"));
-            render(output, fields);
-            output.push('}');
-        }
-        output.push('}');
-    } else {
-        render(output, fields32);
-    }
-    output.push('}');
 }
 
-fn fn_write(output: &mut String, fields32: &[Field<'_>], fields64: &[Field<'_>]) {
-    fn render(output: &mut String, fields: &[Field<'_>]) {
-        for field in fields {
-            output.push_str(&format!(
-                "plinky_utils::raw_types::RawWriteError::wrap_field::<Self, _>(stringify!({}), <{} as plinky_utils::raw_types::{}>::write(&self.{}, bits, endian, writer))?;",
-                field.name, field.field_ty, field.trait_ty, field.name
-            ));
+fn fn_size(fields: &[Field<'_>]) -> TokenStream {
+    let mut addends = Vec::new();
+    for Field { field_ty, trait_ty, .. } in fields {
+        addends.push(quote! { + <#field_ty as #trait_ty>::size(bits) });
+    }
+
+    quote! {
+        fn size(bits: impl Into<plinky_utils::Bits>) -> usize {
+            let bits = bits.into();
+            0 #addends
+        }
+    }
+}
+
+fn fn_read(fields32: &[Field<'_>], fields64: &[Field<'_>]) -> TokenStream {
+    fn render(fields: &[Field<'_>]) -> TokenStream {
+        let mut setters = Vec::new();
+        for Field { name, field_ty, trait_ty } in fields {
+            setters.push(quote! {
+                #name: plinky_utils::raw_types::RawReadError::wrap_field::<Self, _>(
+                    stringify!(#name),
+                    <#field_ty as #trait_ty>::read(bits, endian, reader)
+                )?,
+            });
+        }
+        quote! {
+            Ok(Self { #setters })
         }
     }
 
-    output.push_str(
-        "fn write(&self, bits: impl Into<plinky_utils::Bits>, endian: impl Into<plinky_utils::Endian>, writer: &mut dyn std::io::Write) -> Result<(), plinky_utils::raw_types::RawWriteError> {",
-    );
-    output.push_str("let bits = bits.into();");
-    output.push_str("let endian = endian.into();");
-    if fields32 != fields64 {
-        output.push_str("match bits {");
-        for (bits, fields) in [("Bits32", fields32), ("Bits64", fields64)] {
-            output.push_str(&format!("plinky_utils::Bits::{bits} => {{"));
-            render(output, fields);
-            output.push('}');
+    quote! {
+        fn read(
+            bits: impl Into<plinky_utils::Bits>,
+            endian: impl Into<plinky_utils::Endian>,
+            reader: &mut dyn std::io::Read,
+        ) -> Result<Self, plinky_utils::raw_types::RawReadError> {
+            let bits = bits.into();
+            let endian = endian.into();
+
+            match bits {
+                plinky_utils::Bits::Bits32 => #{ render(fields32) },
+                plinky_utils::Bits::Bits64 => #{ render(fields64) },
+            }
         }
-        output.push('}');
-    } else {
-        render(output, fields32);
     }
-    output.push_str("Ok(()) }");
+}
+
+fn fn_write(fields32: &[Field<'_>], fields64: &[Field<'_>]) -> TokenStream {
+    fn render(fields: &[Field<'_>]) -> TokenStream {
+        let mut writes = Vec::new();
+        for Field { name, field_ty, trait_ty } in fields {
+            writes.push(quote! {
+                plinky_utils::raw_types::RawWriteError::wrap_field::<Self, _>(
+                    stringify!(#name),
+                    <#field_ty as #trait_ty>::write(&self.#name, bits, endian, writer)
+                )?;
+            });
+        }
+        quote! { { #writes } }
+    }
+
+    quote! {
+        fn write(
+            &self,
+            bits: impl Into<plinky_utils::Bits>,
+            endian: impl Into<plinky_utils::Endian>,
+            writer: &mut dyn std::io::Write,
+        ) -> Result<(), plinky_utils::raw_types::RawWriteError> {
+            let bits = bits.into();
+            let endian = endian.into();
+
+            match bits {
+                plinky_utils::Bits::Bits32 => #{ render(fields32) },
+                plinky_utils::Bits::Bits64 => #{ render(fields64) },
+            }
+            Ok(())
+        }
+    }
 }
 
 fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Error> {
+    let trait_ty_base = Type("plinky_utils::raw_types::RawType".parse().unwrap());
+    let trait_ty_pointers = Type("plinky_utils::raw_types::RawTypeAsPointerSize".parse().unwrap());
+
     let mut fields: Vec<Field> = Vec::new();
 
     let parsed_fields = match &parsed.fields {
@@ -117,17 +126,17 @@ fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Err
     };
 
     for field in parsed_fields {
-        let mut trait_ty = "RawType";
+        let mut trait_ty = &trait_ty_base;
         let mut insert_at = fields.len();
 
         if let Some(attr) = field.attrs.get("pointer_size")? {
             attr.must_be_empty()?;
-            trait_ty = "RawTypeAsPointerSize";
+            trait_ty = &trait_ty_pointers;
         }
         if let Some(attr) = field.attrs.get("placed_on_elf32_after")? {
             let after = attr.get_equals_to_str()?;
             if is_elf32 {
-                insert_at = fields.iter().position(|i| i.name == after).ok_or_else(|| {
+                insert_at = fields.iter().position(|i| i.name.name == after).ok_or_else(|| {
                     Error::new(format!("could not find field called {after}")).span(attr.span)
                 })? + 1;
             }
@@ -135,21 +144,23 @@ fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Err
         if let Some(attr) = field.attrs.get("placed_on_elf64_after")? {
             let after = attr.get_equals_to_str()?;
             if !is_elf32 {
-                insert_at = fields.iter().position(|i| i.name == after).ok_or_else(|| {
+                insert_at = fields.iter().position(|i| i.name.name == after).ok_or_else(|| {
                     Error::new(format!("could not find field called {after}")).span(attr.span)
                 })? + 1;
             }
         }
 
-        fields.insert(insert_at, Field { name: &field.name, field_ty: &field.ty, trait_ty });
+        fields.insert(
+            insert_at,
+            Field { name: &field.name, field_ty: &field.ty, trait_ty: trait_ty.clone() },
+        );
     }
 
     Ok(fields)
 }
 
-#[derive(PartialEq, Eq)]
 struct Field<'a> {
-    name: &'a str,
-    field_ty: &'a str,
-    trait_ty: &'static str,
+    name: &'a Ident,
+    field_ty: &'a Type,
+    trait_ty: Type,
 }

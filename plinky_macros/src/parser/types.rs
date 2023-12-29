@@ -1,5 +1,6 @@
 use crate::error::Error;
-use proc_macro::Span;
+use plinky_macros_quote_traits::Quote;
+use proc_macro::{Span, TokenStream, TokenTree};
 
 #[derive(Debug, Clone)]
 pub(crate) enum Item {
@@ -10,7 +11,7 @@ pub(crate) enum Item {
 #[derive(Debug, Clone)]
 pub(crate) struct Struct {
     pub(crate) attrs: Attributes,
-    pub(crate) name: String,
+    pub(crate) name: Ident,
     pub(crate) generics: Vec<GenericParam>,
     pub(crate) fields: StructFields,
     pub(crate) span: Span,
@@ -26,14 +27,14 @@ pub(crate) enum StructFields {
 #[derive(Debug, Clone)]
 pub(crate) struct StructField {
     pub(crate) attrs: Attributes,
-    pub(crate) name: String,
-    pub(crate) ty: String,
+    pub(crate) name: Ident,
+    pub(crate) ty: Type,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct Enum {
     pub(crate) _attrs: Attributes,
-    pub(crate) name: String,
+    pub(crate) name: Ident,
     pub(crate) generics: Vec<GenericParam>,
     pub(crate) variants: Vec<EnumVariant>,
 }
@@ -42,7 +43,7 @@ pub(crate) struct Enum {
 pub(crate) struct EnumVariant {
     pub(crate) span: Span,
     pub(crate) attrs: Attributes,
-    pub(crate) name: String,
+    pub(crate) name: Ident,
     pub(crate) data: EnumVariantData,
 }
 
@@ -56,7 +57,7 @@ pub(crate) enum EnumVariantData {
 #[derive(Debug, Clone)]
 pub(crate) struct TupleField {
     pub(crate) attrs: Attributes,
-    pub(crate) ty: String,
+    pub(crate) ty: Type,
 }
 
 #[derive(Debug, Clone)]
@@ -67,15 +68,36 @@ pub(crate) enum GenericParam {
 
 #[derive(Debug, Clone)]
 pub(crate) struct GenericParamNormal {
-    pub(crate) name: String,
-    pub(crate) bound: String,
+    pub(crate) name: Ident,
+    pub(crate) bound: TokenStream,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct GenericParamConst {
-    pub(crate) name: String,
-    pub(crate) type_: String,
+    pub(crate) name: Ident,
+    pub(crate) type_: Type,
     pub(crate) _default: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Type(pub(crate) TokenStream);
+
+impl Quote for Type {
+    fn to_token_stream(&self) -> TokenStream {
+        self.0.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Ident {
+    pub(crate) name: String,
+    pub(crate) span: Span
+}
+
+impl Quote for Ident {
+    fn to_token_stream(&self) -> TokenStream {
+        TokenStream::from(TokenTree::Ident(proc_macro::Ident::new(&self.name, self.span)))
+    }
 }
 
 #[derive(Debug, Clone)]

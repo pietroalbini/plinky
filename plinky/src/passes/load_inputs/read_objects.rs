@@ -1,6 +1,6 @@
 use crate::repr::symbols::Symbols;
 use plinky_ar::{ArFile, ArMember, ArMemberId, ArReadError, ArReader};
-use plinky_diagnostics::ObjectSpan;
+use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
@@ -103,6 +103,9 @@ impl PendingArchive {
         {
             Some(ArMember::File(file)) => {
                 return Err(ReadObjectsError::NoSymbolTableAtArchiveStart {
+                    diagnostic: crate::diagnostics::no_symbol_table_at_archive_start::build(
+                        &path, &file.name,
+                    ),
                     path,
                     first_file_name: file.name,
                 });
@@ -183,5 +186,10 @@ pub(crate) enum ReadObjectsError {
     #[display("unsupported file type")]
     UnsupportedFileType,
     #[display("the first member of the archive {path:?} is not a symbol table, it's file {first_file_name}")]
-    NoSymbolTableAtArchiveStart { path: PathBuf, first_file_name: String },
+    NoSymbolTableAtArchiveStart {
+        path: PathBuf,
+        first_file_name: String,
+        #[diagnostic]
+        diagnostic: Diagnostic,
+    },
 }

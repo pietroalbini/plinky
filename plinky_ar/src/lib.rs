@@ -1,3 +1,5 @@
+#![feature(error_generic_member_access)]
+
 mod reader;
 mod utils;
 

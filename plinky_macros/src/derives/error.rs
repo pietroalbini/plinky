@@ -14,6 +14,17 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 }
 
 fn generate_error_impl(item: &Item) -> Result<TokenStream, Error> {
+    Ok(generate_impl_for(
+        item,
+        "std::error::Error",
+        quote! {
+            #{ generate_error_source(item)? }
+            #{ generate_error_provide(item)? }
+        },
+    ))
+}
+
+fn generate_error_source(item: &Item) -> Result<TokenStream, Error> {
     let body = generate_for_each_variant(item, |_span, attrs, fields| {
         if let Some(attr) = attrs.get("transparent")? {
             attr.must_be_empty()?;
@@ -61,15 +72,60 @@ fn generate_error_impl(item: &Item) -> Result<TokenStream, Error> {
         }
     })?;
 
-    Ok(generate_impl_for(
-        item,
-        "std::error::Error",
-        quote! {
-            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    Ok(quote! {
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            #body
+        }
+    })
+}
+
+fn generate_error_provide(item: &Item) -> Result<TokenStream, Error> {
+    let mut any_provide = false;
+    let body = generate_for_each_variant(item, |_span, attrs, fields| {
+        let mut diagnostic = None;
+        for field in fields {
+            if let Some(attr) = field.attrs.get("diagnostic")? {
+                attr.must_be_empty()?;
+                match diagnostic {
+                    None => diagnostic = Some(field),
+                    Some(_) => {
+                        return Err(Error::new("multiple #[diagnostic] attributes").span(attr.span));
+                    }
+                }
+            }
+        }
+
+        if let Some(attr) = attrs.get("transparent")? {
+            if diagnostic.is_some() {
+                return Err(Error::new("#[transparent] with #[diagnostic] is not supported")
+                    .span(attr.span));
+            }
+            let [field] = fields else {
+                return Err(Error::new("#[transparent] is only supported with exactly one field")
+                    .span(attr.span));
+            };
+            any_provide = true;
+            Ok(quote!(#{ &field.access_ref }.provide(request)))
+        } else if let Some(diagnostic) = diagnostic {
+            any_provide = true;
+            Ok(quote! {
+                {
+                    request.provide_ref::<plinky_diagnostics::Diagnostic>(#{ &diagnostic.access_ref });
+                }
+            })
+        } else {
+            Ok(quote!({}))
+        }
+    })?;
+    if any_provide {
+        Ok(quote! {
+            fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
                 #body
             }
-        },
-    ))
+        })
+    } else {
+        Ok(quote!())
+    }
 }
 
 fn generate_from_impls(item: &Item) -> Result<Vec<TokenStream>, Error> {

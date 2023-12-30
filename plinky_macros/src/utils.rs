@@ -43,9 +43,9 @@ pub(crate) fn generate_impl_for(item: &Item, trait_: &str, body: TokenStream) ->
     }
 }
 
-pub(crate) fn generate_for_each_variant<F, E>(item: &Item, f: F) -> Result<TokenStream, E>
+pub(crate) fn generate_for_each_variant<F, E>(item: &Item, mut f: F) -> Result<TokenStream, E>
 where
-    F: Fn(Span, &Attributes, &[UnifiedField<'_>]) -> Result<TokenStream, E>,
+    F: FnMut(Span, &Attributes, &[UnifiedField<'_>]) -> Result<TokenStream, E>,
 {
     match item {
         Item::Struct(struct_) => {

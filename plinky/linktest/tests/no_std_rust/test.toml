@@ -1,0 +1,6 @@
+cmd = ["libhello.a"]
+kind = "link-fail"
+archs = ["x86_64"]
+
+[[rust]]
+source = "hello.rs"

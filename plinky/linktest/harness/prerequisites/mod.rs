@@ -1,6 +1,7 @@
 mod ar;
 mod asm;
 mod c;
+mod rust;
 
 use crate::prerequisites::ar::ArArchive;
 use crate::prerequisites::asm::AsmFile;
@@ -9,6 +10,7 @@ use crate::{TestArch, TestExecution};
 use anyhow::Error;
 use std::collections::BTreeMap;
 use std::path::Path;
+use crate::prerequisites::rust::RustFile;
 
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -19,6 +21,8 @@ pub(crate) struct Prerequisites {
     c: Vec<CFile>,
     #[serde(default)]
     ar: Vec<ArArchive>,
+    #[serde(default)]
+    rust: Vec<RustFile>,
     #[serde(default)]
     arch: BTreeMap<TestArch, Prerequisites>,
 }
@@ -33,6 +37,9 @@ impl Prerequisites {
         }
         for ar in &self.ar {
             ar.build(execution, dest_dir)?;
+        }
+        for rust in &self.rust {
+            rust.build(execution, dest_dir)?;
         }
         if let Some(arch_specific) = self.arch.get(&execution.arch) {
             arch_specific.build(execution, dest_dir)?;

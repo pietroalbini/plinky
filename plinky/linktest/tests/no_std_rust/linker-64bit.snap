@@ -1,0 +1,11 @@
+---
+source: plinky/linktest/harness/main.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: no input files were provided
+
+

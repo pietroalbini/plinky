@@ -6,6 +6,7 @@ use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use std::collections::BTreeSet;
+use std::fmt::Debug;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: BTreeSet<DebugPrint>,
@@ -14,7 +15,7 @@ pub(crate) struct DebugCallbacks {
 impl LinkerCallbacks for DebugCallbacks {
     fn on_inputs_loaded(&self, object: &Object<()>) {
         if self.print.contains(&DebugPrint::LoadedObject) {
-            render("loaded object", Text::new(format!("{object:#x?}")));
+            render_object("loaded object", object);
         }
     }
 
@@ -62,7 +63,7 @@ impl LinkerCallbacks for DebugCallbacks {
 
     fn on_relocations_applied(&self, object: &Object<SectionLayout>) {
         if self.print.contains(&DebugPrint::RelocatedObject) {
-            render("object after relocations are applied", Text::new(format!("{object:#x?}")));
+            render_object("object after relocations are applied", object);
         }
     }
 
@@ -71,6 +72,18 @@ impl LinkerCallbacks for DebugCallbacks {
             render("built elf", Text::new(format!("{elf:#x?}")));
         }
     }
+}
+
+fn render_object<T: Debug>(message: &str, object: &Object<T>) {
+    let mut diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message);
+
+    diagnostic = diagnostic.add(Text::new(format!("env: {:#?}", object.env)));
+
+    diagnostic = diagnostic.add(Text::new(format!("sections: {:#?}", object.sections)));
+
+    diagnostic = diagnostic.add(Text::new(format!("symbols: {:#?}", object.symbols)));
+
+    eprintln!("{diagnostic}\n");
 }
 
 fn render<T: Widget + 'static>(message: &str, widget: T) {

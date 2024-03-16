@@ -94,6 +94,10 @@ impl Symbols {
             None => Err(MissingGlobalSymbol { name: name.into(), requested: false }),
         }
     }
+
+    pub(crate) fn iter_local(&self) -> impl Iterator<Item = &ElfSymbol<SerialIds>> {
+        self.local_symbols.values()
+    }
 }
 
 #[derive(Debug)]

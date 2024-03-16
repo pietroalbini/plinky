@@ -4,7 +4,7 @@ use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout
 use plinky_diagnostics::widgets::{Table, Text, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SerialIds;
-use plinky_elf::ElfObject;
+use plinky_elf::{ElfObject, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 
@@ -78,12 +78,60 @@ fn render_object<T: Debug>(message: &str, object: &Object<T>) {
     let mut diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message);
 
     diagnostic = diagnostic.add(Text::new(format!("env: {:#?}", object.env)));
-
     diagnostic = diagnostic.add(Text::new(format!("sections: {:#?}", object.sections)));
-
+    diagnostic = diagnostic.add(render_symbols(object, object.symbols.iter_local()));
     diagnostic = diagnostic.add(Text::new(format!("symbols: {:#?}", object.symbols)));
 
     eprintln!("{diagnostic}\n");
+}
+
+fn render_symbols<'a, T>(
+    object: &Object<T>,
+    symbols: impl Iterator<Item = &'a ElfSymbol<SerialIds>>,
+) -> Table {
+    let mut table = Table::new();
+    table.add_row(["Name", "Binding", "Type", "Value"]);
+    for symbol in symbols {
+        let name = match (&symbol.type_, &symbol.definition) {
+            (ElfSymbolType::Section, ElfSymbolDefinition::Section(id)) => object
+                .section_ids_to_names
+                .get(id)
+                .map(|s| s.resolve().to_string())
+                .unwrap_or_else(|| "<unknown>".to_string()),
+            _ => object.strings.get(symbol.name).unwrap_or("<unknown>").to_string(),
+        };
+        let binding = match symbol.binding {
+            ElfSymbolBinding::Local => "local",
+            ElfSymbolBinding::Global => "global",
+            ElfSymbolBinding::Weak => "weak",
+            ElfSymbolBinding::Unknown(_) => "unknown",
+        };
+        let type_ = match symbol.type_ {
+            ElfSymbolType::NoType => "no type",
+            ElfSymbolType::Object => "object",
+            ElfSymbolType::Function => "function",
+            ElfSymbolType::Section => "section",
+            ElfSymbolType::File => "file",
+            ElfSymbolType::Unknown(_) => "unknown",
+        };
+        let value = match (&symbol.definition, &symbol.type_) {
+            (ElfSymbolDefinition::Undefined, _) => "<undefined>".to_string(),
+            (ElfSymbolDefinition::Absolute, ElfSymbolType::File) => "-".to_string(),
+            (ElfSymbolDefinition::Absolute, _) => format!("{:#x}", symbol.value),
+            (ElfSymbolDefinition::Common, _) => todo!(),
+            (ElfSymbolDefinition::Section(_), ElfSymbolType::Section) => "-".to_string(),
+            (ElfSymbolDefinition::Section(id), _) => {
+                let section_name = object
+                    .section_ids_to_names
+                    .get(id)
+                    .map(|name| name.resolve().to_string())
+                    .unwrap_or_else(|| "<unknown section>".into());
+                format!("{section_name} + {:#x}", symbol.value)
+            }
+        };
+        table.add_row([&name, binding, type_, &value]);
+    }
+    table
 }
 
 fn render<T: Widget + 'static>(message: &str, widget: T) {

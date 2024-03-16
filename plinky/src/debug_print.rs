@@ -1,10 +1,11 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
 use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
+use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{Table, Text, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SerialIds;
-use plinky_elf::{ElfObject, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType};
+use plinky_elf::ElfObject;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 
@@ -79,63 +80,36 @@ fn render_object<T: Debug>(message: &str, object: &Object<T>) {
 
     diagnostic = diagnostic.add(Text::new(format!("env: {:#?}", object.env)));
     diagnostic = diagnostic.add(Text::new(format!("sections: {:#?}", object.sections)));
-    diagnostic = diagnostic.add(render_symbols(object, object.symbols.iter_local()));
-    diagnostic = diagnostic.add(render_symbols(
-        object,
-        object.symbols.iter_global().map(|(_, symbol)| match symbol {
-            crate::repr::symbols::GlobalSymbol::Strong(symbol) => symbol,
-            crate::repr::symbols::GlobalSymbol::Undefined => todo!(),
-        }),
-    ));
+    diagnostic = diagnostic.add(render_symbols(object, object.symbols.iter()));
 
     eprintln!("{diagnostic}\n");
 }
 
-fn render_symbols<'a, T>(
-    object: &Object<T>,
-    symbols: impl Iterator<Item = &'a ElfSymbol<SerialIds>>,
-) -> Table {
+fn render_symbols<'a, T>(object: &Object<T>, symbols: impl Iterator<Item = &'a Symbol>) -> Table {
+    let mut symbols = symbols.collect::<Vec<_>>();
+    symbols.sort_by_key(|symbol| symbol.name);
+
     let mut table = Table::new();
-    table.add_row(["Name", "Binding", "Type", "Value"]);
+    table.add_row(["Name", "Visibility", "Value"]);
     for symbol in symbols {
-        let name = match (&symbol.type_, &symbol.definition) {
-            (ElfSymbolType::Section, ElfSymbolDefinition::Section(id)) => object
-                .section_ids_to_names
-                .get(id)
-                .map(|s| s.resolve().to_string())
-                .unwrap_or_else(|| "<unknown>".to_string()),
-            _ => object.strings.get(symbol.name).unwrap_or("<unknown>").to_string(),
+        let visibility = match symbol.visibility {
+            SymbolVisibility::Local => "local",
+            SymbolVisibility::Global { weak: true } => "global (weak)",
+            SymbolVisibility::Global { weak: false } => "global",
         };
-        let binding = match symbol.binding {
-            ElfSymbolBinding::Local => "local",
-            ElfSymbolBinding::Global => "global",
-            ElfSymbolBinding::Weak => "weak",
-            ElfSymbolBinding::Unknown(_) => "unknown",
-        };
-        let type_ = match symbol.type_ {
-            ElfSymbolType::NoType => "no type",
-            ElfSymbolType::Object => "object",
-            ElfSymbolType::Function => "function",
-            ElfSymbolType::Section => "section",
-            ElfSymbolType::File => "file",
-            ElfSymbolType::Unknown(_) => "unknown",
-        };
-        let value = match (&symbol.definition, &symbol.type_) {
-            (ElfSymbolDefinition::Undefined, _) => "<undefined>".to_string(),
-            (ElfSymbolDefinition::Absolute, ElfSymbolType::File) => "-".to_string(),
-            (ElfSymbolDefinition::Absolute, _) => format!("{:#x}", symbol.value),
-            (ElfSymbolDefinition::Common, _) => todo!(),
-            (ElfSymbolDefinition::Section(_), ElfSymbolType::Section) => "-".to_string(),
-            (ElfSymbolDefinition::Section(id), _) => {
+        let value = match symbol.value {
+            SymbolValue::Absolute { value } => format!("{value:#x}"),
+            SymbolValue::SectionRelative { section, offset } => {
                 let section_name = object
                     .section_ids_to_names
-                    .get(id)
+                    .get(&section)
                     .map(|name| name.resolve().to_string())
                     .unwrap_or_else(|| "<unknown section>".into());
-                format!("{section_name} + {:#x}", symbol.value)
+                format!("{section_name} + {offset:#x}")
             }
+            SymbolValue::Undefined => "<undefined>".into(),
         };
-        table.add_row([&name, binding, type_, &value]);
+        table.add_row([&symbol.name.to_string(), visibility, &value]);
     }
     table
 }

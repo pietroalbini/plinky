@@ -1,11 +1,9 @@
 use crate::interner::Interned;
 use crate::repr::strings::Strings;
-use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
+use crate::repr::symbols::{MissingGlobalSymbol, SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{
-    ElfDeduplication, ElfEnvironment, ElfPermissions, ElfRelocation, ElfSymbolDefinition, RawBytes,
-};
+use plinky_elf::{ElfDeduplication, ElfEnvironment, ElfPermissions, ElfRelocation, RawBytes};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
@@ -19,15 +17,17 @@ pub(crate) struct Object<L> {
 }
 
 impl Object<SectionLayout> {
-    pub(crate) fn global_symbol_address(&self, name: &str) -> Result<u64, GetSymbolAddressError> {
+    pub(crate) fn global_symbol_address(
+        &self,
+        name: Interned<String>,
+    ) -> Result<u64, GetSymbolAddressError> {
         let symbol = self.symbols.get_global(name)?;
 
         // TODO: find a way to deduplicate this with the copy of the function in the relocation.
-        match symbol.definition {
-            ElfSymbolDefinition::Undefined => Err(GetSymbolAddressError::Undefined(name.into())),
-            ElfSymbolDefinition::Absolute => Err(GetSymbolAddressError::NotAnAddress(name.into())),
-            ElfSymbolDefinition::Common => todo!(),
-            ElfSymbolDefinition::Section(section_id) => {
+        match symbol.value {
+            SymbolValue::Undefined => Err(GetSymbolAddressError::Undefined(name.into())),
+            SymbolValue::Absolute { .. } => Err(GetSymbolAddressError::NotAnAddress(name.into())),
+            SymbolValue::SectionRelative { section: section_id, offset } => {
                 let section_addr = self
                     .section_ids_to_names
                     .get(&section_id)
@@ -44,7 +44,7 @@ impl Object<SectionLayout> {
                         }
                     })
                     .expect("invalid section id");
-                Ok(section_addr + symbol.value)
+                Ok(section_addr + offset)
             }
         }
     }
@@ -106,7 +106,7 @@ pub(crate) enum GetSymbolAddressError {
     #[transparent]
     Missing(MissingGlobalSymbol),
     #[display("symbol {f0} is undefined")]
-    Undefined(String),
+    Undefined(Interned<String>),
     #[display("symbol {f0} is not an address")]
-    NotAnAddress(String),
+    NotAnAddress(Interned<String>),
 }

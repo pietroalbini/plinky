@@ -1,5 +1,5 @@
 use crate::cli::CliOptions;
-use crate::interner::Interned;
+use crate::interner::{intern, Interned};
 use crate::repr::object::{
     DataSectionPart, GetSymbolAddressError, Object, Section, SectionContent, SectionLayout,
 };
@@ -18,7 +18,7 @@ pub(crate) fn run(
 ) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
     let mut ids = SerialIds::new();
     let builder = ElfBuilder {
-        entrypoint: options.entry.clone(),
+        entrypoint: intern(&options.entry),
         object,
         section_zero_id: ids.allocate_section_id(),
         section_names: PendingStringsTable::new(&mut ids),
@@ -28,7 +28,7 @@ pub(crate) fn run(
 }
 
 struct ElfBuilder {
-    entrypoint: String,
+    entrypoint: Interned<String>,
     object: Object<SectionLayout>,
 
     ids: SerialIds,
@@ -55,10 +55,10 @@ impl ElfBuilder {
         Ok(Some(
             NonZeroU64::new(
                 self.object
-                    .global_symbol_address(&self.entrypoint)
+                    .global_symbol_address(self.entrypoint)
                     .map_err(ElfBuilderError::InvalidEntrypoint)?,
             )
-            .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.entrypoint.clone()))?,
+            .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
         ))
     }
 
@@ -208,7 +208,7 @@ impl PendingStringsTable {
 #[derive(Debug, Error)]
 pub(crate) enum ElfBuilderError {
     InvalidEntrypoint(#[source] GetSymbolAddressError),
-    EntrypointIsZero(String),
+    EntrypointIsZero(Interned<String>),
 }
 
 impl std::fmt::Display for ElfBuilderError {

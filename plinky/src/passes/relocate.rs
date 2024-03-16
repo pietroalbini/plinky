@@ -2,9 +2,9 @@ use crate::repr::object::{
     DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, SectionContent,
     SectionLayout,
 };
-use crate::repr::symbols::{MissingGlobalSymbol, Symbols};
+use crate::repr::symbols::{MissingGlobalSymbol, SymbolValue, Symbols};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plinky_elf::{ElfRelocation, ElfRelocationType, ElfSymbolDefinition};
+use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
@@ -98,12 +98,11 @@ impl<'a> Relocator<'a> {
 
     fn symbol(&self, rel: &ElfRelocation<SerialIds>, offset: i64) -> Result<i64, RelocationError> {
         let symbol = self.symbols.get(rel.symbol)?;
-        match symbol.definition {
-            ElfSymbolDefinition::Undefined => Err(RelocationError::UndefinedSymbol(rel.symbol)),
-            ElfSymbolDefinition::Absolute => Ok(symbol.value as i64 + offset),
-            ElfSymbolDefinition::Common => todo!(),
-            ElfSymbolDefinition::Section(section) => {
-                Ok(self.resolve(section, symbol.value as i64 + offset)?)
+        match symbol.value {
+            SymbolValue::Undefined => Err(RelocationError::UndefinedSymbol(rel.symbol)),
+            SymbolValue::Absolute { value } => Ok(value as i64 + offset),
+            SymbolValue::SectionRelative { section, offset: section_offset } => {
+                Ok(self.resolve(section, section_offset as i64 + offset)?)
             }
         }
     }

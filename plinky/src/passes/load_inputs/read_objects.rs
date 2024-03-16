@@ -1,5 +1,5 @@
 use crate::repr::symbols::Symbols;
-use plinky_ar::{ArFile, ArMember, ArMemberId, ArReadError, ArReader};
+use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
 use plinky_elf::ids::serial::SerialIds;
@@ -93,26 +93,14 @@ impl PendingArchive {
         reader: BufReader<File>,
         symbols: &Symbols,
     ) -> Result<Option<Self>, ReadObjectsError> {
-        let mut reader =
+        let reader =
             ArReader::new(reader).map_err(|e| ReadObjectsError::ExtractFailed(path.clone(), e))?;
 
-        let symbol_table = match reader
-            .next()
-            .transpose()
-            .map_err(|e| ReadObjectsError::ExtractFailed(path.clone(), e))?
-        {
-            Some(ArMember::File(file)) => {
-                return Err(ReadObjectsError::NoSymbolTableAtArchiveStart {
-                    diagnostic: crate::diagnostics::no_symbol_table_at_archive_start::build(
-                        &path, &file.name,
-                    ),
-                    path,
-                    first_file_name: file.name,
-                });
-            }
-            Some(ArMember::SymbolTable(table)) => table,
-            // If the archive is empty we don't need to error out, we can just ignore it wholesale.
-            None => return Ok(None),
+        let Some(symbol_table) = reader.symbol_table().cloned() else {
+            return Err(ReadObjectsError::NoSymbolTableAtArchiveStart {
+                diagnostic: crate::diagnostics::no_symbol_table_at_archive_start::build(&path),
+                path,
+            });
         };
 
         let mut pending_members = VecDeque::new();
@@ -185,10 +173,9 @@ pub(crate) enum ReadObjectsError {
     FileParseFailed(PathBuf, #[source] LoadError),
     #[display("unsupported file type")]
     UnsupportedFileType,
-    #[display("the first member of the archive {path:?} is not a symbol table, it's file {first_file_name}")]
+    #[display("the first member of the archive {path:?} is not a symbol table")]
     NoSymbolTableAtArchiveStart {
         path: PathBuf,
-        first_file_name: String,
         #[diagnostic]
         diagnostic: Diagnostic,
     },

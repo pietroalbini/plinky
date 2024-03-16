@@ -7,12 +7,6 @@ pub use crate::reader::{ArReadError, ArReader};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ArMember {
-    SymbolTable(ArSymbolTable),
-    File(ArFile),
-}
-
-#[derive(Debug, PartialEq, Eq)]
 pub struct ArFile {
     pub name: String,
     pub content: Vec<u8>,
@@ -22,7 +16,7 @@ pub struct ArFile {
     pub mode: u64,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArSymbolTable {
     pub symbols: HashMap<String, ArMemberId>,
 }

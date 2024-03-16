@@ -5,7 +5,7 @@
 // [2]: https://man.freebsd.org/cgi/man.cgi?query=ar&sektion=5
 
 use crate::utils::{RawString, RawStringAsU64};
-use crate::{ArFile, ArMember, ArMemberId, ArSymbolTable};
+use crate::{ArFile, ArMemberId, ArSymbolTable};
 use plinky_macros::{Display, Error, RawType};
 use plinky_utils::raw_types::{RawReadError, RawType};
 use plinky_utils::{Bits, Endian};
@@ -13,10 +13,14 @@ use std::collections::HashMap;
 use std::io::{BufRead, Seek, SeekFrom};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+const GNU_SYMBOL_TABLE_NAME: &str = "/";
+const GNU_FILE_NAMES_NAME: &str = "//";
+
 static NEXT_READER_SERIAL: AtomicU64 = AtomicU64::new(0);
 
 pub struct ArReader<R: BufRead + Seek> {
     read: R,
+    symbol_table: Option<ArSymbolTable>,
     gnu_file_names: Option<HashMap<u64, String>>,
     serial: u64,
 }
@@ -25,6 +29,7 @@ impl<R: BufRead + Seek> ArReader<R> {
     pub fn new(read: R) -> Result<Self, ArReadError> {
         let mut reader = Self {
             read,
+            symbol_table: None,
             gnu_file_names: None,
             serial: NEXT_READER_SERIAL.fetch_add(1, Ordering::Relaxed),
         };
@@ -34,7 +39,23 @@ impl<R: BufRead + Seek> ArReader<R> {
             return Err(ArReadError::UnexpectedMagic(String::from_utf8_lossy(&magic).into()));
         }
 
+        // The symbol table and the file names table must be located at the start of the file. We
+        // read them at the constructor otherwise we risk them not being read when jumping to files
+        // with read_member_by_id.
+        if reader.peek_next_file_name()?.as_deref() == Some(GNU_SYMBOL_TABLE_NAME) {
+            let (_header, content) = reader.read_raw_file()?;
+            reader.symbol_table = Some(reader.read_gnu_symbol_table(&content)?);
+        }
+        if reader.peek_next_file_name()?.as_deref() == Some(GNU_FILE_NAMES_NAME) {
+            let (_header, content) = reader.read_raw_file()?;
+            reader.gnu_file_names = Some(reader.read_gnu_file_names(&content)?);
+        }
+
         Ok(reader)
+    }
+
+    pub fn symbol_table(&self) -> Option<&ArSymbolTable> {
+        self.symbol_table.as_ref()
     }
 
     pub fn read_member_by_id(&mut self, id: &ArMemberId) -> Result<ArFile, ArReadError> {
@@ -48,73 +69,67 @@ impl<R: BufRead + Seek> ArReader<R> {
         let result = self.read_file();
         self.seek(old_position)?;
 
-        match result? {
-            Some(ArMember::File(file)) => Ok(file),
-            _ => Err(ArReadError::InvalidReferenceInSymbolTable),
-        }
+        result?.ok_or(ArReadError::InvalidReferenceInSymbolTable)
     }
 
-    fn read_file(&mut self) -> Result<Option<ArMember>, ArReadError> {
-        loop {
-            // Terminate if we reach the end of the file.
-            if self.read.fill_buf().map(|buf| buf.is_empty()).unwrap_or(false) {
-                return Ok(None);
-            }
-
-            let header: RawHeader = self.read_raw()?;
-            if header.end_magic != [b'`', b'\n'] {
-                return Err(ArReadError::InvalidEndMagic(header.end_magic));
-            }
-
-            let mut content = vec![0; header.size.value as _];
-            self.read.read_exact(&mut content).map_err(ArReadError::ContentReadFailed)?;
-
-            self.align()?;
-
-            let raw_name = header.name.value.trim_end_matches(' ');
-            let name = if raw_name == "/" {
-                // GNU format, symbol table
-                return Ok(Some(ArMember::SymbolTable(self.read_gnu_symbol_table(&content)?)));
-            } else if raw_name == "//" {
-                // GNU format, file names table
-                match &self.gnu_file_names {
-                    Some(_) => return Err(ArReadError::DuplicateGnuFileNamesTable),
-                    None => {
-                        self.gnu_file_names = Some(self.read_gnu_file_names(&content)?);
-                        continue;
-                    }
-                }
-            } else if let Some(name) = raw_name.strip_suffix('/') {
-                // GNU format, name.len() <= 15
-                name.to_string()
-            } else if let Some(offset) = raw_name.strip_prefix('/') {
-                // GNU format, name.len() > 15, offset in the string table
-                let offset: u64 = offset
-                    .parse()
-                    .map_err(|e| ArReadError::InvalidOffsetForGnuLongName(offset.into(), e))?;
-                self.gnu_file_names
-                    .as_ref()
-                    .ok_or(ArReadError::LongNameWithoutGnuFileNamesTable)?
-                    .get(&offset)
-                    .ok_or(ArReadError::MissingNameInGnuFileNamesTable(offset))?
-                    .clone()
-            } else if let Some(_len) = raw_name.strip_prefix("#1/") {
-                // BSD format, lame.len() > 16, len is the size of name at the start of content
-                return Err(ArReadError::BsdFormatUnsupported);
-            } else {
-                // BSD format, name.len() <= 16
-                return Err(ArReadError::BsdFormatUnsupported);
-            };
-
-            return Ok(Some(ArMember::File(ArFile {
-                name,
-                content,
-                modification_time: header.mtime.value,
-                owner_id: header.uid.value,
-                group_id: header.gid.value,
-                mode: header.mode.value,
-            })));
+    fn read_file(&mut self) -> Result<Option<ArFile>, ArReadError> {
+        // Terminate if we reach the end of the file.
+        if self.is_eof() {
+            return Ok(None);
         }
+
+        let (header, content) = self.read_raw_file()?;
+
+        let raw_name = header.name.value.trim_end_matches(' ');
+        let name = if raw_name == GNU_SYMBOL_TABLE_NAME {
+            // GNU format, symbol table
+            return Err(ArReadError::SymbolTableNotAtBeginning);
+        } else if raw_name == GNU_FILE_NAMES_NAME {
+            // GNU format, file names table
+            return Err(ArReadError::FileNamesTableNotAtBeginning);
+        } else if let Some(name) = raw_name.strip_suffix('/') {
+            // GNU format, name.len() <= 15
+            name.to_string()
+        } else if let Some(offset) = raw_name.strip_prefix('/') {
+            // GNU format, name.len() > 15, offset in the string table
+            let offset: u64 = offset
+                .parse()
+                .map_err(|e| ArReadError::InvalidOffsetForGnuLongName(offset.into(), e))?;
+            self.gnu_file_names
+                .as_ref()
+                .ok_or(ArReadError::LongNameWithoutGnuFileNamesTable)?
+                .get(&offset)
+                .ok_or(ArReadError::MissingNameInGnuFileNamesTable(offset))?
+                .clone()
+        } else if let Some(_len) = raw_name.strip_prefix("#1/") {
+            // BSD format, lame.len() > 16, len is the size of name at the start of content
+            return Err(ArReadError::BsdFormatUnsupported);
+        } else {
+            // BSD format, name.len() <= 16
+            return Err(ArReadError::BsdFormatUnsupported);
+        };
+
+        return Ok(Some(ArFile {
+            name,
+            content,
+            modification_time: header.mtime.value,
+            owner_id: header.uid.value,
+            group_id: header.gid.value,
+            mode: header.mode.value,
+        }));
+    }
+
+    fn peek_next_file_name(&mut self) -> Result<Option<String>, ArReadError> {
+        if self.is_eof() {
+            return Ok(None);
+        }
+
+        let old_position =
+            self.read.stream_position().map_err(ArReadError::GetCurrentPositionFailed)?;
+        let header: RawHeader = self.read_raw()?;
+        self.seek(old_position)?;
+
+        Ok(Some(header.name.value.trim_end_matches(' ').into()))
     }
 
     fn read_gnu_file_names(&self, mut raw: &[u8]) -> Result<HashMap<u64, String>, ArReadError> {
@@ -172,6 +187,20 @@ impl<R: BufRead + Seek> ArReader<R> {
         Ok(ArSymbolTable { symbols })
     }
 
+    fn read_raw_file(&mut self) -> Result<(RawHeader, Vec<u8>), ArReadError> {
+        let header: RawHeader = self.read_raw()?;
+        if header.end_magic != [b'`', b'\n'] {
+            return Err(ArReadError::InvalidEndMagic(header.end_magic));
+        }
+
+        let mut content = vec![0; header.size.value as _];
+        self.read.read_exact(&mut content).map_err(ArReadError::ContentReadFailed)?;
+
+        self.align()?;
+
+        Ok((header, content))
+    }
+
     fn read_raw<T: RawType>(&mut self) -> Result<T, ArReadError> {
         // There are no types we need to read that depend on the bits of the processor, so we just
         // pick any of them to parse the raw types. The binary part of AR archives is also encoded
@@ -198,10 +227,14 @@ impl<R: BufRead + Seek> ArReader<R> {
             .map_err(|e| ArReadError::SeekFailed(position, e))?;
         Ok(())
     }
+
+    fn is_eof(&mut self) -> bool {
+        self.read.fill_buf().map(|buf| buf.is_empty()).unwrap_or(false)
+    }
 }
 
 impl<R: BufRead + Seek> Iterator for ArReader<R> {
-    type Item = Result<ArMember, ArReadError>;
+    type Item = Result<ArFile, ArReadError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.read_file().transpose()
@@ -237,8 +270,6 @@ pub enum ArReadError {
     InvalidAlignByte(u8),
     #[display("invalid magic value at the end of a file header: {f0:#x?}")]
     InvalidEndMagic([u8; 2]),
-    #[display("the GNU file names table is present more than one time")]
-    DuplicateGnuFileNamesTable,
     #[display("the GNU file names table doesn't contain UTF-8 text")]
     NonUtf8GnuFileNamesTable,
     #[display("unterminated file name in GNU file names table")]
@@ -255,6 +286,10 @@ pub enum ArReadError {
     InvalidReferenceInSymbolTable,
     #[display("the BSD ar format is not supported")]
     BsdFormatUnsupported,
+    #[display("the symbol table is not at the beginning of the file")]
+    SymbolTableNotAtBeginning,
+    #[display("the file names table is not at the beginning of the file")]
+    FileNamesTableNotAtBeginning,
 }
 
 #[derive(Debug, Error, Display)]
@@ -299,7 +334,7 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        assert_eq!(Vec::<ArMember>::new(), parse!("empty.a").unwrap());
+        assert_eq!((None, Vec::new()), parse!("empty.a").unwrap());
     }
 
     #[test]
@@ -313,14 +348,17 @@ mod tests {
     #[test]
     fn test_gnu_one_file() {
         assert_eq!(
-            vec![ArMember::File(ArFile {
-                name: "example.txt".into(),
-                content: b"hello\n".into(),
-                modification_time: 0,
-                owner_id: 0,
-                group_id: 0,
-                mode: 0o644,
-            })],
+            (
+                None,
+                vec![ArFile {
+                    name: "example.txt".into(),
+                    content: b"hello\n".into(),
+                    modification_time: 0,
+                    owner_id: 0,
+                    group_id: 0,
+                    mode: 0o644,
+                }]
+            ),
             parse!("gnu-one-file.a").unwrap()
         );
     }
@@ -328,32 +366,35 @@ mod tests {
     #[test]
     fn test_gnu_multiple_files() {
         assert_eq!(
-            vec![
-                ArMember::File(ArFile {
-                    name: "unaligned-with-very-very-long-file-name.txt".into(),
-                    content: b"unaligned body\n".into(),
-                    modification_time: 0,
-                    owner_id: 0,
-                    group_id: 0,
-                    mode: 0o644,
-                }),
-                ArMember::File(ArFile {
-                    name: "aligned.txt".into(),
-                    content: b"hello\n".into(),
-                    modification_time: 0,
-                    owner_id: 0,
-                    group_id: 0,
-                    mode: 0o644,
-                }),
-                ArMember::File(ArFile {
-                    name: "also-aligned.txt".into(),
-                    content: b"aligned\n".into(),
-                    modification_time: 0,
-                    owner_id: 0,
-                    group_id: 0,
-                    mode: 0o644,
-                }),
-            ],
+            (
+                None,
+                vec![
+                    ArFile {
+                        name: "unaligned-with-very-very-long-file-name.txt".into(),
+                        content: b"unaligned body\n".into(),
+                        modification_time: 0,
+                        owner_id: 0,
+                        group_id: 0,
+                        mode: 0o644,
+                    },
+                    ArFile {
+                        name: "aligned.txt".into(),
+                        content: b"hello\n".into(),
+                        modification_time: 0,
+                        owner_id: 0,
+                        group_id: 0,
+                        mode: 0o644,
+                    },
+                    ArFile {
+                        name: "also-aligned.txt".into(),
+                        content: b"aligned\n".into(),
+                        modification_time: 0,
+                        owner_id: 0,
+                        group_id: 0,
+                        mode: 0o644,
+                    },
+                ]
+            ),
             parse!("gnu-multiple-files.a").unwrap()
         );
     }
@@ -361,14 +402,17 @@ mod tests {
     #[test]
     fn test_metadata() {
         assert_eq!(
-            vec![ArMember::File(ArFile {
-                name: "hello.txt".into(),
-                content: b"data\n".into(),
-                modification_time: 1703532181,
-                owner_id: 1000,
-                group_id: 1000,
-                mode: 0o100664
-            })],
+            (
+                None,
+                vec![ArFile {
+                    name: "hello.txt".into(),
+                    content: b"data\n".into(),
+                    modification_time: 1703532181,
+                    owner_id: 1000,
+                    group_id: 1000,
+                    mode: 0o100664
+                }]
+            ),
             parse!("metadata.a").unwrap()
         );
     }
@@ -378,7 +422,7 @@ mod tests {
         let mut content = Cursor::new(include_bytes!("../sample-archives/gnu-objects.a"));
         let mut reader = ArReader::new(&mut content).unwrap();
 
-        let ArMember::SymbolTable(table) = reader.next().unwrap().unwrap() else {
+        let Some(table) = reader.symbol_table().cloned() else {
             panic!("first element is not the symbol table");
         };
 
@@ -398,20 +442,19 @@ mod tests {
 
         // Ensure the iterator continues to work after calling read_member_by_id.
         for expected_name in ["foo.o", "bar.o"] {
-            let ArMember::File(file) = reader.next().unwrap().unwrap() else {
-                panic!("found multiple symbol tables");
-            };
+            let file = reader.next().unwrap().unwrap();
             assert_eq!(expected_name, file.name);
         }
         assert!(reader.next().is_none());
     }
 
     #[test]
-    fn test_gnu_various_errors() {
+    fn test_gnu_file_names_table_at_end() {
         // This tests both various errors that could occur with GNU-formatted archives, and that we
         // can continue the parsing if any archive member is invalid.
 
-        let mut content = Cursor::new(include_bytes!("../sample-archives/gnu-various-errors.a"));
+        let mut content =
+            Cursor::new(include_bytes!("../sample-archives/gnu-file-names-table-at-end.a"));
         let mut reader = ArReader::new(&mut content).unwrap();
 
         match reader.next().unwrap().unwrap_err() {
@@ -420,9 +463,21 @@ mod tests {
         }
 
         match reader.next().unwrap().unwrap_err() {
-            ArReadError::DuplicateGnuFileNamesTable => {}
+            ArReadError::FileNamesTableNotAtBeginning => {}
             other => panic!("expected DuplicateGnuFileNamesTable error, found {other:?}"),
         }
+
+        assert!(reader.next().is_none());
+    }
+
+    #[test]
+    fn test_gnu_wrong_file_name_refs() {
+        // This tests both various errors that could occur with GNU-formatted archives, and that we
+        // can continue the parsing if any archive member is invalid.
+
+        let mut content =
+            Cursor::new(include_bytes!("../sample-archives/gnu-wrong-file-name-refs.a"));
+        let mut reader = ArReader::new(&mut content).unwrap();
 
         match reader.next().unwrap().unwrap_err() {
             ArReadError::MissingNameInGnuFileNamesTable(1024) => {}
@@ -444,16 +499,18 @@ mod tests {
     fn test_mixing_armemberid_from_multiple_readers() {
         let mut content1 = Cursor::new(include_bytes!("../sample-archives/gnu-objects.a"));
         let mut content2 = Cursor::new(include_bytes!("../sample-archives/gnu-objects.a"));
-        let mut reader1 = ArReader::new(&mut content1).unwrap();
+        let reader1 = ArReader::new(&mut content1).unwrap();
         let mut reader2 = ArReader::new(&mut content2).unwrap();
 
-        let ArMember::SymbolTable(table1) = reader1.next().unwrap().unwrap() else {
-            panic!("expected symbol table as the first item");
+        let Some(table1) = reader1.symbol_table() else {
+            panic!("expected symbol table");
         };
         reader2.read_member_by_id(table1.symbols.get("hello").unwrap()).unwrap();
     }
 
-    fn parse_archive(content: &[u8]) -> Result<Vec<ArMember>, ArReadError> {
-        ArReader::new(&mut Cursor::new(content))?.collect()
+    fn parse_archive(content: &[u8]) -> Result<(Option<ArSymbolTable>, Vec<ArFile>), ArReadError> {
+        let mut cursor = Cursor::new(content);
+        let reader = ArReader::new(&mut cursor)?;
+        Ok((reader.symbol_table().cloned(), reader.collect::<Result<Vec<_>, ArReadError>>()?))
     }
 }

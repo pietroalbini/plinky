@@ -1,5 +1,5 @@
 cmd = ["libhello.a"]
-kind = "link-fail"
+kind = "run-pass"
 archs = ["x86_64"]
 
 [[rust]]

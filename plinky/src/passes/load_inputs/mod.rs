@@ -1,3 +1,4 @@
+use crate::cli::CliOptions;
 use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::repr::object::Object;
@@ -8,15 +9,19 @@ use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 mod merge_elf;
 mod read_objects;
 
-pub(crate) fn run(paths: &[PathBuf], ids: &mut SerialIds) -> Result<Object<()>, LoadInputsError> {
+pub(crate) fn run(
+    options: &CliOptions,
+    ids: &mut SerialIds,
+) -> Result<Object<()>, LoadInputsError> {
     let mut state: Option<(Object<()>, ObjectSpan)> = None;
-    let mut reader = ObjectsReader::new(paths, ids);
-    let empty_symbols = Symbols::new();
+    let mut reader = ObjectsReader::new(&options.inputs, ids);
+
+    let mut empty_symbols = Symbols::new();
+    empty_symbols.add_unknown_global(&options.entry);
 
     loop {
         let symbols = match &state {

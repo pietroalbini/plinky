@@ -6,6 +6,7 @@ linking exited with exit status: 1
 no stdout present
 
 === stderr ===
-error: no input files were provided
+error: failed to extract the next file from the archive "libhello.a"
+caused by: file has a long name but no GNU file names table was found
 
 

@@ -16,7 +16,7 @@ pub(crate) fn link_driver(
 ) -> Result<(), LinkerError> {
     let mut ids = SerialIds::new();
 
-    let mut object = passes::load_inputs::run(&options.inputs, &mut ids)?;
+    let mut object = passes::load_inputs::run(options, &mut ids)?;
     callbacks.on_inputs_loaded(&object);
 
     passes::deduplicate::run(&mut object, &mut ids)?;

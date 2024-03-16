@@ -20,6 +20,10 @@ impl Symbols {
         }
     }
 
+    pub(crate) fn add_unknown_global(&mut self, name: &str) {
+        self.global_symbols.entry(name.to_string()).or_insert(GlobalSymbol::Undefined);
+    }
+
     pub(crate) fn load_table(
         &mut self,
         table: ElfSymbolTable<SerialIds>,

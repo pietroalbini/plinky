@@ -1,5 +1,6 @@
-use super::WidgetWriter;
 use crate::widgets::Widget;
+use crate::WidgetWriter;
+use crate::writer::IndentMode;
 
 pub struct WidgetGroup {
     widgets: Vec<Box<dyn Widget>>,
@@ -17,49 +18,24 @@ impl WidgetGroup {
 }
 
 impl Widget for WidgetGroup {
-    fn render(&self, writer: &mut dyn WidgetWriter) {
-        let mut indent_writer = IndentWriter {
-            initial: true,
-            last_char_is_newline: false,
-            pattern: " │  ",
-            inner: writer,
-        };
+    fn render(&self, writer: &mut WidgetWriter) {
+        writer.push_indent(" │", IndentMode::ShowAlways);
+        writer.push_indent("  ", IndentMode::HideOnEmptyLines);
         for (idx, widget) in self.widgets.iter().enumerate() {
             if idx == 0 {
-                indent_writer.push_str("\n");
+                writer.push_str("\n");
             } else {
-                indent_writer.push_str("\n\n");
+                writer.push_str("\n\n");
             }
-            widget.render(&mut indent_writer);
-            if indent_writer.last_char_is_newline {
+            widget.render(writer);
+            if writer.last_char() == Some('\n') {
                 panic!("widgets must not terminate with a newline");
             }
         }
+        writer.pop_indent();
+        writer.pop_indent();
         if !self.widgets.is_empty() {
             writer.push_str("\n ┴");
-        }
-    }
-}
-
-struct IndentWriter<'a> {
-    initial: bool,
-    last_char_is_newline: bool,
-    pattern: &'a str,
-    inner: &'a mut dyn WidgetWriter,
-}
-
-impl WidgetWriter for IndentWriter<'_> {
-    fn push(&mut self, content: char) {
-        if self.initial {
-            self.inner.push_str(self.pattern);
-            self.initial = false;
-        }
-        self.inner.push(content);
-        if content == '\n' {
-            self.inner.push_str(self.pattern);
-            self.last_char_is_newline = true;
-        } else {
-            self.last_char_is_newline = false;
         }
     }
 }

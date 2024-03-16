@@ -1,0 +1,7 @@
+---
+source: plinky_diagnostics/src/widgets/quoted_text.rs
+expression: "QuotedText::new(\"\").render_to_string()"
+---
+╭
+│
+╰

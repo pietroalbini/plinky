@@ -7,7 +7,7 @@ no stdout present
 
 === stderr ===
 debug print: loaded object
- │  
+ │
  │  Object {
  │      env: ElfEnvironment {
  │          class: Elf64,
@@ -178,7 +178,7 @@ debug print: loaded object
  ┴
 
 debug print: calculated layout
- │  
+ │
  │  ╭─────────────┬──────────────┬───────────────┬────────────────╮
  │  │ Internal ID │ Section name │ Source object │ Memory address │
  │  ├─────────────┼──────────────┼───────────────┼────────────────┤
@@ -189,7 +189,7 @@ debug print: calculated layout
  ┴
 
 debug print: object after relocations are applied
- │  
+ │
  │  Object {
  │      env: ElfEnvironment {
  │          class: Elf64,
@@ -355,7 +355,7 @@ debug print: object after relocations are applied
  ┴
 
 debug print: built elf
- │  
+ │
  │  ElfObject {
  │      env: ElfEnvironment {
  │          class: Elf64,

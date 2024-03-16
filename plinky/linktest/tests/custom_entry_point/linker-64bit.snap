@@ -7,7 +7,7 @@ no stdout present
 
 === stderr ===
 debug print: built elf
- │  
+ │
  │  ElfObject {
  │      env: ElfEnvironment {
  │          class: Elf64,

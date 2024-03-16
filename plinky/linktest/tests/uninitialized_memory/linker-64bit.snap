@@ -7,7 +7,7 @@ no stdout present
 
 === stderr ===
 debug print: calculated layout
- │  
+ │
  │  ╭─────────────┬──────────────┬───────────────┬────────────────╮
  │  │ Internal ID │ Section name │ Source object │ Memory address │
  │  ├─────────────┼──────────────┼───────────────┼────────────────┤
@@ -18,7 +18,7 @@ debug print: calculated layout
  ┴
 
 debug print: built elf
- │  
+ │
  │  ElfObject {
  │      env: ElfEnvironment {
  │          class: Elf64,

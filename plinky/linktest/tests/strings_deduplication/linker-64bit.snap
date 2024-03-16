@@ -7,7 +7,7 @@ no stdout present
 
 === stderr ===
 debug print: object after relocations are applied
- │  
+ │
  │  Object {
  │      env: ElfEnvironment {
  │          class: Elf64,
@@ -345,7 +345,7 @@ debug print: object after relocations are applied
  ┴
 
 debug print: built elf
- │  
+ │
  │  ElfObject {
  │      env: ElfEnvironment {
  │          class: Elf64,

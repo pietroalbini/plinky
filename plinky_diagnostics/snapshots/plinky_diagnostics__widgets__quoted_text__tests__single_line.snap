@@ -1,0 +1,7 @@
+---
+source: plinky_diagnostics/src/widgets/quoted_text.rs
+expression: content.render_to_string()
+---
+╭
+│ Hello world
+╰

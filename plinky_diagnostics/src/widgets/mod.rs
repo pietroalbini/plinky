@@ -1,37 +1,21 @@
-mod table;
 mod group;
+mod quoted_text;
+mod table;
 mod text;
 
-pub use self::table::Table;
 pub use self::group::WidgetGroup;
+pub use self::quoted_text::QuotedText;
+pub use self::table::Table;
 pub use self::text::Text;
+use crate::WidgetWriter;
 
 pub trait Widget {
-    fn render(&self, writer: &mut dyn WidgetWriter);
+    fn render(&self, writer: &mut WidgetWriter<'_>);
 
     fn render_to_string(&self) -> String {
         let mut buffer = String::new();
-        self.render(&mut buffer);
+        let mut writer = WidgetWriter::new(&mut buffer);
+        self.render(&mut writer);
         buffer
-    }
-}
-
-pub trait WidgetWriter {
-    fn push(&mut self, content: char);
-
-    fn push_str(&mut self, content: &str) {
-        for chr in content.chars() {
-            self.push(chr);
-        }
-    }
-}
-
-impl WidgetWriter for String {
-    fn push(&mut self, content: char) {
-        self.push(content);
-    }
-
-    fn push_str(&mut self, content: &str) {
-        self.push_str(content);
     }
 }

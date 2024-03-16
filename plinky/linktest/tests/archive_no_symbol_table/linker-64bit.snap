@@ -7,14 +7,16 @@ no stdout present
 
 === stderr ===
 error: the first member of the archive is not a symbol table
- │  
+ │
  │  file: archive.a
- │  
+ │
  │  note: the first member of the archive is: foo.o
- │  
+ │
  │  help: you can pass the `-s` flag to `ar` when building the archive, or add the table to an existing archive by running:
- │  
- │  ranlib archive.a
+ │
+ │  ╭
+ │  │ ranlib archive.a
+ │  ╰
  ┴
 
 

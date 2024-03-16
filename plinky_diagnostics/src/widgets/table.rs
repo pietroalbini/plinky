@@ -1,4 +1,5 @@
-use crate::widgets::{Widget, WidgetWriter};
+use crate::widgets::Widget;
+use crate::WidgetWriter;
 
 const UNICODE_CHARSET: TableCharset = TableCharset {
     vertical_separator: '│',
@@ -52,7 +53,7 @@ impl Table {
 
     fn render_horizontal_border(
         &self,
-        writer: &mut dyn WidgetWriter,
+        writer: &mut WidgetWriter,
         cells_len: &[usize],
         junction: &TableJunctionCharset,
     ) {
@@ -70,7 +71,7 @@ impl Table {
 }
 
 impl Widget for Table {
-    fn render(&self, writer: &mut dyn WidgetWriter) {
+    fn render(&self, writer: &mut WidgetWriter) {
         let TableState::HasContent { cells_count, cells_len, content } = &self.state else {
             panic!("trying to render an empty table");
         };

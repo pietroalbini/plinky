@@ -1,4 +1,5 @@
-use crate::widgets::{Widget, WidgetWriter};
+use crate::widgets::Widget;
+use crate::WidgetWriter;
 
 pub struct Text {
     content: String,
@@ -11,7 +12,7 @@ impl Text {
 }
 
 impl Widget for Text {
-    fn render(&self, writer: &mut dyn WidgetWriter) {
+    fn render(&self, writer: &mut WidgetWriter) {
         writer.push_str(&self.content);
     }
 }

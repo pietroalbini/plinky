@@ -80,6 +80,13 @@ fn render_object<T: Debug>(message: &str, object: &Object<T>) {
     diagnostic = diagnostic.add(Text::new(format!("env: {:#?}", object.env)));
     diagnostic = diagnostic.add(Text::new(format!("sections: {:#?}", object.sections)));
     diagnostic = diagnostic.add(render_symbols(object, object.symbols.iter_local()));
+    diagnostic = diagnostic.add(render_symbols(
+        object,
+        object.symbols.iter_global().map(|(_, symbol)| match symbol {
+            crate::repr::symbols::GlobalSymbol::Strong(symbol) => symbol,
+            crate::repr::symbols::GlobalSymbol::Undefined => todo!(),
+        }),
+    ));
     diagnostic = diagnostic.add(Text::new(format!("symbols: {:#?}", object.symbols)));
 
     eprintln!("{diagnostic}\n");

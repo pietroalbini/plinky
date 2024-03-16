@@ -98,10 +98,14 @@ impl Symbols {
     pub(crate) fn iter_local(&self) -> impl Iterator<Item = &ElfSymbol<SerialIds>> {
         self.local_symbols.values()
     }
+
+    pub(crate) fn iter_global(&self) -> impl Iterator<Item = (&str, &GlobalSymbol)> {
+        self.global_symbols.iter().map(|(name, symbol)| (name.as_str(), symbol))
+    }
 }
 
 #[derive(Debug)]
-enum GlobalSymbol {
+pub(crate) enum GlobalSymbol {
     Strong(ElfSymbol<SerialIds>),
     Undefined,
 }

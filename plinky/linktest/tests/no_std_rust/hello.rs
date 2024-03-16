@@ -35,9 +35,9 @@ fn exit(code: u64) -> ! {
 }
 
 #[no_mangle]
-pub fn _start() {
+pub fn _start() -> ! {
     write(1, "Hello world\n");
-    exit(1);
+    exit(0);
 }
 
 #[panic_handler]

@@ -87,7 +87,6 @@ fn render_object<T: Debug>(message: &str, object: &Object<T>) {
             crate::repr::symbols::GlobalSymbol::Undefined => todo!(),
         }),
     ));
-    diagnostic = diagnostic.add(Text::new(format!("symbols: {:#?}", object.symbols)));
 
     eprintln!("{diagnostic}\n");
 }

@@ -91,7 +91,7 @@ impl Quote for Type {
 #[derive(Debug, Clone)]
 pub(crate) struct Ident {
     pub(crate) name: String,
-    pub(crate) span: Span
+    pub(crate) span: Span,
 }
 
 impl Quote for Ident {

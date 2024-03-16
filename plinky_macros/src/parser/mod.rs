@@ -65,7 +65,7 @@ impl Parser {
             other => return Err(Error::new("expected struct content").span(other.span())),
         };
 
-        Ok(Struct { span: name.span,  attrs, name, generics, fields })
+        Ok(Struct { span: name.span, attrs, name, generics, fields })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, Error> {

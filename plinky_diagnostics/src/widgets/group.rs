@@ -1,6 +1,6 @@
 use crate::widgets::Widget;
-use crate::WidgetWriter;
 use crate::writer::IndentMode;
+use crate::WidgetWriter;
 
 pub struct WidgetGroup {
     widgets: Vec<Box<dyn Widget>>,

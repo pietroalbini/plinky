@@ -1,4 +1,4 @@
-use plinky_diagnostics::widgets::{Text, QuotedText};
+use plinky_diagnostics::widgets::{QuotedText, Text};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use std::path::Path;
 

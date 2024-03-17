@@ -11,12 +11,17 @@ const UNICODE_CHARSET: TableCharset = TableCharset {
 
 pub struct Table {
     charset: &'static TableCharset,
+    title: Option<String>,
     state: TableState,
 }
 
 impl Table {
     pub fn new() -> Self {
-        Self { charset: &UNICODE_CHARSET, state: TableState::Empty }
+        Self { charset: &UNICODE_CHARSET, title: None, state: TableState::Empty }
+    }
+
+    pub fn set_title(&mut self, title: impl Into<String>) {
+        self.title = Some(title.into());
     }
 
     pub fn add_row<I, V>(&mut self, row: I)
@@ -76,6 +81,11 @@ impl Widget for Table {
             panic!("trying to render an empty table");
         };
 
+        if let Some(title) = &self.title {
+            writer.push_str("  ");
+            writer.push_str(title);
+            writer.push_str("\n");
+        }
         self.render_horizontal_border(writer, cells_len, &self.charset.first_junction);
         writer.push_str("\n");
 
@@ -156,6 +166,17 @@ mod tests {
 
         let mut table = Table::new();
         table.add_row(["alone"]);
+
+        assert_snapshot!(table.render_to_string());
+    }
+
+    #[test]
+    fn test_table_with_title() {
+        let _config = configure_insta();
+
+        let mut table = Table::new();
+        table.set_title("Example title:");
+        table.add_row(["a", "b", "c"]);
 
         assert_snapshot!(table.render_to_string());
     }

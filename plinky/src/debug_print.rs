@@ -90,6 +90,7 @@ fn render_symbols<'a, T>(object: &Object<T>, symbols: impl Iterator<Item = &'a S
     symbols.sort_by_key(|symbol| symbol.name);
 
     let mut table = Table::new();
+    table.set_title("Symbols:");
     table.add_row(["Name", "Source", "Visibility", "Value"]);
     for symbol in symbols {
         let visibility = match symbol.visibility {

@@ -107,6 +107,7 @@ debug print: object after relocations are applied
  │      },
  │  }
  │
+ │    Symbols:
  │  ╭─────────────┬────────┬────────────┬────────────────────────╮
  │  │ Name        │ Source │ Visibility │ Value                  │
  │  ├─────────────┼────────┼────────────┼────────────────────────┤

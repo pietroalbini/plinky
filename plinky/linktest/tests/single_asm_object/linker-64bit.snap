@@ -72,6 +72,7 @@ debug print: loaded object
  │      },
  │  }
  │
+ │    Symbols:
  │  ╭────────┬─────────┬────────────┬─────────────╮
  │  │ Name   │ Source  │ Visibility │ Value       │
  │  ├────────┼─────────┼────────────┼─────────────┤
@@ -161,6 +162,7 @@ debug print: object after relocations are applied
  │      },
  │  }
  │
+ │    Symbols:
  │  ╭────────┬─────────┬────────────┬─────────────╮
  │  │ Name   │ Source  │ Visibility │ Value       │
  │  ├────────┼─────────┼────────────┼─────────────┤

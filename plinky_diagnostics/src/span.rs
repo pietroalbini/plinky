@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(Clone)]
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ObjectSpan(ObjectSpanInner);
 
 impl ObjectSpan {
@@ -13,6 +13,10 @@ impl ObjectSpan {
             archive: archive.into(),
             member: member.into(),
         })
+    }
+
+    pub fn new_synthetic() -> Self {
+        ObjectSpan(ObjectSpanInner::Synthetic)
     }
 
     #[must_use]
@@ -55,6 +59,7 @@ impl std::fmt::Display for ObjectSpan {
                 }
                 Ok(())
             }
+            ObjectSpanInner::Synthetic => f.write_str("<plinky>"),
         }
     }
 }
@@ -65,11 +70,12 @@ impl std::fmt::Debug for ObjectSpan {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
 enum ObjectSpanInner {
     File(PathBuf),
     ArchiveMember { archive: PathBuf, member: String },
     Mix(Vec<ObjectSpan>),
+    Synthetic,
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+use plinky_diagnostics::ObjectSpan;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Display};
@@ -95,6 +96,13 @@ pub(crate) trait Internable: Clone + Eq + Ord + 'static {
 impl Internable for String {
     fn interner() -> &'static Interner<Self> {
         static INTERNER: Interner<String> = Interner::new();
+        &INTERNER
+    }
+}
+
+impl Internable for ObjectSpan {
+    fn interner() -> &'static Interner<Self> {
+        static INTERNER: Interner<ObjectSpan> = Interner::new();
         &INTERNER
     }
 }

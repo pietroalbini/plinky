@@ -56,12 +56,12 @@ pub(super) fn merge(
     // This is loaded after the string tables are loaded by the previous iteration, as we need
     // to resolve the strings as part of symbol loading.
     for (name_id, table) in symbol_tables {
-        object.symbols.load_table(table, &object.strings).map_err(|inner| {
-            MergeElfError::SymbolsLoadingFailed {
+        object.symbols.load_table(intern(source.clone()), table, &object.strings).map_err(
+            |inner| MergeElfError::SymbolsLoadingFailed {
                 section_name: object.strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,
-            }
-        })?;
+            },
+        )?;
     }
 
     for (id, name, uninit) in uninitialized_sections {

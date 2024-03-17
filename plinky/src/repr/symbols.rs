@@ -1,5 +1,6 @@
 use crate::interner::{intern, Interned};
 use crate::repr::strings::{MissingStringError, Strings};
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType};
 use plinky_macros::{Display, Error};
@@ -25,6 +26,7 @@ impl Symbols {
         let name = intern(name);
         self.global_symbols.entry(name).or_insert(Symbol {
             name,
+            span: intern(ObjectSpan::new_synthetic()),
             visibility: SymbolVisibility::Global { weak: false },
             value: SymbolValue::Undefined,
         });
@@ -32,6 +34,7 @@ impl Symbols {
 
     pub(crate) fn load_table(
         &mut self,
+        span: Interned<ObjectSpan>,
         table: ElfSymbolTable<SerialIds>,
         strings: &Strings,
     ) -> Result<(), LoadSymbolsError> {
@@ -55,6 +58,7 @@ impl Symbols {
             );
             let symbol = Symbol {
                 name,
+                span,
                 visibility: match elf_symbol.binding {
                     ElfSymbolBinding::Local => SymbolVisibility::Local,
                     ElfSymbolBinding::Global => SymbolVisibility::Global { weak: false },
@@ -130,6 +134,7 @@ impl Symbols {
 #[derive(Debug)]
 pub(crate) struct Symbol {
     pub(crate) name: Interned<String>,
+    pub(crate) span: Interned<ObjectSpan>,
     pub(crate) visibility: SymbolVisibility,
     pub(crate) value: SymbolValue,
 }

@@ -17,48 +17,57 @@ pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
 ) -> Result<Object<()>, LoadInputsError> {
-    let mut state: Option<(Object<()>, ObjectSpan)> = None;
     let mut reader = ObjectsReader::new(&options.inputs, ids);
 
     let mut empty_symbols = Symbols::new();
     empty_symbols.add_unknown_global(&options.entry);
 
+    let mut state = State::Empty { symbols: empty_symbols };
     loop {
         let symbols = match &state {
-            Some((object, _)) => &object.symbols,
-            None => &empty_symbols,
+            State::Empty { symbols } => symbols,
+            State::WithContent { object, .. } => &object.symbols,
         };
         let Some((source, elf)) = reader.next_object(symbols)? else { break };
 
-        match &mut state {
-            None => {
+        state = match state {
+            State::Empty { symbols } => {
                 let mut object = Object {
                     env: elf.env,
                     sections: BTreeMap::new(),
                     section_ids_to_names: BTreeMap::new(),
                     strings: Strings::new(),
-                    symbols: Symbols::new(),
+                    symbols,
                 };
                 merge_elf::merge(&mut object, source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
-                state = Some((object, source));
+                State::WithContent { object, first_span: source }
             }
-            Some((object, first_source)) => {
+            State::WithContent { mut object, first_span } => {
                 if object.env != elf.env {
                     return Err(LoadInputsError::MismatchedEnv {
-                        first_span: first_source.clone(),
+                        first_span: first_span.clone(),
                         first_env: object.env,
                         current_span: source,
                         current_env: elf.env,
                     });
                 }
-                merge_elf::merge(object, source.clone(), elf)
+                merge_elf::merge(&mut object, source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
+                State::WithContent { object, first_span }
             }
         }
     }
 
-    state.map(|(o, _)| o).ok_or(LoadInputsError::NoInputFiles)
+    match state {
+        State::Empty { .. } => Err(LoadInputsError::NoInputFiles),
+        State::WithContent { object, .. } => Ok(object),
+    }
+}
+
+enum State {
+    Empty { symbols: Symbols },
+    WithContent { object: Object<()>, first_span: ObjectSpan },
 }
 
 #[derive(Debug, Error, Display)]

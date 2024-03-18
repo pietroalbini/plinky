@@ -30,22 +30,30 @@ impl Table {
         I: IntoIterator<Item = V>,
     {
         let mut count = 0;
-        let row = row.into_iter().map(|cell| cell.into()).inspect(|_| count += 1);
+        let row = row
+            .into_iter()
+            .map(|cell| cell.into().split('\n').map(|s| s.to_string()).collect::<Vec<_>>())
+            .inspect(|_| count += 1);
 
         match &mut self.state {
             TableState::Empty => {
                 let mut cells_len = Vec::new();
                 self.state = TableState::HasContent {
-                    content: row.inspect(|cell| cells_len.push(cell.len())).collect(),
+                    content: row
+                        .inspect(|cell| {
+                            cells_len.push(cell.iter().map(|l| l.len()).max().unwrap_or(0))
+                        })
+                        .collect(),
                     cells_len,
                     cells_count: count,
                 };
             }
             TableState::HasContent { cells_count, cells_len, content } => {
                 content.extend(row.enumerate().map(|(pos, cell)| {
+                    let cell_len = cell.iter().map(|c| c.len()).max().unwrap_or(0);
                     match cells_len.get_mut(pos) {
-                        Some(len) => *len = (*len).max(cell.len()),
-                        None => cells_len.push(cell.len()),
+                        Some(len) => *len = (*len).max(cell_len),
+                        None => cells_len.push(cell_len),
                     }
                     cell
                 }));
@@ -93,20 +101,25 @@ impl Widget for Table {
         let mut idx = 0;
         while let Some(row) = rows.next() {
             let last_row = idx == content.len() / cells_count - 1;
-            writer.push(self.charset.vertical_separator);
-            for (idx, cell) in row.iter().enumerate() {
-                writer.push(' ');
-                writer.push_str(&cell);
+            let lines_count = row.iter().map(|cell| cell.len()).max().unwrap_or(0);
 
-                // Padding to align all cells.
-                for _ in cell.len()..cells_len[idx] {
-                    writer.push(' ');
-                }
-
-                writer.push(' ');
+            for line in 0..lines_count {
                 writer.push(self.charset.vertical_separator);
+                for (idx, cell_all_lines) in row.iter().enumerate() {
+                    let cell = cell_all_lines.get(line).map(|c| c.as_str()).unwrap_or_default();
+                    writer.push(' ');
+                    writer.push_str(&cell);
+
+                    // Padding to align all cells.
+                    for _ in cell.len()..cells_len[idx] {
+                        writer.push(' ');
+                    }
+
+                    writer.push(' ');
+                    writer.push(self.charset.vertical_separator);
+                }
+                writer.push('\n');
             }
-            writer.push('\n');
             self.render_horizontal_border(
                 writer,
                 cells_len,
@@ -125,7 +138,7 @@ impl Widget for Table {
 
 enum TableState {
     Empty,
-    HasContent { cells_count: usize, cells_len: Vec<usize>, content: Vec<String> },
+    HasContent { cells_count: usize, cells_len: Vec<usize>, content: Vec<Vec<String>> },
 }
 
 struct TableCharset {
@@ -177,6 +190,17 @@ mod tests {
         let mut table = Table::new();
         table.set_title("Example title:");
         table.add_row(["a", "b", "c"]);
+
+        assert_snapshot!(table.render_to_string());
+    }
+
+    #[test]
+    fn test_table_with_multiple_lines() {
+        let _config = configure_insta();
+
+        let mut table = Table::new();
+        table.add_row(["a", "b", "c"]);
+        table.add_row(["foo\nbar", "baz", "qu\nu\n\n\nx!!!!!!!!"]);
 
         assert_snapshot!(table.render_to_string());
     }

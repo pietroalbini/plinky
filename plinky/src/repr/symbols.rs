@@ -27,6 +27,7 @@ impl Symbols {
             ids,
             id,
             Symbol {
+                id,
                 name: intern(name),
                 span: intern(ObjectSpan::new_synthetic()),
                 visibility: SymbolVisibility::Global { weak: false },
@@ -61,6 +62,7 @@ impl Symbols {
                     .map_err(|e| LoadSymbolsError::MissingSymbolName(symbol_id, e))?,
             );
             let symbol = Symbol {
+                id: symbol_id,
                 name,
                 span,
                 visibility: match elf_symbol.binding {
@@ -92,7 +94,7 @@ impl Symbols {
         &mut self,
         ids: &mut SerialIds,
         id: SymbolId,
-        symbol: Symbol,
+        mut symbol: Symbol,
     ) -> Result<(), LoadSymbolsError> {
         match symbol.visibility {
             SymbolVisibility::Local => {
@@ -106,6 +108,9 @@ impl Symbols {
                     .entry(symbol.name)
                     .or_insert_with(|| ids.allocate_symbol_id());
                 self.symbols.insert(id, SymbolOrRedirect::Redirect(global_id));
+
+                // Ensure the ID contained in the symbol is the global ID, not the original ID.
+                symbol.id = global_id;
 
                 match self.symbols.entry(global_id) {
                     btree_map::Entry::Vacant(entry) => {
@@ -168,6 +173,7 @@ enum SymbolOrRedirect {
 
 #[derive(Debug)]
 pub(crate) struct Symbol {
+    pub(crate) id: SymbolId,
     pub(crate) name: Interned<String>,
     pub(crate) span: Interned<ObjectSpan>,
     pub(crate) visibility: SymbolVisibility,

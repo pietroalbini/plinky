@@ -21,6 +21,12 @@ impl std::fmt::Debug for SectionId {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SymbolId(usize);
 
+impl SymbolId {
+    pub fn idx(&self) -> usize {
+        self.0
+    }
+}
+
 impl std::fmt::Debug for SymbolId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "symbol#{}", self.0)

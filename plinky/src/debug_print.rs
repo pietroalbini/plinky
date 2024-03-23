@@ -130,7 +130,7 @@ fn render_data_section<T: Debug + RenderObject>(
         for relocation in &part.relocations {
             table.add_row([
                 format!("{:?}", relocation.relocation_type),
-                format!("{:?}", relocation.symbol),
+                symbol_name(object, relocation.symbol),
                 format!("{:#x}", relocation.offset),
                 relocation.addend.map(|a| format!("{a:#x}")).unwrap_or_else(String::new),
             ])
@@ -227,13 +227,13 @@ fn render_symbols<'a, T>(
     object: &Object<T>,
     symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
 ) -> Table {
-    let mut symbols = symbols.map(|(_, s)| s).collect::<Vec<_>>();
-    symbols.sort_by_key(|symbol| symbol.name);
+    let mut symbols = symbols.collect::<Vec<_>>();
+    symbols.sort_by_key(|(_, symbol)| symbol.name);
 
     let mut table = Table::new();
     table.set_title("Symbols:");
     table.add_row(["Name", "Source", "Visibility", "Value"]);
-    for symbol in symbols {
+    for (id, symbol) in symbols {
         let visibility = match symbol.visibility {
             SymbolVisibility::Local => "local",
             SymbolVisibility::Global { weak: true } => "global (weak)",
@@ -246,7 +246,7 @@ fn render_symbols<'a, T>(
             }
             SymbolValue::Undefined => "<undefined>".into(),
         };
-        table.add_row([&symbol.name.to_string(), &symbol.span.to_string(), visibility, &value]);
+        table.add_row([&symbol_name(object, id), &symbol.span.to_string(), visibility, &value]);
     }
     table
 }
@@ -262,4 +262,21 @@ fn section_name<T>(object: &Object<T>, id: SectionId) -> String {
         .get(&id)
         .map(|name| format!("{}#{}", name.resolve(), id.idx()))
         .unwrap_or_else(|| "<unknown section>".into())
+}
+
+fn symbol_name<T>(object: &Object<T>, id: SymbolId) -> String {
+    object
+        .symbols
+        .get(id)
+        .map(|symbol| {
+            let name = symbol.name.resolve();
+            match (name.as_str(), &symbol.value) {
+                ("", SymbolValue::SectionRelative { section, offset: 0 }) => {
+                    format!("<section {}>", section_name(object, *section))
+                }
+                ("", _) => format!("<symbol#{}>", symbol.id.idx()),
+                (name, _) => format!("{}#{}", name, symbol.id.idx()),
+            }
+        })
+        .unwrap_or_else(|_| "<unknown symbol>".into())
 }

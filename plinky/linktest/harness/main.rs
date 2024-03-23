@@ -51,6 +51,7 @@ impl TestExecution<'_> {
         self.settings.prerequisites.build(&self, self.root)?;
         match self.settings.kind {
             TestKind::LinkFail => self.run_link_fail(),
+            TestKind::LinkPass => self.run_link_pass(),
             TestKind::RunFail => self.run_run_fail(),
             TestKind::RunPass => self.run_run_pass(),
         }
@@ -59,6 +60,13 @@ impl TestExecution<'_> {
     fn run_link_fail(self) -> Result<(), Error> {
         if self.link_and_snapshot()? {
             bail!("linking was supposed to fail but passed!");
+        }
+        Ok(())
+    }
+
+    fn run_link_pass(self) -> Result<(), Error> {
+        if !self.link_and_snapshot()? {
+            bail!("linking was supposed to pass but failed!");
         }
         Ok(())
     }
@@ -169,6 +177,7 @@ fn default_test_archs() -> Vec<TestArch> {
 #[serde(rename_all = "kebab-case")]
 enum TestKind {
     LinkFail,
+    LinkPass,
     RunFail,
     RunPass,
 }

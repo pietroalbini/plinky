@@ -1,0 +1,142 @@
+---
+source: plinky/linktest/harness/main.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
+ │
+ │  section .comment#1 (no perms) in test.o
+ │   │
+ │   │  ╭──────────────────────────────────┬─────────────╮
+ │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 │ Hello world │
+ │   │  ╰──────────────────────────────────┴─────────────╯
+ │   ┴
+ │
+ │  section .text#2 (perms: rx) in test.o
+ │   │
+ │   │  ╭────┬───╮
+ │   │  │ 90 │ . │
+ │   │  ╰────┴───╯
+ │   ┴
+ │
+ │    Symbols:
+ │  ╭──────────────────────┬────────┬────────────┬──────────────────╮
+ │  │ Name                 │ Source │ Visibility │ Value            │
+ │  ├──────────────────────┼────────┼────────────┼──────────────────┤
+ │  │ <symbol#2>           │ test.o │ local      │ <undefined>      │
+ │  ├──────────────────────┼────────┼────────────┼──────────────────┤
+ │  │ <section .comment#1> │ test.o │ local      │ .comment#1 + 0x0 │
+ │  ├──────────────────────┼────────┼────────────┼──────────────────┤
+ │  │ <section .text#2>    │ test.o │ local      │ .text#2 + 0x0    │
+ │  ├──────────────────────┼────────┼────────────┼──────────────────┤
+ │  │ _start#1             │ test.o │ global     │ .text#2 + 0x0    │
+ │  ╰──────────────────────┴────────┴────────────┴──────────────────╯
+ ┴
+
+debug print: calculated layout
+ │
+ │  ╭────────────┬───────────────┬────────────────╮
+ │  │ Section    │ Source object │ Memory address │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .comment#1 │ test.o        │ 0x400000       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .text#2    │ test.o        │ 0x401000       │
+ │  ╰────────────┴───────────────┴────────────────╯
+ ┴
+
+debug print: built elf
+ │
+ │  ElfObject {
+ │      env: ElfEnvironment {
+ │          class: Elf64,
+ │          endian: Little,
+ │          abi: SystemV,
+ │          machine: X86_64,
+ │      },
+ │      type_: Executable,
+ │      entry: Some(
+ │          0x401000,
+ │      ),
+ │      sections: {
+ │          section#0: ElfSection {
+ │              name: section#1:string#0,
+ │              memory_address: 0x0,
+ │              content: Null,
+ │          },
+ │          section#1: ElfSection {
+ │              name: section#1:string#16,
+ │              memory_address: 0x0,
+ │              content: StringTable(
+ │                  ElfStringTable {
+ │                      strings: {
+ │                          0x0: "",
+ │                          0x1: ".comment",
+ │                          0xa: ".text",
+ │                          0x10: ".shstrtab",
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#2: ElfSection {
+ │              name: section#1:string#1,
+ │              memory_address: 0x400000,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a   (len: 0xb)
+ │                             +----------------------------------+
+ │                          0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 | Hello world
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#3: ElfSection {
+ │              name: section#1:string#10,
+ │              memory_address: 0x401000,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(RX),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0   (len: 0x1)
+ │                             +----+
+ │                          0? | 90 | .
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │      },
+ │      segments: [
+ │          ElfSegment {
+ │              type_: Load,
+ │              perms: ElfPermissions(),
+ │              content: [
+ │                  Section(
+ │                      section#2,
+ │                  ),
+ │              ],
+ │              align: 0x1000,
+ │          },
+ │          ElfSegment {
+ │              type_: Load,
+ │              perms: ElfPermissions(RX),
+ │              content: [
+ │                  Section(
+ │                      section#3,
+ │                  ),
+ │              ],
+ │              align: 0x1000,
+ │          },
+ │      ],
+ │  }
+ ┴
+
+
+

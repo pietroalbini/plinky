@@ -9,7 +9,7 @@ use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfDeduplication, ElfObject};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt::Debug;
 
 pub(crate) struct DebugCallbacks {
@@ -72,7 +72,7 @@ impl LinkerCallbacks for DebugCallbacks {
     }
 }
 
-fn render_object<T: Debug + RenderObject>(message: &str, object: &Object<T>) {
+fn render_object<T: Debug + RenderLayout>(message: &str, object: &Object<T>) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message)
         .add(Text::new(format!("env: {:#?}", object.env)))
         .add_iter(
@@ -82,7 +82,7 @@ fn render_object<T: Debug + RenderObject>(message: &str, object: &Object<T>) {
     eprintln!("{diagnostic}\n");
 }
 
-fn render_section_group<T: Debug + RenderObject>(
+fn render_section_group<T: Debug + RenderLayout>(
     object: &Object<T>,
     section: &Section<T>,
 ) -> Vec<Box<dyn Widget>> {
@@ -99,13 +99,14 @@ fn render_section_group<T: Debug + RenderObject>(
                 }
             })
             .collect(),
-        SectionContent::Uninitialized(uninitialized) => {
-            vec![Box::new(WidgetGroup::new().add(T::render_uninitialized_section(uninitialized)))]
-        }
+        SectionContent::Uninitialized(uninitialized) => uninitialized
+            .iter()
+            .map(|(&id, part)| render_uninitialized_section(object, id, part))
+            .collect(),
     }
 }
 
-fn render_data_section<T: Debug + RenderObject>(
+fn render_data_section<T: Debug + RenderLayout>(
     object: &Object<T>,
     id: SectionId,
     deduplication: ElfDeduplication,
@@ -142,7 +143,7 @@ fn render_data_section<T: Debug + RenderObject>(
         WidgetGroup::new()
             .name(format!("section {} in {}", section_name(object, id), part.source))
             .add_iter(deduplication)
-            .add_iter(part.layout.render_address())
+            .add_iter(part.layout.render_layoyt())
             .add(HexDump::new(part.bytes.0.clone()))
             .add_iter(relocations),
     )
@@ -169,57 +170,39 @@ fn render_deduplication_facade<T>(
     Box::new(table)
 }
 
-trait RenderObject
+fn render_uninitialized_section<T: RenderLayout>(
+    object: &Object<T>,
+    id: SectionId,
+    section: &UninitializedSectionPart<T>,
+) -> Box<dyn Widget> {
+    Box::new(
+        WidgetGroup::new()
+            .name(format!(
+                "uninitialized section {} in {}",
+                section_name(object, id),
+                section.source
+            ))
+            .add(Text::new(format!("length: {:#x}", section.len)))
+            .add_iter(section.layout.render_layoyt()),
+    )
+}
+
+trait RenderLayout
 where
     Self: Sized,
 {
-    fn render_address(&self) -> Option<Text>;
-
-    fn render_uninitialized_section(
-        parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
-    ) -> Table;
+    fn render_layoyt(&self) -> Option<Text>;
 }
 
-impl RenderObject for () {
-    fn render_address(&self) -> Option<Text> {
+impl RenderLayout for () {
+    fn render_layoyt(&self) -> Option<Text> {
         None
     }
-
-    fn render_uninitialized_section(
-        parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
-    ) -> Table {
-        let mut table = Table::new();
-        table.add_row(["ID", "Length", "Source"]);
-        for (id, part) in parts {
-            table.add_row([
-                format!("{id:?}"),
-                format!("{:#x?}", part.len),
-                part.source.to_string(),
-            ]);
-        }
-        table
-    }
 }
 
-impl RenderObject for SectionLayout {
-    fn render_address(&self) -> Option<Text> {
+impl RenderLayout for SectionLayout {
+    fn render_layoyt(&self) -> Option<Text> {
         Some(Text::new(format!("address: {:#x}", self.address)))
-    }
-
-    fn render_uninitialized_section(
-        parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
-    ) -> Table {
-        let mut table = Table::new();
-        table.add_row(["ID", "Length", "Address", "Source"]);
-        for (id, part) in parts {
-            table.add_row([
-                format!("{id:?}"),
-                format!("{:#x?}", part.len),
-                format!("{:#x?}", part.layout.address),
-                part.source.to_string(),
-            ]);
-        }
-        table
     }
 }
 

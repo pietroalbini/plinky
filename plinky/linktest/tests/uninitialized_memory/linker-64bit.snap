@@ -15,12 +15,12 @@ debug print: loaded object
  │      machine: X86_64,
  │  }
  │
- │  uninitialized section .bss#1 in bss.o
+ │  uninitialized section .bss#1 (perms: rw) in bss.o
  │   │
  │   │  length: 0x6
  │   ┴
  │
- │  section .text#2 in bss.o
+ │  section .text#2 (perms: rx) in bss.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ c6 04 25 00 00 00 00 68 c6 04 25 00 00 00 00 65 │ ..%....h..%....e │

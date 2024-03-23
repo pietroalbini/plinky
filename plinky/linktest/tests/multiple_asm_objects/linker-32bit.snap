@@ -15,21 +15,21 @@ debug print: loaded object
  │      machine: X86,
  │  }
  │
- │  section .rodata#1 in goodbye.o
+ │  section .rodata#1 (perms: r) in goodbye.o
  │   │
  │   │  ╭──────────────────────────────────────────────┬─────────────────╮
  │   │  │ 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a │ Goodbye world!. │
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .rodata#8 in hello.o
+ │  section .rodata#8 (perms: r) in hello.o
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .text#2 in goodbye.o
+ │  section .text#2 (perms: rx) in goodbye.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -44,7 +44,7 @@ debug print: loaded object
  │   │  ╰────────┴─────────────────────┴────────┴────────╯
  │   ┴
  │
- │  section .text#9 in hello.o
+ │  section .text#9 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -115,7 +115,7 @@ debug print: object after relocations are applied
  │      machine: X86,
  │  }
  │
- │  section .rodata#1 in goodbye.o
+ │  section .rodata#1 (perms: r) in goodbye.o
  │   │
  │   │  address: 0x400000
  │   │
@@ -124,7 +124,7 @@ debug print: object after relocations are applied
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .rodata#8 in hello.o
+ │  section .rodata#8 (perms: r) in hello.o
  │   │
  │   │  address: 0x40000f
  │   │
@@ -133,7 +133,7 @@ debug print: object after relocations are applied
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .text#2 in goodbye.o
+ │  section .text#2 (perms: rx) in goodbye.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -143,7 +143,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#9 in hello.o
+ │  section .text#9 (perms: rx) in hello.o
  │   │
  │   │  address: 0x40101f
  │   │

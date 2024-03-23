@@ -15,7 +15,7 @@ debug print: loaded object
  │      machine: X86_64,
  │  }
  │
- │  section .text#1 in hello.o
+ │  section .text#1 (perms: rx) in hello.o
  │   │
  │   │  ╭────┬───╮
  │   │  │ 90 │ . │

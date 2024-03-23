@@ -15,14 +15,14 @@ debug print: loaded object
  │      machine: X86_64,
  │  }
  │
- │  section .data#1 in hello.o
+ │  section .data#1 (perms: rw) in hello.o
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .text#2 in hello.o
+ │  section .text#2 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -75,7 +75,7 @@ debug print: object after relocations are applied
  │      machine: X86_64,
  │  }
  │
- │  section .data#1 in hello.o
+ │  section .data#1 (perms: rw) in hello.o
  │   │
  │   │  address: 0x400000
  │   │
@@ -84,7 +84,7 @@ debug print: object after relocations are applied
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .text#2 in hello.o
+ │  section .text#2 (perms: rx) in hello.o
  │   │
  │   │  address: 0x401000
  │   │

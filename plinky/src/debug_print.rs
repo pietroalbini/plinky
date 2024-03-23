@@ -8,7 +8,7 @@ use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plinky_elf::{ElfDeduplication, ElfObject};
+use plinky_elf::{ElfDeduplication, ElfObject, ElfPermissions};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 
@@ -92,7 +92,7 @@ fn render_section_group<T: Debug + RenderLayout>(
             .iter()
             .map(|(&id, part)| match part {
                 DataSectionPart::Real(real) => {
-                    render_data_section(object, id, data.deduplication, real)
+                    render_data_section(object, id, &section.perms, data.deduplication, real)
                 }
                 DataSectionPart::DeduplicationFacade(facade) => {
                     render_deduplication_facade(object, id, facade)
@@ -101,7 +101,7 @@ fn render_section_group<T: Debug + RenderLayout>(
             .collect(),
         SectionContent::Uninitialized(uninitialized) => uninitialized
             .iter()
-            .map(|(&id, part)| render_uninitialized_section(object, id, part))
+            .map(|(&id, part)| render_uninitialized_section(object, id, &section.perms, part))
             .collect(),
     }
 }
@@ -109,6 +109,7 @@ fn render_section_group<T: Debug + RenderLayout>(
 fn render_data_section<T: Debug + RenderLayout>(
     object: &Object<T>,
     id: SectionId,
+    perms: &ElfPermissions,
     deduplication: ElfDeduplication,
     part: &DataSectionPartReal<T>,
 ) -> Box<dyn Widget> {
@@ -141,7 +142,12 @@ fn render_data_section<T: Debug + RenderLayout>(
 
     Box::new(
         WidgetGroup::new()
-            .name(format!("section {} in {}", section_name(object, id), part.source))
+            .name(format!(
+                "section {} ({}) in {}",
+                section_name(object, id),
+                permissions(perms),
+                part.source
+            ))
             .add_iter(deduplication)
             .add_iter(part.layout.render_layoyt())
             .add(HexDump::new(part.bytes.0.clone()))
@@ -173,13 +179,15 @@ fn render_deduplication_facade<T>(
 fn render_uninitialized_section<T: RenderLayout>(
     object: &Object<T>,
     id: SectionId,
+    perms: &ElfPermissions,
     section: &UninitializedSectionPart<T>,
 ) -> Box<dyn Widget> {
     Box::new(
         WidgetGroup::new()
             .name(format!(
-                "uninitialized section {} in {}",
+                "uninitialized section {} ({}) in {}",
                 section_name(object, id),
+                permissions(perms),
                 section.source
             ))
             .add(Text::new(format!("length: {:#x}", section.len)))
@@ -237,6 +245,24 @@ fn render_symbols<'a, T>(
 fn render<T: Widget + 'static>(message: &str, widget: T) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message).add(widget);
     eprintln!("{diagnostic}\n");
+}
+
+fn permissions(perms: &ElfPermissions) -> String {
+    let mut output = String::new();
+    if perms.read {
+        output.push('r');
+    }
+    if perms.write {
+        output.push('w');
+    }
+    if perms.execute {
+        output.push('x');
+    }
+    if output.is_empty() {
+        "no perms".into()
+    } else {
+        format!("perms: {output}")
+    }
 }
 
 fn section_name<T>(object: &Object<T>, id: SectionId) -> String {

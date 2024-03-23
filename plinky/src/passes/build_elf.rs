@@ -1,7 +1,8 @@
 use crate::cli::CliOptions;
 use crate::interner::{intern, Interned};
+use crate::passes::layout::Layout;
 use crate::repr::object::{
-    DataSectionPart, GetSymbolAddressError, Object, Section, SectionContent, SectionLayout,
+    DataSectionPart, GetSymbolAddressError, Object, Section, SectionContent,
 };
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{
@@ -13,13 +14,15 @@ use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 pub(crate) fn run(
-    object: Object<SectionLayout>,
+    object: Object,
+    layout: &Layout,
     options: &CliOptions,
 ) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
     let mut ids = SerialIds::new();
     let builder = ElfBuilder {
         entrypoint: intern(&options.entry),
         object,
+        layout,
         section_zero_id: ids.allocate_section_id(),
         section_names: PendingStringsTable::new(&mut ids),
         ids,
@@ -27,16 +30,17 @@ pub(crate) fn run(
     builder.build()
 }
 
-struct ElfBuilder {
+struct ElfBuilder<'a> {
     entrypoint: Interned<String>,
-    object: Object<SectionLayout>,
+    object: Object,
+    layout: &'a Layout,
 
     ids: SerialIds,
     section_names: PendingStringsTable,
     section_zero_id: SectionId,
 }
 
-impl ElfBuilder {
+impl ElfBuilder<'_> {
     fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
         let sections = self.prepare_sections();
@@ -55,7 +59,7 @@ impl ElfBuilder {
         Ok(Some(
             NonZeroU64::new(
                 self.object
-                    .global_symbol_address(self.entrypoint)
+                    .global_symbol_address(self.layout, self.entrypoint)
                     .map_err(ElfBuilderError::InvalidEntrypoint)?,
             )
             .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
@@ -87,7 +91,7 @@ impl ElfBuilder {
     fn prepare_section(
         &mut self,
         name: Interned<String>,
-        section: Section<SectionLayout>,
+        section: Section,
     ) -> ElfSection<SerialIds> {
         let mut memory_address: Option<u64> = None;
         let mut update_memory_address = |new| match memory_address {
@@ -98,10 +102,10 @@ impl ElfBuilder {
         let content = match section.content {
             SectionContent::Data(data) => {
                 let mut raw = Vec::new();
-                for part in data.parts.into_values() {
+                for (id, part) in data.parts.into_iter() {
                     match part {
                         DataSectionPart::Real(real) => {
-                            update_memory_address(real.layout.address);
+                            update_memory_address(self.layout.of(id));
                             raw.extend_from_slice(&real.bytes);
                         }
                         // We shouldn't write deduplication facades.
@@ -116,8 +120,8 @@ impl ElfBuilder {
             }
             SectionContent::Uninitialized(uninit) => {
                 let mut len = 0;
-                for part in uninit.into_values() {
-                    update_memory_address(part.layout.address);
+                for (id, part) in uninit.into_iter() {
+                    update_memory_address(self.layout.of(id));
                     len += part.len;
                 }
                 ElfSectionContent::Uninitialized(ElfUninitializedSection {

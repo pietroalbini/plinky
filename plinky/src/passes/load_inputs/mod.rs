@@ -16,7 +16,7 @@ mod read_objects;
 pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
-) -> Result<Object<()>, LoadInputsError> {
+) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new();
@@ -69,7 +69,7 @@ pub(crate) fn run(
 
 enum State {
     Empty { symbols: Symbols },
-    WithContent { object: Object<()>, first_span: ObjectSpan },
+    WithContent { object: Object, first_span: ObjectSpan },
 }
 
 #[derive(Debug, Error, Display)]

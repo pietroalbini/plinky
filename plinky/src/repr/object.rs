@@ -1,4 +1,5 @@
 use crate::interner::Interned;
+use crate::passes::layout::Layout;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{MissingGlobalSymbol, SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
@@ -8,17 +9,18 @@ use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-pub(crate) struct Object<L> {
+pub(crate) struct Object {
     pub(crate) env: ElfEnvironment,
-    pub(crate) sections: BTreeMap<Interned<String>, Section<L>>,
+    pub(crate) sections: BTreeMap<Interned<String>, Section>,
     pub(crate) section_ids_to_names: BTreeMap<SectionId, Interned<String>>,
     pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
 }
 
-impl Object<SectionLayout> {
+impl Object {
     pub(crate) fn global_symbol_address(
         &self,
+        layout: &Layout,
         name: Interned<String>,
     ) -> Result<u64, GetSymbolAddressError> {
         let symbol = self.symbols.get_global(name)?;
@@ -27,59 +29,40 @@ impl Object<SectionLayout> {
         match symbol.value {
             SymbolValue::Undefined => Err(GetSymbolAddressError::Undefined(name.into())),
             SymbolValue::Absolute { .. } => Err(GetSymbolAddressError::NotAnAddress(name.into())),
-            SymbolValue::SectionRelative { section: section_id, offset } => {
-                let section_addr = self
-                    .section_ids_to_names
-                    .get(&section_id)
-                    .and_then(|name| self.sections.get(name))
-                    .and_then(|section| match &section.content {
-                        SectionContent::Data(data) => {
-                            data.parts.get(&section_id).map(|part| match part {
-                                DataSectionPart::Real(real) => real.layout.address,
-                                DataSectionPart::DeduplicationFacade(_) => todo!(),
-                            })
-                        }
-                        SectionContent::Uninitialized(uninit) => {
-                            uninit.get(&section_id).map(|p| p.layout.address)
-                        }
-                    })
-                    .expect("invalid section id");
-                Ok(section_addr + offset)
-            }
+            SymbolValue::SectionRelative { section, offset } => Ok(layout.of(section) + offset),
         }
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct Section<L> {
+pub(crate) struct Section {
     pub(crate) perms: ElfPermissions,
-    pub(crate) content: SectionContent<L>,
+    pub(crate) content: SectionContent,
 }
 
 #[derive(Debug)]
-pub(crate) enum SectionContent<L> {
-    Data(DataSection<L>),
-    Uninitialized(BTreeMap<SectionId, UninitializedSectionPart<L>>),
+pub(crate) enum SectionContent {
+    Data(DataSection),
+    Uninitialized(BTreeMap<SectionId, UninitializedSectionPart>),
 }
 
 #[derive(Debug)]
-pub(crate) struct DataSection<L> {
+pub(crate) struct DataSection {
     pub(crate) deduplication: ElfDeduplication,
-    pub(crate) parts: BTreeMap<SectionId, DataSectionPart<L>>,
+    pub(crate) parts: BTreeMap<SectionId, DataSectionPart>,
 }
 
 #[derive(Debug)]
-pub(crate) enum DataSectionPart<L> {
-    Real(DataSectionPartReal<L>),
+pub(crate) enum DataSectionPart {
+    Real(DataSectionPartReal),
     DeduplicationFacade(DeduplicationFacade),
 }
 
 #[derive(Debug)]
-pub(crate) struct DataSectionPartReal<L> {
+pub(crate) struct DataSectionPartReal {
     pub(crate) source: ObjectSpan,
     pub(crate) bytes: RawBytes,
     pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
-    pub(crate) layout: L,
 }
 
 #[derive(Debug, Clone)]
@@ -90,15 +73,9 @@ pub(crate) struct DeduplicationFacade {
 }
 
 #[derive(Debug)]
-pub(crate) struct UninitializedSectionPart<L> {
+pub(crate) struct UninitializedSectionPart {
     pub(crate) source: ObjectSpan,
     pub(crate) len: u64,
-    pub(crate) layout: L,
-}
-
-#[derive(Debug)]
-pub(crate) struct SectionLayout {
-    pub(crate) address: u64,
 }
 
 #[derive(Debug, Error, Display)]

@@ -1,8 +1,9 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
+use crate::passes::layout::Layout;
 use crate::repr::object::{
     DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, Section, SectionContent,
-    SectionLayout, UninitializedSectionPart,
+    UninitializedSectionPart,
 };
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
@@ -16,13 +17,13 @@ pub(crate) struct DebugCallbacks {
 }
 
 impl LinkerCallbacks for DebugCallbacks {
-    fn on_inputs_loaded(&self, object: &Object<()>) {
+    fn on_inputs_loaded(&self, object: &Object) {
         if self.print.contains(&DebugPrint::LoadedObject) {
-            render_object("loaded object", object);
+            render_object("loaded object", object, None);
         }
     }
 
-    fn on_layout_calculated(&self, object: &Object<SectionLayout>) {
+    fn on_layout_calculated(&self, object: &Object, layout: &Layout) {
         if self.print.contains(&DebugPrint::Layout) {
             let mut table = Table::new();
             table.add_row(["Section", "Source object", "Memory address"]);
@@ -30,24 +31,24 @@ impl LinkerCallbacks for DebugCallbacks {
             for section in object.sections.values() {
                 match &section.content {
                     SectionContent::Data(data) => {
-                        for (id, part) in &data.parts {
+                        for (&id, part) in &data.parts {
                             let (source, address) = match part {
                                 DataSectionPart::Real(real) => {
-                                    (&real.source, format!("{:#x}", real.layout.address))
+                                    (&real.source, format!("{:#x}", layout.of(id)))
                                 }
                                 DataSectionPart::DeduplicationFacade(facade) => {
                                     (&facade.source, "N/A (deduplication facade)".into())
                                 }
                             };
-                            table.add_row([section_name(object, *id), source.to_string(), address]);
+                            table.add_row([section_name(object, id), source.to_string(), address]);
                         }
                     }
                     SectionContent::Uninitialized(parts) => {
-                        for (id, part) in parts {
+                        for (&id, part) in parts {
                             table.add_row([
-                                section_name(object, *id),
+                                section_name(object, id),
                                 part.source.to_string(),
-                                format!("{:#x}", part.layout.address),
+                                format!("{:#x}", layout.of(id)),
                             ]);
                         }
                     }
@@ -58,9 +59,9 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_relocations_applied(&self, object: &Object<SectionLayout>) {
+    fn on_relocations_applied(&self, object: &Object, layout: &Layout) {
         if self.print.contains(&DebugPrint::RelocatedObject) {
-            render_object("object after relocations are applied", object);
+            render_object("object after relocations are applied", object, Some(layout));
         }
     }
 
@@ -71,35 +72,44 @@ impl LinkerCallbacks for DebugCallbacks {
     }
 }
 
-fn render_object<T: RenderLayout>(message: &str, object: &Object<T>) {
+fn render_object(message: &str, object: &Object, layout: Option<&Layout>) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message)
         .add(render_env(object))
         .add_iter(
-            object.sections.values().flat_map(|section| render_section_group(object, section)),
+            object
+                .sections
+                .values()
+                .flat_map(|section| render_section_group(object, layout, section)),
         )
         .add(render_symbols(object, object.symbols.iter()));
     eprintln!("{diagnostic}\n");
 }
 
-fn render_env<T>(object: &Object<T>) -> Text {
+fn render_env(object: &Object) -> Text {
     Text::new(format!(
         "class: {:?}, endian: {:?}, abi: {:?}, machine: {:?}",
         object.env.class, object.env.endian, object.env.abi, object.env.machine
     ))
 }
 
-fn render_section_group<T: RenderLayout>(
-    object: &Object<T>,
-    section: &Section<T>,
+fn render_section_group(
+    object: &Object,
+    layout: Option<&Layout>,
+    section: &Section,
 ) -> Vec<Box<dyn Widget>> {
     match &section.content {
         SectionContent::Data(data) => data
             .parts
             .iter()
             .map(|(&id, part)| match part {
-                DataSectionPart::Real(real) => {
-                    render_data_section(object, id, &section.perms, data.deduplication, real)
-                }
+                DataSectionPart::Real(real) => render_data_section(
+                    object,
+                    layout,
+                    id,
+                    &section.perms,
+                    data.deduplication,
+                    real,
+                ),
                 DataSectionPart::DeduplicationFacade(facade) => {
                     render_deduplication_facade(object, id, facade)
                 }
@@ -107,17 +117,20 @@ fn render_section_group<T: RenderLayout>(
             .collect(),
         SectionContent::Uninitialized(uninitialized) => uninitialized
             .iter()
-            .map(|(&id, part)| render_uninitialized_section(object, id, &section.perms, part))
+            .map(|(&id, part)| {
+                render_uninitialized_section(object, layout, id, &section.perms, part)
+            })
             .collect(),
     }
 }
 
-fn render_data_section<T: RenderLayout>(
-    object: &Object<T>,
+fn render_data_section(
+    object: &Object,
+    layout: Option<&Layout>,
     id: SectionId,
     perms: &ElfPermissions,
     deduplication: ElfDeduplication,
-    part: &DataSectionPartReal<T>,
+    part: &DataSectionPartReal,
 ) -> Box<dyn Widget> {
     let deduplication = match deduplication {
         ElfDeduplication::Disabled => None,
@@ -155,14 +168,14 @@ fn render_data_section<T: RenderLayout>(
                 part.source
             ))
             .add_iter(deduplication)
-            .add_iter(part.layout.render_layoyt())
+            .add_iter(render_layout(layout, id))
             .add(HexDump::new(part.bytes.0.clone()))
             .add_iter(relocations),
     )
 }
 
-fn render_deduplication_facade<T>(
-    object: &Object<T>,
+fn render_deduplication_facade(
+    object: &Object,
     id: SectionId,
     facade: &DeduplicationFacade,
 ) -> Box<dyn Widget> {
@@ -182,11 +195,12 @@ fn render_deduplication_facade<T>(
     Box::new(table)
 }
 
-fn render_uninitialized_section<T: RenderLayout>(
-    object: &Object<T>,
+fn render_uninitialized_section(
+    object: &Object,
+    layout: Option<&Layout>,
     id: SectionId,
     perms: &ElfPermissions,
-    section: &UninitializedSectionPart<T>,
+    section: &UninitializedSectionPart,
 ) -> Box<dyn Widget> {
     Box::new(
         WidgetGroup::new()
@@ -197,31 +211,12 @@ fn render_uninitialized_section<T: RenderLayout>(
                 section.source
             ))
             .add(Text::new(format!("length: {:#x}", section.len)))
-            .add_iter(section.layout.render_layoyt()),
+            .add_iter(render_layout(layout, id)),
     )
 }
 
-trait RenderLayout
-where
-    Self: Sized,
-{
-    fn render_layoyt(&self) -> Option<Text>;
-}
-
-impl RenderLayout for () {
-    fn render_layoyt(&self) -> Option<Text> {
-        None
-    }
-}
-
-impl RenderLayout for SectionLayout {
-    fn render_layoyt(&self) -> Option<Text> {
-        Some(Text::new(format!("address: {:#x}", self.address)))
-    }
-}
-
-fn render_symbols<'a, T>(
-    object: &Object<T>,
+fn render_symbols<'a>(
+    object: &Object,
     symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
 ) -> Table {
     let mut symbols = symbols.collect::<Vec<_>>();
@@ -248,6 +243,13 @@ fn render_symbols<'a, T>(
     table
 }
 
+fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
+    match layout {
+        Some(layout) => Some(Text::new(format!("address: {:#x}", layout.of(id)))),
+        None => None,
+    }
+}
+
 fn render<T: Widget + 'static>(message: &str, widget: T) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message).add(widget);
     eprintln!("{diagnostic}\n");
@@ -271,7 +273,7 @@ fn permissions(perms: &ElfPermissions) -> String {
     }
 }
 
-fn section_name<T>(object: &Object<T>, id: SectionId) -> String {
+fn section_name(object: &Object, id: SectionId) -> String {
     object
         .section_ids_to_names
         .get(&id)
@@ -279,7 +281,7 @@ fn section_name<T>(object: &Object<T>, id: SectionId) -> String {
         .unwrap_or_else(|| "<unknown section>".into())
 }
 
-fn symbol_name<T>(object: &Object<T>, id: SymbolId) -> String {
+fn symbol_name(object: &Object, id: SymbolId) -> String {
     object
         .symbols
         .get(id)

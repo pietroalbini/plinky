@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 
 pub(super) fn merge(
     ids: &mut SerialIds,
-    object: &mut Object<()>,
+    object: &mut Object,
     source: ObjectSpan,
     elf: ElfObject<SerialIds>,
 ) -> Result<(), MergeElfError> {
@@ -84,7 +84,6 @@ pub(super) fn merge(
                         UninitializedSectionPart {
                             source: source.clone(),
                             len: uninit.len,
-                            layout: (),
                         },
                     );
                     Ok(())
@@ -125,7 +124,6 @@ pub(super) fn merge(
                             source: source.clone(),
                             bytes: program.raw,
                             relocations: relocations.remove(&id).unwrap_or_else(Vec::new),
-                            layout: (),
                         }),
                     );
                     Ok(())
@@ -137,7 +135,7 @@ pub(super) fn merge(
 }
 
 fn add_section<I, U>(
-    object: &mut Object<()>,
+    object: &mut Object,
     id: SectionId,
     name: StringId,
     perms: ElfPermissions,
@@ -145,8 +143,8 @@ fn add_section<I, U>(
     update_content: U,
 ) -> Result<(), MergeElfError>
 where
-    I: FnOnce() -> SectionContent<()>,
-    U: FnOnce(Interned<String>, &mut SectionContent<()>) -> Result<(), MergeElfError>,
+    I: FnOnce() -> SectionContent,
+    U: FnOnce(Interned<String>, &mut SectionContent) -> Result<(), MergeElfError>,
 {
     let name = intern(
         object.strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,

@@ -8,7 +8,7 @@ use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(crate) fn run(object: &mut Object<()>, ids: &mut SerialIds) -> Result<(), DeduplicationError> {
+pub(crate) fn run(object: &mut Object, ids: &mut SerialIds) -> Result<(), DeduplicationError> {
     for (&section_name, section) in &mut object.sections {
         let SectionContent::Data(data) = &mut section.content else {
             continue;
@@ -49,7 +49,7 @@ fn deduplicate(
     section_ids_to_names: &mut BTreeMap<SectionId, Interned<String>>,
     section_name: Interned<String>,
     split_rule: SplitRule,
-    data: &mut DataSection<()>,
+    data: &mut DataSection,
 ) -> Result<(), DeduplicationErrorKind> {
     let merged_id = ids.allocate_section_id();
     let mut merged = Vec::new();
@@ -98,7 +98,6 @@ fn deduplicate(
             source: source.expect("no deduplicated sections"),
             bytes: RawBytes(merged),
             relocations: Vec::new(),
-            layout: (),
         }),
     );
     section_ids_to_names.insert(merged_id, section_name);

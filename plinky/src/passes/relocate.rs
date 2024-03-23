@@ -1,6 +1,6 @@
+use crate::passes::layout::Layout;
 use crate::repr::object::{
     DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, SectionContent,
-    SectionLayout,
 };
 use crate::repr::symbols::{MissingGlobalSymbol, SymbolValue, Symbols};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
@@ -8,9 +8,11 @@ use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
-pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationError> {
-    let relocator =
-        Relocator { section_resolvers: fetch_section_resolvers(object), symbols: &object.symbols };
+pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), RelocationError> {
+    let relocator = Relocator {
+        section_resolvers: fetch_section_resolvers(object, layout),
+        symbols: &object.symbols,
+    };
     for section in object.sections.values_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
@@ -27,7 +29,10 @@ pub(crate) fn run(object: &mut Object<SectionLayout>) -> Result<(), RelocationEr
     Ok(())
 }
 
-fn fetch_section_resolvers(object: &Object<SectionLayout>) -> BTreeMap<SectionId, AddressResolver> {
+fn fetch_section_resolvers(
+    object: &Object,
+    layout: &Layout,
+) -> BTreeMap<SectionId, AddressResolver> {
     object
         .sections
         .values()
@@ -37,8 +42,8 @@ fn fetch_section_resolvers(object: &Object<SectionLayout>) -> BTreeMap<SectionId
                     (
                         id,
                         match part {
-                            DataSectionPart::Real(real) => {
-                                AddressResolver::Section { address: real.layout.address }
+                            DataSectionPart::Real(_) => {
+                                AddressResolver::Section { address: layout.of(id) }
                             }
                             DataSectionPart::DeduplicationFacade(facade) => {
                                 AddressResolver::DeduplicationFacade(facade.clone())
@@ -46,11 +51,11 @@ fn fetch_section_resolvers(object: &Object<SectionLayout>) -> BTreeMap<SectionId
                         },
                     )
                 })),
-                SectionContent::Uninitialized(uninit) => {
-                    Box::new(uninit.iter().map(|(&id, part)| {
-                        (id, AddressResolver::Section { address: part.layout.address })
-                    }))
-                }
+                SectionContent::Uninitialized(uninit) => Box::new(
+                    uninit
+                        .keys()
+                        .map(|&id| (id, AddressResolver::Section { address: layout.of(id) })),
+                ),
             }
         })
         .collect()
@@ -65,7 +70,7 @@ impl<'a> Relocator<'a> {
     fn relocate(
         &self,
         section_id: SectionId,
-        data_section: &mut DataSectionPartReal<SectionLayout>,
+        data_section: &mut DataSectionPartReal,
     ) -> Result<(), RelocationError> {
         for relocation in data_section.relocations.drain(..) {
             self.relocate_one(section_id, &relocation, &mut data_section.bytes.0)?;

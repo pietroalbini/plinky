@@ -1,77 +1,51 @@
-use crate::repr::object::{
-    DataSection, DataSectionPart, DataSectionPartReal, Object, Section, SectionContent,
-    SectionLayout, UninitializedSectionPart,
-};
+use plinky_elf::ids::serial::SectionId;
+use std::collections::BTreeMap;
+use crate::repr::object::{DataSectionPart, Object, SectionContent};
 
 const BASE_ADDRESS: u64 = 0x400000;
 const PAGE_SIZE: u64 = 0x1000;
 
-pub(crate) fn run(object: Object<()>) -> Object<SectionLayout> {
+pub(crate) fn run(object: &Object) -> Layout {
+    let mut layout = Layout { sections: BTreeMap::new() };
     let mut calculator = LayoutCalculator::new();
-    Object {
-        env: object.env,
-        sections: object
-            .sections
-            .into_iter()
-            .map(|(name, section)| {
-                let mut calculator = calculator.begin_section();
-                (
-                    name,
-                    Section {
-                        perms: section.perms,
-                        content: match section.content {
-                            SectionContent::Data(data) => SectionContent::Data(DataSection {
-                                deduplication: data.deduplication,
-                                parts: data
-                                    .parts
-                                    .into_iter()
-                                    .map(|(id, part)| {
-                                        (
-                                            id,
-                                            match part {
-                                                DataSectionPart::Real(real) => {
-                                                    DataSectionPart::Real(DataSectionPartReal {
-                                                        source: real.source,
-                                                        layout: calculator
-                                                            .layout_of(real.bytes.len() as _),
-                                                        bytes: real.bytes,
-                                                        relocations: real.relocations,
-                                                    })
-                                                }
-                                                // Deduplication facades won't be written out to
-                                                // disk, so the layout for them is not needed.
-                                                DataSectionPart::DeduplicationFacade(d) => {
-                                                    DataSectionPart::DeduplicationFacade(d)
-                                                }
-                                            },
-                                        )
-                                    })
-                                    .collect(),
-                            }),
-                            SectionContent::Uninitialized(uninit) => SectionContent::Uninitialized(
-                                uninit
-                                    .into_iter()
-                                    .map(|(id, part)| {
-                                        (
-                                            id,
-                                            UninitializedSectionPart {
-                                                source: part.source,
-                                                layout: calculator.layout_of(part.len),
-                                                len: part.len,
-                                            },
-                                        )
-                                    })
-                                    .collect(),
-                            ),
-                        },
-                    },
-                )
-            })
-            .collect(),
-        section_ids_to_names: object.section_ids_to_names,
-        strings: object.strings,
-        symbols: object.symbols,
+    for section in object.sections.values() {
+        let mut section_calculator = calculator.begin_section();
+        match &section.content {
+            SectionContent::Data(parts) => {
+                for (&id, part) in &parts.parts {
+                    match part {
+                        DataSectionPart::Real(real) => {
+                            layout
+                                .sections
+                                .insert(id, section_calculator.layout_of(real.bytes.0.len() as _));
+                        }
+                        DataSectionPart::DeduplicationFacade(_) => {} // No layout for them.
+                    }
+                }
+            }
+            SectionContent::Uninitialized(parts) => {
+                for (&id, part) in parts {
+                    layout.sections.insert(id, section_calculator.layout_of(part.len));
+                }
+            }
+        }
     }
+
+    layout
+}
+
+pub(crate) struct Layout {
+    sections: BTreeMap<SectionId, SectionLayout>,
+}
+
+impl Layout {
+    pub(crate) fn of(&self, section: SectionId) -> u64 {
+        self.sections.get(&section).expect("TODO").address
+    }
+}
+
+struct SectionLayout {
+    address: u64,
 }
 
 struct LayoutCalculator {

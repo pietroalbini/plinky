@@ -8,12 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  env: ElfEnvironment {
- │      class: Elf64,
- │      endian: Little,
- │      abi: SystemV,
- │      machine: X86_64,
- │  }
+ │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
  │  section .data#7 (perms: rw) in hello.o inside archive archived.a
  │   │

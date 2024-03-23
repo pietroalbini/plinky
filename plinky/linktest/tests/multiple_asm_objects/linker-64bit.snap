@@ -8,12 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  env: ElfEnvironment {
- │      class: Elf64,
- │      endian: Little,
- │      abi: SystemV,
- │      machine: X86_64,
- │  }
+ │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
  │  section .rodata#1 (perms: r) in goodbye.o
  │   │
@@ -108,12 +103,7 @@ debug print: calculated layout
 
 debug print: object after relocations are applied
  │
- │  env: ElfEnvironment {
- │      class: Elf64,
- │      endian: Little,
- │      abi: SystemV,
- │      machine: X86_64,
- │  }
+ │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
  │  section .rodata#1 (perms: r) in goodbye.o
  │   │

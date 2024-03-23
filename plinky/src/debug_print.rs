@@ -10,7 +10,6 @@ use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfDeduplication, ElfObject, ElfPermissions};
 use std::collections::BTreeSet;
-use std::fmt::Debug;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: BTreeSet<DebugPrint>,
@@ -72,9 +71,9 @@ impl LinkerCallbacks for DebugCallbacks {
     }
 }
 
-fn render_object<T: Debug + RenderLayout>(message: &str, object: &Object<T>) {
+fn render_object<T: RenderLayout>(message: &str, object: &Object<T>) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message)
-        .add(Text::new(format!("env: {:#?}", object.env)))
+        .add(render_env(object))
         .add_iter(
             object.sections.values().flat_map(|section| render_section_group(object, section)),
         )
@@ -82,7 +81,14 @@ fn render_object<T: Debug + RenderLayout>(message: &str, object: &Object<T>) {
     eprintln!("{diagnostic}\n");
 }
 
-fn render_section_group<T: Debug + RenderLayout>(
+fn render_env<T>(object: &Object<T>) -> Text {
+    Text::new(format!(
+        "class: {:?}, endian: {:?}, abi: {:?}, machine: {:?}",
+        object.env.class, object.env.endian, object.env.abi, object.env.machine
+    ))
+}
+
+fn render_section_group<T: RenderLayout>(
     object: &Object<T>,
     section: &Section<T>,
 ) -> Vec<Box<dyn Widget>> {
@@ -106,7 +112,7 @@ fn render_section_group<T: Debug + RenderLayout>(
     }
 }
 
-fn render_data_section<T: Debug + RenderLayout>(
+fn render_data_section<T: RenderLayout>(
     object: &Object<T>,
     id: SectionId,
     perms: &ElfPermissions,

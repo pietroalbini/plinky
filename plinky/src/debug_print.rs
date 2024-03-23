@@ -26,9 +26,9 @@ impl LinkerCallbacks for DebugCallbacks {
     fn on_layout_calculated(&self, object: &Object<SectionLayout>) {
         if self.print.contains(&DebugPrint::Layout) {
             let mut table = Table::new();
-            table.add_row(["Internal ID", "Section name", "Source object", "Memory address"]);
+            table.add_row(["Section", "Source object", "Memory address"]);
 
-            for (name, section) in &object.sections {
+            for section in object.sections.values() {
                 match &section.content {
                     SectionContent::Data(data) => {
                         for (id, part) in &data.parts {
@@ -40,19 +40,13 @@ impl LinkerCallbacks for DebugCallbacks {
                                     (&facade.source, "N/A (deduplication facade)".into())
                                 }
                             };
-                            table.add_row([
-                                format!("{id:?}"),
-                                name.to_string(),
-                                source.to_string(),
-                                address,
-                            ]);
+                            table.add_row([section_name(object, *id), source.to_string(), address]);
                         }
                     }
                     SectionContent::Uninitialized(parts) => {
                         for (id, part) in parts {
                             table.add_row([
-                                format!("{id:?}"),
-                                name.to_string(),
+                                section_name(object, *id),
                                 part.source.to_string(),
                                 format!("{:#x}", part.layout.address),
                             ]);

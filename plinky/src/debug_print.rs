@@ -257,6 +257,6 @@ fn section_name<T>(object: &Object<T>, id: SectionId) -> String {
     object
         .section_ids_to_names
         .get(&id)
-        .map(|name| format!("{}({id:?})", name.resolve()))
+        .map(|name| format!("{}#{}", name.resolve(), id.idx()))
         .unwrap_or_else(|| "<unknown section>".into())
 }

@@ -6,6 +6,12 @@ use crate::{ElfObject, ElfSectionContent};
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SectionId(usize);
 
+impl SectionId {
+    pub fn idx(&self) -> usize {
+        self.0
+    }
+}
+
 impl std::fmt::Debug for SectionId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "section#{}", self.0)

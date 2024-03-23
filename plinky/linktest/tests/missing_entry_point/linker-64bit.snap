@@ -31,7 +31,8 @@ debug print: loaded object
  │  ╰───────────────────┴──────────┴────────────┴───────────────╯
  ┴
 
-error: failed to find the entry point of the executable
-caused by: symbol _start is undefined
+error: failed to resolve the entry point
+caused by: failed to resolve symbol _start
+caused by: symbol is not defined
 
 

@@ -6,9 +6,17 @@ linking exited with exit status: 0
 no stdout present
 
 === stderr ===
-debug print: object after relocations are applied
+debug print: calculated layout
  │
- │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
+ │  ╭─────────────────────┬────────────────────────┬────────────────╮
+ │  │ Section             │ Source object          │ Memory address │
+ │  ├─────────────────────┼────────────────────────┼────────────────┤
+ │  │ .custom_messages#14 │ mix of foo.o and bar.o │ 0x400000       │
+ │  ├─────────────────────┼────────────────────────┼────────────────┤
+ │  │ .text#2             │ foo.o                  │ 0x401000       │
+ │  ├─────────────────────┼────────────────────────┼────────────────┤
+ │  │ .text#9             │ bar.o                  │ 0x401031       │
+ │  ╰─────────────────────┴────────────────────────┴────────────────╯
  │
  │    deduplication facade .custom_messages#1 in foo.o
  │  ╭──────┬───────────────────────────╮
@@ -27,6 +35,11 @@ debug print: object after relocations are applied
  │  ├──────┼───────────────────────────┤
  │  │ 0x8  │ .custom_messages#14 + 0x6 │
  │  ╰──────┴───────────────────────────╯
+ ┴
+
+debug print: object after relocations are applied
+ │
+ │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
  │  section .custom_messages#14 (perms: r) in mix of foo.o and bar.o
  │   │

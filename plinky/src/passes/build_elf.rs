@@ -1,15 +1,14 @@
 use crate::cli::CliOptions;
 use crate::interner::{intern, Interned};
 use crate::passes::layout::Layout;
-use crate::repr::object::{
-    DataSectionPart, GetSymbolAddressError, Object, Section, SectionContent,
-};
+use crate::repr::object::{Object, Section, SectionContent};
+use crate::repr::symbols::{ResolveSymbolError, ResolveSymbolErrorKind, ResolvedSymbol};
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
-use plinky_macros::Error;
+use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -56,14 +55,28 @@ impl ElfBuilder<'_> {
     }
 
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
-        Ok(Some(
-            NonZeroU64::new(
-                self.object
-                    .global_symbol_address(self.layout, self.entrypoint)
-                    .map_err(ElfBuilderError::InvalidEntrypoint)?,
-            )
-            .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
-        ))
+        let resolved = self
+            .object
+            .symbols
+            .get_global(self.entrypoint)
+            .map_err(|_| {
+                ElfBuilderError::EntryPointResolution(ResolveSymbolError {
+                    symbol: self.entrypoint,
+                    inner: ResolveSymbolErrorKind::Undefined,
+                })
+            })?
+            .resolve(self.layout, 0)
+            .map_err(ElfBuilderError::EntryPointResolution)?;
+
+        match resolved {
+            ResolvedSymbol::Absolute(_) => {
+                Err(ElfBuilderError::EntryPointNotAnAddress(self.entrypoint))
+            }
+            ResolvedSymbol::Address(addr) => Ok(Some(
+                NonZeroU64::new(addr)
+                    .ok_or_else(|| ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
+            )),
+        }
     }
 
     fn prepare_sections(&mut self) -> BTreeMap<SectionId, ElfSection<SerialIds>> {
@@ -103,14 +116,8 @@ impl ElfBuilder<'_> {
             SectionContent::Data(data) => {
                 let mut raw = Vec::new();
                 for (id, part) in data.parts.into_iter() {
-                    match part {
-                        DataSectionPart::Real(real) => {
-                            update_memory_address(self.layout.of(id));
-                            raw.extend_from_slice(&real.bytes);
-                        }
-                        // We shouldn't write deduplication facades.
-                        DataSectionPart::DeduplicationFacade(_) => {}
-                    }
+                    update_memory_address(self.layout.of(id));
+                    raw.extend_from_slice(&part.bytes);
                 }
                 ElfSectionContent::Program(ElfProgramSection {
                     perms: section.perms,
@@ -209,21 +216,12 @@ impl PendingStringsTable {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
 pub(crate) enum ElfBuilderError {
-    InvalidEntrypoint(#[source] GetSymbolAddressError),
+    #[display("failed to resolve the entry point")]
+    EntryPointResolution(#[source] ResolveSymbolError),
+    #[display("entry point symbol {f0} is not an address")]
+    EntryPointNotAnAddress(Interned<String>),
+    #[display("the entry point is zero")]
     EntrypointIsZero(Interned<String>),
-}
-
-impl std::fmt::Display for ElfBuilderError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ElfBuilderError::InvalidEntrypoint(_) => {
-                f.write_str("failed to find the entry point of the executable")
-            }
-            ElfBuilderError::EntrypointIsZero(entrypoint) => {
-                write!(f, "entry point symbol {entrypoint} is zero")
-            }
-        }
-    }
 }

@@ -1,7 +1,6 @@
 use crate::interner::{intern, Interned};
 use crate::repr::object::{
-    DataSection, DataSectionPart, DataSectionPartReal, Object, Section, SectionContent,
-    UninitializedSectionPart,
+    DataSection, DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
 };
 use crate::repr::strings::MissingStringError;
 use crate::repr::symbols::LoadSymbolsError;
@@ -81,10 +80,7 @@ pub(super) fn merge(
                 SectionContent::Uninitialized(c) => {
                     c.insert(
                         id,
-                        UninitializedSectionPart {
-                            source: source.clone(),
-                            len: uninit.len,
-                        },
+                        UninitializedSectionPart { source: source.clone(), len: uninit.len },
                     );
                     Ok(())
                 }
@@ -120,11 +116,11 @@ pub(super) fn merge(
                     }
                     c.parts.insert(
                         id,
-                        DataSectionPart::Real(DataSectionPartReal {
+                        DataSectionPart {
                             source: source.clone(),
                             bytes: program.raw,
                             relocations: relocations.remove(&id).unwrap_or_else(Vec::new),
-                        }),
+                        },
                     );
                     Ok(())
                 }

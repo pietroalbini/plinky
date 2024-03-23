@@ -20,9 +20,9 @@ pub(crate) fn link_driver(
     let mut object = passes::load_inputs::run(options, &mut ids)?;
     callbacks.on_inputs_loaded(&object);
 
-    passes::deduplicate::run(&mut object, &mut ids)?;
+    let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
-    let layout = passes::layout::run(&object);
+    let layout = passes::layout::run(&object, deduplications);
     callbacks.on_layout_calculated(&object, &layout);
 
     passes::relocate::run(&mut object, &layout)?;

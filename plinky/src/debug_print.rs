@@ -1,9 +1,9 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
+use crate::passes::deduplicate::Deduplication;
 use crate::passes::layout::Layout;
 use crate::repr::object::{
-    DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, Section, SectionContent,
-    UninitializedSectionPart,
+    DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
 };
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
@@ -32,15 +32,11 @@ impl LinkerCallbacks for DebugCallbacks {
                 match &section.content {
                     SectionContent::Data(data) => {
                         for (&id, part) in &data.parts {
-                            let (source, address) = match part {
-                                DataSectionPart::Real(real) => {
-                                    (&real.source, format!("{:#x}", layout.of(id)))
-                                }
-                                DataSectionPart::DeduplicationFacade(facade) => {
-                                    (&facade.source, "N/A (deduplication facade)".into())
-                                }
-                            };
-                            table.add_row([section_name(object, id), source.to_string(), address]);
+                            table.add_row([
+                                section_name(object, id),
+                                part.source.to_string(),
+                                format!("{:#x}", layout.of(id)),
+                            ]);
                         }
                     }
                     SectionContent::Uninitialized(parts) => {
@@ -55,7 +51,13 @@ impl LinkerCallbacks for DebugCallbacks {
                 }
             }
 
-            render("calculated layout", table);
+            render(
+                Diagnostic::new(DiagnosticKind::DebugPrint, "calculated layout")
+                    .add(table)
+                    .add_iter(layout.iter_deduplications().map(|(id, deduplication)| {
+                        render_deduplication(object, id, deduplication)
+                    })),
+            );
         }
     }
 
@@ -67,22 +69,26 @@ impl LinkerCallbacks for DebugCallbacks {
 
     fn on_elf_built(&self, elf: &ElfObject<SerialIds>) {
         if self.print.contains(&DebugPrint::FinalElf) {
-            render("built elf", Text::new(format!("{elf:#x?}")));
+            render(
+                Diagnostic::new(DiagnosticKind::DebugPrint, "built elf")
+                    .add(Text::new(format!("{elf:#x?}"))),
+            );
         }
     }
 }
 
 fn render_object(message: &str, object: &Object, layout: Option<&Layout>) {
-    let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message)
-        .add(render_env(object))
-        .add_iter(
-            object
-                .sections
-                .values()
-                .flat_map(|section| render_section_group(object, layout, section)),
-        )
-        .add(render_symbols(object, object.symbols.iter()));
-    eprintln!("{diagnostic}\n");
+    render(
+        Diagnostic::new(DiagnosticKind::DebugPrint, message)
+            .add(render_env(object))
+            .add_iter(
+                object
+                    .sections
+                    .values()
+                    .flat_map(|section| render_section_group(object, layout, section)),
+            )
+            .add(render_symbols(object, object.symbols.iter())),
+    );
 }
 
 fn render_env(object: &Object) -> Text {
@@ -101,18 +107,8 @@ fn render_section_group(
         SectionContent::Data(data) => data
             .parts
             .iter()
-            .map(|(&id, part)| match part {
-                DataSectionPart::Real(real) => render_data_section(
-                    object,
-                    layout,
-                    id,
-                    &section.perms,
-                    data.deduplication,
-                    real,
-                ),
-                DataSectionPart::DeduplicationFacade(facade) => {
-                    render_deduplication_facade(object, id, facade)
-                }
+            .map(|(&id, part)| {
+                render_data_section(object, layout, id, &section.perms, data.deduplication, part)
             })
             .collect(),
         SectionContent::Uninitialized(uninitialized) => uninitialized
@@ -130,7 +126,7 @@ fn render_data_section(
     id: SectionId,
     perms: &ElfPermissions,
     deduplication: ElfDeduplication,
-    part: &DataSectionPartReal,
+    part: &DataSectionPart,
 ) -> Box<dyn Widget> {
     let deduplication = match deduplication {
         ElfDeduplication::Disabled => None,
@@ -172,27 +168,6 @@ fn render_data_section(
             .add(HexDump::new(part.bytes.0.clone()))
             .add_iter(relocations),
     )
-}
-
-fn render_deduplication_facade(
-    object: &Object,
-    id: SectionId,
-    facade: &DeduplicationFacade,
-) -> Box<dyn Widget> {
-    let target = section_name(object, facade.section_id);
-
-    let mut table = Table::new();
-    table.set_title(format!(
-        "deduplication facade {} in {}",
-        section_name(object, id),
-        facade.source
-    ));
-    table.add_row(["From", "To"]);
-    for (from, to) in &facade.offset_map {
-        table.add_row([format!("{from:#x}"), format!("{target} + {to:#x}")]);
-    }
-
-    Box::new(table)
 }
 
 fn render_uninitialized_section(
@@ -243,6 +218,27 @@ fn render_symbols<'a>(
     table
 }
 
+fn render_deduplication(
+    object: &Object,
+    id: SectionId,
+    deduplication: &Deduplication,
+) -> Box<dyn Widget> {
+    let target = section_name(object, deduplication.target);
+
+    let mut table = Table::new();
+    table.set_title(format!(
+        "deduplication facade {} in {}",
+        section_name(object, id),
+        deduplication.source
+    ));
+    table.add_row(["From", "To"]);
+    for (from, to) in &deduplication.map {
+        table.add_row([format!("{from:#x}"), format!("{target} + {to:#x}")]);
+    }
+
+    Box::new(table)
+}
+
 fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
     match layout {
         Some(layout) => Some(Text::new(format!("address: {:#x}", layout.of(id)))),
@@ -250,8 +246,7 @@ fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
     }
 }
 
-fn render<T: Widget + 'static>(message: &str, widget: T) {
-    let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message).add(widget);
+fn render(diagnostic: Diagnostic) {
     eprintln!("{diagnostic}\n");
 }
 

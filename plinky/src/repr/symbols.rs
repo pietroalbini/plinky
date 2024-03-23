@@ -1,4 +1,5 @@
 use crate::interner::{intern, Interned};
+use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::strings::{MissingStringError, Strings};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
@@ -180,6 +181,31 @@ pub(crate) struct Symbol {
     pub(crate) value: SymbolValue,
 }
 
+impl Symbol {
+    pub(crate) fn resolve(
+        &self,
+        layout: &Layout,
+        offset: i64,
+    ) -> Result<ResolvedSymbol, ResolveSymbolError> {
+        match &self.value {
+            SymbolValue::Undefined => Err(ResolveSymbolError {
+                symbol: self.name,
+                inner: ResolveSymbolErrorKind::Undefined,
+            }),
+            SymbolValue::Absolute { value } => Ok(ResolvedSymbol::Absolute(*value)),
+            SymbolValue::SectionRelative { section, offset: section_offset } => {
+                match layout.address(*section, (*section_offset as i64) + offset) {
+                    Ok(result) => Ok(ResolvedSymbol::Address(result)),
+                    Err(err) => Err(ResolveSymbolError {
+                        symbol: self.name,
+                        inner: ResolveSymbolErrorKind::Layout(err),
+                    }),
+                }
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) enum SymbolVisibility {
     Local,
@@ -191,6 +217,20 @@ pub(crate) enum SymbolValue {
     Absolute { value: u64 },
     SectionRelative { section: SectionId, offset: u64 },
     Undefined,
+}
+
+pub(crate) enum ResolvedSymbol {
+    Absolute(u64),
+    Address(u64),
+}
+
+impl ResolvedSymbol {
+    pub(crate) fn as_u64(&self) -> u64 {
+        match self {
+            ResolvedSymbol::Absolute(v) => *v,
+            ResolvedSymbol::Address(v) => *v,
+        }
+    }
 }
 
 #[derive(Debug, Error, Display)]
@@ -209,4 +249,20 @@ pub(crate) enum LoadSymbolsError {
     MissingSymbolName(SymbolId, #[source] MissingStringError),
     #[display("duplicate global symbol {f0}")]
     DuplicateGlobalSymbol(Interned<String>),
+}
+
+#[derive(Debug, Error, Display)]
+#[display("failed to resolve symbol {symbol}")]
+pub(crate) struct ResolveSymbolError {
+    pub(crate) symbol: Interned<String>,
+    #[source]
+    pub(crate) inner: ResolveSymbolErrorKind,
+}
+
+#[derive(Debug, Error, Display)]
+pub(crate) enum ResolveSymbolErrorKind {
+    #[display("symbol is not defined")]
+    Undefined,
+    #[transparent]
+    Layout(AddressResolutionError),
 }

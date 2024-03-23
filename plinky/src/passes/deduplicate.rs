@@ -1,14 +1,17 @@
 use crate::interner::Interned;
-use crate::repr::object::{
-    DataSection, DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, SectionContent,
-};
+use crate::repr::object::{DataSection, DataSectionPart, Object, SectionContent};
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, RawBytes};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(crate) fn run(object: &mut Object, ids: &mut SerialIds) -> Result<(), DeduplicationError> {
+pub(crate) fn run(
+    object: &mut Object,
+    ids: &mut SerialIds,
+) -> Result<BTreeMap<SectionId, Deduplication>, DeduplicationError> {
+    let mut deduplications = BTreeMap::new();
     for (&section_name, section) in &mut object.sections {
         let SectionContent::Data(data) = &mut section.content else {
             continue;
@@ -22,30 +25,31 @@ pub(crate) fn run(object: &mut Object, ids: &mut SerialIds) -> Result<(), Dedupl
         // Not sure exactly whether relocations inside of deduplicatable sections are ever used in
         // the wild, so for now let's error out if we encounter this.
         for part in data.parts.values() {
-            match part {
-                DataSectionPart::Real(real) => {
-                    if !real.relocations.is_empty() {
-                        return Err(DeduplicationError {
-                            section_name,
-                            kind: DeduplicationErrorKind::RelocationsUnsupported,
-                        });
-                    }
-                }
-                DataSectionPart::DeduplicationFacade(_) => {
-                    unreachable!("deduplication facades should not be present at this stage")
-                }
+            if !part.relocations.is_empty() {
+                return Err(DeduplicationError {
+                    section_name,
+                    kind: DeduplicationErrorKind::RelocationsUnsupported,
+                });
             }
         }
 
-        deduplicate(ids, &mut object.section_ids_to_names, section_name, split_rule, data)
-            .map_err(|kind| DeduplicationError { section_name, kind })?;
+        deduplicate(
+            ids,
+            &mut deduplications,
+            &mut object.section_ids_to_names,
+            section_name,
+            split_rule,
+            data,
+        )
+        .map_err(|kind| DeduplicationError { section_name, kind })?;
     }
 
-    Ok(())
+    Ok(deduplications)
 }
 
 fn deduplicate(
     ids: &mut SerialIds,
+    deduplications: &mut BTreeMap<SectionId, Deduplication>,
     section_ids_to_names: &mut BTreeMap<SectionId, Interned<String>>,
     section_name: Interned<String>,
     split_rule: SplitRule,
@@ -54,59 +58,45 @@ fn deduplicate(
     let merged_id = ids.allocate_section_id();
     let mut merged = Vec::new();
     let mut seen = BTreeMap::new();
-    let mut facades_to_replace = BTreeMap::new();
+    let mut sections_to_remove = Vec::new();
     let mut source = None;
 
     for (&section_id, part) in data.parts.iter() {
-        let (bytes, facade_source) = match part {
-            DataSectionPart::Real(real) => {
-                match source {
-                    None => source = Some(real.source.clone()),
-                    Some(other_source) => source = Some(other_source.merge(&real.source)),
-                }
-                (&real.bytes.0, real.source.clone())
-            }
-            DataSectionPart::DeduplicationFacade(_) => {
-                unreachable!("deduplication facades should not be present at this stage")
-            }
-        };
-        let mut facade = DeduplicationFacade {
-            section_id: merged_id,
-            source: facade_source,
-            offset_map: BTreeMap::new(),
-        };
-        for chunk in split(split_rule, bytes) {
+        match source {
+            None => source = Some(part.source.clone()),
+            Some(other_source) => source = Some(other_source.merge(&part.source)),
+        }
+        let mut deduplication =
+            Deduplication { target: merged_id, map: BTreeMap::new(), source: part.source.clone() };
+        for chunk in split(split_rule, &part.bytes.0) {
             let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
                 Some(idx) => {
-                    facade.offset_map.insert(chunk_start as _, *idx as _);
+                    deduplication.map.insert(chunk_start as _, *idx as _);
                 }
                 None => {
                     let idx = merged.len();
                     merged.extend_from_slice(chunk);
                     seen.insert(chunk, idx);
-                    facade.offset_map.insert(chunk_start as _, idx as _);
+                    deduplication.map.insert(chunk_start as _, idx as _);
                 }
             }
         }
-        facades_to_replace.insert(section_id, facade);
+        deduplications.insert(section_id, deduplication);
+        sections_to_remove.push(section_id);
     }
 
     data.parts.insert(
         merged_id,
-        DataSectionPart::Real(DataSectionPartReal {
+        DataSectionPart {
             source: source.expect("no deduplicated sections"),
             bytes: RawBytes(merged),
             relocations: Vec::new(),
-        }),
+        },
     );
     section_ids_to_names.insert(merged_id, section_name);
 
-    for (section_id, part) in data.parts.iter_mut() {
-        if let Some(facade) = facades_to_replace.remove(section_id) {
-            *part = DataSectionPart::DeduplicationFacade(facade);
-        }
-    }
+    data.parts.retain(|key, _| !sections_to_remove.contains(key));
 
     Ok(())
 }
@@ -154,6 +144,12 @@ fn split(
             Some(Ok((chunk_start, chunk)))
         }
     })
+}
+
+pub(crate) struct Deduplication {
+    pub(crate) target: SectionId,
+    pub(crate) source: ObjectSpan,
+    pub(crate) map: BTreeMap<u64, u64>,
 }
 
 #[derive(Debug, Display, Error)]

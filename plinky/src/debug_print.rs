@@ -79,16 +79,12 @@ impl LinkerCallbacks for DebugCallbacks {
 }
 
 fn render_object<T: Debug + RenderObject>(message: &str, object: &Object<T>) {
-    let mut diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message);
-
-    diagnostic = diagnostic.add(Text::new(format!("env: {:#?}", object.env)));
-    for section in object.sections.values() {
-        for piece in render_section_group(object, section) {
-            diagnostic = diagnostic.add(piece);
-        }
-    }
-    diagnostic = diagnostic.add(render_symbols(object, object.symbols.iter()));
-
+    let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message)
+        .add(Text::new(format!("env: {:#?}", object.env)))
+        .add_iter(
+            object.sections.values().flat_map(|section| render_section_group(object, section)),
+        )
+        .add(render_symbols(object, object.symbols.iter()));
     eprintln!("{diagnostic}\n");
 }
 

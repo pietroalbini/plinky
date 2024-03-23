@@ -15,6 +15,15 @@ impl Diagnostic {
         self.children = self.children.add(widget);
         self
     }
+
+    pub fn add_iter<T, I>(mut self, iter: I) -> Self
+    where
+        T: Widget + 'static,
+        I: IntoIterator<Item = T>,
+    {
+        self.children = self.children.add_iter(iter);
+        self
+    }
 }
 
 impl std::fmt::Debug for Diagnostic {

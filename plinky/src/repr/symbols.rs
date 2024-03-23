@@ -8,32 +8,36 @@ use std::collections::{btree_map, BTreeMap};
 
 #[derive(Debug)]
 pub(crate) struct Symbols {
-    local_symbols: BTreeMap<SymbolId, Symbol>,
-    global_symbols_lookup: BTreeMap<SymbolId, Interned<String>>,
-    global_symbols: BTreeMap<Interned<String>, Symbol>,
+    symbols: BTreeMap<SymbolId, SymbolOrRedirect>,
+    global_symbols: BTreeMap<Interned<String>, SymbolId>,
 }
 
 impl Symbols {
     pub(crate) fn new() -> Self {
-        Self {
-            local_symbols: BTreeMap::new(),
-            global_symbols_lookup: BTreeMap::new(),
-            global_symbols: BTreeMap::new(),
-        }
+        Self { symbols: BTreeMap::new(), global_symbols: BTreeMap::new() }
     }
 
-    pub(crate) fn add_unknown_global(&mut self, name: &str) {
-        let name = intern(name);
-        self.global_symbols.entry(name).or_insert(Symbol {
-            name,
-            span: intern(ObjectSpan::new_synthetic()),
-            visibility: SymbolVisibility::Global { weak: false },
-            value: SymbolValue::Undefined,
-        });
+    pub(crate) fn add_unknown_global(
+        &mut self,
+        ids: &mut SerialIds,
+        name: &str,
+    ) -> Result<(), LoadSymbolsError> {
+        let id = ids.allocate_symbol_id();
+        self.add_symbol(
+            ids,
+            id,
+            Symbol {
+                name: intern(name),
+                span: intern(ObjectSpan::new_synthetic()),
+                visibility: SymbolVisibility::Global { weak: false },
+                value: SymbolValue::Undefined,
+            },
+        )
     }
 
     pub(crate) fn load_table(
         &mut self,
+        ids: &mut SerialIds,
         span: Interned<ObjectSpan>,
         table: ElfSymbolTable<SerialIds>,
         strings: &Strings,
@@ -79,56 +83,87 @@ impl Symbols {
                 },
             };
 
-            match symbol.visibility {
-                SymbolVisibility::Local => {
-                    self.local_symbols.insert(symbol_id, symbol);
-                }
-                SymbolVisibility::Global { weak: false } => {
-                    match self.global_symbols.entry(symbol.name) {
-                        btree_map::Entry::Vacant(vacant) => {
-                            vacant.insert(symbol);
-                        }
-                        btree_map::Entry::Occupied(mut entry) => {
-                            let existing_symbol = entry.get();
-                            if let SymbolValue::Undefined = existing_symbol.value {
-                                entry.insert(symbol);
-                            } else if let SymbolValue::Undefined = symbol.value {
-                                // Nothing.
-                            } else {
-                                return Err(LoadSymbolsError::DuplicateGlobalSymbol(symbol.name));
-                            }
+            self.add_symbol(ids, symbol_id, symbol)?;
+        }
+        Ok(())
+    }
+
+    fn add_symbol(
+        &mut self,
+        ids: &mut SerialIds,
+        id: SymbolId,
+        symbol: Symbol,
+    ) -> Result<(), LoadSymbolsError> {
+        match symbol.visibility {
+            SymbolVisibility::Local => {
+                self.symbols.insert(id, SymbolOrRedirect::Symbol(symbol));
+            }
+            SymbolVisibility::Global { weak: false } => {
+                // For global symbols, we generate a new symbol ID for each unique name, and
+                // redirect to it all of the concrete references to that global name.
+                let global_id = *self
+                    .global_symbols
+                    .entry(symbol.name)
+                    .or_insert_with(|| ids.allocate_symbol_id());
+                self.symbols.insert(id, SymbolOrRedirect::Redirect(global_id));
+
+                match self.symbols.entry(global_id) {
+                    btree_map::Entry::Vacant(entry) => {
+                        entry.insert(SymbolOrRedirect::Symbol(symbol));
+                    }
+                    btree_map::Entry::Occupied(mut entry) => {
+                        let SymbolOrRedirect::Symbol(existing_symbol) = entry.get() else {
+                            panic!("global symbols can't be a redirect");
+                        };
+                        if let SymbolValue::Undefined = existing_symbol.value {
+                            entry.insert(SymbolOrRedirect::Symbol(symbol));
+                        } else if let SymbolValue::Undefined = symbol.value {
+                            // Nothing.
+                        } else {
+                            return Err(LoadSymbolsError::DuplicateGlobalSymbol(symbol.name));
                         }
                     }
-                    self.global_symbols_lookup.insert(symbol_id, name);
                 }
-                SymbolVisibility::Global { weak: true } => {
-                    todo!("weak symbols are not supported yet")
-                }
+            }
+            SymbolVisibility::Global { weak: true } => {
+                todo!("weak symbols are not supported yet")
             }
         }
         Ok(())
     }
 
-    pub(crate) fn get(&self, id: SymbolId) -> Result<&Symbol, MissingGlobalSymbol> {
-        if let Some(symbol) = self.local_symbols.get(&id) {
-            Ok(symbol)
-        } else if let Some(symbol_name) = self.global_symbols_lookup.get(&id) {
-            self.get_global(*symbol_name)
-        } else {
-            panic!("symbol id doesn't point to a symbol");
+    pub(crate) fn get(&self, mut id: SymbolId) -> Result<&Symbol, MissingGlobalSymbol> {
+        let mut attempts = 0;
+        while attempts < 10 {
+            match self.symbols.get(&id) {
+                Some(SymbolOrRedirect::Symbol(symbol)) => return Ok(symbol),
+                Some(SymbolOrRedirect::Redirect(redirect)) => id = *redirect,
+                None => panic!("symbol id doesn't point to a symbol"),
+            }
+            attempts += 1;
         }
+        panic!("too many redirects while resolving symbol {id:?}");
     }
 
     pub(crate) fn get_global(
         &self,
         name: Interned<String>,
     ) -> Result<&Symbol, MissingGlobalSymbol> {
-        self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })
+        self.get(*self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })?)
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &Symbol> {
-        self.local_symbols.values().chain(self.global_symbols.values())
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
+        self.symbols.iter().filter_map(|(id, symbol)| match symbol {
+            SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
+            SymbolOrRedirect::Redirect(_) => None,
+        })
     }
+}
+
+#[derive(Debug)]
+enum SymbolOrRedirect {
+    Symbol(Symbol),
+    Redirect(SymbolId),
 }
 
 #[derive(Debug)]

@@ -12,6 +12,7 @@ use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 pub(super) fn merge(
+    ids: &mut SerialIds,
     object: &mut Object<()>,
     source: ObjectSpan,
     elf: ElfObject<SerialIds>,
@@ -56,7 +57,7 @@ pub(super) fn merge(
     // This is loaded after the string tables are loaded by the previous iteration, as we need
     // to resolve the strings as part of symbol loading.
     for (name_id, table) in symbol_tables {
-        object.symbols.load_table(intern(source.clone()), table, &object.strings).map_err(
+        object.symbols.load_table(ids, intern(source.clone()), table, &object.strings).map_err(
             |inner| MergeElfError::SymbolsLoadingFailed {
                 section_name: object.strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,

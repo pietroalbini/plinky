@@ -3,7 +3,7 @@ use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::repr::object::Object;
 use crate::repr::strings::Strings;
-use crate::repr::symbols::Symbols;
+use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
@@ -17,10 +17,12 @@ pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
 ) -> Result<Object<()>, LoadInputsError> {
-    let mut reader = ObjectsReader::new(&options.inputs, ids);
+    let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new();
-    empty_symbols.add_unknown_global(&options.entry);
+    empty_symbols
+        .add_unknown_global(ids, &options.entry)
+        .map_err(LoadInputsError::EntryInsertionFailed)?;
 
     let mut state = State::Empty { symbols: empty_symbols };
     loop {
@@ -28,7 +30,7 @@ pub(crate) fn run(
             State::Empty { symbols } => symbols,
             State::WithContent { object, .. } => &object.symbols,
         };
-        let Some((source, elf)) = reader.next_object(symbols)? else { break };
+        let Some((source, elf)) = reader.next_object(ids, symbols)? else { break };
 
         state = match state {
             State::Empty { symbols } => {
@@ -39,7 +41,7 @@ pub(crate) fn run(
                     strings: Strings::new(),
                     symbols,
                 };
-                merge_elf::merge(&mut object, source.clone(), elf)
+                merge_elf::merge(ids, &mut object, source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
                 State::WithContent { object, first_span: source }
             }
@@ -52,7 +54,7 @@ pub(crate) fn run(
                         current_env: elf.env,
                     });
                 }
-                merge_elf::merge(&mut object, source.clone(), elf)
+                merge_elf::merge(ids, &mut object, source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
                 State::WithContent { object, first_span }
             }
@@ -74,6 +76,8 @@ enum State {
 pub(crate) enum LoadInputsError {
     #[display("no input files were provided")]
     NoInputFiles,
+    #[display("failed to add the entry point as an unknown symbol")]
+    EntryInsertionFailed(#[source] LoadSymbolsError),
     #[transparent]
     ReadFailed(ReadObjectsError),
     #[display("failed to include the ELF file {f0}")]

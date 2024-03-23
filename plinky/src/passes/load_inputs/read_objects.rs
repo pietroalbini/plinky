@@ -16,20 +16,20 @@ type ObjectItem = (ObjectSpan, ElfObject<SerialIds>);
 pub(super) struct ObjectsReader<'a> {
     remaining_files: &'a [PathBuf],
     current_archive: Option<PendingArchive>,
-    ids: &'a mut SerialIds,
 }
 
 impl<'a> ObjectsReader<'a> {
-    pub(super) fn new(paths: &'a [PathBuf], ids: &'a mut SerialIds) -> Self {
-        Self { remaining_files: paths, current_archive: None, ids }
+    pub(super) fn new(paths: &'a [PathBuf]) -> Self {
+        Self { remaining_files: paths, current_archive: None }
     }
 
     pub(super) fn next_object(
         &mut self,
+        ids: &mut SerialIds,
         symbols: &Symbols,
     ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         loop {
-            if let Some(result) = self.next_from_archive()? {
+            if let Some(result) = self.next_from_archive(ids)? {
                 return Ok(Some(result));
             }
 
@@ -46,7 +46,7 @@ impl<'a> ObjectsReader<'a> {
                 FileType::Elf => {
                     return Ok(Some((
                         ObjectSpan::new_file(&path),
-                        ElfObject::load(&mut r, self.ids)
+                        ElfObject::load(&mut r, ids)
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     )))
                 }
@@ -60,10 +60,13 @@ impl<'a> ObjectsReader<'a> {
         }
     }
 
-    fn next_from_archive(&mut self) -> Result<Option<ObjectItem>, ReadObjectsError> {
+    fn next_from_archive(
+        &mut self,
+        ids: &mut SerialIds,
+    ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         let Some(pending_archive) = &mut self.current_archive else { return Ok(None) };
         match pending_archive.next()? {
-            Some(file) => match ElfObject::load(&mut Cursor::new(file.content), self.ids) {
+            Some(file) => match ElfObject::load(&mut Cursor::new(file.content), ids) {
                 Ok(object) => Ok(Some((
                     ObjectSpan::new_archive_member(&pending_archive.path, file.name),
                     object,

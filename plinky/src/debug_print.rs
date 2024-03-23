@@ -7,7 +7,7 @@ use crate::repr::object::{
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfDeduplication, ElfObject};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
@@ -223,8 +223,11 @@ impl RenderObject for SectionLayout {
     }
 }
 
-fn render_symbols<'a, T>(object: &Object<T>, symbols: impl Iterator<Item = &'a Symbol>) -> Table {
-    let mut symbols = symbols.collect::<Vec<_>>();
+fn render_symbols<'a, T>(
+    object: &Object<T>,
+    symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
+) -> Table {
+    let mut symbols = symbols.map(|(_, s)| s).collect::<Vec<_>>();
     symbols.sort_by_key(|symbol| symbol.name);
 
     let mut table = Table::new();

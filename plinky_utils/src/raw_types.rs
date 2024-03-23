@@ -1,6 +1,5 @@
 use crate::bitfields::BitfieldReadError;
 use crate::{Bits, Endian};
-use plinky_macros::{Display, Error};
 use std::io::{Read, Write};
 
 pub trait RawType: Sized {
@@ -196,8 +195,7 @@ macro_rules! impl_rawtypeaspointersize_for_int {
 
 impl_rawtypeaspointersize_for_int!(i64 or i32, u64 or u32);
 
-#[derive(Debug, Display)]
-#[display("failed to read {source}")]
+#[derive(Debug)]
 pub struct RawReadError {
     source: ErrorSource,
     inner: RawReadErrorInner,
@@ -257,6 +255,12 @@ enum RawReadErrorInner {
     IO(std::io::Error),
 }
 
+impl std::fmt::Display for RawReadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "failed to read {}", self.source)
+    }
+}
+
 impl std::error::Error for RawReadError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match &self.inner {
@@ -268,12 +272,18 @@ impl std::error::Error for RawReadError {
     }
 }
 
-#[derive(Debug, Display, Error)]
-#[display("{f0}")]
+#[derive(Debug)]
 struct CustomError(String);
 
-#[derive(Debug, Display)]
-#[display("failed to write {source}")]
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for CustomError {}
+
+#[derive(Debug)]
 pub struct RawWriteError {
     source: ErrorSource,
     inner: RawWriteErrorInner,
@@ -320,16 +330,30 @@ impl std::error::Error for RawWriteError {
     }
 }
 
+impl std::fmt::Display for RawWriteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "failed to write {}", self.source)
+    }
+}
+
 #[derive(Debug)]
 enum RawWriteErrorInner {
     Itself(Box<RawWriteError>),
     IO(std::io::Error),
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug)]
 enum ErrorSource {
-    #[display("{f0}")]
     Type(&'static str),
-    #[display("field {field} of struct {struct_}")]
     StructField { field: &'static str, struct_: &'static str },
 }
+
+impl std::fmt::Display for ErrorSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorSource::Type(ty) => write!(f, "{ty}"),
+            ErrorSource::StructField { field, struct_ } => write!(f, "field {field} of struct {struct_}"),
+        }
+    }
+}
+

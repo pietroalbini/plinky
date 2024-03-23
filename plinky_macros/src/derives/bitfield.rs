@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::parser::{Attributes, Ident, Item, Parser, Struct, StructFields};
 use crate::utils::{generate_impl_for, ident, literal};
 use plinky_macros_quote::quote;
-use plinky_macros_quote_traits::Quote;
+use plinky_utils::quote::Quote;
 use proc_macro::TokenStream;
 
 pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {

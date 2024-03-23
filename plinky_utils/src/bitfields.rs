@@ -1,6 +1,5 @@
 use crate::raw_types::{RawReadError, RawType, RawTypeAsPointerSize, RawWriteError};
 use crate::{Bits, Endian};
-use plinky_macros::{Display, Error};
 use std::io::{Read, Write};
 
 pub trait Bitfield: Sized {
@@ -184,8 +183,17 @@ macro_rules! impl_bitfieldrepr_for {
 
 impl_bitfieldrepr_for!(u8, u16, u32, u64);
 
-#[derive(Debug, Error, Display)]
+#[derive(Debug)]
 pub enum BitfieldReadError {
-    #[display("unknown bit set to true at position {f0}")]
     UnknownBit(u64),
+}
+
+impl std::error::Error for BitfieldReadError {}
+
+impl std::fmt::Display for BitfieldReadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnknownBit(bit) => write!(f, "unknown bit set to true at position {bit}"),
+        }
+    }
 }

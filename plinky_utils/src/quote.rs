@@ -1,5 +1,3 @@
-extern crate proc_macro;
-
 use proc_macro::{TokenStream, TokenTree};
 
 pub trait Quote {
@@ -35,3 +33,4 @@ impl<T: Quote + Clone> Quote for [T] {
         self.iter().cloned().map(|v| v.to_token_stream()).collect()
     }
 }
+

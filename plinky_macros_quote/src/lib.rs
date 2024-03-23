@@ -87,7 +87,7 @@ fn render_node_list(output: &mut String, nodes: Vec<Node>) {
             }
             Node::Interpolation(var) => {
                 output.push_str(
-                    "__quote_buffer__.extend(plinky_macros_quote_traits::Quote::to_token_stream(&",
+                    "__quote_buffer__.extend(plinky_utils::quote::Quote::to_token_stream(&",
                 );
                 output.push_str(&var);
                 output.push_str("));");

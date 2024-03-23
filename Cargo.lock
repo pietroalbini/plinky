@@ -171,7 +171,7 @@ name = "plinky_macros"
 version = "0.1.0"
 dependencies = [
  "plinky_macros_quote",
- "plinky_macros_quote_traits",
+ "plinky_utils",
 ]
 
 [[package]]
@@ -179,15 +179,8 @@ name = "plinky_macros_quote"
 version = "0.1.0"
 
 [[package]]
-name = "plinky_macros_quote_traits"
-version = "0.1.0"
-
-[[package]]
 name = "plinky_utils"
 version = "0.1.0"
-dependencies = [
- "plinky_macros",
-]
 
 [[package]]
 name = "proc-macro2"

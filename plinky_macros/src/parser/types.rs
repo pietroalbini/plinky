@@ -1,5 +1,5 @@
 use crate::error::Error;
-use plinky_macros_quote_traits::Quote;
+use plinky_utils::quote::Quote;
 use proc_macro::{Span, TokenStream, TokenTree};
 
 #[derive(Debug, Clone)]

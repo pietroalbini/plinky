@@ -1,4 +1,7 @@
+extern crate proc_macro;
+
 pub mod bitfields;
+pub mod quote;
 pub mod raw_types;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

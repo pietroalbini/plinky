@@ -15,43 +15,33 @@ debug print: loaded object
  │      machine: X86_64,
  │  }
  │
- │  sections: {
- │      ".text": Section {
- │          perms: ElfPermissions(RX),
- │          content: Data(
- │              DataSection {
- │                  deduplication: Disabled,
- │                  parts: {
- │                      section#1: Real(
- │                          DataSectionPartReal {
- │                              source: hello.o,
- │                              bytes: RawBytes {
- │                                       ?0   (len: 0x1)
- │                                     +----+
- │                                  0? | 90 | .
- │                              },
- │                              relocations: [],
- │                              layout: (),
- │                          },
- │                      ),
- │                  },
- │              },
- │          ),
- │      },
- │  }
+ │   │
+ │   │  section .text(section#1) in hello.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: hello.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0   (len: 0x1)
+ │   │             +----+
+ │   │          0? | 90 | .
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: (),
+ │   │  }
+ │   ┴
  │
  │    Symbols:
- │  ╭──────────────┬──────────┬────────────┬─────────────╮
- │  │ Name         │ Source   │ Visibility │ Value       │
- │  ├──────────────┼──────────┼────────────┼─────────────┤
- │  │              │ hello.o  │ local      │ <undefined> │
- │  ├──────────────┼──────────┼────────────┼─────────────┤
- │  │              │ hello.o  │ local      │ .text + 0x0 │
- │  ├──────────────┼──────────┼────────────┼─────────────┤
- │  │ _start       │ <plinky> │ global     │ <undefined> │
- │  ├──────────────┼──────────┼────────────┼─────────────┤
- │  │ custom_entry │ hello.o  │ global     │ .text + 0x0 │
- │  ╰──────────────┴──────────┴────────────┴─────────────╯
+ │  ╭──────────────┬──────────┬────────────┬────────────────────────╮
+ │  │ Name         │ Source   │ Visibility │ Value                  │
+ │  ├──────────────┼──────────┼────────────┼────────────────────────┤
+ │  │              │ hello.o  │ local      │ <undefined>            │
+ │  ├──────────────┼──────────┼────────────┼────────────────────────┤
+ │  │              │ hello.o  │ local      │ .text(section#1) + 0x0 │
+ │  ├──────────────┼──────────┼────────────┼────────────────────────┤
+ │  │ _start       │ <plinky> │ global     │ <undefined>            │
+ │  ├──────────────┼──────────┼────────────┼────────────────────────┤
+ │  │ custom_entry │ hello.o  │ global     │ .text(section#1) + 0x0 │
+ │  ╰──────────────┴──────────┴────────────┴────────────────────────╯
  ┴
 
 error: failed to find the entry point of the executable

@@ -5,10 +5,10 @@ mod table;
 mod text;
 
 pub use self::group::WidgetGroup;
+pub use self::hex_dump::HexDump;
 pub use self::quoted_text::QuotedText;
 pub use self::table::Table;
 pub use self::text::Text;
-pub use self::hex_dump::HexDump;
 use crate::WidgetWriter;
 
 pub trait Widget {
@@ -19,5 +19,11 @@ pub trait Widget {
         let mut writer = WidgetWriter::new(&mut buffer);
         self.render(&mut writer);
         buffer
+    }
+}
+
+impl Widget for Box<dyn Widget> {
+    fn render(&self, writer: &mut WidgetWriter<'_>) {
+        self.as_ref().render(writer)
     }
 }

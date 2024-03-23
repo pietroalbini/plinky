@@ -1,12 +1,15 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
-use crate::repr::object::{DataSectionPart, Object, SectionContent, SectionLayout};
+use crate::repr::object::{
+    DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, Section,
+    SectionContent, SectionLayout, UninitializedSectionPart,
+};
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
-use plinky_diagnostics::widgets::{Table, Text, Widget};
+use plinky_diagnostics::widgets::{Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::SerialIds;
-use plinky_elf::ElfObject;
-use std::collections::BTreeSet;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::{ElfDeduplication, ElfObject};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 
 pub(crate) struct DebugCallbacks {
@@ -75,14 +78,119 @@ impl LinkerCallbacks for DebugCallbacks {
     }
 }
 
-fn render_object<T: Debug>(message: &str, object: &Object<T>) {
+fn render_object<T: Debug + RenderObject>(message: &str, object: &Object<T>) {
     let mut diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message);
 
     diagnostic = diagnostic.add(Text::new(format!("env: {:#?}", object.env)));
-    diagnostic = diagnostic.add(Text::new(format!("sections: {:#?}", object.sections)));
+    for section in object.sections.values() {
+        for piece in render_section_group(object, section) {
+            diagnostic = diagnostic.add(piece);
+        }
+    }
     diagnostic = diagnostic.add(render_symbols(object, object.symbols.iter()));
 
     eprintln!("{diagnostic}\n");
+}
+
+fn render_section_group<T: Debug + RenderObject>(
+    object: &Object<T>,
+    section: &Section<T>,
+) -> Vec<Box<dyn Widget>> {
+    match &section.content {
+        SectionContent::Data(data) => data
+            .parts
+            .iter()
+            .map(|(&id, part)| match part {
+                DataSectionPart::Real(real) => {
+                    render_data_section(object, id, data.deduplication, real)
+                }
+                DataSectionPart::DeduplicationFacade(facade) => {
+                    render_deduplication_facade(object, id, facade)
+                }
+            })
+            .collect(),
+        SectionContent::Uninitialized(uninitialized) => {
+            vec![Box::new(WidgetGroup::new().add(T::render_uninitialized_section(uninitialized)))]
+        }
+    }
+}
+
+fn render_data_section<T: Debug + RenderObject>(
+    object: &Object<T>,
+    id: SectionId,
+    deduplication: ElfDeduplication,
+    part: &DataSectionPartReal<T>,
+) -> Box<dyn Widget> {
+    let mut group = WidgetGroup::new();
+    group =
+        group.add(Text::new(format!("section {} in {}", section_name(object, id), part.source)));
+    group = group.add(Text::new(format!("{part:#?}")));
+    Box::new(group)
+}
+
+fn render_deduplication_facade<T>(
+    object: &Object<T>,
+    id: SectionId,
+    facade: &DeduplicationFacade,
+) -> Box<dyn Widget> {
+    let target = section_name(object, facade.section_id);
+
+    let mut table = Table::new();
+    table.set_title(format!(
+        "deduplication facade {} in {}",
+        section_name(object, id),
+        facade.source
+    ));
+    table.add_row(["From", "To"]);
+    for (from, to) in &facade.offset_map {
+        table.add_row([format!("{from:#x}"), format!("{target} + {to:#x}")]);
+    }
+
+    Box::new(table)
+}
+
+trait RenderObject
+where
+    Self: Sized,
+{
+    fn render_uninitialized_section(
+        parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
+    ) -> Table;
+}
+
+impl RenderObject for () {
+    fn render_uninitialized_section(
+        parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
+    ) -> Table {
+        let mut table = Table::new();
+        table.add_row(["ID", "Length", "Source"]);
+        for (id, part) in parts {
+            table.add_row([
+                format!("{id:?}"),
+                format!("{:#x?}", part.len),
+                part.source.to_string(),
+            ]);
+        }
+        table
+    }
+}
+
+impl RenderObject for SectionLayout {
+    fn render_uninitialized_section(
+        parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
+    ) -> Table {
+        let mut table = Table::new();
+        table.add_row(["ID", "Length", "Address", "Source"]);
+        for (id, part) in parts {
+            table.add_row([
+                format!("{id:?}"),
+                format!("{:#x?}", part.len),
+                format!("{:#x?}", part.layout.address),
+                part.source.to_string(),
+            ]);
+        }
+        table
+    }
 }
 
 fn render_symbols<'a, T>(object: &Object<T>, symbols: impl Iterator<Item = &'a Symbol>) -> Table {
@@ -101,12 +209,7 @@ fn render_symbols<'a, T>(object: &Object<T>, symbols: impl Iterator<Item = &'a S
         let value = match symbol.value {
             SymbolValue::Absolute { value } => format!("{value:#x}"),
             SymbolValue::SectionRelative { section, offset } => {
-                let section_name = object
-                    .section_ids_to_names
-                    .get(&section)
-                    .map(|name| name.resolve().to_string())
-                    .unwrap_or_else(|| "<unknown section>".into());
-                format!("{section_name} + {offset:#x}")
+                format!("{} + {offset:#x}", section_name(object, section))
             }
             SymbolValue::Undefined => "<undefined>".into(),
         };
@@ -118,4 +221,12 @@ fn render_symbols<'a, T>(object: &Object<T>, symbols: impl Iterator<Item = &'a S
 fn render<T: Widget + 'static>(message: &str, widget: T) {
     let diagnostic = Diagnostic::new(DiagnosticKind::DebugPrint, message).add(widget);
     eprintln!("{diagnostic}\n");
+}
+
+fn section_name<T>(object: &Object<T>, id: SectionId) -> String {
+    object
+        .section_ids_to_names
+        .get(&id)
+        .map(|name| format!("{}({id:?})", name.resolve()))
+        .unwrap_or_else(|| "<unknown section>".into())
 }

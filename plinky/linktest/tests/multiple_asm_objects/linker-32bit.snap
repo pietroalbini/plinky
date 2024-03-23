@@ -15,127 +15,116 @@ debug print: loaded object
  │      machine: X86,
  │  }
  │
- │  sections: {
- │      ".rodata": Section {
- │          perms: ElfPermissions(R),
- │          content: Data(
- │              DataSection {
- │                  deduplication: Disabled,
- │                  parts: {
- │                      section#1: Real(
- │                          DataSectionPartReal {
- │                              source: goodbye.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
- │                                     +----------------------------------------------+
- │                                  0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
- │                              },
- │                              relocations: [],
- │                              layout: (),
- │                          },
- │                      ),
- │                      section#8: Real(
- │                          DataSectionPartReal {
- │                              source: hello.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
- │                                     +----------------------------------------+
- │                                  0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
- │                              },
- │                              relocations: [],
- │                              layout: (),
- │                          },
- │                      ),
- │                  },
- │              },
- │          ),
- │      },
- │      ".text": Section {
- │          perms: ElfPermissions(RX),
- │          content: Data(
- │              DataSection {
- │                  deduplication: Disabled,
- │                  parts: {
- │                      section#2: Real(
- │                          DataSectionPartReal {
- │                              source: goodbye.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
- │                                     +-------------------------------------------------+
- │                                  0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
- │                                  1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
- │                              },
- │                              relocations: [
- │                                  ElfRelocation {
- │                                      offset: 11,
- │                                      symbol: symbol#2,
- │                                      relocation_type: X86_32,
- │                                      addend: None,
- │                                  },
- │                              ],
- │                              layout: (),
- │                          },
- │                      ),
- │                      section#9: Real(
- │                          DataSectionPartReal {
- │                              source: hello.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
- │                                     +-------------------------------------------------+
- │                                  0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
- │                                  1? | 0d 00 00 00 cd 80 e9 fc ff ff ff                | ...........
- │                              },
- │                              relocations: [
- │                                  ElfRelocation {
- │                                      offset: 11,
- │                                      symbol: symbol#9,
- │                                      relocation_type: X86_32,
- │                                      addend: None,
- │                                  },
- │                                  ElfRelocation {
- │                                      offset: 23,
- │                                      symbol: symbol#13,
- │                                      relocation_type: X86_PC32,
- │                                      addend: None,
- │                                  },
- │                              ],
- │                              layout: (),
- │                          },
- │                      ),
- │                  },
- │              },
- │          ),
- │      },
- │  }
+ │   │
+ │   │  section .rodata(section#1) in goodbye.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: goodbye.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │   │             +----------------------------------------------+
+ │   │          0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: (),
+ │   │  }
+ │   ┴
+ │
+ │   │
+ │   │  section .rodata(section#8) in hello.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: hello.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
+ │   │             +----------------------------------------+
+ │   │          0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: (),
+ │   │  }
+ │   ┴
+ │
+ │   │
+ │   │  section .text(section#2) in goodbye.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: goodbye.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+ │   │             +-------------------------------------------------+
+ │   │          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
+ │   │          1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+ │   │      },
+ │   │      relocations: [
+ │   │          ElfRelocation {
+ │   │              offset: 11,
+ │   │              symbol: symbol#2,
+ │   │              relocation_type: X86_32,
+ │   │              addend: None,
+ │   │          },
+ │   │      ],
+ │   │      layout: (),
+ │   │  }
+ │   ┴
+ │
+ │   │
+ │   │  section .text(section#9) in hello.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: hello.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
+ │   │             +-------------------------------------------------+
+ │   │          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba | ................
+ │   │          1? | 0d 00 00 00 cd 80 e9 fc ff ff ff                | ...........
+ │   │      },
+ │   │      relocations: [
+ │   │          ElfRelocation {
+ │   │              offset: 11,
+ │   │              symbol: symbol#9,
+ │   │              relocation_type: X86_32,
+ │   │              addend: None,
+ │   │          },
+ │   │          ElfRelocation {
+ │   │              offset: 23,
+ │   │              symbol: symbol#13,
+ │   │              relocation_type: X86_PC32,
+ │   │              addend: None,
+ │   │          },
+ │   │      ],
+ │   │      layout: (),
+ │   │  }
+ │   ┴
  │
  │    Symbols:
- │  ╭─────────┬───────────┬────────────┬───────────────╮
- │  │ Name    │ Source    │ Visibility │ Value         │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ goodbye.o │ local      │ <undefined>   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ goodbye.o │ local      │ .rodata + 0x0 │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ goodbye.o │ local      │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ hello.o   │ local      │ <undefined>   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ hello.o   │ local      │ .rodata + 0x0 │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ hello.o   │ local      │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ _start  │ hello.o   │ global     │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ goodbye │ goodbye.o │ global     │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ len     │ goodbye.o │ local      │ 0xf           │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ len     │ hello.o   │ local      │ 0xd           │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ msg     │ goodbye.o │ local      │ .rodata + 0x0 │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ msg     │ hello.o   │ local      │ .rodata + 0x0 │
- │  ╰─────────┴───────────┴────────────┴───────────────╯
+ │  ╭─────────┬───────────┬────────────┬──────────────────────────╮
+ │  │ Name    │ Source    │ Visibility │ Value                    │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ goodbye.o │ local      │ <undefined>              │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ goodbye.o │ local      │ .rodata(section#1) + 0x0 │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ goodbye.o │ local      │ .text(section#2) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ hello.o   │ local      │ <undefined>              │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ hello.o   │ local      │ .rodata(section#8) + 0x0 │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ hello.o   │ local      │ .text(section#9) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ _start  │ hello.o   │ global     │ .text(section#9) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ goodbye │ goodbye.o │ global     │ .text(section#2) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ len     │ goodbye.o │ local      │ 0xf                      │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ len     │ hello.o   │ local      │ 0xd                      │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ msg     │ goodbye.o │ local      │ .rodata(section#1) + 0x0 │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ msg     │ hello.o   │ local      │ .rodata(section#8) + 0x0 │
+ │  ╰─────────┴───────────┴────────────┴──────────────────────────╯
  ┴
 
 debug print: calculated layout
@@ -162,115 +151,104 @@ debug print: object after relocations are applied
  │      machine: X86,
  │  }
  │
- │  sections: {
- │      ".rodata": Section {
- │          perms: ElfPermissions(R),
- │          content: Data(
- │              DataSection {
- │                  deduplication: Disabled,
- │                  parts: {
- │                      section#1: Real(
- │                          DataSectionPartReal {
- │                              source: goodbye.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
- │                                     +----------------------------------------------+
- │                                  0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
- │                              },
- │                              relocations: [],
- │                              layout: SectionLayout {
- │                                  address: 4194304,
- │                              },
- │                          },
- │                      ),
- │                      section#8: Real(
- │                          DataSectionPartReal {
- │                              source: hello.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
- │                                     +----------------------------------------+
- │                                  0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
- │                              },
- │                              relocations: [],
- │                              layout: SectionLayout {
- │                                  address: 4194319,
- │                              },
- │                          },
- │                      ),
- │                  },
- │              },
- │          ),
- │      },
- │      ".text": Section {
- │          perms: ElfPermissions(RX),
- │          content: Data(
- │              DataSection {
- │                  deduplication: Disabled,
- │                  parts: {
- │                      section#2: Real(
- │                          DataSectionPartReal {
- │                              source: goodbye.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
- │                                     +-------------------------------------------------+
- │                                  0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
- │                                  1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
- │                              },
- │                              relocations: [],
- │                              layout: SectionLayout {
- │                                  address: 4198400,
- │                              },
- │                          },
- │                      ),
- │                      section#9: Real(
- │                          DataSectionPartReal {
- │                              source: hello.o,
- │                              bytes: RawBytes {
- │                                       ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
- │                                     +-------------------------------------------------+
- │                                  0? | b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba | .............@..
- │                                  1? | 0d 00 00 00 cd 80 e9 c6 ff ff ff                | ...........
- │                              },
- │                              relocations: [],
- │                              layout: SectionLayout {
- │                                  address: 4198431,
- │                              },
- │                          },
- │                      ),
- │                  },
- │              },
- │          ),
- │      },
- │  }
+ │   │
+ │   │  section .rodata(section#1) in goodbye.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: goodbye.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │   │             +----------------------------------------------+
+ │   │          0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: SectionLayout {
+ │   │          address: 4194304,
+ │   │      },
+ │   │  }
+ │   ┴
+ │
+ │   │
+ │   │  section .rodata(section#8) in hello.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: hello.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
+ │   │             +----------------------------------------+
+ │   │          0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: SectionLayout {
+ │   │          address: 4194319,
+ │   │      },
+ │   │  }
+ │   ┴
+ │
+ │   │
+ │   │  section .text(section#2) in goodbye.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: goodbye.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
+ │   │             +-------------------------------------------------+
+ │   │          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+ │   │          1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: SectionLayout {
+ │   │          address: 4198400,
+ │   │      },
+ │   │  }
+ │   ┴
+ │
+ │   │
+ │   │  section .text(section#9) in hello.o
+ │   │
+ │   │  DataSectionPartReal {
+ │   │      source: hello.o,
+ │   │      bytes: RawBytes {
+ │   │               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
+ │   │             +-------------------------------------------------+
+ │   │          0? | b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba | .............@..
+ │   │          1? | 0d 00 00 00 cd 80 e9 c6 ff ff ff                | ...........
+ │   │      },
+ │   │      relocations: [],
+ │   │      layout: SectionLayout {
+ │   │          address: 4198431,
+ │   │      },
+ │   │  }
+ │   ┴
  │
  │    Symbols:
- │  ╭─────────┬───────────┬────────────┬───────────────╮
- │  │ Name    │ Source    │ Visibility │ Value         │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ goodbye.o │ local      │ <undefined>   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ goodbye.o │ local      │ .rodata + 0x0 │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ goodbye.o │ local      │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ hello.o   │ local      │ <undefined>   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ hello.o   │ local      │ .rodata + 0x0 │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │         │ hello.o   │ local      │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ _start  │ hello.o   │ global     │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ goodbye │ goodbye.o │ global     │ .text + 0x0   │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ len     │ goodbye.o │ local      │ 0xf           │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ len     │ hello.o   │ local      │ 0xd           │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ msg     │ goodbye.o │ local      │ .rodata + 0x0 │
- │  ├─────────┼───────────┼────────────┼───────────────┤
- │  │ msg     │ hello.o   │ local      │ .rodata + 0x0 │
- │  ╰─────────┴───────────┴────────────┴───────────────╯
+ │  ╭─────────┬───────────┬────────────┬──────────────────────────╮
+ │  │ Name    │ Source    │ Visibility │ Value                    │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ goodbye.o │ local      │ <undefined>              │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ goodbye.o │ local      │ .rodata(section#1) + 0x0 │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ goodbye.o │ local      │ .text(section#2) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ hello.o   │ local      │ <undefined>              │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ hello.o   │ local      │ .rodata(section#8) + 0x0 │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │         │ hello.o   │ local      │ .text(section#9) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ _start  │ hello.o   │ global     │ .text(section#9) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ goodbye │ goodbye.o │ global     │ .text(section#2) + 0x0   │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ len     │ goodbye.o │ local      │ 0xf                      │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ len     │ hello.o   │ local      │ 0xd                      │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ msg     │ goodbye.o │ local      │ .rodata(section#1) + 0x0 │
+ │  ├─────────┼───────────┼────────────┼──────────────────────────┤
+ │  │ msg     │ hello.o   │ local      │ .rodata(section#8) + 0x0 │
+ │  ╰─────────┴───────────┴────────────┴──────────────────────────╯
  ┴
 
 debug print: built elf

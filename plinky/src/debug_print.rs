@@ -1,11 +1,11 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
 use crate::repr::object::{
-    DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, Section,
-    SectionContent, SectionLayout, UninitializedSectionPart,
+    DataSectionPart, DataSectionPartReal, DeduplicationFacade, Object, Section, SectionContent,
+    SectionLayout, UninitializedSectionPart,
 };
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
-use plinky_diagnostics::widgets::{Table, Text, Widget, WidgetGroup};
+use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfObject};
@@ -121,11 +121,41 @@ fn render_data_section<T: Debug + RenderObject>(
     deduplication: ElfDeduplication,
     part: &DataSectionPartReal<T>,
 ) -> Box<dyn Widget> {
-    let mut group = WidgetGroup::new();
-    group =
-        group.add(Text::new(format!("section {} in {}", section_name(object, id), part.source)));
-    group = group.add(Text::new(format!("{part:#?}")));
-    Box::new(group)
+    let deduplication = match deduplication {
+        ElfDeduplication::Disabled => None,
+        ElfDeduplication::ZeroTerminatedStrings => {
+            Some(Text::new("zero-terminated strings should be deduplicated"))
+        }
+        ElfDeduplication::FixedSizeChunks { size } => {
+            Some(Text::new(format!("fixed chunks of size {size:#x} should be deduplicated")))
+        }
+    };
+
+    let relocations = if part.relocations.is_empty() {
+        None
+    } else {
+        let mut table = Table::new();
+        table.set_title("Relocations:");
+        table.add_row(["Type", "Symbol", "Offset", "Addend"]);
+        for relocation in &part.relocations {
+            table.add_row([
+                format!("{:?}", relocation.relocation_type),
+                format!("{:?}", relocation.symbol),
+                format!("{:#x}", relocation.offset),
+                relocation.addend.map(|a| format!("{a:#x}")).unwrap_or_else(String::new),
+            ])
+        }
+        Some(table)
+    };
+
+    Box::new(
+        WidgetGroup::new()
+            .add(Text::new(format!("section {} in {}", section_name(object, id), part.source)))
+            .add_iter(deduplication)
+            .add_iter(part.layout.render_address())
+            .add(HexDump::new(part.bytes.0.clone()))
+            .add_iter(relocations),
+    )
 }
 
 fn render_deduplication_facade<T>(
@@ -153,12 +183,18 @@ trait RenderObject
 where
     Self: Sized,
 {
+    fn render_address(&self) -> Option<Text>;
+
     fn render_uninitialized_section(
         parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
     ) -> Table;
 }
 
 impl RenderObject for () {
+    fn render_address(&self) -> Option<Text> {
+        None
+    }
+
     fn render_uninitialized_section(
         parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
     ) -> Table {
@@ -176,6 +212,10 @@ impl RenderObject for () {
 }
 
 impl RenderObject for SectionLayout {
+    fn render_address(&self) -> Option<Text> {
+        Some(Text::new(format!("address: {:#x}", self.address)))
+    }
+
     fn render_uninitialized_section(
         parts: &BTreeMap<SectionId, UninitializedSectionPart<Self>>,
     ) -> Table {

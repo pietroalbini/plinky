@@ -18,16 +18,9 @@ debug print: loaded object
  │   │
  │   │  section .text(section#1) in hello.o
  │   │
- │   │  DataSectionPartReal {
- │   │      source: hello.o,
- │   │      bytes: RawBytes {
- │   │               ?0   (len: 0x1)
- │   │             +----+
- │   │          0? | 90 | .
- │   │      },
- │   │      relocations: [],
- │   │      layout: (),
- │   │  }
+ │   │  ╭────┬───╮
+ │   │  │ 90 │ . │
+ │   │  ╰────┴───╯
  │   ┴
  │
  │    Symbols:

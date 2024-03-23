@@ -15,6 +15,17 @@ impl WidgetGroup {
         self.widgets.push(Box::new(widget));
         self
     }
+
+    pub fn add_iter<T, I>(mut self, iter: I) -> Self
+    where
+        T: Widget + 'static,
+        I: IntoIterator<Item = T>,
+    {
+        for widget in iter {
+            self.widgets.push(Box::new(widget));
+        }
+        self
+    }
 }
 
 impl Widget for WidgetGroup {

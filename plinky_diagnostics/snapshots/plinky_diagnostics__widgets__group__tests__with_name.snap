@@ -1,0 +1,8 @@
+---
+source: plinky_diagnostics/src/widgets/group.rs
+expression: group.render_to_string()
+---
+example name
+ │
+ │  A simple text message!
+ ┴

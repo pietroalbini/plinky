@@ -15,16 +15,14 @@ debug print: loaded object
  │      machine: X86_64,
  │  }
  │
- │   │
- │   │  section .data(section#7) in hello.o inside archive archived.a
+ │  section .data(section#7) in hello.o inside archive archived.a
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │   │
- │   │  section .text(section#1) in entry.o
+ │  section .text(section#1) in entry.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │

@@ -150,7 +150,7 @@ fn render_data_section<T: Debug + RenderObject>(
 
     Box::new(
         WidgetGroup::new()
-            .add(Text::new(format!("section {} in {}", section_name(object, id), part.source)))
+            .name(format!("section {} in {}", section_name(object, id), part.source))
             .add_iter(deduplication)
             .add_iter(part.layout.render_address())
             .add(HexDump::new(part.bytes.0.clone()))

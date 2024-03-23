@@ -3,12 +3,18 @@ use crate::writer::IndentMode;
 use crate::WidgetWriter;
 
 pub struct WidgetGroup {
+    name: Option<String>,
     widgets: Vec<Box<dyn Widget>>,
 }
 
 impl WidgetGroup {
     pub fn new() -> Self {
-        WidgetGroup { widgets: Vec::new() }
+        WidgetGroup { name: None, widgets: Vec::new() }
+    }
+
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
     }
 
     pub fn add<T: Widget + 'static>(mut self, widget: T) -> Self {
@@ -30,6 +36,10 @@ impl WidgetGroup {
 
 impl Widget for WidgetGroup {
     fn render(&self, writer: &mut WidgetWriter) {
+        if let Some(name) = &self.name {
+            writer.push_str(name);
+            writer.push('\n');
+        }
         writer.push_indent(" │", IndentMode::ShowAlways);
         writer.push_indent("  ", IndentMode::HideOnEmptyLines);
         for (idx, widget) in self.widgets.iter().enumerate() {
@@ -71,6 +81,14 @@ mod tests {
         table.add_row(["Foo", "Bar"]);
 
         let group = WidgetGroup::new().add(Text::new("A simple text message!")).add(table);
+        assert_snapshot!(group.render_to_string());
+    }
+
+    #[test]
+    fn test_with_name() {
+        let _config = configure_insta();
+
+        let group = WidgetGroup::new().name("example name").add(Text::new("A simple text message!"));
         assert_snapshot!(group.render_to_string());
     }
 }

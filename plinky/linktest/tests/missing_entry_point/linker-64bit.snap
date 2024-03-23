@@ -15,8 +15,7 @@ debug print: loaded object
  │      machine: X86_64,
  │  }
  │
- │   │
- │   │  section .text(section#1) in hello.o
+ │  section .text(section#1) in hello.o
  │   │
  │   │  ╭────┬───╮
  │   │  │ 90 │ . │

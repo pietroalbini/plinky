@@ -33,8 +33,7 @@ debug print: object after relocations are applied
  │  │ 0x8  │ .custom_messages(section#14) + 0x6 │
  │  ╰──────┴────────────────────────────────────╯
  │
- │   │
- │   │  section .custom_messages(section#14) in mix of foo.o and bar.o
+ │  section .custom_messages(section#14) in mix of foo.o and bar.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -46,8 +45,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │   │
- │   │  section .text(section#2) in foo.o
+ │  section .text(section#2) in foo.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -59,8 +57,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │   │
- │   │  section .text(section#9) in bar.o
+ │  section .text(section#9) in bar.o
  │   │
  │   │  address: 0x401031
  │   │

@@ -44,8 +44,8 @@ fn generate_error_source(item: &Item) -> Result<TokenStream, Error> {
                     })
                 }
                 _ => {
-                    return Err(Error::new("#[transparent] items must have exactly one field")
-                        .span(attr.span));
+                    Err(Error::new("#[transparent] items must have exactly one field")
+                        .span(attr.span))
                 }
             }
         } else {
@@ -174,7 +174,7 @@ fn generate_from_impls(item: &Item) -> Result<Vec<TokenStream>, Error> {
         let variable = ident("__value__");
         generate_impl_for(
             item,
-            &format!("From<{}>", ty.0.to_string()),
+            &format!("From<{}>", ty.0),
             quote! {
                 fn from(#variable: #ty) -> Self {
                     #{ setter(variable) }

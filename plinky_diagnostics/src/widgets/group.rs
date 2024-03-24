@@ -17,6 +17,7 @@ impl WidgetGroup {
         self
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn add<T: Widget + 'static>(mut self, widget: T) -> Self {
         self.widgets.push(Box::new(widget));
         self

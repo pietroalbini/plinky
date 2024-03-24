@@ -45,7 +45,7 @@ impl<'a> ObjectsReader<'a> {
             match FileType::from_magic_number(path, &mut r)? {
                 FileType::Elf => {
                     return Ok(Some((
-                        ObjectSpan::new_file(&path),
+                        ObjectSpan::new_file(path),
                         ElfObject::load(&mut r, ids)
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     )))

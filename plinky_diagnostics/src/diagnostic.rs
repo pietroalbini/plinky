@@ -11,6 +11,7 @@ impl Diagnostic {
         Self { kind, message: message.into(), children: WidgetGroup::new() }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn add<T: Widget + 'static>(mut self, widget: T) -> Self {
         self.children = self.children.add(widget);
         self

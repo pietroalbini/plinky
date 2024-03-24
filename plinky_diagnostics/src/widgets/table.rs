@@ -99,7 +99,7 @@ impl Widget for Table {
 
         let mut rows = content.chunks_exact(*cells_count);
         let mut idx = 0;
-        while let Some(row) = rows.next() {
+        for row in rows.by_ref() {
             let last_row = idx == content.len() / cells_count - 1;
             let lines_count = row.iter().map(|cell| cell.len()).max().unwrap_or(0);
 
@@ -108,7 +108,7 @@ impl Widget for Table {
                 for (idx, cell_all_lines) in row.iter().enumerate() {
                     let cell = cell_all_lines.get(line).map(|c| c.as_str()).unwrap_or_default();
                     writer.push(' ');
-                    writer.push_str(&cell);
+                    writer.push_str(cell);
 
                     // Padding to align all cells.
                     for _ in cell.len()..cells_len[idx] {

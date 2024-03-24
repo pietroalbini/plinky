@@ -240,10 +240,7 @@ fn render_deduplication(
 }
 
 fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
-    match layout {
-        Some(layout) => Some(Text::new(format!("address: {:#x}", layout.of(id)))),
-        None => None,
-    }
+    layout.map(|layout| Text::new(format!("address: {:#x}", layout.of(id))))
 }
 
 fn render(diagnostic: Diagnostic) {

@@ -109,14 +109,14 @@ impl<R: BufRead + Seek> ArReader<R> {
             return Err(ArReadError::BsdFormatUnsupported);
         };
 
-        return Ok(Some(ArFile {
+        Ok(Some(ArFile {
             name,
             content,
             modification_time: header.mtime.value,
             owner_id: header.uid.value,
             group_id: header.gid.value,
             mode: header.mode.value,
-        }));
+        }))
     }
 
     fn peek_next_file_name(&mut self) -> Result<Option<String>, ArReadError> {
@@ -178,10 +178,8 @@ impl<R: BufRead + Seek> ArReader<R> {
             );
         }
 
-        if !raw.is_empty() {
-            if raw.iter().any(|&byte| byte != 0) {
-                return Err(ArSymbolTableReadError::ExtraDataAtEnd);
-            }
+        if !raw.is_empty() && raw.iter().any(|&byte| byte != 0) {
+            return Err(ArSymbolTableReadError::ExtraDataAtEnd);
         }
 
         Ok(ArSymbolTable { symbols })

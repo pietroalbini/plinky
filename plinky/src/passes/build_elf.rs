@@ -2,12 +2,12 @@ use super::layout::SectionLayout;
 use crate::cli::CliOptions;
 use crate::interner::{intern, Interned};
 use crate::passes::layout::Layout;
-use crate::repr::object::{Object, Section, SectionContent};
+use crate::repr::object::{Object, SectionContent};
 use crate::repr::symbols::{ResolveSymbolError, ResolveSymbolErrorKind, ResolvedSymbol};
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
-    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;

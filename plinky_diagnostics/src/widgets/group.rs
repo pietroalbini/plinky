@@ -89,7 +89,8 @@ mod tests {
     fn test_with_name() {
         let _config = configure_insta();
 
-        let group = WidgetGroup::new().name("example name").add(Text::new("A simple text message!"));
+        let group =
+            WidgetGroup::new().name("example name").add(Text::new("A simple text message!"));
         assert_snapshot!(group.render_to_string());
     }
 }

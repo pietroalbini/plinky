@@ -73,8 +73,7 @@ impl ElfBuilder<'_> {
                 Err(ElfBuilderError::EntryPointNotAnAddress(self.entrypoint))
             }
             ResolvedSymbol::Address(addr) => Ok(Some(
-                NonZeroU64::new(addr)
-                    .ok_or(ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
+                NonZeroU64::new(addr).ok_or(ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
             )),
         }
     }

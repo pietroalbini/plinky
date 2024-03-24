@@ -352,8 +352,9 @@ impl std::fmt::Display for ErrorSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorSource::Type(ty) => write!(f, "{ty}"),
-            ErrorSource::StructField { field, struct_ } => write!(f, "field {field} of struct {struct_}"),
+            ErrorSource::StructField { field, struct_ } => {
+                write!(f, "field {field} of struct {struct_}")
+            }
         }
     }
 }
-

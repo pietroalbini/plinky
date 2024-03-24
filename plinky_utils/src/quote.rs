@@ -33,4 +33,3 @@ impl<T: Quote + Clone> Quote for [T] {
         self.iter().cloned().map(|v| v.to_token_stream()).collect()
     }
 }
-

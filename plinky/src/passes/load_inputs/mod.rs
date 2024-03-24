@@ -13,10 +13,7 @@ use std::collections::BTreeMap;
 mod merge_elf;
 mod read_objects;
 
-pub(crate) fn run(
-    options: &CliOptions,
-    ids: &mut SerialIds,
-) -> Result<Object, LoadInputsError> {
+pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new();

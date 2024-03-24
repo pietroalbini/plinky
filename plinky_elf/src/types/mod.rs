@@ -295,7 +295,7 @@ pub struct ElfUnknownSegmentContent {
     pub memory_size: u64,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ElfPermissions {
     pub read: bool,
     pub write: bool,
@@ -318,6 +318,7 @@ impl std::fmt::Debug for ElfPermissions {
     }
 }
 
+#[derive(Clone)]
 pub struct RawBytes(pub Vec<u8>);
 
 impl std::fmt::Debug for RawBytes {

@@ -88,6 +88,7 @@ debug print: loaded object
 
 debug print: calculated layout
  │
+ │    Sections:
  │  ╭───────────┬───────────────┬────────────────╮
  │  │ Section   │ Source object │ Memory address │
  │  ├───────────┼───────────────┼────────────────┤
@@ -99,6 +100,17 @@ debug print: calculated layout
  │  ├───────────┼───────────────┼────────────────┤
  │  │ .text#9   │ hello.o       │ 0x40101f       │
  │  ╰───────────┴───────────────┴────────────────╯
+ │
+ │    Segments:
+ │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬───────────╮
+ │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections  │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼───────────┤
+ │  │ 0x400000 │ 0x1c │ 0x1000 │ program │ ElfPermissions(R)  │ .rodata#1 │
+ │  │          │      │        │         │                    │ .rodata#8 │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼───────────┤
+ │  │ 0x401000 │ 0x3a │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2   │
+ │  │          │      │        │         │                    │ .text#9   │
+ │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴───────────╯
  ┴
 
 debug print: object after relocations are applied
@@ -193,15 +205,17 @@ debug print: built elf
  │              content: Null,
  │          },
  │          section#1: ElfSection {
- │              name: section#1:string#15,
+ │              name: section#1:string#29,
  │              memory_address: 0x0,
  │              content: StringTable(
  │                  ElfStringTable {
  │                      strings: {
  │                          0x0: "",
  │                          0x1: ".rodata",
- │                          0x9: ".text",
- │                          0xf: ".shstrtab",
+ │                          0x9: ".rodata",
+ │                          0x11: ".text",
+ │                          0x17: ".text",
+ │                          0x1d: ".shstrtab",
  │                      },
  │                  },
  │              ),
@@ -214,28 +228,56 @@ debug print: built elf
  │                      perms: ElfPermissions(R),
  │                      deduplication: Disabled,
  │                      raw: RawBytes {
- │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1c)
- │                             +-------------------------------------------------+
- │                          0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a 48 | Goodbye world!.H
- │                          1? | 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a             | ello world!.
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │                             +----------------------------------------------+
+ │                          0? | 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a | Goodbye world!.
  │                      },
  │                  },
  │              ),
  │          },
  │          section#3: ElfSection {
  │              name: section#1:string#9,
+ │              memory_address: 0x40000f,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(R),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
+ │                             +----------------------------------------+
+ │                          0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#4: ElfSection {
+ │              name: section#1:string#17,
  │              memory_address: 0x401000,
  │              content: Program(
  │                  ElfProgramSection {
  │                      perms: ElfPermissions(RX),
  │                      deduplication: Disabled,
  │                      raw: RawBytes {
- │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x3a)
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
  │                             +-------------------------------------------------+
  │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
- │                          1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80 b8 | ................
- │                          2? | 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba 0d | ............@...
- │                          3? | 00 00 00 cd 80 e9 c6 ff ff ff                   | ..........
+ │                          1? | 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#5: ElfSection {
+ │              name: section#1:string#23,
+ │              memory_address: 0x40101f,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(RX),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1b)
+ │                             +-------------------------------------------------+
+ │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba | .............@..
+ │                          1? | 0d 00 00 00 cd 80 e9 c6 ff ff ff                | ...........
  │                      },
  │                  },
  │              ),
@@ -249,6 +291,9 @@ debug print: built elf
  │                  Section(
  │                      section#2,
  │                  ),
+ │                  Section(
+ │                      section#3,
+ │                  ),
  │              ],
  │              align: 0x1000,
  │          },
@@ -257,7 +302,10 @@ debug print: built elf
  │              perms: ElfPermissions(RX),
  │              content: [
  │                  Section(
- │                      section#3,
+ │                      section#4,
+ │                  ),
+ │                  Section(
+ │                      section#5,
  │                  ),
  │              ],
  │              align: 0x1000,

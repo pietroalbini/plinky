@@ -66,13 +66,23 @@ debug print: loaded object
 
 debug print: calculated layout
  │
+ │    Sections:
  │  ╭─────────┬───────────────┬────────────────╮
  │  │ Section │ Source object │ Memory address │
  │  ├─────────┼───────────────┼────────────────┤
- │  │ .bss#1  │ bss.o         │ 0x400000       │
+ │  │ .bss#1  │ bss.o         │ 0x401000       │
  │  ├─────────┼───────────────┼────────────────┤
- │  │ .text#2 │ bss.o         │ 0x401000       │
+ │  │ .text#2 │ bss.o         │ 0x400000       │
  │  ╰─────────┴───────────────┴────────────────╯
+ │
+ │    Segments:
+ │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
+ │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x400000 │ 0x52 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2  │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x401000 │ 0x6  │ 0x1000 │ uninit  │ ElfPermissions(RW) │ .bss#1   │
+ │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
  ┴
 
 debug print: built elf
@@ -86,7 +96,7 @@ debug print: built elf
  │      },
  │      type_: Executable,
  │      entry: Some(
- │          0x401000,
+ │          0x400000,
  │      ),
  │      sections: {
  │          section#0: ElfSection {
@@ -110,7 +120,7 @@ debug print: built elf
  │          },
  │          section#2: ElfSection {
  │              name: section#1:string#1,
- │              memory_address: 0x400000,
+ │              memory_address: 0x401000,
  │              content: Uninitialized(
  │                  ElfUninitializedSection {
  │                      perms: ElfPermissions(RW),
@@ -120,7 +130,7 @@ debug print: built elf
  │          },
  │          section#3: ElfSection {
  │              name: section#1:string#6,
- │              memory_address: 0x401000,
+ │              memory_address: 0x400000,
  │              content: Program(
  │                  ElfProgramSection {
  │                      perms: ElfPermissions(RX),
@@ -128,10 +138,10 @@ debug print: built elf
  │                      raw: RawBytes {
  │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x52)
  │                             +-------------------------------------------------+
- │                          0? | c6 04 25 00 00 40 00 68 c6 04 25 01 00 40 00 65 | ..%..@.h..%..@.e
- │                          1? | c6 04 25 02 00 40 00 6c c6 04 25 03 00 40 00 6c | ..%..@.l..%..@.l
- │                          2? | c6 04 25 04 00 40 00 6f c6 04 25 05 00 40 00 0a | ..%..@.o..%..@..
- │                          3? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+ │                          0? | c6 04 25 00 10 40 00 68 c6 04 25 01 10 40 00 65 | ..%..@.h..%..@.e
+ │                          1? | c6 04 25 02 10 40 00 6c c6 04 25 03 10 40 00 6c | ..%..@.l..%..@.l
+ │                          2? | c6 04 25 04 10 40 00 6f c6 04 25 05 10 40 00 0a | ..%..@.o..%..@..
+ │                          3? | b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba | .............@..
  │                          4? | 06 00 00 00 cd 80 b8 01 00 00 00 bb 00 00 00 00 | ................
  │                          5? | cd 80                                           | ..
  │                      },
@@ -142,20 +152,20 @@ debug print: built elf
  │      segments: [
  │          ElfSegment {
  │              type_: Load,
- │              perms: ElfPermissions(RW),
+ │              perms: ElfPermissions(RX),
  │              content: [
  │                  Section(
- │                      section#2,
+ │                      section#3,
  │                  ),
  │              ],
  │              align: 0x1000,
  │          },
  │          ElfSegment {
  │              type_: Load,
- │              perms: ElfPermissions(RX),
+ │              perms: ElfPermissions(RW),
  │              content: [
  │                  Section(
- │                      section#3,
+ │                      section#2,
  │                  ),
  │              ],
  │              align: 0x1000,

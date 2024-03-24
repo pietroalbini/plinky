@@ -1,6 +1,7 @@
 use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::{Object, SectionContent};
 use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
@@ -8,27 +9,52 @@ const BASE_ADDRESS: u64 = 0x400000;
 const PAGE_SIZE: u64 = 0x1000;
 
 pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplication>) -> Layout {
-    let mut layout = Layout { sections: BTreeMap::new(), deduplications };
-    let mut calculator = LayoutCalculator::new();
+    let mut grouped: BTreeMap<_, Vec<_>> = BTreeMap::new();
     for section in object.sections.values() {
-        let mut section_calculator =
-            if section.perms.read || section.perms.write || section.perms.execute {
-                calculator.begin_section()
-            } else {
-                calculator.begin_unallocated_section()
-            };
         match &section.content {
-            SectionContent::Data(parts) => {
-                for (&id, part) in &parts.parts {
-                    layout
-                        .sections
-                        .insert(id, section_calculator.layout_of(part.bytes.0.len() as _));
+            SectionContent::Data(data) => {
+                let group = grouped.entry((section.perms, SegmentType::Program)).or_default();
+                for (&id, part) in &data.parts {
+                    group.push((id, part.bytes.0.len() as u64));
                 }
             }
             SectionContent::Uninitialized(parts) => {
+                let group = grouped.entry((section.perms, SegmentType::Uninitialized)).or_default();
                 for (&id, part) in parts {
-                    layout.sections.insert(id, section_calculator.layout_of(part.len));
+                    group.push((id, part.len));
                 }
+            }
+        }
+    }
+
+    let mut layout = Layout { segments: Vec::new(), sections: BTreeMap::new(), deduplications };
+    let mut address = BASE_ADDRESS;
+    for ((perms, type_), sections) in grouped.into_iter() {
+        if perms.read || perms.write || perms.execute {
+            let start = address;
+
+            let mut segment_len = 0;
+            for &(section, len) in &sections {
+                layout.sections.insert(section, SectionLayout::Allocated { address });
+                address += len;
+                segment_len += len;
+            }
+
+            layout.segments.push(Segment {
+                start,
+                len: segment_len,
+                perms,
+                type_,
+                align: PAGE_SIZE,
+                sections: sections.iter().map(|(id, _)| *id).collect(),
+            });
+
+            // Align to the page boundary.
+            address = (address + PAGE_SIZE) & !(PAGE_SIZE - 1);
+        } else {
+            // Avoid allocating sections that cannot be accessed at runtime.
+            for (section, _) in sections {
+                layout.sections.insert(section, SectionLayout::NotAllocated);
             }
         }
     }
@@ -37,6 +63,7 @@ pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplica
 }
 
 pub(crate) struct Layout {
+    segments: Vec<Segment>,
     sections: BTreeMap<SectionId, SectionLayout>,
     deduplications: BTreeMap<SectionId, Deduplication>,
 }
@@ -83,6 +110,10 @@ impl Layout {
     pub(crate) fn iter_deduplications(&self) -> impl Iterator<Item = (SectionId, &Deduplication)> {
         self.deduplications.iter().map(|(id, dedup)| (*id, dedup))
     }
+
+    pub(crate) fn iter_segments(&self) -> impl Iterator<Item = &Segment> {
+        self.segments.iter()
+    }
 }
 
 pub(crate) enum SectionLayout {
@@ -90,48 +121,19 @@ pub(crate) enum SectionLayout {
     NotAllocated,
 }
 
-struct LayoutCalculator {
-    address: u64,
+pub(crate) struct Segment {
+    pub(crate) start: u64,
+    pub(crate) len: u64,
+    pub(crate) align: u64,
+    pub(crate) type_: SegmentType,
+    pub(crate) perms: ElfPermissions,
+    pub(crate) sections: Vec<SectionId>,
 }
 
-impl LayoutCalculator {
-    fn new() -> Self {
-        Self { address: BASE_ADDRESS }
-    }
-
-    fn begin_section(&mut self) -> SectionLayoutCalculator<'_> {
-        SectionLayoutCalculator { parent: self, allocate: true }
-    }
-
-    fn begin_unallocated_section(&mut self) -> SectionLayoutCalculator<'_> {
-        SectionLayoutCalculator { parent: self, allocate: false }
-    }
-}
-
-struct SectionLayoutCalculator<'a> {
-    parent: &'a mut LayoutCalculator,
-    allocate: bool,
-}
-
-impl SectionLayoutCalculator<'_> {
-    fn layout_of(&mut self, len: u64) -> SectionLayout {
-        if self.allocate {
-            let layout = SectionLayout::Allocated { address: self.parent.address };
-            self.parent.address += len;
-            layout
-        } else {
-            SectionLayout::NotAllocated
-        }
-    }
-}
-
-impl Drop for SectionLayoutCalculator<'_> {
-    fn drop(&mut self) {
-        if self.allocate {
-            // Align to the next page boundary when a section ends.
-            self.parent.address = (self.parent.address + PAGE_SIZE) & !(PAGE_SIZE - 1);
-        }
-    }
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum SegmentType {
+    Program,
+    Uninitialized,
 }
 
 #[derive(Debug, Display, Error)]

@@ -1,5 +1,6 @@
 ---
 source: plinky/linktest/harness/main.rs
+assertion_line: 146
 ---
 linking exited with exit status: 0
 
@@ -52,13 +53,23 @@ debug print: loaded object
 
 debug print: calculated layout
  │
+ │    Sections:
  │  ╭─────────┬───────────────┬────────────────╮
  │  │ Section │ Source object │ Memory address │
  │  ├─────────┼───────────────┼────────────────┤
- │  │ .data#1 │ hello.o       │ 0x400000       │
+ │  │ .data#1 │ hello.o       │ 0x401000       │
  │  ├─────────┼───────────────┼────────────────┤
- │  │ .text#2 │ hello.o       │ 0x401000       │
+ │  │ .text#2 │ hello.o       │ 0x400000       │
  │  ╰─────────┴───────────────┴────────────────╯
+ │
+ │    Segments:
+ │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
+ │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x400000 │ 0x1f │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2  │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x401000 │ 0xd  │ 0x1000 │ program │ ElfPermissions(RW) │ .data#1  │
+ │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
  ┴
 
 debug print: object after relocations are applied
@@ -67,7 +78,7 @@ debug print: object after relocations are applied
  │
  │  section .data#1 (perms: rw) in hello.o
  │   │
- │   │  address: 0x400000
+ │   │  address: 0x401000
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
@@ -76,10 +87,10 @@ debug print: object after relocations are applied
  │
  │  section .text#2 (perms: rx) in hello.o
  │   │
- │   │  address: 0x401000
+ │   │  address: 0x400000
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba │ .............@.. │
+ │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba │ .............@.. │
  │   │  │ 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    │ ...............  │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
@@ -113,7 +124,7 @@ debug print: built elf
  │      },
  │      type_: Executable,
  │      entry: Some(
- │          0x401000,
+ │          0x400000,
  │      ),
  │      sections: {
  │          section#0: ElfSection {
@@ -137,7 +148,7 @@ debug print: built elf
  │          },
  │          section#2: ElfSection {
  │              name: section#1:string#1,
- │              memory_address: 0x400000,
+ │              memory_address: 0x401000,
  │              content: Program(
  │                  ElfProgramSection {
  │                      perms: ElfPermissions(RW),
@@ -152,7 +163,7 @@ debug print: built elf
  │          },
  │          section#3: ElfSection {
  │              name: section#1:string#7,
- │              memory_address: 0x401000,
+ │              memory_address: 0x400000,
  │              content: Program(
  │                  ElfProgramSection {
  │                      perms: ElfPermissions(RX),
@@ -160,7 +171,7 @@ debug print: built elf
  │                      raw: RawBytes {
  │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
  │                             +-------------------------------------------------+
- │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
+ │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba | .............@..
  │                          1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
  │                      },
  │                  },
@@ -170,20 +181,20 @@ debug print: built elf
  │      segments: [
  │          ElfSegment {
  │              type_: Load,
- │              perms: ElfPermissions(RW),
+ │              perms: ElfPermissions(RX),
  │              content: [
  │                  Section(
- │                      section#2,
+ │                      section#3,
  │                  ),
  │              ],
  │              align: 0x1000,
  │          },
  │          ElfSegment {
  │              type_: Load,
- │              perms: ElfPermissions(RX),
+ │              perms: ElfPermissions(RW),
  │              content: [
  │                  Section(
- │                      section#3,
+ │                      section#2,
  │                  ),
  │              ],
  │              align: 0x1000,

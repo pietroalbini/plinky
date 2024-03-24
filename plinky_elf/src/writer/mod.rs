@@ -224,21 +224,50 @@ where
 
     fn write_program_headers(&mut self) -> Result<(), WriteError<I>> {
         for segment in &self.object.segments {
-            let (file_offset, file_size, memory_size, section) = match segment.content.as_slice() {
-                [ElfSegmentContent::Section(id)] => {
-                    let section = self.object.sections.get(id).unwrap();
-                    match &section.content {
-                        ElfSectionContent::Program(_) => {
-                            let metadata = self.layout.metadata_of_section(id);
-                            (metadata.offset, metadata.len, metadata.len, section)
-                        }
-                        ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len, section),
-                        _ => todo!(),
-                    }
-                }
-                [ElfSegmentContent::Unknown(_)] => todo!(),
-                _ => todo!(),
+            let mut content = segment.content.iter();
+
+            let first_section_id = match content.next() {
+                Some(ElfSegmentContent::Section(id)) => id,
+                Some(ElfSegmentContent::Unknown(_)) => unimplemented!(),
+                None => continue, // Discard empty segments.
             };
+            let first_section = self.object.sections.get(first_section_id).unwrap();
+
+            let (file_offset, mut file_size, mut memory_size) = match &first_section.content {
+                ElfSectionContent::Program(program) => {
+                    let metadata = self.layout.metadata_of_section(first_section_id);
+                    (metadata.offset, metadata.len, program.raw.0.len() as u64)
+                }
+                ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len),
+                _ => unimplemented!(),
+            };
+
+            let mut expected_next_file_offset = file_offset + file_size;
+            for segment_content in content {
+                let section_id = match segment_content {
+                    ElfSegmentContent::Section(id) => id,
+                    ElfSegmentContent::Unknown(_) => unimplemented!(),
+                };
+                let section = self.object.sections.get(section_id).unwrap();
+                match &section.content {
+                    ElfSectionContent::Program(program) => {
+                        let metadata = self.layout.metadata_of_section(section_id);
+                        if metadata.offset != expected_next_file_offset {
+                            panic!("sections in segment are not adjacent");
+                        }
+                        expected_next_file_offset += metadata.len;
+                        file_size += metadata.len;
+                        memory_size += program.raw.0.len() as u64;
+                    }
+                    ElfSectionContent::Uninitialized(uninit) => {
+                        if expected_next_file_offset != 0 {
+                            panic!("mixed uninitialized section with program sections in segment");
+                        }
+                        memory_size += uninit.len;
+                    }
+                    _ => unimplemented!(),
+                }
+            }
 
             self.write_raw(RawProgramHeader {
                 type_: match segment.type_ {
@@ -251,7 +280,7 @@ where
                     ElfSegmentType::Unknown(_) => panic!("unknown segment"),
                 },
                 file_offset,
-                virtual_address: section.memory_address,
+                virtual_address: first_section.memory_address,
                 reserved: 0,
                 file_size,
                 memory_size,

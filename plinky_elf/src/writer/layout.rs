@@ -2,7 +2,7 @@ use crate::ids::ElfIds;
 use crate::raw::{
     RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader, RawSymbol,
 };
-use crate::{ElfClass, ElfObject, ElfSectionContent};
+use crate::{ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent};
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::RawType;
 use std::collections::BTreeMap;
@@ -39,13 +39,13 @@ impl<I: ElfIds> WriteLayout<I> {
             RawProgramHeader::size(layout.class) * object.segments.len(),
         );
 
-        let mut deferred_program_sections: Vec<(Part<I::SectionId>, usize)> = Vec::new();
+        let mut deferred_program_sections: BTreeMap<I::SectionId, _> = BTreeMap::new();
         for (id, section) in &object.sections {
             match &section.content {
                 ElfSectionContent::Null => {}
                 ElfSectionContent::Program(program) => {
                     deferred_program_sections
-                        .push((Part::ProgramSection(id.clone()), program.raw.len()));
+                        .insert(id.clone(), DeferredProgramSection { len: program.raw.len() });
                 }
                 ElfSectionContent::Uninitialized(_) => {
                     // Uninitialized sections are not part of the file layout.
@@ -85,9 +85,27 @@ impl<I: ElfIds> WriteLayout<I> {
             }
         }
 
-        for (part, len) in deferred_program_sections {
+        // We need sections belonging to the same segment to reside adjacent in memory, otherwise
+        // the segment can't load them as a block. To do so, we first add to the layout all of the
+        // sections belonging to each segment, without page alignment between them, and only after
+        // we add the sections that didn't belong to any segment.
+
+        for segment in &object.segments {
             layout.align_to_page();
-            layout.add_part(part, len);
+            for content in &segment.content {
+                let section_id = match content {
+                    ElfSegmentContent::Section(id) => id,
+                    ElfSegmentContent::Unknown(_) => continue,
+                };
+                let Some(deferred) = deferred_program_sections.remove(&section_id) else {
+                    continue;
+                };
+                layout.add_part(Part::ProgramSection(section_id.clone()), deferred.len);
+            }
+        }
+        for (id, deferred) in deferred_program_sections {
+            layout.align_to_page();
+            layout.add_part(Part::ProgramSection(id), deferred.len);
         }
         layout.align_to_page();
 
@@ -163,6 +181,10 @@ pub(super) struct PaddingId(usize);
 pub(super) struct PartMetadata {
     pub(super) len: u64,
     pub(super) offset: u64,
+}
+
+struct DeferredProgramSection {
+    len: usize,
 }
 
 #[derive(Debug, Error, Display)]

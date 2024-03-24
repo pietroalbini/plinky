@@ -1,7 +1,7 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
 use crate::passes::deduplicate::Deduplication;
-use crate::passes::layout::{Layout, SectionLayout};
+use crate::passes::layout::{Layout, SectionLayout, SegmentType};
 use crate::repr::object::{
     DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
 };
@@ -25,8 +25,9 @@ impl LinkerCallbacks for DebugCallbacks {
 
     fn on_layout_calculated(&self, object: &Object, layout: &Layout) {
         if self.print.contains(&DebugPrint::Layout) {
-            let mut table = Table::new();
-            table.add_row(["Section", "Source object", "Memory address"]);
+            let mut sections = Table::new();
+            sections.set_title("Sections:");
+            sections.add_row(["Section", "Source object", "Memory address"]);
 
             let render_layout = |id| match layout.of_section(id) {
                 SectionLayout::Allocated { address } => format!("{address:#x}"),
@@ -37,7 +38,7 @@ impl LinkerCallbacks for DebugCallbacks {
                 match &section.content {
                     SectionContent::Data(data) => {
                         for (&id, part) in &data.parts {
-                            table.add_row([
+                            sections.add_row([
                                 section_name(object, id),
                                 part.source.to_string(),
                                 render_layout(id),
@@ -46,7 +47,7 @@ impl LinkerCallbacks for DebugCallbacks {
                     }
                     SectionContent::Uninitialized(parts) => {
                         for (&id, part) in parts {
-                            table.add_row([
+                            sections.add_row([
                                 section_name(object, id),
                                 part.source.to_string(),
                                 render_layout(id),
@@ -56,9 +57,32 @@ impl LinkerCallbacks for DebugCallbacks {
                 }
             }
 
+            let mut segments = Table::new();
+            segments.set_title("Segments:");
+            segments.add_row(["Start", "Size", "Align", "Type", "Permissions", "Sections"]);
+            for segment in layout.iter_segments() {
+                segments.add_row([
+                    format!("{:#x}", segment.start),
+                    format!("{:#x}", segment.len),
+                    format!("{:#x}", segment.align),
+                    match segment.type_ {
+                        SegmentType::Program => "program".into(),
+                        SegmentType::Uninitialized => "uninit".into(),
+                    },
+                    format!("{:?}", segment.perms),
+                    segment
+                        .sections
+                        .iter()
+                        .map(|id| section_name(object, *id))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                ]);
+            }
+
             render(
                 Diagnostic::new(DiagnosticKind::DebugPrint, "calculated layout")
-                    .add(table)
+                    .add(sections)
+                    .add(segments)
                     .add_iter(layout.iter_deduplications().map(|(id, deduplication)| {
                         render_deduplication(object, id, deduplication)
                     })),

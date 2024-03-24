@@ -8,6 +8,7 @@ no stdout present
 === stderr ===
 debug print: calculated layout
  │
+ │    Sections:
  │  ╭─────────────────────┬────────────────────────┬────────────────╮
  │  │ Section             │ Source object          │ Memory address │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
@@ -17,6 +18,16 @@ debug print: calculated layout
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#9             │ bar.o                  │ 0x401031       │
  │  ╰─────────────────────┴────────────────────────┴────────────────╯
+ │
+ │    Segments:
+ │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬─────────────────────╮
+ │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections            │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
+ │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#14 │
+ │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
+ │  │ 0x401000 │ 0x69 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2             │
+ │  │          │      │        │         │                    │ .text#9             │
+ │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴─────────────────────╯
  │
  │    deduplication facade .custom_messages#1 in foo.o
  │  ╭──────┬───────────────────────────╮
@@ -135,7 +146,7 @@ debug print: built elf
  │              content: Null,
  │          },
  │          section#1: ElfSection {
- │              name: section#1:string#24,
+ │              name: section#1:string#30,
  │              memory_address: 0x0,
  │              content: StringTable(
  │                  ElfStringTable {
@@ -143,7 +154,8 @@ debug print: built elf
  │                          0x0: "",
  │                          0x1: ".custom_messages",
  │                          0x12: ".text",
- │                          0x18: ".shstrtab",
+ │                          0x18: ".text",
+ │                          0x1e: ".shstrtab",
  │                      },
  │                  },
  │              ),
@@ -172,15 +184,30 @@ debug print: built elf
  │                      perms: ElfPermissions(RX),
  │                      deduplication: Disabled,
  │                      raw: RawBytes {
- │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x69)
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x31)
  │                             +-------------------------------------------------+
  │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba | .............@..
  │                          1? | 05 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
  │                          2? | b9 06 00 40 00 ba 08 00 00 00 cd 80 e9 00 00 00 | ...@............
- │                          3? | 00 b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 | ..............@.
- │                          4? | ba 07 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 | ................
- │                          5? | 00 b9 06 00 40 00 ba 08 00 00 00 cd 80 b8 01 00 | ....@...........
- │                          6? | 00 00 bb 00 00 00 00 cd 80                      | .........
+ │                          3? | 00                                              | .
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#4: ElfSection {
+ │              name: section#1:string#24,
+ │              memory_address: 0x401031,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(RX),
+ │                      deduplication: Disabled,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x38)
+ │                             +-------------------------------------------------+
+ │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba | .............@..
+ │                          1? | 07 00 00 00 cd 80 b8 04 00 00 00 bb 01 00 00 00 | ................
+ │                          2? | b9 06 00 40 00 ba 08 00 00 00 cd 80 b8 01 00 00 | ...@............
+ │                          3? | 00 bb 00 00 00 00 cd 80                         | ........
  │                      },
  │                  },
  │              ),
@@ -203,6 +230,9 @@ debug print: built elf
  │              content: [
  │                  Section(
  │                      section#3,
+ │                  ),
+ │                  Section(
+ │                      section#4,
  │                  ),
  │              ],
  │              align: 0x1000,

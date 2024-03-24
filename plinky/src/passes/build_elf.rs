@@ -1,3 +1,4 @@
+use super::layout::SectionLayout;
 use crate::cli::CliOptions;
 use crate::interner::{intern, Interned};
 use crate::passes::layout::Layout;
@@ -42,8 +43,8 @@ struct ElfBuilder<'a> {
 impl ElfBuilder<'_> {
     fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
-        let sections = self.prepare_sections();
-        let segments = self.prepare_segments(&sections);
+        let (sections, sections_segment) = self.prepare_sections();
+        let segments = self.prepare_segments(&sections, &sections_segment);
 
         Ok(ElfObject {
             env: self.object.env,
@@ -78,7 +79,9 @@ impl ElfBuilder<'_> {
         }
     }
 
-    fn prepare_sections(&mut self) -> BTreeMap<SectionId, ElfSection<SerialIds>> {
+    fn prepare_sections(
+        &mut self,
+    ) -> (BTreeMap<SectionId, ElfSection<SerialIds>>, BTreeMap<SectionId, SectionSegment>) {
         let mut sections = BTreeMap::new();
 
         // The first section must always be the null section.
@@ -91,31 +94,45 @@ impl ElfBuilder<'_> {
             },
         );
 
+        let mut sections_segment = BTreeMap::new();
         while let Some((name, section)) = self.object.sections.pop_first() {
-            sections.insert(self.ids.allocate_section_id(), self.prepare_section(name, section));
+            let (elf_section, section_segment) = self.prepare_section(name, section);
+            let id = self.ids.allocate_section_id();
+            sections.insert(id, elf_section);
+            sections_segment.insert(id, section_segment);
         }
 
         sections.insert(self.section_names.id, self.prepare_section_names_table());
 
-        sections
+        (sections, sections_segment)
     }
 
     fn prepare_section(
         &mut self,
         name: Interned<String>,
         section: Section,
-    ) -> ElfSection<SerialIds> {
+    ) -> (ElfSection<SerialIds>, SectionSegment) {
         let mut memory_address: Option<u64> = None;
-        let mut update_memory_address = |new| match memory_address {
-            None => memory_address = Some(new),
-            Some(existing) => memory_address = Some(existing.min(new)),
+        let mut section_segment = SectionSegment::Exclude;
+        let mut update_memory_address = |new: &SectionLayout| {
+            let new = match new {
+                SectionLayout::Allocated { address } => {
+                    section_segment = SectionSegment::Include;
+                    *address
+                }
+                SectionLayout::NotAllocated => 0,
+            };
+            match memory_address {
+                None => memory_address = Some(new),
+                Some(existing) => memory_address = Some(existing.min(new)),
+            }
         };
 
         let content = match section.content {
             SectionContent::Data(data) => {
                 let mut raw = Vec::new();
                 for (id, part) in data.parts.into_iter() {
-                    update_memory_address(self.layout.of(id));
+                    update_memory_address(self.layout.of_section(id));
                     raw.extend_from_slice(&part.bytes);
                 }
                 ElfSectionContent::Program(ElfProgramSection {
@@ -127,7 +144,7 @@ impl ElfBuilder<'_> {
             SectionContent::Uninitialized(uninit) => {
                 let mut len = 0;
                 for (id, part) in uninit.into_iter() {
-                    update_memory_address(self.layout.of(id));
+                    update_memory_address(self.layout.of_section(id));
                     len += part.len;
                 }
                 ElfSectionContent::Uninitialized(ElfUninitializedSection {
@@ -137,11 +154,14 @@ impl ElfBuilder<'_> {
             }
         };
 
-        ElfSection {
-            name: self.section_names.add(&name.resolve()),
-            memory_address: memory_address.expect("empty section"),
-            content,
-        }
+        (
+            ElfSection {
+                name: self.section_names.add(&name.resolve()),
+                memory_address: memory_address.expect("empty section"),
+                content,
+            },
+            section_segment,
+        )
     }
 
     fn prepare_section_names_table(&mut self) -> ElfSection<SerialIds> {
@@ -158,9 +178,13 @@ impl ElfBuilder<'_> {
     fn prepare_segments(
         &self,
         sections: &BTreeMap<SectionId, ElfSection<SerialIds>>,
+        sections_segment: &BTreeMap<SectionId, SectionSegment>,
     ) -> Vec<ElfSegment<SerialIds>> {
         let mut segments = Vec::new();
         for (section_id, section) in sections.iter() {
+            if sections_segment.get(section_id) != Some(&SectionSegment::Include) {
+                continue;
+            }
             match &section.content {
                 ElfSectionContent::Program(program) => {
                     segments.push((
@@ -192,6 +216,12 @@ impl ElfBuilder<'_> {
         segments.sort_by_key(|(addr, _segment)| *addr);
         segments.into_iter().map(|(_addr, segment)| segment).collect()
     }
+}
+
+#[derive(PartialEq, Eq)]
+enum SectionSegment {
+    Include,
+    Exclude,
 }
 
 struct PendingStringsTable {

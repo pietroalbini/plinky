@@ -1,7 +1,7 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
 use crate::passes::deduplicate::Deduplication;
-use crate::passes::layout::Layout;
+use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::{
     DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
 };
@@ -28,6 +28,11 @@ impl LinkerCallbacks for DebugCallbacks {
             let mut table = Table::new();
             table.add_row(["Section", "Source object", "Memory address"]);
 
+            let render_layout = |id| match layout.of_section(id) {
+                SectionLayout::Allocated { address } => format!("{address:#x}"),
+                SectionLayout::NotAllocated => "not allocated".to_string(),
+            };
+
             for section in object.sections.values() {
                 match &section.content {
                     SectionContent::Data(data) => {
@@ -35,7 +40,7 @@ impl LinkerCallbacks for DebugCallbacks {
                             table.add_row([
                                 section_name(object, id),
                                 part.source.to_string(),
-                                format!("{:#x}", layout.of(id)),
+                                render_layout(id),
                             ]);
                         }
                     }
@@ -44,7 +49,7 @@ impl LinkerCallbacks for DebugCallbacks {
                             table.add_row([
                                 section_name(object, id),
                                 part.source.to_string(),
-                                format!("{:#x}", layout.of(id)),
+                                render_layout(id),
                             ]);
                         }
                     }
@@ -240,7 +245,10 @@ fn render_deduplication(
 }
 
 fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
-    layout.map(|layout| Text::new(format!("address: {:#x}", layout.of(id))))
+    layout.map(|layout| match layout.of_section(id) {
+        SectionLayout::Allocated { address } => Text::new(format!("address: {address:#x}")),
+        SectionLayout::NotAllocated => Text::new("not allocated in the resulting memory"),
+    })
 }
 
 fn render(diagnostic: Diagnostic) {

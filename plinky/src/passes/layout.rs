@@ -11,7 +11,12 @@ pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplica
     let mut layout = Layout { sections: BTreeMap::new(), deduplications };
     let mut calculator = LayoutCalculator::new();
     for section in object.sections.values() {
-        let mut section_calculator = calculator.begin_section();
+        let mut section_calculator =
+            if section.perms.read || section.perms.write || section.perms.execute {
+                calculator.begin_section()
+            } else {
+                calculator.begin_unallocated_section()
+            };
         match &section.content {
             SectionContent::Data(parts) => {
                 for (&id, part) in &parts.parts {
@@ -37,10 +42,10 @@ pub(crate) struct Layout {
 }
 
 impl Layout {
-    pub(crate) fn of(&self, section: SectionId) -> u64 {
-        match self.sections.get(&section) {
-            Some(layout) => layout.address,
-            None => panic!("section {section:?} doesn't have a layout"),
+    pub(crate) fn of_section(&self, id: SectionId) -> &SectionLayout {
+        match self.sections.get(&id) {
+            Some(layout) => layout,
+            None => panic!("section {id:?} doesn't have a layout"),
         }
     }
 
@@ -50,21 +55,28 @@ impl Layout {
         offset: i64,
     ) -> Result<u64, AddressResolutionError> {
         if let Some(deduplication) = self.deduplications.get(&section) {
-            let base = self
-                .sections
-                .get(&deduplication.target)
-                .expect("deduplication doesn't point to a section with a layout");
+            let base = match self.of_section(deduplication.target) {
+                SectionLayout::Allocated { address } => *address,
+                SectionLayout::NotAllocated => {
+                    return Err(AddressResolutionError::PointsToUnallocatedSection(
+                        deduplication.target,
+                    ))
+                }
+            };
 
             let map_key = u64::try_from(offset)
                 .map_err(|_| AddressResolutionError::NegativeOffsetToAccessDeduplications)?;
             match deduplication.map.get(&map_key) {
-                Some(&mapped) => Ok(base.address + mapped),
+                Some(&mapped) => Ok(base + mapped),
                 None => Err(AddressResolutionError::UnalignedReferenceToDeduplication),
             }
-        } else if let Some(layout) = self.sections.get(&section) {
-            Ok((layout.address as i64 + offset) as u64)
         } else {
-            panic!("section {section:?} doesn't have a layout");
+            match self.of_section(section) {
+                SectionLayout::Allocated { address } => Ok((*address as i64 + offset) as u64),
+                SectionLayout::NotAllocated => {
+                    Err(AddressResolutionError::PointsToUnallocatedSection(section))
+                }
+            }
         }
     }
 
@@ -73,8 +85,9 @@ impl Layout {
     }
 }
 
-struct SectionLayout {
-    address: u64,
+pub(crate) enum SectionLayout {
+    Allocated { address: u64 },
+    NotAllocated,
 }
 
 struct LayoutCalculator {
@@ -87,31 +100,44 @@ impl LayoutCalculator {
     }
 
     fn begin_section(&mut self) -> SectionLayoutCalculator<'_> {
-        SectionLayoutCalculator { parent: self }
+        SectionLayoutCalculator { parent: self, allocate: true }
+    }
+
+    fn begin_unallocated_section(&mut self) -> SectionLayoutCalculator<'_> {
+        SectionLayoutCalculator { parent: self, allocate: false }
     }
 }
 
 struct SectionLayoutCalculator<'a> {
     parent: &'a mut LayoutCalculator,
+    allocate: bool,
 }
 
 impl SectionLayoutCalculator<'_> {
     fn layout_of(&mut self, len: u64) -> SectionLayout {
-        let layout = SectionLayout { address: self.parent.address };
-        self.parent.address += len;
-        layout
+        if self.allocate {
+            let layout = SectionLayout::Allocated { address: self.parent.address };
+            self.parent.address += len;
+            layout
+        } else {
+            SectionLayout::NotAllocated
+        }
     }
 }
 
 impl Drop for SectionLayoutCalculator<'_> {
     fn drop(&mut self) {
-        // Align to the next page boundary when a section ends.
-        self.parent.address = (self.parent.address + PAGE_SIZE) & !(PAGE_SIZE - 1);
+        if self.allocate {
+            // Align to the next page boundary when a section ends.
+            self.parent.address = (self.parent.address + PAGE_SIZE) & !(PAGE_SIZE - 1);
+        }
     }
 }
 
 #[derive(Debug, Display, Error)]
 pub(crate) enum AddressResolutionError {
+    #[display("address points to section {f0:?}, which is not going to be allocated in memory")]
+    PointsToUnallocatedSection(SectionId),
     #[display("negative offset was used to access deduplications")]
     NegativeOffsetToAccessDeduplications,
     #[display("referenced an offset not aligned to the deduplication boundaries")]

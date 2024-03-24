@@ -43,9 +43,9 @@ debug print: calculated layout
  │  ╭────────────┬───────────────┬────────────────╮
  │  │ Section    │ Source object │ Memory address │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .comment#1 │ test.o        │ 0x400000       │
+ │  │ .comment#1 │ test.o        │ not allocated  │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .text#2    │ test.o        │ 0x401000       │
+ │  │ .text#2    │ test.o        │ 0x400000       │
  │  ╰────────────┴───────────────┴────────────────╯
  ┴
 
@@ -60,7 +60,7 @@ debug print: built elf
  │      },
  │      type_: Executable,
  │      entry: Some(
- │          0x401000,
+ │          0x400000,
  │      ),
  │      sections: {
  │          section#0: ElfSection {
@@ -84,7 +84,7 @@ debug print: built elf
  │          },
  │          section#2: ElfSection {
  │              name: section#1:string#1,
- │              memory_address: 0x400000,
+ │              memory_address: 0x0,
  │              content: Program(
  │                  ElfProgramSection {
  │                      perms: ElfPermissions(),
@@ -99,7 +99,7 @@ debug print: built elf
  │          },
  │          section#3: ElfSection {
  │              name: section#1:string#10,
- │              memory_address: 0x401000,
+ │              memory_address: 0x400000,
  │              content: Program(
  │                  ElfProgramSection {
  │                      perms: ElfPermissions(RX),
@@ -114,16 +114,6 @@ debug print: built elf
  │          },
  │      },
  │      segments: [
- │          ElfSegment {
- │              type_: Load,
- │              perms: ElfPermissions(),
- │              content: [
- │                  Section(
- │                      section#2,
- │                  ),
- │              ],
- │              align: 0x1000,
- │          },
  │          ElfSegment {
  │              type_: Load,
  │              perms: ElfPermissions(RX),

@@ -59,7 +59,7 @@ impl<'a> Relocator<'a> {
     }
 
     fn symbol(&self, rel: &ElfRelocation<SerialIds>, offset: i64) -> Result<i64, RelocationError> {
-        Ok(self.symbols.get(rel.symbol)?.resolve(self.layout, offset)?.as_u64() as i64)
+        Ok(self.symbols.get(rel.symbol).resolve(self.layout, offset)?.as_u64() as i64)
     }
 }
 

@@ -22,7 +22,7 @@ impl Symbols {
         &mut self,
         ids: &mut SerialIds,
         name: &str,
-    ) -> Result<(), LoadSymbolsError> {
+    ) -> Result<SymbolId, LoadSymbolsError> {
         let id = ids.allocate_symbol_id();
         self.add_symbol(
             ids,
@@ -34,7 +34,8 @@ impl Symbols {
                 visibility: SymbolVisibility::Global { weak: false },
                 value: SymbolValue::Undefined,
             },
-        )
+        )?;
+        Ok(id)
     }
 
     pub(crate) fn load_table(
@@ -138,11 +139,11 @@ impl Symbols {
         Ok(())
     }
 
-    pub(crate) fn get(&self, mut id: SymbolId) -> Result<&Symbol, MissingGlobalSymbol> {
+    pub(crate) fn get(&self, mut id: SymbolId) -> &Symbol {
         let mut attempts = 0;
         while attempts < 10 {
             match self.symbols.get(&id) {
-                Some(SymbolOrRedirect::Symbol(symbol)) => return Ok(symbol),
+                Some(SymbolOrRedirect::Symbol(symbol)) => return symbol,
                 Some(SymbolOrRedirect::Redirect(redirect)) => id = *redirect,
                 None => panic!("symbol id doesn't point to a symbol"),
             }
@@ -155,7 +156,7 @@ impl Symbols {
         &self,
         name: Interned<String>,
     ) -> Result<&Symbol, MissingGlobalSymbol> {
-        self.get(*self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })?)
+        Ok(self.get(*self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })?))
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {

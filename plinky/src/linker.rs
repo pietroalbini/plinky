@@ -27,7 +27,7 @@ pub(crate) fn link_driver(
 
     passes::relocate::run(&mut object, &layout)?;
     callbacks.on_relocations_applied(&object, &layout);
-    let elf = passes::build_elf::run(object, &layout, options)?;
+    let elf = passes::build_elf::run(object, &layout)?;
     callbacks.on_elf_built(&elf);
 
     passes::write_to_disk::run(elf, &options.output)?;

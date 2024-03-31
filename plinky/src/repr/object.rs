@@ -2,7 +2,7 @@ use crate::interner::Interned;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::Symbols;
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfDeduplication, ElfEnvironment, ElfPermissions, ElfRelocation};
 use std::collections::BTreeMap;
 
@@ -12,6 +12,7 @@ pub(crate) struct Object {
     pub(crate) sections: Sections,
     pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
+    pub(crate) entry_point: SymbolId,
     pub(crate) executable_stack: bool,
 }
 

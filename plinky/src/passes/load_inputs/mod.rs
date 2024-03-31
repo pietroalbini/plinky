@@ -16,7 +16,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new();
-    empty_symbols
+    let entry_point = empty_symbols
         .add_unknown_global(ids, &options.entry)
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
@@ -35,6 +35,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     sections: Sections::new(),
                     strings: Strings::new(),
                     symbols,
+                    entry_point,
                     executable_stack: options.executable_stack,
                 };
                 merge_elf::merge(ids, &mut object, source.clone(), elf)

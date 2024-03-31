@@ -276,18 +276,13 @@ fn section_name(object: &Object, id: SectionId) -> String {
 }
 
 fn symbol_name(object: &Object, id: SymbolId) -> String {
-    object
-        .symbols
-        .get(id)
-        .map(|symbol| {
-            let name = symbol.name.resolve();
-            match (name.as_str(), &symbol.value) {
-                ("", SymbolValue::SectionRelative { section, offset: 0 }) => {
-                    format!("<section {}>", section_name(object, *section))
-                }
-                ("", _) => format!("<symbol#{}>", symbol.id.idx()),
-                (name, _) => format!("{}#{}", name, symbol.id.idx()),
-            }
-        })
-        .unwrap_or_else(|_| "<unknown symbol>".into())
+    let symbol = object.symbols.get(id);
+    let name = symbol.name.resolve();
+    match (name.as_str(), &symbol.value) {
+        ("", SymbolValue::SectionRelative { section, offset: 0 }) => {
+            format!("<section {}>", section_name(object, *section))
+        }
+        ("", _) => format!("<symbol#{}>", symbol.id.idx()),
+        (name, _) => format!("{}#{}", name, symbol.id.idx()),
+    }
 }

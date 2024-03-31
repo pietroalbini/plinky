@@ -1,9 +1,8 @@
 use super::layout::SectionLayout;
-use crate::cli::CliOptions;
-use crate::interner::{intern, Interned};
+use crate::interner::Interned;
 use crate::passes::layout::Layout;
 use crate::repr::object::{Object, SectionContent};
-use crate::repr::symbols::{ResolveSymbolError, ResolveSymbolErrorKind, ResolvedSymbol};
+use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
@@ -16,11 +15,9 @@ use std::num::NonZeroU64;
 pub(crate) fn run(
     object: Object,
     layout: &Layout,
-    options: &CliOptions,
 ) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
     let mut ids = SerialIds::new();
     let builder = ElfBuilder {
-        entrypoint: intern(&options.entry),
         object,
         layout,
         section_zero_id: ids.allocate_section_id(),
@@ -32,7 +29,6 @@ pub(crate) fn run(
 }
 
 struct ElfBuilder<'a> {
-    entrypoint: Interned<String>,
     object: Object,
     layout: &'a Layout,
 
@@ -59,25 +55,16 @@ impl ElfBuilder<'_> {
     }
 
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
-        let resolved = self
-            .object
-            .symbols
-            .get_global(self.entrypoint)
-            .map_err(|_| {
-                ElfBuilderError::EntryPointResolution(ResolveSymbolError {
-                    symbol: self.entrypoint,
-                    inner: ResolveSymbolErrorKind::Undefined,
-                })
-            })?
-            .resolve(self.layout, 0)
-            .map_err(ElfBuilderError::EntryPointResolution)?;
+        let symbol = self.object.symbols.get(self.object.entry_point);
+        let resolved =
+            symbol.resolve(self.layout, 0).map_err(ElfBuilderError::EntryPointResolution)?;
 
         match resolved {
             ResolvedSymbol::Absolute(_) => {
-                Err(ElfBuilderError::EntryPointNotAnAddress(self.entrypoint))
+                Err(ElfBuilderError::EntryPointNotAnAddress(symbol.name))
             }
             ResolvedSymbol::Address(addr) => Ok(Some(
-                NonZeroU64::new(addr).ok_or(ElfBuilderError::EntrypointIsZero(self.entrypoint))?,
+                NonZeroU64::new(addr).ok_or(ElfBuilderError::EntrypointIsZero(symbol.name))?,
             )),
         }
     }

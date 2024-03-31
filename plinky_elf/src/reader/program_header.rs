@@ -22,6 +22,7 @@ pub(super) fn read_program_header(
             3 => ElfSegmentType::Interpreter,
             4 => ElfSegmentType::Note,
             6 => ElfSegmentType::ProgramHeaderTable,
+            0x6474e551 => ElfSegmentType::GnuStack,
             other => ElfSegmentType::Unknown(other),
         },
         perms: ElfPermissions {

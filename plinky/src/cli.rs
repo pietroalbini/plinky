@@ -8,6 +8,7 @@ pub(crate) struct CliOptions {
     pub(crate) output: PathBuf,
     pub(crate) entry: String,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
+    pub(crate) executable_stack: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
@@ -27,6 +28,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut inputs = Vec::new();
     let mut output = None;
     let mut entry = None;
+    let mut executable_stack = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -41,6 +43,20 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             CliToken::LongFlag("entry") | CliToken::ShortFlag("e") => {
                 reject_duplicate(&token, &mut entry, || lexer.expect_flag_value(&token))?;
             }
+
+            CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
+                "execstack" => reject_duplicate(
+                    "-z execstack or -z noexecstack",
+                    &mut executable_stack,
+                    || Ok(true),
+                )?,
+                "noexecstack" => reject_duplicate(
+                    "-z execstack or -z noexecstack",
+                    &mut executable_stack,
+                    || Ok(false),
+                )?,
+                other => return Err(CliError::UnsupportedFlag(format!("-z {other}"))),
+            },
 
             CliToken::LongFlag("debug-print") => {
                 let value = lexer.expect_flag_value(&token)?;
@@ -74,11 +90,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         output: output.unwrap_or("a.out").into(),
         entry: entry.unwrap_or("_start").into(),
         debug_print,
+        executable_stack: executable_stack.unwrap_or(false),
     })
 }
 
 fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
-    token: &CliToken<'_>,
+    token: impl ToString,
     storage: &mut Option<T>,
     f: F,
 ) -> Result<(), CliError> {
@@ -384,6 +401,39 @@ mod tests {
     }
 
     #[test]
+    fn test_no_executable_stack_flag() {
+        let args = parse(["input_file"].into_iter()).unwrap();
+        assert!(!args.executable_stack);
+    }
+
+    #[test]
+    fn test_enabling_executable_stack() {
+        let args = parse(["input_file", "-z", "execstack"].into_iter()).unwrap();
+        assert!(args.executable_stack);
+    }
+
+    #[test]
+    fn test_disabling_executable_stack() {
+        let args = parse(["input_file", "-z", "noexecstack"].into_iter()).unwrap();
+        assert!(!args.executable_stack);
+    }
+
+    #[test]
+    fn test_multiple_executable_stack_flags() {
+        let cases = [
+            ["input_file", "-zexecstack", "-zexecstack"],
+            ["input_file", "-znoexecstack", "-znoexecstack"],
+            ["input_file", "-zexecstack", "-znoexecstack"],
+        ];
+        for case in cases {
+            assert_eq!(
+                Err(CliError::DuplicateFlag("-z execstack or -z noexecstack".into())),
+                parse(case.into_iter())
+            );
+        }
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -397,6 +447,7 @@ mod tests {
             output: "a.out".into(),
             entry: "_start".into(),
             debug_print: BTreeSet::new(),
+            executable_stack: false,
         }
     }
 }

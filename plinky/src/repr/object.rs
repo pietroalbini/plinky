@@ -12,6 +12,7 @@ pub(crate) struct Object {
     pub(crate) sections: Sections,
     pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
+    pub(crate) executable_stack: bool,
 }
 
 #[derive(Debug)]

@@ -1,0 +1,7 @@
+cmd = ["stack.o", "-z", "execstack"]
+kind = "run-pass"
+debug-print = ["final-elf"]
+
+[[asm]]
+source = "stack.S"
+format = "elf32"

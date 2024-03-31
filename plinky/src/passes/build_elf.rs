@@ -6,8 +6,8 @@ use crate::repr::object::{Object, SectionContent};
 use crate::repr::symbols::{ResolveSymbolError, ResolveSymbolErrorKind, ResolvedSymbol};
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{
-    ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
-    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfObject, ElfPermissions, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -128,9 +128,10 @@ impl ElfBuilder<'_> {
                                 SectionLayout::Allocated { address } => *address,
                                 SectionLayout::NotAllocated => 0,
                             },
-                            content: ElfSectionContent::Uninitialized(
-                                ElfUninitializedSection { perms: section.perms, len: uninit.len },
-                            ),
+                            content: ElfSectionContent::Uninitialized(ElfUninitializedSection {
+                                perms: section.perms,
+                                len: uninit.len,
+                            }),
                         },
                     );
                     self.section_ids_mapping.insert(section.id, new_id);
@@ -175,7 +176,21 @@ impl ElfBuilder<'_> {
 
         // Segments have to be in order in memory, otherwise they will not be loaded.
         elf_segments.sort_by_key(|(addr, _segment)| *addr);
-        elf_segments.into_iter().map(|(_addr, segment)| segment).collect()
+        let mut elf_segments = elf_segments.into_iter().map(|(_a, s)| s).collect::<Vec<_>>();
+
+        // Finally add whether the stack should be executable.
+        elf_segments.push(ElfSegment {
+            type_: ElfSegmentType::GnuStack,
+            perms: ElfPermissions {
+                read: true,
+                write: true,
+                execute: self.object.executable_stack,
+            },
+            content: Vec::new(),
+            align: 1,
+        });
+
+        elf_segments
     }
 }
 

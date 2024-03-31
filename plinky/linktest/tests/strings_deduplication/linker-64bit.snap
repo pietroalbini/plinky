@@ -237,6 +237,12 @@ debug print: built elf
  │              ],
  │              align: 0x1000,
  │          },
+ │          ElfSegment {
+ │              type_: GnuStack,
+ │              perms: ElfPermissions(RW),
+ │              content: [],
+ │              align: 0x1,
+ │          },
  │      ],
  │  }
  ┴

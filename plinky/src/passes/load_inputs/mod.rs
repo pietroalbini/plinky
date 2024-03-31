@@ -35,6 +35,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     sections: Sections::new(),
                     strings: Strings::new(),
                     symbols,
+                    executable_stack: options.executable_stack,
                 };
                 merge_elf::merge(ids, &mut object, source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;

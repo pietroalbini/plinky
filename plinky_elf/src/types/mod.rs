@@ -278,6 +278,7 @@ pub enum ElfSegmentType {
     Interpreter,
     Note,
     ProgramHeaderTable,
+    GnuStack,
     Unknown(u32),
 }
 

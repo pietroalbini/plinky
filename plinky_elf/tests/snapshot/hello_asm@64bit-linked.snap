@@ -221,8 +221,8 @@ ElfObject {
                     ElfUnknownSegmentContent {
                         file_offset: 0x0,
                         virtual_address: 0x400000,
-                        file_size: 0xe8,
-                        memory_size: 0xe8,
+                        file_size: 0x120,
+                        memory_size: 0x120,
                     },
                 ),
             ],
@@ -247,6 +247,16 @@ ElfObject {
                 ),
             ],
             align: 0x1000,
+        },
+        ElfSegment {
+            type_: GnuStack,
+            perms: ElfPermissions(RW),
+            content: [
+                Section(
+                    "#0 ",
+                ),
+            ],
+            align: 0x10,
         },
     ],
 }

@@ -119,6 +119,7 @@ fn link_single_object(object: &Path, variant: Variant) -> Result<NamedTempFile, 
         .arg("-o")
         .arg(dest.path())
         .arg(object)
+        .arg("-znoexecstack")
         .args(match variant {
             Variant::X86 => ["-m", "elf_i386"],
             Variant::X86_64 => ["-m", "elf_x86_64"],

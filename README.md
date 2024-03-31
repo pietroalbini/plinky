@@ -5,8 +5,8 @@ TODO
 ## Differences with GNU ld
 
 * The lack of an entry point will result in an error, instead of following [GNU
-  ld]'s behavior of setting it to the first byte of `.text`, or to 0 if no such
-  section exists.
+  ld][ld-entry]'s behavior of setting it to the first byte of `.text`, or to 0
+  if no such section exists.
 
 * The stack is marked as non-executable by default, and it can be set back to
   executable with `-z execstack`. Because of this, the presence or lack of a

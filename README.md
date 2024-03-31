@@ -4,12 +4,14 @@ TODO
 
 ## Differences with GNU ld
 
-* The entry point will not be set to the first byte of `.text` or to 0 if no
-  entry point can be otherwise found. Instead, an error will be returned.
+* The lack of an entry point will result in an error, instead of following [GNU
+  ld]'s behavior of setting it to the first byte of `.text`, or to 0 if no such
+  section exists.
 
 * The stack is marked as non-executable by default, and it can be set back to
-  executable with the `-z execstack` flag. Because of this, the presence or
-  lack of a `.note.GNU-stack` section is ignored, and the `-z noexecstack` does
-  nothing. This follows [LLD's behavior][lld-noexecstack].
+  executable with `-z execstack`. Because of this, the presence or lack of a
+  `.note.GNU-stack` section is ignored, and `-z noexecstack` does nothing.
+  This follows [LLD's behavior][lld-noexecstack].
 
+[ld-entry]: https://sourceware.org/binutils/docs/ld/Entry-Point.html
 [lld-noexecstack]: https://github.com/llvm/llvm-project/issues/57009

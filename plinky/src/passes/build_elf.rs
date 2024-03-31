@@ -7,7 +7,7 @@ use crate::repr::symbols::{ResolveSymbolError, ResolveSymbolErrorKind, ResolvedS
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
-    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
+    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -95,49 +95,45 @@ impl ElfBuilder<'_> {
             },
         );
 
-        while let Some((name, section)) = self.object.sections.pop_first() {
+        while let Some(section) = self.object.sections.pop_first() {
             match &section.content {
                 SectionContent::Data(data) => {
-                    for (id, part) in &data.parts {
-                        let new_id = self.ids.allocate_section_id();
-                        let layout = self.layout.of_section(*id);
-                        sections.insert(
-                            new_id,
-                            ElfSection {
-                                name: self.section_names.add(&name.resolve()),
-                                memory_address: match layout {
-                                    SectionLayout::Allocated { address } => *address,
-                                    SectionLayout::NotAllocated => 0,
-                                },
-                                content: ElfSectionContent::Program(ElfProgramSection {
-                                    perms: section.perms,
-                                    deduplication: data.deduplication,
-                                    raw: part.bytes.clone(),
-                                }),
+                    let new_id = self.ids.allocate_section_id();
+                    let layout = self.layout.of_section(section.id);
+                    sections.insert(
+                        new_id,
+                        ElfSection {
+                            name: self.section_names.add(&section.name.resolve()),
+                            memory_address: match layout {
+                                SectionLayout::Allocated { address } => *address,
+                                SectionLayout::NotAllocated => 0,
                             },
-                        );
-                        self.section_ids_mapping.insert(*id, new_id);
-                    }
+                            content: ElfSectionContent::Program(ElfProgramSection {
+                                perms: section.perms,
+                                deduplication: data.deduplication,
+                                raw: RawBytes(data.bytes.clone()),
+                            }),
+                        },
+                    );
+                    self.section_ids_mapping.insert(section.id, new_id);
                 }
                 SectionContent::Uninitialized(uninit) => {
-                    for (id, part) in uninit {
-                        let new_id = self.ids.allocate_section_id();
-                        let layout = self.layout.of_section(*id);
-                        sections.insert(
-                            new_id,
-                            ElfSection {
-                                name: self.section_names.add(&name.resolve()),
-                                memory_address: match layout {
-                                    SectionLayout::Allocated { address } => *address,
-                                    SectionLayout::NotAllocated => 0,
-                                },
-                                content: ElfSectionContent::Uninitialized(
-                                    ElfUninitializedSection { perms: section.perms, len: part.len },
-                                ),
+                    let new_id = self.ids.allocate_section_id();
+                    let layout = self.layout.of_section(section.id);
+                    sections.insert(
+                        new_id,
+                        ElfSection {
+                            name: self.section_names.add(&section.name.resolve()),
+                            memory_address: match layout {
+                                SectionLayout::Allocated { address } => *address,
+                                SectionLayout::NotAllocated => 0,
                             },
-                        );
-                        self.section_ids_mapping.insert(*id, new_id);
-                    }
+                            content: ElfSectionContent::Uninitialized(
+                                ElfUninitializedSection { perms: section.perms, len: uninit.len },
+                            ),
+                        },
+                    );
+                    self.section_ids_mapping.insert(section.id, new_id);
                 }
             }
         }

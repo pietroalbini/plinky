@@ -1,12 +1,31 @@
 ---
 source: plinky/linktest/harness/main.rs
 ---
-linking exited with exit status: 1
+linking exited with exit status: 0
 
 no stdout present
 
 === stderr ===
-error: failed to include the ELF file rwx.o
-caused by: instances of section .text have different permissions: one is ElfPermissions(RX), while the other is ElfPermissions(RWX)
+debug print: calculated layout
+ │
+ │    Sections:
+ │  ╭─────────┬───────────────┬────────────────╮
+ │  │ Section │ Source object │ Memory address │
+ │  ├─────────┼───────────────┼────────────────┤
+ │  │ .text#1 │ rx.o          │ 0x400000       │
+ │  ├─────────┼───────────────┼────────────────┤
+ │  │ .text#6 │ rwx.o         │ 0x401000       │
+ │  ╰─────────┴───────────────┴────────────────╯
+ │
+ │    Segments:
+ │  ╭──────────┬──────┬────────┬─────────┬─────────────────────┬──────────╮
+ │  │ Start    │ Size │ Align  │ Type    │ Permissions         │ Sections │
+ │  ├──────────┼──────┼────────┼─────────┼─────────────────────┼──────────┤
+ │  │ 0x400000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RX)  │ .text#1  │
+ │  ├──────────┼──────┼────────┼─────────┼─────────────────────┼──────────┤
+ │  │ 0x401000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RWX) │ .text#6  │
+ │  ╰──────────┴──────┴────────┴─────────┴─────────────────────┴──────────╯
+ ┴
+
 
 

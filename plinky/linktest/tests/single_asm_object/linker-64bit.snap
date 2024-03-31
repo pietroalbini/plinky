@@ -1,6 +1,5 @@
 ---
 source: plinky/linktest/harness/main.rs
-assertion_line: 146
 ---
 linking exited with exit status: 0
 
@@ -57,9 +56,9 @@ debug print: calculated layout
  │  ╭─────────┬───────────────┬────────────────╮
  │  │ Section │ Source object │ Memory address │
  │  ├─────────┼───────────────┼────────────────┤
- │  │ .data#1 │ hello.o       │ 0x401000       │
- │  ├─────────┼───────────────┼────────────────┤
  │  │ .text#2 │ hello.o       │ 0x400000       │
+ │  ├─────────┼───────────────┼────────────────┤
+ │  │ .data#1 │ hello.o       │ 0x401000       │
  │  ╰─────────┴───────────────┴────────────────╯
  │
  │    Segments:

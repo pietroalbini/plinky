@@ -2,9 +2,7 @@ use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
 use crate::passes::deduplicate::Deduplication;
 use crate::passes::layout::{Layout, SectionLayout, SegmentType};
-use crate::repr::object::{
-    DataSectionPart, Object, Section, SectionContent, UninitializedSectionPart,
-};
+use crate::repr::object::{DataSection, Object, Section, SectionContent, UninitializedSection};
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
@@ -29,32 +27,20 @@ impl LinkerCallbacks for DebugCallbacks {
             sections.set_title("Sections:");
             sections.add_row(["Section", "Source object", "Memory address"]);
 
-            let render_layout = |id| match layout.of_section(id) {
-                SectionLayout::Allocated { address } => format!("{address:#x}"),
-                SectionLayout::NotAllocated => "not allocated".to_string(),
-            };
-
-            for section in object.sections.values() {
-                match &section.content {
-                    SectionContent::Data(data) => {
-                        for (&id, part) in &data.parts {
-                            sections.add_row([
-                                section_name(object, id),
-                                part.source.to_string(),
-                                render_layout(id),
-                            ]);
-                        }
-                    }
-                    SectionContent::Uninitialized(parts) => {
-                        for (&id, part) in parts {
-                            sections.add_row([
-                                section_name(object, id),
-                                part.source.to_string(),
-                                render_layout(id),
-                            ]);
-                        }
-                    }
-                }
+            let mut sections_content = Vec::new();
+            for section in object.sections.iter() {
+                sections_content.push((section.id, &section.source));
+            }
+            sections_content.sort_by_key(|(id, _)| (layout.of_section(*id), *id));
+            for (id, source) in sections_content {
+                sections.add_row([
+                    section_name(object, id),
+                    source.to_string(),
+                    match layout.of_section(id) {
+                        SectionLayout::Allocated { address } => format!("{address:#x}"),
+                        SectionLayout::NotAllocated => "not allocated".to_string(),
+                    },
+                ]);
             }
 
             let mut segments = Table::new();
@@ -107,15 +93,13 @@ impl LinkerCallbacks for DebugCallbacks {
 }
 
 fn render_object(message: &str, object: &Object, layout: Option<&Layout>) {
+    let mut sorted_sections = object.sections.iter().collect::<Vec<_>>();
+    sorted_sections.sort_by_key(|section| (section.name, section.id));
+
     render(
         Diagnostic::new(DiagnosticKind::DebugPrint, message)
             .add(render_env(object))
-            .add_iter(
-                object
-                    .sections
-                    .values()
-                    .flat_map(|section| render_section_group(object, layout, section)),
-            )
+            .add_iter(sorted_sections.iter().map(|section| render_section(object, layout, section)))
             .add(render_symbols(object, object.symbols.iter())),
     );
 }
@@ -127,37 +111,22 @@ fn render_env(object: &Object) -> Text {
     ))
 }
 
-fn render_section_group(
-    object: &Object,
-    layout: Option<&Layout>,
-    section: &Section,
-) -> Vec<Box<dyn Widget>> {
+fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -> Box<dyn Widget> {
     match &section.content {
-        SectionContent::Data(data) => data
-            .parts
-            .iter()
-            .map(|(&id, part)| {
-                render_data_section(object, layout, id, &section.perms, data.deduplication, part)
-            })
-            .collect(),
-        SectionContent::Uninitialized(uninitialized) => uninitialized
-            .iter()
-            .map(|(&id, part)| {
-                render_uninitialized_section(object, layout, id, &section.perms, part)
-            })
-            .collect(),
+        SectionContent::Data(data) => render_data_section(object, layout, section, data),
+        SectionContent::Uninitialized(uninit) => {
+            render_uninitialized_section(object, layout, section, uninit)
+        }
     }
 }
 
 fn render_data_section(
     object: &Object,
     layout: Option<&Layout>,
-    id: SectionId,
-    perms: &ElfPermissions,
-    deduplication: ElfDeduplication,
-    part: &DataSectionPart,
+    section: &Section,
+    data: &DataSection,
 ) -> Box<dyn Widget> {
-    let deduplication = match deduplication {
+    let deduplication = match data.deduplication {
         ElfDeduplication::Disabled => None,
         ElfDeduplication::ZeroTerminatedStrings => {
             Some(Text::new("zero-terminated strings should be deduplicated"))
@@ -167,13 +136,13 @@ fn render_data_section(
         }
     };
 
-    let relocations = if part.relocations.is_empty() {
+    let relocations = if data.relocations.is_empty() {
         None
     } else {
         let mut table = Table::new();
         table.set_title("Relocations:");
         table.add_row(["Type", "Symbol", "Offset", "Addend"]);
-        for relocation in &part.relocations {
+        for relocation in &data.relocations {
             table.add_row([
                 format!("{:?}", relocation.relocation_type),
                 symbol_name(object, relocation.symbol),
@@ -188,13 +157,13 @@ fn render_data_section(
         WidgetGroup::new()
             .name(format!(
                 "section {} ({}) in {}",
-                section_name(object, id),
-                permissions(perms),
-                part.source
+                section_name(object, section.id),
+                permissions(&section.perms),
+                section.source
             ))
             .add_iter(deduplication)
-            .add_iter(render_layout(layout, id))
-            .add(HexDump::new(part.bytes.0.clone()))
+            .add_iter(render_layout(layout, section.id))
+            .add(HexDump::new(data.bytes.clone()))
             .add_iter(relocations),
     )
 }
@@ -202,20 +171,19 @@ fn render_data_section(
 fn render_uninitialized_section(
     object: &Object,
     layout: Option<&Layout>,
-    id: SectionId,
-    perms: &ElfPermissions,
-    section: &UninitializedSectionPart,
+    section: &Section,
+    uninit: &UninitializedSection,
 ) -> Box<dyn Widget> {
     Box::new(
         WidgetGroup::new()
             .name(format!(
                 "uninitialized section {} ({}) in {}",
-                section_name(object, id),
-                permissions(perms),
+                section_name(object, section.id),
+                permissions(&section.perms),
                 section.source
             ))
-            .add(Text::new(format!("length: {:#x}", section.len)))
-            .add_iter(render_layout(layout, id)),
+            .add(Text::new(format!("length: {:#x}", uninit.len)))
+            .add_iter(render_layout(layout, section.id)),
     )
 }
 
@@ -299,8 +267,10 @@ fn permissions(perms: &ElfPermissions) -> String {
 
 fn section_name(object: &Object, id: SectionId) -> String {
     object
-        .section_ids_to_names
-        .get(&id)
+        .sections
+        .get(id)
+        .map(|section| section.name)
+        .or_else(|| object.sections.name_of_removed_section(id))
         .map(|name| format!("{}#{}", name.resolve(), id.idx()))
         .unwrap_or_else(|| "<unknown section>".into())
 }

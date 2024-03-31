@@ -1,5 +1,5 @@
 use crate::passes::layout::{AddressResolutionError, Layout};
-use crate::repr::object::{DataSectionPart, Object, SectionContent};
+use crate::repr::object::{DataSection, Object, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, Symbols};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
@@ -7,12 +7,10 @@ use plinky_macros::{Display, Error};
 
 pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), RelocationError> {
     let relocator = Relocator { layout, symbols: &object.symbols };
-    for section in object.sections.values_mut() {
+    for section in object.sections.iter_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
-                for (&id, part) in &mut data.parts {
-                    relocator.relocate(id, part)?;
-                }
+                relocator.relocate(section.id, data)?;
             }
             SectionContent::Uninitialized(_) => {}
         }
@@ -29,10 +27,10 @@ impl<'a> Relocator<'a> {
     fn relocate(
         &self,
         section_id: SectionId,
-        data_section: &mut DataSectionPart,
+        data_section: &mut DataSection,
     ) -> Result<(), RelocationError> {
         for relocation in data_section.relocations.drain(..) {
-            self.relocate_one(section_id, &relocation, &mut data_section.bytes.0)?;
+            self.relocate_one(section_id, &relocation, &mut data_section.bytes)?;
         }
         Ok(())
     }

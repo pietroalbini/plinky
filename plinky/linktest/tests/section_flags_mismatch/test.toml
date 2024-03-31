@@ -1,5 +1,6 @@
 cmd = ["rx.o", "rwx.o"]
-kind = "link-fail"
+kind = "link-pass"
+debug-print = ["layout"]
 
 [[asm]]
 source = "rx.S"

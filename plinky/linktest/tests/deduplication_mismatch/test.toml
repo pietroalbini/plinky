@@ -1,5 +1,5 @@
 cmd = ["foo.o", "bar.o"]
-kind = "link-fail"
+kind = "link-pass"
 
 [[asm]]
 source = "foo.S"

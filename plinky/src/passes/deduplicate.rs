@@ -1,8 +1,8 @@
 use crate::interner::Interned;
-use crate::repr::object::{DataSection, DataSectionPart, Object, SectionContent};
+use crate::repr::object::{DataSection, Object, Section, SectionContent};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{ElfDeduplication, RawBytes};
+use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
@@ -11,11 +11,12 @@ pub(crate) fn run(
     object: &mut Object,
     ids: &mut SerialIds,
 ) -> Result<BTreeMap<SectionId, Deduplication>, DeduplicationError> {
-    let mut deduplications = BTreeMap::new();
-    for (&section_name, section) in &mut object.sections {
-        let SectionContent::Data(data) = &mut section.content else {
+    let mut groups: BTreeMap<_, Vec<_>> = BTreeMap::new();
+    for section in object.sections.iter() {
+        let SectionContent::Data(data) = &section.content else {
             continue;
         };
+
         let split_rule = match data.deduplication {
             ElfDeduplication::Disabled => continue,
             ElfDeduplication::ZeroTerminatedStrings => SplitRule::ZeroTerminatedString,
@@ -24,24 +25,20 @@ pub(crate) fn run(
 
         // Not sure exactly whether relocations inside of deduplicatable sections are ever used in
         // the wild, so for now let's error out if we encounter this.
-        for part in data.parts.values() {
-            if !part.relocations.is_empty() {
-                return Err(DeduplicationError {
-                    section_name,
-                    kind: DeduplicationErrorKind::RelocationsUnsupported,
-                });
-            }
+        if !data.relocations.is_empty() {
+            return Err(DeduplicationError {
+                section_name: section.name,
+                kind: DeduplicationErrorKind::RelocationsUnsupported,
+            });
         }
 
-        deduplicate(
-            ids,
-            &mut deduplications,
-            &mut object.section_ids_to_names,
-            section_name,
-            split_rule,
-            data,
-        )
-        .map_err(|kind| DeduplicationError { section_name, kind })?;
+        groups.entry((section.name, section.perms, split_rule)).or_default().push(section.id);
+    }
+
+    let mut deduplications = BTreeMap::new();
+    for ((name, perms, split_rule), section_ids) in groups {
+        deduplicate(ids, &mut deduplications, object, name, perms, split_rule, &section_ids)
+            .map_err(|kind| DeduplicationError { section_name: name, kind })?;
     }
 
     Ok(deduplications)
@@ -50,10 +47,11 @@ pub(crate) fn run(
 fn deduplicate(
     ids: &mut SerialIds,
     deduplications: &mut BTreeMap<SectionId, Deduplication>,
-    section_ids_to_names: &mut BTreeMap<SectionId, Interned<String>>,
-    section_name: Interned<String>,
+    object: &mut Object,
+    name: Interned<String>,
+    perms: ElfPermissions,
     split_rule: SplitRule,
-    data: &mut DataSection,
+    section_ids: &[SectionId],
 ) -> Result<(), DeduplicationErrorKind> {
     let merged_id = ids.allocate_section_id();
     let mut merged = Vec::new();
@@ -61,14 +59,22 @@ fn deduplicate(
     let mut sections_to_remove = Vec::new();
     let mut source = None;
 
-    for (&section_id, part) in data.parts.iter() {
+    for &section_id in section_ids {
+        let section = object.sections.get(section_id).expect("missing section passed");
+        let SectionContent::Data(part) = &section.content else {
+            unreachable!("non-data section reached here");
+        };
+
         match source {
-            None => source = Some(part.source.clone()),
-            Some(other_source) => source = Some(other_source.merge(&part.source)),
+            None => source = Some(section.source.clone()),
+            Some(other_source) => source = Some(other_source.merge(&section.source)),
         }
-        let mut deduplication =
-            Deduplication { target: merged_id, map: BTreeMap::new(), source: part.source.clone() };
-        for chunk in split(split_rule, &part.bytes.0) {
+        let mut deduplication = Deduplication {
+            target: merged_id,
+            map: BTreeMap::new(),
+            source: section.source.clone(),
+        };
+        for chunk in split(split_rule, &part.bytes) {
             let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
                 Some(idx) => {
@@ -86,22 +92,29 @@ fn deduplicate(
         sections_to_remove.push(section_id);
     }
 
-    data.parts.insert(
-        merged_id,
-        DataSectionPart {
-            source: source.expect("no deduplicated sections"),
-            bytes: RawBytes(merged),
+    object.sections.add(Section {
+        id: merged_id,
+        name,
+        perms,
+        source: source.expect("no deduplicated sections"),
+        content: SectionContent::Data(DataSection {
+            deduplication: match split_rule {
+                SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
+                SplitRule::FixedSizeChunks { size } => ElfDeduplication::FixedSizeChunks { size },
+            },
+            bytes: merged,
             relocations: Vec::new(),
-        },
-    );
-    section_ids_to_names.insert(merged_id, section_name);
+        }),
+    });
 
-    data.parts.retain(|key, _| !sections_to_remove.contains(key));
+    for id in sections_to_remove {
+        object.sections.remove(id);
+    }
 
     Ok(())
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum SplitRule {
     ZeroTerminatedString,
     FixedSizeChunks { size: NonZeroU64 },

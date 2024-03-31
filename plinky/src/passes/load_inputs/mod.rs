@@ -1,14 +1,13 @@
 use crate::cli::CliOptions;
 use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
-use crate::repr::object::Object;
+use crate::repr::object::{Object, Sections};
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
 use plinky_macros::{Display, Error};
-use std::collections::BTreeMap;
 
 mod merge_elf;
 mod read_objects;
@@ -33,8 +32,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
             State::Empty { symbols } => {
                 let mut object = Object {
                     env: elf.env,
-                    sections: BTreeMap::new(),
-                    section_ids_to_names: BTreeMap::new(),
+                    sections: Sections::new(),
                     strings: Strings::new(),
                     symbols,
                 };

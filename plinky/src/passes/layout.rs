@@ -10,20 +10,16 @@ const PAGE_SIZE: u64 = 0x1000;
 
 pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplication>) -> Layout {
     let mut grouped: BTreeMap<_, Vec<_>> = BTreeMap::new();
-    for section in object.sections.values() {
+    for section in object.sections.iter() {
         match &section.content {
-            SectionContent::Data(data) => {
-                let group = grouped.entry((section.perms, SegmentType::Program)).or_default();
-                for (&id, part) in &data.parts {
-                    group.push((id, part.bytes.0.len() as u64));
-                }
-            }
-            SectionContent::Uninitialized(parts) => {
-                let group = grouped.entry((section.perms, SegmentType::Uninitialized)).or_default();
-                for (&id, part) in parts {
-                    group.push((id, part.len));
-                }
-            }
+            SectionContent::Data(data) => grouped
+                .entry((section.perms, SegmentType::Program))
+                .or_default()
+                .push((section.id, data.bytes.len() as u64)),
+            SectionContent::Uninitialized(uninit) => grouped
+                .entry((section.perms, SegmentType::Uninitialized))
+                .or_default()
+                .push((section.id, uninit.len)),
         }
     }
 
@@ -116,6 +112,7 @@ impl Layout {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum SectionLayout {
     Allocated { address: u64 },
     NotAllocated,

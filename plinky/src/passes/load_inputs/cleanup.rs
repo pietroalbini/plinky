@@ -15,6 +15,6 @@ pub(super) fn run(object: &mut Object) {
 
     object.gnu_stack_section_ignored |= removed_gnu_stack;
     for id in sections_to_remove {
-        object.sections.remove(id);
+        object.sections.remove(id, Some(&mut object.symbols));
     }
 }

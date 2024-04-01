@@ -111,7 +111,7 @@ fn deduplicate(
     });
 
     for id in sections_to_remove {
-        object.sections.remove(id);
+        object.sections.remove(id, None);
     }
 
     Ok(())

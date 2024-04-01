@@ -1,4 +1,5 @@
 use crate::interner::Interned;
+use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions, ElfRelocation};
@@ -26,13 +27,30 @@ impl Sections {
         self.inner.insert(section.id, section);
     }
 
-    pub(crate) fn remove(&mut self, id: SectionId) -> Option<Section> {
-        if let Some(section) = self.inner.remove(&id) {
-            self.names_of_removed_sections.insert(id, section.name);
-            Some(section)
-        } else {
-            None
+    pub(crate) fn remove(
+        &mut self,
+        id: SectionId,
+        purge_symbols_from: Option<&mut Symbols>,
+    ) -> Option<Section> {
+        let removed_section = self.inner.remove(&id)?;
+        self.names_of_removed_sections.insert(id, removed_section.name);
+
+        if let Some(symbols) = purge_symbols_from {
+            let mut symbols_to_remove = Vec::new();
+            for (symbol_id, symbol) in symbols.iter() {
+                let SymbolValue::SectionRelative { section, .. } = &symbol.value else {
+                    continue;
+                };
+                if *section == removed_section.id {
+                    symbols_to_remove.push(symbol_id);
+                }
+            }
+            for symbol_id in symbols_to_remove {
+                symbols.remove(symbol_id);
+            }
         }
+
+        Some(removed_section)
     }
 
     pub(crate) fn pop_first(&mut self) -> Option<Section> {

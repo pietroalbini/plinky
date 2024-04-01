@@ -12,4 +12,5 @@ pub(crate) struct Object {
     pub(crate) symbols: Symbols,
     pub(crate) entry_point: SymbolId,
     pub(crate) executable_stack: bool,
+    pub(crate) gnu_stack_section_ignored: bool,
 }

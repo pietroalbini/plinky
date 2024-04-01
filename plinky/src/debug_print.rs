@@ -124,10 +124,14 @@ fn render_object(message: &str, object: &Object, layout: Option<&Layout>) {
 }
 
 fn render_env(object: &Object) -> Text {
-    Text::new(format!(
+    let mut content = format!(
         "class: {:?}, endian: {:?}, abi: {:?}, machine: {:?}",
         object.env.class, object.env.endian, object.env.abi, object.env.machine
-    ))
+    );
+    if object.gnu_stack_section_ignored {
+        content.push_str(", .note.GNU-stack sections ignored");
+    }
+    Text::new(content)
 }
 
 fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -> Box<dyn Widget> {

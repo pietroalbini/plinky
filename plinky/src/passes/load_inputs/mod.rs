@@ -10,6 +10,7 @@ use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
 use plinky_macros::{Display, Error};
 
+mod cleanup;
 mod merge_elf;
 mod read_objects;
 
@@ -38,6 +39,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     symbols,
                     entry_point,
                     executable_stack: options.executable_stack,
+                    gnu_stack_section_ignored: false,
                 };
                 merge_elf::merge(ids, &mut object, source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
@@ -61,7 +63,10 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
 
     match state {
         State::Empty { .. } => Err(LoadInputsError::NoInputFiles),
-        State::WithContent { object, .. } => Ok(object),
+        State::WithContent { mut object, .. } => {
+            cleanup::run(&mut object);
+            Ok(object)
+        }
     }
 }
 

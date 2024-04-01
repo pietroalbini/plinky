@@ -1,0 +1,44 @@
+---
+source: plinky/linktest/harness/main.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64, .note.GNU-stack sections ignored
+ │
+ │  section .comment#6 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
+ │  section .test#2 (perms: r) in foo.o
+ │   │
+ │   │  ╭────┬───╮
+ │   │  │ 90 │ . │
+ │   │  ╰────┴───╯
+ │   ┴
+ │
+ │    Symbols:
+ │  ╭─────────────────────────────┬────────┬────────────┬─────────────────────────╮
+ │  │ Name                        │ Source │ Visibility │ Value                   │
+ │  ├─────────────────────────────┼────────┼────────────┼─────────────────────────┤
+ │  │ <symbol#2>                  │ foo.o  │ local      │ <undefined>             │
+ │  ├─────────────────────────────┼────────┼────────────┼─────────────────────────┤
+ │  │ <section .note.GNU-stack#1> │ foo.o  │ local      │ .note.GNU-stack#1 + 0x0 │
+ │  ├─────────────────────────────┼────────┼────────────┼─────────────────────────┤
+ │  │ <section .test#2>           │ foo.o  │ local      │ .test#2 + 0x0           │
+ │  ├─────────────────────────────┼────────┼────────────┼─────────────────────────┤
+ │  │ _start#1                    │ foo.o  │ global     │ .test#2 + 0x0           │
+ │  ╰─────────────────────────────┴────────┴────────────┴─────────────────────────╯
+ ┴
+
+
+

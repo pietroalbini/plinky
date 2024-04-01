@@ -139,6 +139,10 @@ impl Symbols {
         Ok(())
     }
 
+    pub(crate) fn remove(&mut self, id: SymbolId) {
+        self.symbols.remove(&id);
+    }
+
     pub(crate) fn get(&self, mut id: SymbolId) -> &Symbol {
         let mut attempts = 0;
         while attempts < 10 {

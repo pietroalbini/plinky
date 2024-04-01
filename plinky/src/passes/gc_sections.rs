@@ -1,8 +1,8 @@
 use crate::repr::object::{Object, SectionContent};
 use crate::repr::symbols::SymbolValue;
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet};
-use plinky_diagnostics::ObjectSpan;
 
 pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     let mut visitor = Visitor {
@@ -35,12 +35,22 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     for section_id in all_sections {
         if !visitor.to_save.contains(&section_id) {
             if let Some(removed) = object.sections.remove(section_id) {
-                removed_sections.push(RemovedSection {
-                    id: section_id,
-                    source: removed.source,
-                });
+                removed_sections.push(RemovedSection { id: section_id, source: removed.source });
             }
         }
+    }
+
+    let mut symbols_to_remove = Vec::new();
+    for (id, symbol) in object.symbols.iter() {
+        let SymbolValue::SectionRelative { section, .. } = &symbol.value else {
+            continue;
+        };
+        if !visitor.to_save.contains(section) {
+            symbols_to_remove.push(id);
+        }
+    }
+    for symbol_id in symbols_to_remove {
+        object.symbols.remove(symbol_id);
     }
 
     removed_sections
@@ -75,8 +85,8 @@ impl Visitor {
                         for relocation in &data.relocations {
                             self.add(relocation.symbol);
                         }
-                    },
-                    SectionContent::Uninitialized(_) => {},
+                    }
+                    SectionContent::Uninitialized(_) => {}
                 }
             }
         }

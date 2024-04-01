@@ -215,6 +215,10 @@ where
                         deduplication: ElfDeduplication::FixedSizeChunks { size },
                         ..
                     }) => size.get(),
+                    ElfSectionContent::Program(ElfProgramSection {
+                        deduplication: ElfDeduplication::ZeroTerminatedStrings,
+                        ..
+                    }) => 1,
                     _ => 0,
                 },
             })?;

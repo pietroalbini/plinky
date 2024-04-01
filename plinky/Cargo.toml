@@ -1,8 +1,15 @@
+cargo-features = ["different-binary-name"]
+
 [package]
 name = "plinky"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "plinky"
+filename = "ld.plinky"
 
 [[test]]
 name = "linktest"

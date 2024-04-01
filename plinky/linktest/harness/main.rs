@@ -86,7 +86,7 @@ impl TestExecution<'_> {
     }
 
     fn link_and_snapshot(&self) -> Result<bool, Error> {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_plinky"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_ld.plinky"));
         command.current_dir(self.root).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
         for debug_print in &self.settings.debug_print {
             command.args(["--debug-print", debug_print]);

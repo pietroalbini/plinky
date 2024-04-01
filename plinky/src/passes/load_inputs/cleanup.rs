@@ -1,5 +1,6 @@
 use crate::interner::intern;
 use crate::repr::object::Object;
+use crate::repr::sections::SectionContent;
 
 pub(super) fn run(object: &mut Object) {
     let gnu_stack = intern(".note.GNU-stack");
@@ -10,6 +11,16 @@ pub(super) fn run(object: &mut Object) {
         if section.name == gnu_stack {
             sections_to_remove.push(section.id);
             removed_gnu_stack = true;
+        }
+        if let SectionContent::Data(data) = &section.content {
+            if data.bytes.is_empty() {
+                sections_to_remove.push(section.id);
+            }
+        }
+        if let SectionContent::Uninitialized(uninit) = &section.content {
+            if uninit.len == 0 {
+                sections_to_remove.push(section.id);
+            }
         }
     }
 

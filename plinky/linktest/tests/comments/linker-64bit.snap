@@ -57,7 +57,7 @@ debug print: calculated layout
  │  ├────────────┼───────────────┼────────────────┤
  │  │ .comment#1 │ test.o        │ not allocated  │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .comment#7 │ <plinky>      │ not allocated  │
+ │  │ .comment#6 │ <plinky>      │ not allocated  │
  │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
@@ -66,13 +66,6 @@ debug print: calculated layout
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
  │  │ 0x400000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2  │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
- │
- │    deduplication facade .comment#6 in <plinky>
- │  ╭──────┬──────────────────╮
- │  │ From │ To               │
- │  ├──────┼──────────────────┤
- │  │ 0x0  │ .comment#7 + 0x0 │
- │  ╰──────┴──────────────────╯
  ┴
 
 debug print: built elf

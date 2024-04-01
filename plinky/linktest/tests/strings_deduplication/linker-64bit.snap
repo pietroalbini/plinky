@@ -12,20 +12,20 @@ debug print: calculated layout
  │  ╭─────────────────────┬────────────────────────┬────────────────╮
  │  │ Section             │ Source object          │ Memory address │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .custom_messages#16 │ mix of foo.o and bar.o │ 0x400000       │
+ │  │ .custom_messages#15 │ mix of foo.o and bar.o │ 0x400000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#2             │ foo.o                  │ 0x401000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#9             │ bar.o                  │ 0x401031       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .comment#15         │ <plinky>               │ not allocated  │
+ │  │ .comment#14         │ <plinky>               │ not allocated  │
  │  ╰─────────────────────┴────────────────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬─────────────────────╮
  │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections            │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
- │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#16 │
+ │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#15 │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
  │  │ 0x401000 │ 0x69 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2             │
  │  │          │      │        │         │                    │ .text#9             │
@@ -35,33 +35,26 @@ debug print: calculated layout
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#16 + 0x0 │
+ │  │ 0x0  │ .custom_messages#15 + 0x0 │
  │  ├──────┼───────────────────────────┤
- │  │ 0x6  │ .custom_messages#16 + 0x6 │
+ │  │ 0x6  │ .custom_messages#15 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  │
  │    deduplication facade .custom_messages#8 in bar.o
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#16 + 0xf │
+ │  │ 0x0  │ .custom_messages#15 + 0xf │
  │  ├──────┼───────────────────────────┤
- │  │ 0x8  │ .custom_messages#16 + 0x6 │
+ │  │ 0x8  │ .custom_messages#15 + 0x6 │
  │  ╰──────┴───────────────────────────╯
- │
- │    deduplication facade .comment#14 in <plinky>
- │  ╭──────┬───────────────────╮
- │  │ From │ To                │
- │  ├──────┼───────────────────┤
- │  │ 0x0  │ .comment#15 + 0x0 │
- │  ╰──────┴───────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#15 (no perms) in <plinky>
+ │  section .comment#14 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -72,7 +65,7 @@ debug print: object after relocations are applied
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .custom_messages#16 (perms: r) in mix of foo.o and bar.o
+ │  section .custom_messages#15 (perms: r) in mix of foo.o and bar.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │

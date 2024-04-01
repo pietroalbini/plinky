@@ -69,7 +69,7 @@ debug print: calculated layout
  │  ├────────────┼───────────────┼────────────────┤
  │  │ .data#1    │ hello.o       │ 0x401000       │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .comment#8 │ <plinky>      │ not allocated  │
+ │  │ .comment#7 │ <plinky>      │ not allocated  │
  │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
@@ -80,20 +80,13 @@ debug print: calculated layout
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
  │  │ 0x401000 │ 0xd  │ 0x1000 │ program │ ElfPermissions(RW) │ .data#1  │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
- │
- │    deduplication facade .comment#7 in <plinky>
- │  ╭──────┬──────────────────╮
- │  │ From │ To               │
- │  ├──────┼──────────────────┤
- │  │ 0x0  │ .comment#8 + 0x0 │
- │  ╰──────┴──────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#8 (no perms) in <plinky>
+ │  section .comment#7 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │

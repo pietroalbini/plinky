@@ -12,18 +12,20 @@ debug print: calculated layout
  │  ╭─────────────────────┬────────────────────────┬────────────────╮
  │  │ Section             │ Source object          │ Memory address │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .custom_messages#14 │ mix of foo.o and bar.o │ 0x400000       │
+ │  │ .custom_messages#16 │ mix of foo.o and bar.o │ 0x400000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#2             │ foo.o                  │ 0x401000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#9             │ bar.o                  │ 0x401031       │
+ │  ├─────────────────────┼────────────────────────┼────────────────┤
+ │  │ .comment#15         │ <plinky>               │ not allocated  │
  │  ╰─────────────────────┴────────────────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬─────────────────────╮
  │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections            │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
- │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#14 │
+ │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#16 │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
  │  │ 0x401000 │ 0x69 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2             │
  │  │          │      │        │         │                    │ .text#9             │
@@ -33,26 +35,44 @@ debug print: calculated layout
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#14 + 0x0 │
+ │  │ 0x0  │ .custom_messages#16 + 0x0 │
  │  ├──────┼───────────────────────────┤
- │  │ 0x6  │ .custom_messages#14 + 0x6 │
+ │  │ 0x6  │ .custom_messages#16 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  │
  │    deduplication facade .custom_messages#8 in bar.o
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#14 + 0xf │
+ │  │ 0x0  │ .custom_messages#16 + 0xf │
  │  ├──────┼───────────────────────────┤
- │  │ 0x8  │ .custom_messages#14 + 0x6 │
+ │  │ 0x8  │ .custom_messages#16 + 0x6 │
  │  ╰──────┴───────────────────────────╯
+ │
+ │    deduplication facade .comment#14 in <plinky>
+ │  ╭──────┬───────────────────╮
+ │  │ From │ To                │
+ │  ├──────┼───────────────────┤
+ │  │ 0x0  │ .comment#15 + 0x0 │
+ │  ╰──────┴───────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .custom_messages#14 (perms: r) in mix of foo.o and bar.o
+ │  section .comment#15 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  not allocated in the resulting memory
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
+ │  section .custom_messages#16 (perms: r) in mix of foo.o and bar.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -146,7 +166,7 @@ debug print: built elf
  │              content: Null,
  │          },
  │          section#1: ElfSection {
- │              name: section#1:string#30,
+ │              name: section#1:string#39,
  │              memory_address: 0x0,
  │              content: StringTable(
  │                  ElfStringTable {
@@ -154,8 +174,9 @@ debug print: built elf
  │                          0x0: "",
  │                          0x1: ".text",
  │                          0x7: ".text",
- │                          0xd: ".custom_messages",
- │                          0x1e: ".shstrtab",
+ │                          0xd: ".comment",
+ │                          0x16: ".custom_messages",
+ │                          0x27: ".shstrtab",
  │                      },
  │                  },
  │              ),
@@ -198,6 +219,21 @@ debug print: built elf
  │          },
  │          section#4: ElfSection {
  │              name: section#1:string#13,
+ │              memory_address: 0x0,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(),
+ │                      deduplication: ZeroTerminatedStrings,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │                             +----------------------------------------------+
+ │                          0? | 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 | Linker: plinky.
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#5: ElfSection {
+ │              name: section#1:string#22,
  │              memory_address: 0x400000,
  │              content: Program(
  │                  ElfProgramSection {
@@ -219,7 +255,7 @@ debug print: built elf
  │              perms: ElfPermissions(R),
  │              content: [
  │                  Section(
- │                      section#4,
+ │                      section#5,
  │                  ),
  │              ],
  │              align: 0x1000,

@@ -19,6 +19,15 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
+ │  section .comment#13 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
  │  section .rodata.name#4 (perms: r) in foo.o
  │   │
  │   │  ╭──────────────────────┬─────────╮
@@ -121,15 +130,16 @@ debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#13 (no perms) in foo.o
+ │  section .comment#14 (no perms) in mix of foo.o and <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
  │   │  not allocated in the resulting memory
  │   │
- │   │  ╭──────────────────────────────────────────────┬─────────────────╮
- │   │  │ 53 61 6d 70 6c 65 20 63 6f 6d 6d 65 6e 74 00 │ Sample comment. │
- │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 53 61 6d 70 6c 65 20 63 6f 6d 6d 65 6e 74 00 4c │ Sample comment.L │
+ │   │  │ 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00       │ inker: plinky.   │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │  section .rodata.name#4 (perms: r) in foo.o

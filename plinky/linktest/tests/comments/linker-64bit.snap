@@ -17,6 +17,15 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────┴─────────────╯
  │   ┴
  │
+ │  section .comment#6 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
  │  section .text#2 (perms: rx) in test.o
  │   │
  │   │  ╭────┬───╮
@@ -47,6 +56,8 @@ debug print: calculated layout
  │  │ .text#2    │ test.o        │ 0x400000       │
  │  ├────────────┼───────────────┼────────────────┤
  │  │ .comment#1 │ test.o        │ not allocated  │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .comment#7 │ <plinky>      │ not allocated  │
  │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
@@ -55,6 +66,13 @@ debug print: calculated layout
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
  │  │ 0x400000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2  │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
+ │
+ │    deduplication facade .comment#6 in <plinky>
+ │  ╭──────┬──────────────────╮
+ │  │ From │ To               │
+ │  ├──────┼──────────────────┤
+ │  │ 0x0  │ .comment#7 + 0x0 │
+ │  ╰──────┴──────────────────╯
  ┴
 
 debug print: built elf
@@ -77,7 +95,7 @@ debug print: built elf
  │              content: Null,
  │          },
  │          section#1: ElfSection {
- │              name: section#1:string#16,
+ │              name: section#1:string#25,
  │              memory_address: 0x0,
  │              content: StringTable(
  │                  ElfStringTable {
@@ -85,7 +103,8 @@ debug print: built elf
  │                          0x0: "",
  │                          0x1: ".comment",
  │                          0xa: ".text",
- │                          0x10: ".shstrtab",
+ │                          0x10: ".comment",
+ │                          0x19: ".shstrtab",
  │                      },
  │                  },
  │              ),
@@ -116,6 +135,21 @@ debug print: built elf
  │                               ?0   (len: 0x1)
  │                             +----+
  │                          0? | 90 | .
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#4: ElfSection {
+ │              name: section#1:string#16,
+ │              memory_address: 0x0,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(),
+ │                      deduplication: ZeroTerminatedStrings,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │                             +----------------------------------------------+
+ │                          0? | 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 | Linker: plinky.
  │                      },
  │                  },
  │              ),

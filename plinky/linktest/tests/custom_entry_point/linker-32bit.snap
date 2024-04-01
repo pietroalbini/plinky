@@ -26,7 +26,7 @@ debug print: built elf
  │              content: Null,
  │          },
  │          section#1: ElfSection {
- │              name: section#1:string#13,
+ │              name: section#1:string#22,
  │              memory_address: 0x0,
  │              content: StringTable(
  │                  ElfStringTable {
@@ -34,7 +34,8 @@ debug print: built elf
  │                          0x0: "",
  │                          0x1: ".data",
  │                          0x7: ".text",
- │                          0xd: ".shstrtab",
+ │                          0xd: ".comment",
+ │                          0x16: ".shstrtab",
  │                      },
  │                  },
  │              ),
@@ -66,6 +67,21 @@ debug print: built elf
  │                             +-------------------------------------------------+
  │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba | .............@..
  │                          1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#4: ElfSection {
+ │              name: section#1:string#13,
+ │              memory_address: 0x0,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(),
+ │                      deduplication: ZeroTerminatedStrings,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │                             +----------------------------------------------+
+ │                          0? | 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 | Linker: plinky.
  │                      },
  │                  },
  │              ),

@@ -19,6 +19,7 @@ pub(crate) fn link_driver(
     let mut ids = SerialIds::new();
 
     let mut object = passes::load_inputs::run(options, &mut ids)?;
+    passes::inject_version::run(&mut ids, &mut object);
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {

@@ -10,6 +10,15 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
+ │  section .comment#7 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
  │  section .data#1 (perms: rw) in hello.o
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
@@ -53,13 +62,15 @@ debug print: loaded object
 debug print: calculated layout
  │
  │    Sections:
- │  ╭─────────┬───────────────┬────────────────╮
- │  │ Section │ Source object │ Memory address │
- │  ├─────────┼───────────────┼────────────────┤
- │  │ .text#2 │ hello.o       │ 0x400000       │
- │  ├─────────┼───────────────┼────────────────┤
- │  │ .data#1 │ hello.o       │ 0x401000       │
- │  ╰─────────┴───────────────┴────────────────╯
+ │  ╭────────────┬───────────────┬────────────────╮
+ │  │ Section    │ Source object │ Memory address │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .text#2    │ hello.o       │ 0x400000       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .data#1    │ hello.o       │ 0x401000       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .comment#8 │ <plinky>      │ not allocated  │
+ │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
@@ -69,11 +80,29 @@ debug print: calculated layout
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
  │  │ 0x401000 │ 0xd  │ 0x1000 │ program │ ElfPermissions(RW) │ .data#1  │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
+ │
+ │    deduplication facade .comment#7 in <plinky>
+ │  ╭──────┬──────────────────╮
+ │  │ From │ To               │
+ │  ├──────┼──────────────────┤
+ │  │ 0x0  │ .comment#8 + 0x0 │
+ │  ╰──────┴──────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
+ │
+ │  section .comment#8 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  not allocated in the resulting memory
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
  │
  │  section .data#1 (perms: rw) in hello.o
  │   │
@@ -132,7 +161,7 @@ debug print: built elf
  │              content: Null,
  │          },
  │          section#1: ElfSection {
- │              name: section#1:string#13,
+ │              name: section#1:string#22,
  │              memory_address: 0x0,
  │              content: StringTable(
  │                  ElfStringTable {
@@ -140,7 +169,8 @@ debug print: built elf
  │                          0x0: "",
  │                          0x1: ".data",
  │                          0x7: ".text",
- │                          0xd: ".shstrtab",
+ │                          0xd: ".comment",
+ │                          0x16: ".shstrtab",
  │                      },
  │                  },
  │              ),
@@ -172,6 +202,21 @@ debug print: built elf
  │                             +-------------------------------------------------+
  │                          0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba | .............@..
  │                          1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
+ │                      },
+ │                  },
+ │              ),
+ │          },
+ │          section#4: ElfSection {
+ │              name: section#1:string#13,
+ │              memory_address: 0x0,
+ │              content: Program(
+ │                  ElfProgramSection {
+ │                      perms: ElfPermissions(),
+ │                      deduplication: ZeroTerminatedStrings,
+ │                      raw: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
+ │                             +----------------------------------------------+
+ │                          0? | 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 | Linker: plinky.
  │                      },
  │                  },
  │              ),

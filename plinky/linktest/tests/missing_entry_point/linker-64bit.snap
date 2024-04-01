@@ -10,6 +10,15 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
+ │  section .comment#5 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
  │  section .text#1 (perms: rx) in hello.o
  │   │
  │   │  ╭────┬───╮

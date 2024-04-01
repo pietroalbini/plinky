@@ -1,0 +1,6 @@
+cmd = ["foo.o", "--gc-sections"]
+kind = "link-pass"
+debug-print = ["loaded-object", "gc", "relocated-object"]
+
+[[asm]]
+source = "foo.S"

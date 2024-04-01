@@ -38,9 +38,12 @@ impl Sections {
         self.inner.insert(section.id, section);
     }
 
-    pub(crate) fn remove(&mut self, id: SectionId) {
+    pub(crate) fn remove(&mut self, id: SectionId) -> Option<Section> {
         if let Some(section) = self.inner.remove(&id) {
             self.names_of_removed_sections.insert(id, section.name);
+            Some(section)
+        } else {
+            None
         }
     }
 

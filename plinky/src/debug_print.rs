@@ -1,6 +1,7 @@
 use crate::cli::DebugPrint;
 use crate::linker::LinkerCallbacks;
 use crate::passes::deduplicate::Deduplication;
+use crate::passes::gc_sections::RemovedSection;
 use crate::passes::layout::{Layout, SectionLayout, SegmentType};
 use crate::repr::object::{DataSection, Object, Section, SectionContent, UninitializedSection};
 use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
@@ -18,6 +19,23 @@ impl LinkerCallbacks for DebugCallbacks {
     fn on_inputs_loaded(&self, object: &Object) {
         if self.print.contains(&DebugPrint::LoadedObject) {
             render_object("loaded object", object, None);
+        }
+    }
+
+    fn on_sections_removed_by_gc(&self, object: &Object, removed: &[RemovedSection]) {
+        if self.print.contains(&DebugPrint::Gc) {
+            let mut removed_table = Table::new();
+            removed_table.set_title("Removed sections:");
+            removed_table.add_row(["Section name", "Source"]);
+            for section in removed {
+                removed_table
+                    .add_row([section_name(object, section.id), section.source.to_string()]);
+            }
+
+            render(
+                Diagnostic::new(DiagnosticKind::DebugPrint, "garbage collector outcome")
+                    .add(removed_table),
+            );
         }
     }
 

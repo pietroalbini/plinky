@@ -7,6 +7,7 @@ pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<PathBuf>,
     pub(crate) output: PathBuf,
     pub(crate) entry: String,
+    pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
 }
@@ -14,6 +15,7 @@ pub(crate) struct CliOptions {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub(crate) enum DebugPrint {
     LoadedObject,
+    Gc,
     RelocatedObject,
     Layout,
     FinalElf,
@@ -29,6 +31,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut output = None;
     let mut entry = None;
     let mut executable_stack = None;
+    let mut gc_sections = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -65,11 +68,16 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                     "relocated-object" => DebugPrint::RelocatedObject,
                     "layout" => DebugPrint::Layout,
                     "final-elf" => DebugPrint::FinalElf,
+                    "gc" => DebugPrint::Gc,
                     other => return Err(CliError::UnsupportedDebugPrint(other.into())),
                 });
                 if !newly_inserted {
                     return Err(CliError::DuplicateDebugPrint(value.into()));
                 }
+            }
+
+            CliToken::LongFlag("gc-sections") => {
+                reject_duplicate(&token, &mut gc_sections, || Ok(true))?
             }
 
             // If the flag value was not consumed in the previous iteration when the flag itself
@@ -89,6 +97,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         inputs,
         output: output.unwrap_or("a.out").into(),
         entry: entry.unwrap_or("_start").into(),
+        gc_sections: gc_sections.unwrap_or(false),
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
     })
@@ -434,6 +443,22 @@ mod tests {
     }
 
     #[test]
+    fn test_gc_sections() {
+        assert_eq!(
+            Ok(CliOptions { inputs: vec!["foo".into()], gc_sections: true, ..default_options() }),
+            parse(["foo", "--gc-sections"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_duplicate_gc_sections() {
+        assert_eq!(
+            Err(CliError::DuplicateFlag("--gc-sections".into())),
+            parse(["foo", "--gc-sections", "--gc-sections"].into_iter())
+        );
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -446,6 +471,7 @@ mod tests {
             inputs: Vec::new(),
             output: "a.out".into(),
             entry: "_start".into(),
+            gc_sections: false,
             debug_print: BTreeSet::new(),
             executable_stack: false,
         }

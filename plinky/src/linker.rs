@@ -2,6 +2,7 @@ use crate::cli::CliOptions;
 use crate::passes;
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::deduplicate::DeduplicationError;
+use crate::passes::gc_sections::RemovedSection;
 use crate::passes::layout::Layout;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::relocate::RelocationError;
@@ -20,6 +21,11 @@ pub(crate) fn link_driver(
     let mut object = passes::load_inputs::run(options, &mut ids)?;
     callbacks.on_inputs_loaded(&object);
 
+    if options.gc_sections {
+        let removed = passes::gc_sections::run(&mut object);
+        callbacks.on_sections_removed_by_gc(&object, &removed);
+    }
+
     let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
     let layout = passes::layout::run(&object, deduplications);
@@ -37,6 +43,8 @@ pub(crate) fn link_driver(
 
 pub(crate) trait LinkerCallbacks {
     fn on_inputs_loaded(&self, _object: &Object) {}
+
+    fn on_sections_removed_by_gc(&self, _object: &Object, _removed: &[RemovedSection]) {}
 
     fn on_layout_calculated(&self, _object: &Object, _layout: &Layout) {}
 

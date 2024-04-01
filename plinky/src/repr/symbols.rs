@@ -165,6 +165,10 @@ impl Symbols {
             SymbolOrRedirect::Redirect(_) => None,
         })
     }
+
+    pub(crate) fn iters_with_redirects(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
+        self.symbols.keys().map(|&id| (id, self.get(id)))
+    }
 }
 
 #[derive(Debug)]

@@ -1,5 +1,6 @@
 use crate::interner::intern;
-use crate::repr::object::{DataSection, Object, Section, SectionContent, UninitializedSection};
+use crate::repr::object::Object;
+use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
 use crate::repr::strings::MissingStringError;
 use crate::repr::symbols::LoadSymbolsError;
 use plinky_diagnostics::ObjectSpan;

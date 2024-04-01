@@ -1,4 +1,5 @@
-use crate::repr::object::{Object, SectionContent};
+use crate::repr::object::Object;
+use crate::repr::sections::SectionContent;
 use crate::repr::symbols::SymbolValue;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SymbolId};

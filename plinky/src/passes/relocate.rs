@@ -1,5 +1,6 @@
 use crate::passes::layout::{AddressResolutionError, Layout};
-use crate::repr::object::{DataSection, Object, SectionContent};
+use crate::repr::object::Object;
+use crate::repr::sections::{DataSection, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, Symbols};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfRelocation, ElfRelocationType};

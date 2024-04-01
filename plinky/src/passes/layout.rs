@@ -1,5 +1,6 @@
 use crate::passes::deduplicate::Deduplication;
-use crate::repr::object::{Object, SectionContent};
+use crate::repr::object::Object;
+use crate::repr::sections::SectionContent;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};

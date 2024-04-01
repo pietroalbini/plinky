@@ -1,5 +1,6 @@
 use crate::interner::intern;
-use crate::repr::object::{DataSection, Object, Section, SectionContent};
+use crate::repr::object::Object;
+use crate::repr::sections::{DataSection, Section, SectionContent};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::{ElfDeduplication, ElfPermissions};

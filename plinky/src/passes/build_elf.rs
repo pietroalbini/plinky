@@ -1,7 +1,8 @@
 use super::layout::SectionLayout;
 use crate::interner::Interned;
 use crate::passes::layout::Layout;
-use crate::repr::object::{Object, SectionContent};
+use crate::repr::object::Object;
+use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
 use plinky_elf::{

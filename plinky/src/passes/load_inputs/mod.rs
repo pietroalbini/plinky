@@ -1,7 +1,8 @@
 use crate::cli::CliOptions;
 use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
-use crate::repr::object::{Object, Sections};
+use crate::repr::object::Object;
+use crate::repr::sections::Sections;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plinky_diagnostics::ObjectSpan;

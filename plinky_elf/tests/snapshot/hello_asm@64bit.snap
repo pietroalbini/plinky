@@ -92,8 +92,8 @@ ElfObject {
                             value: 0x0,
                             size: 0x0,
                         },
-                        "#01 tests/snapshot/hello_asm.S": ElfSymbol {
-                            name: "tests/snapshot/hello_asm.S",
+                        "#01 tests/snapshot/hello_asm.asm": ElfSymbol {
+                            name: "tests/snapshot/hello_asm.asm",
                             binding: Local,
                             type_: File,
                             definition: Absolute,
@@ -197,13 +197,13 @@ ElfObject {
                 ElfStringTable {
                     strings: {
                         0x0: "",
-                        0x1: "tests/snapshot/hello_asm.S",
-                        0x1c: "msg_hello",
-                        0x26: "len_hello",
-                        0x30: "msg_goodbye",
-                        0x3c: "len_goodbye",
-                        0x48: "uninit",
-                        0x4f: "_start",
+                        0x1: "tests/snapshot/hello_asm.asm",
+                        0x1e: "msg_hello",
+                        0x28: "len_hello",
+                        0x32: "msg_goodbye",
+                        0x3e: "len_goodbye",
+                        0x4a: "uninit",
+                        0x51: "_start",
                     },
                 },
             ),

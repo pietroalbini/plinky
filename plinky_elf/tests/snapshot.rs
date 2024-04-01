@@ -28,7 +28,7 @@ macro_rules! test {
 
 test!(
     hello_asm,
-    "tests/snapshot/hello_asm.S",
+    "tests/snapshot/hello_asm.asm",
     x86,
     x86_64,
     x86__linked,
@@ -43,7 +43,7 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
     let meta = Metadata::from_name(name);
 
     let mut object_file = match source.rsplit_once('.').map(|(_name, ext)| ext) {
-        Some("S") => compile_asm(source, meta.variant)?,
+        Some("asm") => compile_asm(source, meta.variant)?,
         Some("c") => compile_c(source, meta.variant)?,
         Some(other) => panic!("unsupported extension: {other}"),
         None => panic!("missing extension for {source}"),

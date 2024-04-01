@@ -6,4 +6,4 @@ name = "archive.a"
 symbol-table = false
 
 [[ar.asm]]
-source = "foo.S"
+source = "foo.asm"

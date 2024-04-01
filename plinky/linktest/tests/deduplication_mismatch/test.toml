@@ -2,7 +2,7 @@ cmd = ["foo.o", "bar.o"]
 kind = "link-pass"
 
 [[asm]]
-source = "foo.S"
+source = "foo.asm"
 
 [[asm]]
-source = "bar.S"
+source = "bar.asm"

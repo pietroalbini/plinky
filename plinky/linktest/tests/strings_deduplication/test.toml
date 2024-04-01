@@ -3,7 +3,7 @@ kind = "run-pass"
 debug-print = ["relocated-object", "layout", "final-elf"]
 
 [[asm]]
-source = "foo.S"
+source = "foo.asm"
 
 [[asm]]
-source = "bar.S"
+source = "bar.asm"

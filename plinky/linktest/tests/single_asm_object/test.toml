@@ -4,4 +4,4 @@ archs = ["x86", "x86_64"]
 debug-print = ["loaded-object", "relocated-object", "layout", "final-elf"]
 
 [[asm]]
-source = "hello.S"
+source = "hello.asm"

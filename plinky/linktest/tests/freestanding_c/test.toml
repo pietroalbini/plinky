@@ -7,9 +7,9 @@ source = "hello.c"
 libc = "freestanding"
 
 [[arch.x86.asm]]
-source = "syscalls.32bit.S"
+source = "syscalls.32bit.asm"
 output = "syscalls.o"
 
 [[arch.x86_64.asm]]
-source = "syscalls.64bit.S"
+source = "syscalls.64bit.asm"
 output = "syscalls.o"

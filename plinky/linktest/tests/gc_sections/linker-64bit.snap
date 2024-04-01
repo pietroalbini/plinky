@@ -114,14 +114,23 @@ debug print: garbage collector outcome
  │  │ .text.bar#3       │ foo.o  │
  │  ├───────────────────┼────────┤
  │  │ .rodata.surname#5 │ foo.o  │
- │  ├───────────────────┼────────┤
- │  │ .comment#6        │ foo.o  │
  │  ╰───────────────────┴────────╯
  ┴
 
 debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
+ │
+ │  section .comment#13 (no perms) in foo.o
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  not allocated in the resulting memory
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 53 61 6d 70 6c 65 20 63 6f 6d 6d 65 6e 74 00 │ Sample comment. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
  │
  │  section .rodata.name#4 (perms: r) in foo.o
  │   │

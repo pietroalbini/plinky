@@ -135,6 +135,7 @@ dependencies = [
  "plinky_diagnostics",
  "plinky_elf",
  "plinky_macros",
+ "plinky_utils",
  "serde",
  "tempfile",
  "toml",

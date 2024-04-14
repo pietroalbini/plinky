@@ -1,6 +1,6 @@
 cmd = ["test.o"]
 kind = "link-pass"
-debug-print = ["loaded-object", "layout", "final-elf"]
+debug-print = ["loaded-object=.comment", "layout", "final-elf"]
 
 [[asm]]
 source = "test.asm"

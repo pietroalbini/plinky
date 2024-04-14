@@ -1,3 +1,4 @@
+use crate::debug_print::filters::{ObjectsFilter, ObjectsFilterParseError};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -12,11 +13,11 @@ pub(crate) struct CliOptions {
     pub(crate) executable_stack: bool,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub(crate) enum DebugPrint {
-    LoadedObject,
+    LoadedObject(ObjectsFilter),
     Gc,
-    RelocatedObject,
+    RelocatedObject(ObjectsFilter),
     Layout,
     FinalElf,
 }
@@ -62,17 +63,27 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             },
 
             CliToken::LongFlag("debug-print") => {
-                let value = lexer.expect_flag_value(&token)?;
-                let newly_inserted = debug_print.insert(match value {
-                    "loaded-object" => DebugPrint::LoadedObject,
-                    "relocated-object" => DebugPrint::RelocatedObject,
-                    "layout" => DebugPrint::Layout,
-                    "final-elf" => DebugPrint::FinalElf,
-                    "gc" => DebugPrint::Gc,
-                    other => return Err(CliError::UnsupportedDebugPrint(other.into())),
+                let raw = lexer.expect_flag_value(&token)?;
+                let (key, value) = raw
+                    .split_once('=')
+                    .map(|(key, value)| (key, Some(value)))
+                    .unwrap_or((raw, None));
+                let newly_inserted = debug_print.insert(match (key, value) {
+                    ("loaded-object", None) => DebugPrint::LoadedObject(ObjectsFilter::all()),
+                    ("loaded-object", Some(filter)) => {
+                        DebugPrint::LoadedObject(ObjectsFilter::parse(filter)?)
+                    }
+                    ("relocated-object", None) => DebugPrint::RelocatedObject(ObjectsFilter::all()),
+                    ("relocated-object", Some(filter)) => {
+                        DebugPrint::RelocatedObject(ObjectsFilter::parse(filter)?)
+                    }
+                    ("layout", None) => DebugPrint::Layout,
+                    ("final-elf", None) => DebugPrint::FinalElf,
+                    ("gc", None) => DebugPrint::Gc,
+                    _ => return Err(CliError::UnsupportedDebugPrint(raw.into())),
                 });
                 if !newly_inserted {
-                    return Err(CliError::DuplicateDebugPrint(value.into()));
+                    return Err(CliError::DuplicateDebugPrint(raw.into()));
                 }
             }
 
@@ -121,6 +132,8 @@ fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
 pub(crate) enum CliError {
     #[display("unsupported debug print: {f0}")]
     UnsupportedDebugPrint(String),
+    #[display("failed to parse debug print filter")]
+    BadFilter(#[from] ObjectsFilterParseError),
     #[display("debug print enabled multiple times: {f0}")]
     DuplicateDebugPrint(String),
     #[display("flag {f0} is not supported")]
@@ -361,13 +374,19 @@ mod tests {
     fn test_debug_print() {
         let variants = [
             (
-                btreeset![DebugPrint::LoadedObject],
+                btreeset![DebugPrint::LoadedObject(ObjectsFilter::all())],
                 &["foo", "--debug-print", "loaded-object"] as &[&str],
             ),
-            (btreeset![DebugPrint::RelocatedObject], &["foo", "--debug-print", "relocated-object"]),
             (
-                btreeset![DebugPrint::LoadedObject, DebugPrint::RelocatedObject],
-                &["foo", "--debug-print", "loaded-object", "--debug-print=relocated-object"],
+                btreeset![DebugPrint::RelocatedObject(ObjectsFilter::all())],
+                &["foo", "--debug-print", "relocated-object"],
+            ),
+            (
+                btreeset![
+                    DebugPrint::LoadedObject(ObjectsFilter::parse("@env").unwrap()),
+                    DebugPrint::RelocatedObject(ObjectsFilter::all())
+                ],
+                &["foo", "--debug-print", "loaded-object=@env", "--debug-print=relocated-object"],
             ),
         ];
         for (expected, flags) in variants {

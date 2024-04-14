@@ -20,6 +20,7 @@ plinky_ar = { path = "../plinky_ar" }
 plinky_diagnostics = { path = "../plinky_diagnostics" }
 plinky_macros = { path = "../plinky_macros" }
 plinky_elf = { path = "../plinky_elf" }
+plinky_utils = { path = "../plinky_utils" }
 
 [dev-dependencies]
 anyhow.workspace = true

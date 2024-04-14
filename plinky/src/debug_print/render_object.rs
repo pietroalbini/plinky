@@ -1,3 +1,4 @@
+use crate::debug_print::filters::ObjectsFilter;
 use crate::debug_print::utils::{permissions, section_name, symbol_name};
 use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
@@ -8,14 +9,24 @@ use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::ElfDeduplication;
 
-pub(super) fn render_object(message: &str, object: &Object, layout: Option<&Layout>) -> Diagnostic {
+pub(super) fn render_object(
+    message: &str,
+    filter: &ObjectsFilter,
+    object: &Object,
+    layout: Option<&Layout>,
+) -> Diagnostic {
     let mut sorted_sections = object.sections.iter().collect::<Vec<_>>();
     sorted_sections.sort_by_key(|section| (section.name, section.id));
 
     Diagnostic::new(DiagnosticKind::DebugPrint, message)
-        .add(render_env(object))
-        .add_iter(sorted_sections.iter().map(|section| render_section(object, layout, section)))
-        .add(render_symbols(object, object.symbols.iter()))
+        .add_iter(filter.env.then(|| render_env(object)))
+        .add_iter(
+            sorted_sections
+                .iter()
+                .filter(|section| filter.section(&section.name.resolve()))
+                .map(|section| render_section(object, layout, section)),
+        )
+        .add_iter(filter.symbols.then(|| render_symbols(object, object.symbols.iter())))
 }
 
 fn render_env(object: &Object) -> Text {

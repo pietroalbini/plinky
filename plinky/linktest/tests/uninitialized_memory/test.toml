@@ -1,6 +1,6 @@
 cmd = ["bss.o"]
 kind = "run-pass"
-debug-print = ["loaded-object", "layout", "final-elf"]
+debug-print = ["loaded-object=.bss", "layout", "final-elf"]
 
 [[asm]]
 source = "bss.asm"

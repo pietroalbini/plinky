@@ -1,3 +1,4 @@
+pub(crate) mod filters;
 mod render_gc;
 mod render_layout;
 mod render_object;
@@ -23,8 +24,10 @@ pub(crate) struct DebugCallbacks {
 
 impl LinkerCallbacks for DebugCallbacks {
     fn on_inputs_loaded(&self, object: &Object) {
-        if self.print.contains(&DebugPrint::LoadedObject) {
-            render(render_object("loaded object", object, None));
+        for print in &self.print {
+            if let DebugPrint::LoadedObject(filters) = print {
+                render(render_object("loaded object", filters, object, None));
+            }
         }
     }
 
@@ -41,8 +44,15 @@ impl LinkerCallbacks for DebugCallbacks {
     }
 
     fn on_relocations_applied(&self, object: &Object, layout: &Layout) {
-        if self.print.contains(&DebugPrint::RelocatedObject) {
-            render(render_object("object after relocations are applied", object, Some(layout)));
+        for print in &self.print {
+            if let DebugPrint::RelocatedObject(filters) = print {
+                render(render_object(
+                    "object after relocations are applied",
+                    filters,
+                    object,
+                    Some(layout),
+                ));
+            }
         }
     }
 

@@ -12,7 +12,7 @@ use anyhow::Error;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Prerequisites {
     #[serde(default)]

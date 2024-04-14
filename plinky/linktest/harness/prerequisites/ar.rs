@@ -6,7 +6,7 @@ use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(super) struct ArArchive {
     name: String,

@@ -17,3 +17,15 @@ pub(crate) fn run(command: &mut Command) -> Result<(), Error> {
     }
     Ok(())
 }
+
+pub(crate) fn err_str<T>(result: Result<T, Error>) -> Result<T, String> {
+    result.map_err(|err| {
+        let mut repr = format!("error: {err}\n");
+        let mut source = err.source();
+        while let Some(err) = source {
+            repr.push_str(&format!("  cause: {err}\n"));
+            source = err.source();
+        }
+        repr
+    })
+}

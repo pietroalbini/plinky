@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub(super) struct AsmFile {
     source: String,
@@ -44,7 +44,7 @@ impl AsmFile {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 enum AsmFormat {
     Elf32,

@@ -1,51 +1,27 @@
 use crate::prerequisites::Prerequisites;
-use anyhow::{anyhow, bail, Context as _, Error};
-use std::collections::HashMap;
-use std::path::Path;
+use anyhow::{bail, Context as _, Error};
+use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-pub(crate) struct Test {
-    pub(crate) name: &'static str,
-    pub(crate) files: HashMap<&'static str, &'static [u8]>,
-}
-
-impl Test {
-    pub(crate) fn run(self) -> Result<(), Error> {
-        let settings: TestSettings = toml::from_str(std::str::from_utf8(
-            self.files.get("test.toml").ok_or_else(|| anyhow!("missing test.toml"))?,
-        )?)?;
-
-        for arch in &settings.archs {
-            let root = TempDir::new()?;
-            TestExecution {
-                test: &self,
-                settings: &settings,
-                root: root.path(),
-                suffix: match arch {
-                    TestArch::X86 => "-32bit",
-                    TestArch::X86_64 => "-64bit",
-                },
-                arch: *arch,
-            }
-            .run()?;
-        }
-
-        Ok(())
-    }
-}
-
-pub(crate) struct TestExecution<'a> {
-    test: &'a Test,
-    settings: &'a TestSettings,
-    root: &'a Path,
-    suffix: &'a str,
+pub(crate) struct TestExecution {
+    root: PathBuf,
+    settings: TestSettings,
     pub(crate) arch: TestArch,
+    dest_dir: TempDir,
 }
 
-impl TestExecution<'_> {
-    fn run(self) -> Result<(), Error> {
-        self.settings.prerequisites.build(&self, self.root)?;
+impl TestExecution {
+    pub(crate) fn new(
+        root: PathBuf,
+        settings: TestSettings,
+        arch: TestArch,
+    ) -> Result<Self, Error> {
+        Ok(Self { root, settings, arch, dest_dir: TempDir::new()? })
+    }
+
+    pub(crate) fn run(self) -> Result<(), Error> {
+        self.settings.prerequisites.build(&self, self.dest_dir.path())?;
         match self.settings.kind {
             TestKind::LinkFail => self.run_link_fail(),
             TestKind::LinkPass => self.run_link_pass(),
@@ -84,7 +60,10 @@ impl TestExecution<'_> {
 
     fn link_and_snapshot(&self) -> Result<bool, Error> {
         let mut command = Command::new(env!("CARGO_BIN_EXE_ld.plinky"));
-        command.current_dir(self.root).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
+        command
+            .current_dir(self.dest_dir.path())
+            .args(&self.settings.cmd)
+            .env("RUST_BACKTRACE", "1");
         for debug_print in &self.settings.debug_print {
             command.args(["--debug-print", debug_print]);
         }
@@ -97,8 +76,8 @@ impl TestExecution<'_> {
             bail!("linking was supposed to pass but failed!");
         }
 
-        let mut command = Command::new(self.root.join("a.out"));
-        command.current_dir(self.root);
+        let mut command = Command::new(self.dest_dir.path().join("a.out"));
+        command.current_dir(self.dest_dir.path());
 
         self.record_snapshot("run", "running", &mut command)
     }
@@ -109,7 +88,7 @@ impl TestExecution<'_> {
         action: &str,
         command: &mut Command,
     ) -> Result<bool, Error> {
-        let snapshot_name = format!("{snapshot_name}{}", self.suffix);
+        let snapshot_name = format!("{snapshot_name}{}", self.suffix());
 
         let (output_repr, success) = match command.output() {
             Ok(output) => {
@@ -132,12 +111,7 @@ impl TestExecution<'_> {
         let mut insta_settings = insta::Settings::clone_current();
         insta_settings.set_prepend_module_to_snapshot(false);
         insta_settings.set_omit_expression(true);
-        insta_settings.set_snapshot_path(std::fs::canonicalize(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("linktest")
-                .join("tests")
-                .join(self.test.name),
-        )?);
+        insta_settings.set_snapshot_path(self.root.canonicalize()?);
 
         insta_settings.bind(|| {
             insta::assert_snapshot!(snapshot_name, output_repr);
@@ -145,22 +119,25 @@ impl TestExecution<'_> {
         Ok(success)
     }
 
+    fn suffix(&self) -> &'static str {
+        match &self.arch {
+            TestArch::X86 => "-32bit",
+            TestArch::X86_64 => "-64bit",
+        }
+    }
+
     pub(crate) fn file(&self, name: &str) -> Result<Vec<u8>, Error> {
-        self.test
-            .files
-            .get(name)
-            .with_context(|| format!("missing file {name}"))
-            .map(|c| c.to_vec())
+        std::fs::read(self.root.join(name)).with_context(|| format!("failed to read file {name}"))
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-struct TestSettings {
+pub(crate) struct TestSettings {
     cmd: Vec<String>,
     kind: TestKind,
     #[serde(default = "default_test_archs")]
-    archs: Vec<TestArch>,
+    pub(crate) archs: Vec<TestArch>,
     #[serde(default)]
     debug_print: Vec<String>,
     #[serde(flatten)]
@@ -178,7 +155,7 @@ fn default_test_archs() -> Vec<TestArch> {
     vec![TestArch::X86_64]
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 enum TestKind {
     LinkFail,

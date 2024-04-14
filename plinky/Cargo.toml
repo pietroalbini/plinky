@@ -4,7 +4,6 @@ cargo-features = ["different-binary-name"]
 name = "plinky"
 version = "0.1.0"
 edition = "2021"
-build = "build.rs"
 
 [[bin]]
 path = "src/main.rs"
@@ -14,6 +13,7 @@ filename = "ld.plinky"
 [[test]]
 name = "linktest"
 path = "linktest/harness/main.rs"
+harness = false
 
 [dependencies]
 plinky_ar = { path = "../plinky_ar" }

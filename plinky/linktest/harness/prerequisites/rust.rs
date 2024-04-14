@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub(super) struct RustFile {
     source: String,
@@ -39,7 +39,7 @@ impl RustFile {
     }
 }
 
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Default, Clone, Copy)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 enum Panic {
     #[default]

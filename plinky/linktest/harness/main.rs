@@ -1,22 +1,18 @@
+#![feature(test)]
+
+extern crate test;
+
+mod gather;
 mod prerequisites;
 mod tests;
 mod utils;
 
-use std::collections::HashMap;
-use crate::tests::Test;
+use crate::gather::gather_tests;
+use crate::utils::err_str;
+use std::path::Path;
 
-macro_rules! linktest {
-    ($name:ident, files[$($file:expr),*]) => {
-        #[test]
-        fn $name() {
-            let mut files = HashMap::new();
-            $(files.insert($file.rsplit_once('/').unwrap().1, include_bytes!($file) as &[u8]);)*
-            Test {
-                name: stringify!($name),
-                files,
-            }.run().unwrap();
-        }
-    }
+fn main() {
+    let args = std::env::args().collect::<Vec<_>>();
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("linktest").join("tests");
+    test::test_main(&args, err_str(gather_tests(&path)).unwrap(), None)
 }
-
-include!(concat!(env!("OUT_DIR"), "/linktest_definition.rs"));

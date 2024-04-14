@@ -7,7 +7,7 @@ use crate::prerequisites::ar::ArArchive;
 use crate::prerequisites::asm::AsmFile;
 use crate::prerequisites::c::CFile;
 use crate::prerequisites::rust::RustFile;
-use crate::{TestArch, TestExecution};
+use crate::tests::{TestArch, TestExecution};
 use anyhow::Error;
 use std::collections::BTreeMap;
 use std::path::Path;

@@ -1,5 +1,5 @@
+use crate::tests::TestExecution;
 use crate::utils::run;
-use crate::TestExecution;
 use anyhow::{anyhow, Error};
 use std::path::Path;
 use std::process::Command;

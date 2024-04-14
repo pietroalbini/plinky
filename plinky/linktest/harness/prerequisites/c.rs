@@ -1,6 +1,6 @@
 use crate::tests::{TestArch, TestExecution};
 use crate::utils::run;
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
@@ -15,11 +15,7 @@ pub(super) struct CFile {
 
 impl CFile {
     pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
-        let source = execution
-            .test
-            .files
-            .get(&*self.source)
-            .ok_or_else(|| anyhow!("missing {}", self.source))?;
+        let source = execution.file(&self.source)?;
 
         let dest_name = match &self.output {
             Some(output) => output.clone(),
@@ -30,7 +26,7 @@ impl CFile {
         };
 
         let source_dir = TempDir::new()?;
-        std::fs::write(source_dir.path().join(&self.source), *source)?;
+        std::fs::write(source_dir.path().join(&self.source), &source)?;
 
         eprintln!("compiling {} into {dest_name}...", self.source);
         run(Command::new("cc")

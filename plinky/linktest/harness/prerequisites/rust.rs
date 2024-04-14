@@ -1,6 +1,6 @@
 use crate::tests::TestExecution;
 use crate::utils::run;
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
@@ -15,11 +15,7 @@ pub(super) struct RustFile {
 
 impl RustFile {
     pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
-        let source = execution
-            .test
-            .files
-            .get(&*self.source)
-            .ok_or_else(|| anyhow!("missing {}", self.source))?;
+        let source = execution.file(&self.source)?;
 
         let dest_name = format!(
             "lib{}.a",
@@ -27,7 +23,7 @@ impl RustFile {
         );
 
         let source_dir = TempDir::new()?;
-        std::fs::write(source_dir.path().join(&self.source), *source)?;
+        std::fs::write(source_dir.path().join(&self.source), source)?;
 
         run(Command::new("rustc")
             .current_dir(source_dir.path())

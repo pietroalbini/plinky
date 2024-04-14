@@ -1,5 +1,5 @@
 use crate::prerequisites::Prerequisites;
-use anyhow::{anyhow, bail, Error};
+use anyhow::{anyhow, bail, Context as _, Error};
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
@@ -36,7 +36,7 @@ impl Test {
 }
 
 pub(crate) struct TestExecution<'a> {
-    pub(crate) test: &'a Test,
+    test: &'a Test,
     settings: &'a TestSettings,
     root: &'a Path,
     suffix: &'a str,
@@ -143,6 +143,14 @@ impl TestExecution<'_> {
             insta::assert_snapshot!(snapshot_name, output_repr);
         });
         Ok(success)
+    }
+
+    pub(crate) fn file(&self, name: &str) -> Result<Vec<u8>, Error> {
+        self.test
+            .files
+            .get(name)
+            .with_context(|| format!("missing file {name}"))
+            .map(|c| c.to_vec())
     }
 }
 

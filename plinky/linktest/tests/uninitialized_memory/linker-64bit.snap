@@ -124,27 +124,27 @@ debug print: built elf
  │      ElfSegment {
  │          type_: Load,
  │          perms: ElfPermissions(RX),
- │          content: [
- │              Section(
+ │          content: Sections(
+ │              [
  │                  section#3,
- │              ),
- │          ],
+ │              ],
+ │          ),
  │          align: 4096,
  │      },
  │      ElfSegment {
  │          type_: Load,
  │          perms: ElfPermissions(RW),
- │          content: [
- │              Section(
+ │          content: Sections(
+ │              [
  │                  section#2,
- │              ),
- │          ],
+ │              ],
+ │          ),
  │          align: 4096,
  │      },
  │      ElfSegment {
  │          type_: GnuStack,
  │          perms: ElfPermissions(RW),
- │          content: [],
+ │          content: Empty,
  │          align: 1,
  │      },
  │  ]

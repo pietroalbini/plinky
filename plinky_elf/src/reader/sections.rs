@@ -6,9 +6,9 @@ use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
     ElfClass, ElfDeduplication, ElfPermissions, ElfProgramSection, ElfRelocation,
-    ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent,
-    ElfStringTable, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfUninitializedSection, ElfUnknownSection, RawBytes,
+    ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
+    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfUninitializedSection, ElfUnknownSection, RawBytes,
 };
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
@@ -153,8 +153,7 @@ fn read_section(
         return Err(LoadError::MergeFlagOnUnsupportedSection { section_idx: current_section.0 });
     }
 
-    segment_content_map
-        .insert((header.offset, header.size), ElfSegmentContent::Section(current_section));
+    segment_content_map.insert((header.offset, header.size), current_section);
 
     Ok(ElfSection {
         name: PendingStringId(section_names_table, header.name_offset),

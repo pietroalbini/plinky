@@ -216,46 +216,40 @@ ElfObject {
         ElfSegment {
             type_: Load,
             perms: ElfPermissions(R),
-            content: [
-                Unknown(
-                    ElfUnknownSegmentContent {
-                        file_offset: 0x0,
-                        virtual_address: 0x8048000,
-                        file_size: 0xb4,
-                        memory_size: 0xb4,
-                    },
-                ),
-            ],
+            content: Unknown(
+                ElfUnknownSegmentContent {
+                    file_offset: 0x0,
+                    virtual_address: 0x8048000,
+                    file_size: 0xb4,
+                    memory_size: 0xb4,
+                },
+            ),
             align: 0x1000,
         },
         ElfSegment {
             type_: Load,
             perms: ElfPermissions(RX),
-            content: [
-                Section(
+            content: Sections(
+                [
                     "#1 .text",
-                ),
-            ],
+                ],
+            ),
             align: 0x1000,
         },
         ElfSegment {
             type_: Load,
             perms: ElfPermissions(RW),
-            content: [
-                Section(
+            content: Sections(
+                [
                     "#2 .data",
-                ),
-            ],
+                ],
+            ),
             align: 0x1000,
         },
         ElfSegment {
             type_: GnuStack,
             perms: ElfPermissions(RW),
-            content: [
-                Section(
-                    "#0 ",
-                ),
-            ],
+            content: Empty,
             align: 0x10,
         },
     ],

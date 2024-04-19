@@ -92,11 +92,10 @@ impl<I: ElfIds> WriteLayout<I> {
 
         for segment in &object.segments {
             layout.align_to_page();
-            for content in &segment.content {
-                let section_id = match content {
-                    ElfSegmentContent::Section(id) => id,
-                    ElfSegmentContent::Unknown(_) => continue,
-                };
+            let ElfSegmentContent::Sections(segment_sections) = &segment.content else {
+                continue;
+            };
+            for section_id in segment_sections {
                 let Some(deferred) = deferred_program_sections.remove(&section_id) else {
                     continue;
                 };

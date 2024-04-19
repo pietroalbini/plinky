@@ -228,11 +228,11 @@ where
 
     fn write_program_headers(&mut self) -> Result<(), WriteError<I>> {
         for segment in &self.object.segments {
-            let mut content = segment.content.iter();
-
-            let (file_offset, file_size, virtual_address, memory_size) = match content.next() {
-                Some(ElfSegmentContent::Section(first_section_id)) => {
-                    let first_section = self.object.sections.get(first_section_id).unwrap();
+            let (file_offset, file_size, virtual_address, memory_size) = match &segment.content {
+                ElfSegmentContent::Sections(section_ids) => {
+                    let mut section_ids = section_ids.iter();
+                    let first_section_id = section_ids.next().unwrap();
+                    let first_section = self.object.sections.get(&first_section_id).unwrap();
 
                     let (file_offset, mut file_size, mut memory_size) = match &first_section.content
                     {
@@ -245,11 +245,7 @@ where
                     };
 
                     let mut expected_next_file_offset = file_offset + file_size;
-                    for segment_content in content {
-                        let section_id = match segment_content {
-                            ElfSegmentContent::Section(id) => id,
-                            ElfSegmentContent::Unknown(_) => unimplemented!(),
-                        };
+                    for section_id in section_ids {
                         let section = self.object.sections.get(section_id).unwrap();
                         match &section.content {
                             ElfSectionContent::Program(program) => {
@@ -272,8 +268,13 @@ where
                     }
                     (file_offset, file_size, first_section.memory_address, memory_size)
                 }
-                Some(ElfSegmentContent::Unknown(_)) => unimplemented!(),
-                None => (0, 0, 0, 0),
+                ElfSegmentContent::Unknown(unknown) => (
+                    unknown.file_offset,
+                    unknown.file_size,
+                    unknown.virtual_address,
+                    unknown.memory_size,
+                ),
+                ElfSegmentContent::Empty => (0, 0, 0, 0),
             };
 
             self.write_raw(RawProgramHeader {

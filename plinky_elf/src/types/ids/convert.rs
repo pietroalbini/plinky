@@ -147,16 +147,13 @@ where
             .map(|segment| ElfSegment {
                 type_: segment.type_,
                 perms: segment.perms,
-                content: segment
-                    .content
-                    .into_iter()
-                    .map(|content| match content {
-                        ElfSegmentContent::Unknown(unknown) => ElfSegmentContent::Unknown(unknown),
-                        ElfSegmentContent::Section(id) => {
-                            ElfSegmentContent::Section(map.section_id(&id))
-                        }
-                    })
-                    .collect(),
+                content: match segment.content {
+                    ElfSegmentContent::Empty => ElfSegmentContent::Empty,
+                    ElfSegmentContent::Unknown(unknown) => ElfSegmentContent::Unknown(unknown),
+                    ElfSegmentContent::Sections(ids) => ElfSegmentContent::Sections(
+                        ids.into_iter().map(|id| map.section_id(&id)).collect(),
+                    ),
+                },
                 align: segment.align,
             })
             .collect(),

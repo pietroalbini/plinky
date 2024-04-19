@@ -150,13 +150,13 @@ impl ElfBuilder<'_> {
                 ElfSegment {
                     type_: ElfSegmentType::Load,
                     perms: segment.perms,
-                    content: segment
-                        .sections
-                        .iter()
-                        .map(|id| {
-                            ElfSegmentContent::Section(*self.section_ids_mapping.get(id).unwrap())
-                        })
-                        .collect(),
+                    content: ElfSegmentContent::Sections(
+                        segment
+                            .sections
+                            .iter()
+                            .map(|id| *self.section_ids_mapping.get(id).unwrap())
+                            .collect(),
+                    ),
                     align: segment.align,
                 },
             ));
@@ -174,7 +174,7 @@ impl ElfBuilder<'_> {
                 write: true,
                 execute: self.object.executable_stack,
             },
-            content: Vec::new(),
+            content: ElfSegmentContent::Empty,
             align: 1,
         });
 

@@ -266,7 +266,7 @@ pub enum ElfRelocationType {
 pub struct ElfSegment<I: ElfIds> {
     pub type_: ElfSegmentType,
     pub perms: ElfPermissions,
-    pub content: Vec<ElfSegmentContent<I>>,
+    pub content: ElfSegmentContent<I>,
     pub align: u64,
 }
 
@@ -282,9 +282,10 @@ pub enum ElfSegmentType {
     Unknown(u32),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum ElfSegmentContent<I: ElfIds> {
-    Section(I::SectionId),
+    Empty,
+    Sections(Vec<I::SectionId>),
     Unknown(ElfUnknownSegmentContent),
 }
 

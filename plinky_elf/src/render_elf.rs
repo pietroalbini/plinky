@@ -1,10 +1,10 @@
 use crate::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use crate::ids::StringIdGetters;
 use crate::{
-    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
-    ElfProgramSection, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent,
-    ElfSegmentType, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfType, ElfUninitializedSection,
+    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfNote, ElfNotesTable, ElfObject,
+    ElfPermissions, ElfProgramSection, ElfRelocationsTable, ElfSection, ElfSectionContent,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition,
+    ElfSymbolTable, ElfSymbolType, ElfType, ElfUninitializedSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::WidgetWriter;
@@ -79,7 +79,7 @@ fn render_section(
         ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, id, symbols),
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
         ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(object, relocs),
-        //ElfSectionContent::Note(_) => todo!(),
+        ElfSectionContent::Note(notes) => render_section_notes(notes),
         //ElfSectionContent::Unknown(_) => todo!(),
         _ => vec![Box::new(Text::new(format!("{:#?}", section.content)))],
     };
@@ -193,6 +193,25 @@ fn render_section_relocs(
     }
 
     vec![Box::new(intro), Box::new(table)]
+}
+
+fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
+    let mut output = Vec::new();
+
+    for note in &notes.notes {
+        match note {
+            ElfNote::Unknown(unknown) => output.push(Box::new(
+                WidgetGroup::new()
+                    .name(format!(
+                        "unknown note with name {} and type {:#x}",
+                        unknown.name, unknown.type_
+                    ))
+                    .add(HexDump::new(unknown.value.0.as_slice())),
+            ) as Box<dyn Widget>),
+        }
+    }
+
+    output
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {

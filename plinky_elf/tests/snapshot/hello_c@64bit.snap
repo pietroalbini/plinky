@@ -1,289 +1,226 @@
 ---
 source: plinky_elf/tests/snapshot.rs
 ---
-ElfObject {
-    env: ElfEnvironment {
-        class: Elf64,
-        endian: Little,
-        abi: SystemV,
-        machine: X86_64,
-    },
-    type_: Relocatable,
-    entry: None,
-    sections: {
-        "#00 ": ElfSection {
-            name: "",
-            memory_address: 0x0,
-            content: Null,
-        },
-        "#01 .text": ElfSection {
-            name: ".text",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(RX),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x24)
-                           +-------------------------------------------------+
-                        0? | f3 0f 1e fa 55 48 89 e5 48 83 ec 10 89 7d fc 48 | ....UH..H....}.H
-                        1? | 89 75 f0 bf 00 00 00 00 e8 00 00 00 00 b8 00 00 | .u..............
-                        2? | 00 00 c9 c3                                     | ....
-                    },
-                },
-            ),
-        },
-        "#02 .rela.text": ElfSection {
-            name: ".rela.text",
-            memory_address: 0x0,
-            content: RelocationsTable(
-                ElfRelocationsTable {
-                    symbol_table: "#11 .symtab",
-                    applies_to_section: "#01 .text",
-                    relocations: [
-                        ElfRelocation {
-                            offset: 0x14,
-                            symbol: "#3 <empty>",
-                            relocation_type: X86_64_32,
-                            addend: Some(
-                                0x0,
-                            ),
-                        },
-                        ElfRelocation {
-                            offset: 0x19,
-                            symbol: "#5 puts",
-                            relocation_type: X86_64_PLT32,
-                            addend: Some(
-                                0xfffffffffffffffc,
-                            ),
-                        },
-                    ],
-                },
-            ),
-        },
-        "#03 .data": ElfSection {
-            name: ".data",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(RW),
-                    deduplication: Disabled,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        "#04 .bss": ElfSection {
-            name: ".bss",
-            memory_address: 0x0,
-            content: Uninitialized(
-                ElfUninitializedSection {
-                    perms: ElfPermissions(RW),
-                    len: 0x0,
-                },
-            ),
-        },
-        "#05 .rodata": ElfSection {
-            name: ".rodata",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(R),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b   (len: 0xc)
-                           +-------------------------------------+
-                        0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 | Hello world.
-                    },
-                },
-            ),
-        },
-        "#06 .comment": ElfSection {
-            name: ".comment",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(),
-                    deduplication: ZeroTerminatedStrings,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x2c)
-                           +-------------------------------------------------+
-                        0? | 00 47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 | .GCC: (Ubuntu 11
-                        1? | 2e 34 2e 30 2d 31 75 62 75 6e 74 75 31 7e 32 32 | .4.0-1ubuntu1~22
-                        2? | 2e 30 34 29 20 31 31 2e 34 2e 30 00             | .04) 11.4.0.
-                    },
-                },
-            ),
-        },
-        "#07 .note.GNU-stack": ElfSection {
-            name: ".note.GNU-stack",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(),
-                    deduplication: Disabled,
-                    raw: RawBytes {},
-                },
-            ),
-        },
-        "#08 .note.gnu.property": ElfSection {
-            name: ".note.gnu.property",
-            memory_address: 0x0,
-            content: Note(
-                ElfNotesTable {
-                    notes: [
-                        Unknown(
-                            ElfUnknownNote {
-                                name: "GNU",
-                                value: RawBytes {
-                                         ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x10)
-                                       +-------------------------------------------------+
-                                    0? | 02 00 00 c0 04 00 00 00 03 00 00 00 00 00 00 00 | ................
-                                },
-                                type_: 0x5,
-                            },
-                        ),
-                    ],
-                },
-            ),
-        },
-        "#09 .eh_frame": ElfSection {
-            name: ".eh_frame",
-            memory_address: 0x0,
-            content: Program(
-                ElfProgramSection {
-                    perms: ElfPermissions(R),
-                    deduplication: Disabled,
-                    raw: RawBytes {
-                             ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x38)
-                           +-------------------------------------------------+
-                        0? | 14 00 00 00 00 00 00 00 01 7a 52 00 01 78 10 01 | .........zR..x..
-                        1? | 1b 0c 07 08 90 01 00 00 1c 00 00 00 1c 00 00 00 | ................
-                        2? | 00 00 00 00 24 00 00 00 00 45 0e 10 86 02 43 0d | ....$....E....C.
-                        3? | 06 5b 0c 07 08 00 00 00                         | .[......
-                    },
-                },
-            ),
-        },
-        "#10 .rela.eh_frame": ElfSection {
-            name: ".rela.eh_frame",
-            memory_address: 0x0,
-            content: RelocationsTable(
-                ElfRelocationsTable {
-                    symbol_table: "#11 .symtab",
-                    applies_to_section: "#09 .eh_frame",
-                    relocations: [
-                        ElfRelocation {
-                            offset: 0x20,
-                            symbol: "#2 <empty>",
-                            relocation_type: X86_64_PC32,
-                            addend: Some(
-                                0x0,
-                            ),
-                        },
-                    ],
-                },
-            ),
-        },
-        "#11 .symtab": ElfSection {
-            name: ".symtab",
-            memory_address: 0x0,
-            content: SymbolTable(
-                ElfSymbolTable {
-                    symbols: {
-                        "#0 <empty>": ElfSymbol {
-                            name: "",
-                            binding: Local,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#1 hello_c.c": ElfSymbol {
-                            name: "hello_c.c",
-                            binding: Local,
-                            type_: File,
-                            definition: Absolute,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#2 <empty>": ElfSymbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                "#01 .text",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#3 <empty>": ElfSymbol {
-                            name: "",
-                            binding: Local,
-                            type_: Section,
-                            definition: Section(
-                                "#05 .rodata",
-                            ),
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                        "#4 main": ElfSymbol {
-                            name: "main",
-                            binding: Global,
-                            type_: Function,
-                            definition: Section(
-                                "#01 .text",
-                            ),
-                            value: 0x0,
-                            size: 0x24,
-                        },
-                        "#5 puts": ElfSymbol {
-                            name: "puts",
-                            binding: Global,
-                            type_: NoType,
-                            definition: Undefined,
-                            value: 0x0,
-                            size: 0x0,
-                        },
-                    },
-                },
-            ),
-        },
-        "#12 .strtab": ElfSection {
-            name: ".strtab",
-            memory_address: 0x0,
-            content: StringTable(
-                ElfStringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: "hello_c.c",
-                        0xb: "main",
-                        0x10: "puts",
-                    },
-                },
-            ),
-        },
-        "#13 .shstrtab": ElfSection {
-            name: ".shstrtab",
-            memory_address: 0x0,
-            content: StringTable(
-                ElfStringTable {
-                    strings: {
-                        0x0: "",
-                        0x1: ".symtab",
-                        0x9: ".strtab",
-                        0x11: ".shstrtab",
-                        0x1b: ".rela.text",
-                        0x26: ".data",
-                        0x2c: ".bss",
-                        0x31: ".rodata",
-                        0x39: ".comment",
-                        0x42: ".note.GNU-stack",
-                        0x52: ".note.gnu.property",
-                        0x65: ".rela.eh_frame",
-                    },
-                },
-            ),
-        },
-    },
-    segments: [],
-}
+  Metadata:
+╭────────────┬─────────────╮
+│ Class      │ ELF 64bit   │
+├────────────┼─────────────┤
+│ Endian     │ Little      │
+├────────────┼─────────────┤
+│ ABI        │ System V    │
+├────────────┼─────────────┤
+│ Machine    │ x86-64      │
+├────────────┼─────────────┤
+│ Type       │ Relocatable │
+├────────────┼─────────────┤
+│ Entrypoint │ -           │
+╰────────────┴─────────────╯
+
+section #0 (address: 0x0)
+ │
+ │  empty section
+ ┴
+
+section .text#1 (address: 0x0)
+ │
+ │  program data | permissions: R X
+ │
+ │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │  │ f3 0f 1e fa 55 48 89 e5 48 83 ec 10 89 7d fc 48 │ ....UH..H....}.H │
+ │  │ 89 75 f0 bf 00 00 00 00 e8 00 00 00 00 b8 00 00 │ .u.............. │
+ │  │ 00 00 c9 c3                                     │ ....             │
+ │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ ┴
+
+section .rela.text#2 (address: 0x0)
+ │
+ │  RelocationsTable(
+ │      ElfRelocationsTable {
+ │          symbol_table: section#11,
+ │          applies_to_section: section#1,
+ │          relocations: [
+ │              ElfRelocation {
+ │                  offset: 20,
+ │                  symbol: symbol#3,
+ │                  relocation_type: X86_64_32,
+ │                  addend: Some(
+ │                      0,
+ │                  ),
+ │              },
+ │              ElfRelocation {
+ │                  offset: 25,
+ │                  symbol: symbol#5,
+ │                  relocation_type: X86_64_PLT32,
+ │                  addend: Some(
+ │                      -4,
+ │                  ),
+ │              },
+ │          ],
+ │      },
+ │  )
+ ┴
+
+section .data#3 (address: 0x0)
+ │
+ │  program data | permissions: RW
+ │
+ │  ╭──┬──╮
+ │  │  │  │
+ │  ╰──┴──╯
+ ┴
+
+section .bss#4 (address: 0x0)
+ │
+ │  uninitialized | len: 0x0 | permissions: RW 
+ ┴
+
+section .rodata#5 (address: 0x0)
+ │
+ │  program data | permissions: R
+ │
+ │  ╭─────────────────────────────────────┬──────────────╮
+ │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 │ Hello world. │
+ │  ╰─────────────────────────────────────┴──────────────╯
+ ┴
+
+section .comment#6 (address: 0x0)
+ │
+ │  program data | permissions: -   | deduplicating zero-terminated strings
+ │
+ │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │  │ 00 47 43 43 3a 20 28 55 62 75 6e 74 75 20 31 31 │ .GCC: (Ubuntu 11 │
+ │  │ 2e 34 2e 30 2d 31 75 62 75 6e 74 75 31 7e 32 32 │ .4.0-1ubuntu1~22 │
+ │  │ 2e 30 34 29 20 31 31 2e 34 2e 30 00             │ .04) 11.4.0.     │
+ │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ ┴
+
+section .note.GNU-stack#7 (address: 0x0)
+ │
+ │  program data | permissions: -
+ │
+ │  ╭──┬──╮
+ │  │  │  │
+ │  ╰──┴──╯
+ ┴
+
+section .note.gnu.property#8 (address: 0x0)
+ │
+ │  Note(
+ │      ElfNotesTable {
+ │          notes: [
+ │              Unknown(
+ │                  ElfUnknownNote {
+ │                      name: "GNU",
+ │                      value: RawBytes {
+ │                               ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x10)
+ │                             +-------------------------------------------------+
+ │                          0? | 02 00 00 c0 04 00 00 00 03 00 00 00 00 00 00 00 | ................
+ │                      },
+ │                      type_: 5,
+ │                  },
+ │              ),
+ │          ],
+ │      },
+ │  )
+ ┴
+
+section .eh_frame#9 (address: 0x0)
+ │
+ │  program data | permissions: R
+ │
+ │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │  │ 14 00 00 00 00 00 00 00 01 7a 52 00 01 78 10 01 │ .........zR..x.. │
+ │  │ 1b 0c 07 08 90 01 00 00 1c 00 00 00 1c 00 00 00 │ ................ │
+ │  │ 00 00 00 00 24 00 00 00 00 45 0e 10 86 02 43 0d │ ....$....E....C. │
+ │  │ 06 5b 0c 07 08 00 00 00                         │ .[......         │
+ │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ ┴
+
+section .rela.eh_frame#10 (address: 0x0)
+ │
+ │  RelocationsTable(
+ │      ElfRelocationsTable {
+ │          symbol_table: section#11,
+ │          applies_to_section: section#9,
+ │          relocations: [
+ │              ElfRelocation {
+ │                  offset: 32,
+ │                  symbol: symbol#2,
+ │                  relocation_type: X86_64_PC32,
+ │                  addend: Some(
+ │                      0,
+ │                  ),
+ │              },
+ │          ],
+ │      },
+ │  )
+ ┴
+
+section .symtab#11 (address: 0x0)
+ │
+ │    Symbol table:
+ │  ╭─────────────┬─────────┬──────────┬────────────┬───────┬──────╮
+ │  │ Name        │ Binding │ Type     │ Definition │ Value │ Size │
+ │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ #0          │ Local   │ -        │ Undefined  │ 0x0   │ 0x0  │
+ │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ hello_c.c#1 │ Local   │ File     │ Absolute   │ 0x0   │ 0x0  │
+ │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ #2          │ Local   │ Section  │ .text#1    │ 0x0   │ 0x0  │
+ │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ #3          │ Local   │ Section  │ .rodata#5  │ 0x0   │ 0x0  │
+ │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ main#4      │ Global  │ Function │ .text#1    │ 0x0   │ 0x24 │
+ │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ puts#5      │ Global  │ -        │ Undefined  │ 0x0   │ 0x0  │
+ │  ╰─────────────┴─────────┴──────────┴────────────┴───────┴──────╯
+ ┴
+
+section .strtab#12 (address: 0x0)
+ │
+ │    Strings table:
+ │  ╭──────┬───────────╮
+ │  │ 0x0  │           │
+ │  ├──────┼───────────┤
+ │  │ 0x1  │ hello_c.c │
+ │  ├──────┼───────────┤
+ │  │ 0xb  │ main      │
+ │  ├──────┼───────────┤
+ │  │ 0x10 │ puts      │
+ │  ╰──────┴───────────╯
+ ┴
+
+section .shstrtab#13 (address: 0x0)
+ │
+ │    Strings table:
+ │  ╭──────┬────────────────────╮
+ │  │ 0x0  │                    │
+ │  ├──────┼────────────────────┤
+ │  │ 0x1  │ .symtab            │
+ │  ├──────┼────────────────────┤
+ │  │ 0x9  │ .strtab            │
+ │  ├──────┼────────────────────┤
+ │  │ 0x11 │ .shstrtab          │
+ │  ├──────┼────────────────────┤
+ │  │ 0x1b │ .rela.text         │
+ │  ├──────┼────────────────────┤
+ │  │ 0x26 │ .data              │
+ │  ├──────┼────────────────────┤
+ │  │ 0x2c │ .bss               │
+ │  ├──────┼────────────────────┤
+ │  │ 0x31 │ .rodata            │
+ │  ├──────┼────────────────────┤
+ │  │ 0x39 │ .comment           │
+ │  ├──────┼────────────────────┤
+ │  │ 0x42 │ .note.GNU-stack    │
+ │  ├──────┼────────────────────┤
+ │  │ 0x52 │ .note.gnu.property │
+ │  ├──────┼────────────────────┤
+ │  │ 0x65 │ .rela.eh_frame     │
+ │  ╰──────┴────────────────────╯
+ ┴
+
+  Segments:
+╭──────┬───────┬──────────┬─────────╮
+│ Type │ Perms │ Aligment │ Content │
+╰──────┴───────┴──────────┴─────────╯

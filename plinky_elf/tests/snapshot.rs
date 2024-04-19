@@ -1,8 +1,8 @@
 //! Check whether ELF files are parsed correctly.
 
 use anyhow::{Context, Error};
+use plinky_diagnostics::widgets::Widget;
 use plinky_elf::ids::serial::SerialIds;
-use plinky_elf::ids::StringIds;
 use plinky_elf::ElfObject;
 use std::fs::File;
 use std::io::BufReader;
@@ -74,9 +74,8 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
         }
     }
 
-    let parsed = plinky_elf::ids::convert(&mut StringIds::new(), parsed);
-
-    insta::assert_snapshot!(name, format!("{parsed:#x?}"));
+    let rendered = plinky_elf::render_elf(&parsed).render_to_string();
+    insta::assert_snapshot!(name, rendered);
     Ok(())
 }
 

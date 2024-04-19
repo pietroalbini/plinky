@@ -90,34 +90,16 @@ debug print: built elf
  │          ),
  │      },
  │  }
- │  [
- │      ElfSegment {
- │          type_: Load,
- │          perms: ElfPermissions(RX),
- │          content: Sections(
- │              [
- │                  section#3,
- │              ],
- │          ),
- │          align: 4096,
- │      },
- │      ElfSegment {
- │          type_: Load,
- │          perms: ElfPermissions(RW),
- │          content: Sections(
- │              [
- │                  section#2,
- │              ],
- │          ),
- │          align: 4096,
- │      },
- │      ElfSegment {
- │          type_: GnuStack,
- │          perms: ElfPermissions(RW),
- │          content: Empty,
- │          align: 1,
- │      },
- │  ]
+ │    Segments:
+ │  ╭───────────┬───────┬──────────┬─────────╮
+ │  │ Type      │ Perms │ Aligment │ Content │
+ │  ├───────────┼───────┼──────────┼─────────┤
+ │  │ Load      │ R X   │ 0x1000   │ .text#3 │
+ │  ├───────────┼───────┼──────────┼─────────┤
+ │  │ Load      │ RW    │ 0x1000   │ .data#2 │
+ │  ├───────────┼───────┼──────────┼─────────┤
+ │  │ GNU stack │ RW    │ 0x1      │ -       │
+ │  ╰───────────┴───────┴──────────┴─────────╯
  ┴
 
 

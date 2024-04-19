@@ -1,5 +1,9 @@
-use crate::ids::serial::SerialIds;
-use crate::{ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfType};
+use crate::ids::serial::{SectionId, SerialIds};
+use crate::ids::StringIdGetters;
+use crate::{
+    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfSectionContent,
+    ElfSegmentContent, ElfSegmentType, ElfType,
+};
 use plinky_diagnostics::widgets::{Table, Text, Widget};
 
 pub fn render_elf(object: &ElfObject<SerialIds>) -> impl Widget {
@@ -64,5 +68,60 @@ fn render_sections(object: &ElfObject<SerialIds>) -> impl Widget {
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {
-    Text::new(format!("{:#?}", object.segments))
+    let mut table = Table::new();
+    table.set_title("Segments:");
+    table.add_row(["Type", "Perms", "Aligment", "Content"]);
+    for segment in &object.segments {
+        table.add_row([
+            match segment.type_ {
+                ElfSegmentType::Null => "Null".into(),
+                ElfSegmentType::Load => "Load".into(),
+                ElfSegmentType::Dynamic => "Dynamic".into(),
+                ElfSegmentType::Interpreter => "Interpreter".into(),
+                ElfSegmentType::Note => "Note".into(),
+                ElfSegmentType::ProgramHeaderTable => "Program header table".into(),
+                ElfSegmentType::GnuStack => "GNU stack".into(),
+                ElfSegmentType::Unknown(id) => format!("<unknown: {id:#x}>"),
+            },
+            render_perms(&segment.perms),
+            format!("{:#x}", segment.align),
+            match &segment.content {
+                ElfSegmentContent::Empty => "-".into(),
+                ElfSegmentContent::Sections(sections) => sections
+                    .iter()
+                    .map(|&id| section_name(object, id))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                ElfSegmentContent::Unknown(unknown) => format!(
+                    "file: {:#x} (len: {:#x}), memory: {:#x} (len: {:#x})",
+                    unknown.file_offset,
+                    unknown.file_size,
+                    unknown.virtual_address,
+                    unknown.memory_size
+                ),
+            },
+        ]);
+    }
+    table
+}
+
+fn render_perms(perms: &ElfPermissions) -> String {
+    let mut output = String::new();
+    let mut push = |cond: bool, chr: char| output.push(cond.then(|| chr).unwrap_or(' '));
+
+    push(perms.read, 'R');
+    push(perms.write, 'W');
+    push(perms.execute, 'X');
+
+    output
+}
+
+fn section_name(object: &ElfObject<SerialIds>, id: SectionId) -> String {
+    let section = object.sections.get(&id).expect("invalid section id");
+    let shstrtab = object.sections.get(&section.name.section()).expect("invalid string section id");
+    let ElfSectionContent::StringTable(shstrtab) = &shstrtab.content else {
+        panic!("string section id is not a string table");
+    };
+    let name = shstrtab.get(section.name.offset()).expect("missing section name");
+    format!("{name}#{}", id.idx())
 }

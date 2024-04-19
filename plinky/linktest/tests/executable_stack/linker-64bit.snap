@@ -108,35 +108,16 @@ debug print: built elf
  │          ),
  │      },
  │  }
- │  [
- │      ElfSegment {
- │          type_: Load,
- │          perms: ElfPermissions(R),
- │          content: Sections(
- │              [
- │                  section#3,
- │                  section#4,
- │              ],
- │          ),
- │          align: 4096,
- │      },
- │      ElfSegment {
- │          type_: Load,
- │          perms: ElfPermissions(RX),
- │          content: Sections(
- │              [
- │                  section#2,
- │              ],
- │          ),
- │          align: 4096,
- │      },
- │      ElfSegment {
- │          type_: GnuStack,
- │          perms: ElfPermissions(RWX),
- │          content: Empty,
- │          align: 1,
- │      },
- │  ]
+ │    Segments:
+ │  ╭───────────┬───────┬──────────┬────────────────────────────╮
+ │  │ Type      │ Perms │ Aligment │ Content                    │
+ │  ├───────────┼───────┼──────────┼────────────────────────────┤
+ │  │ Load      │ R     │ 0x1000   │ .text.payload#3, .rodata#4 │
+ │  ├───────────┼───────┼──────────┼────────────────────────────┤
+ │  │ Load      │ R X   │ 0x1000   │ .text#2                    │
+ │  ├───────────┼───────┼──────────┼────────────────────────────┤
+ │  │ GNU stack │ RWX   │ 0x1      │ -                          │
+ │  ╰───────────┴───────┴──────────┴────────────────────────────╯
  ┴
 
 

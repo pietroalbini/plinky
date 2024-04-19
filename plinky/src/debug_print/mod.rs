@@ -12,7 +12,6 @@ use crate::linker::LinkerCallbacks;
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
-use plinky_diagnostics::widgets::Text;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
@@ -60,7 +59,7 @@ impl LinkerCallbacks for DebugCallbacks {
         if self.print.contains(&DebugPrint::FinalElf) {
             render(
                 Diagnostic::new(DiagnosticKind::DebugPrint, "built elf")
-                    .add(Text::new(format!("{elf:#x?}"))),
+                    .add(plinky_elf::render_elf(elf)),
             );
         }
     }

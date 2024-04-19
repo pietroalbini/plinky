@@ -162,6 +162,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "insta",
+ "plinky_diagnostics",
  "plinky_macros",
  "plinky_utils",
  "tempfile",

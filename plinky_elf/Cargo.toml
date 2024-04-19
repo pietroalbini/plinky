@@ -3,8 +3,9 @@ name = "plinky_elf"
 edition = "2021"
 
 [dependencies]
-plinky_utils.workspace = true
+plinky_diagnostics.workspace = true
 plinky_macros.workspace = true
+plinky_utils.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true

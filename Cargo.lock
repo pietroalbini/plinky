@@ -127,7 +127,7 @@ checksum = "f665ee40bc4a3c5590afb1e9677db74a508659dfd71e126420da8274909a0167"
 
 [[package]]
 name = "plinky"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "insta",
@@ -143,7 +143,7 @@ dependencies = [
 
 [[package]]
 name = "plinky_ar"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "plinky_macros",
  "plinky_utils",
@@ -151,14 +151,14 @@ dependencies = [
 
 [[package]]
 name = "plinky_diagnostics"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "insta",
 ]
 
 [[package]]
 name = "plinky_elf"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "insta",
@@ -169,7 +169,7 @@ dependencies = [
 
 [[package]]
 name = "plinky_macros"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "plinky_macros_quote",
  "plinky_utils",
@@ -177,11 +177,11 @@ dependencies = [
 
 [[package]]
 name = "plinky_macros_quote"
-version = "0.1.0"
+version = "0.0.0"
 
 [[package]]
 name = "plinky_utils"
-version = "0.1.0"
+version = "0.0.0"
 
 [[package]]
 name = "proc-macro2"

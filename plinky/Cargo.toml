@@ -2,7 +2,6 @@ cargo-features = ["different-binary-name"]
 
 [package]
 name = "plinky"
-version = "0.1.0"
 edition = "2021"
 
 [[bin]]

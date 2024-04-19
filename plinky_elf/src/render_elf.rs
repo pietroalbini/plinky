@@ -4,7 +4,7 @@ use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfNote, ElfNotesTable, ElfObject,
     ElfPermissions, ElfProgramSection, ElfRelocationsTable, ElfSection, ElfSectionContent,
     ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition,
-    ElfSymbolTable, ElfSymbolType, ElfType, ElfUninitializedSection,
+    ElfSymbolTable, ElfSymbolType, ElfType, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::WidgetWriter;
@@ -80,8 +80,7 @@ fn render_section(
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
         ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(object, relocs),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
-        //ElfSectionContent::Unknown(_) => todo!(),
-        _ => vec![Box::new(Text::new(format!("{:#?}", section.content)))],
+        ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
 
     WidgetGroup::new()
@@ -212,6 +211,13 @@ fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
     }
 
     output
+}
+
+fn render_section_unknown(unknown: &ElfUnknownSection) -> Vec<Box<dyn Widget>> {
+    vec![
+        Box::new(Text::new(format!("unknown section with type {:#x}", unknown.id))),
+        Box::new(HexDump::new(unknown.raw.0.as_slice())),
+    ]
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {

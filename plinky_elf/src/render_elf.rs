@@ -2,7 +2,8 @@ use crate::ids::serial::{SectionId, SerialIds};
 use crate::ids::StringIdGetters;
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
-    ElfProgramSection, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfType,
+    ElfProgramSection, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
+    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfType,
     ElfUninitializedSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
@@ -75,7 +76,7 @@ fn render_section(
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
         ElfSectionContent::Program(program) => render_section_program(program),
         ElfSectionContent::Uninitialized(uninit) => render_section_uninit(uninit),
-        //ElfSectionContent::SymbolTable(_) => todo!(),
+        ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, symbols),
         //ElfSectionContent::StringTable(_) => todo!(),
         //ElfSectionContent::RelocationsTable(_) => todo!(),
         //ElfSectionContent::Note(_) => todo!(),
@@ -109,9 +110,67 @@ fn render_section_program(program: &ElfProgramSection) -> Vec<Box<dyn Widget>> {
 }
 
 fn render_section_uninit(uninit: &ElfUninitializedSection) -> Vec<Box<dyn Widget>> {
-    vec![Box::new(Text::new(
-        format!("uninitialized | len: {:#x} | permissions: {}", uninit.len, render_perms(&uninit.perms)),
-    ))]
+    vec![Box::new(Text::new(format!(
+        "uninitialized | len: {:#x} | permissions: {}",
+        uninit.len,
+        render_perms(&uninit.perms)
+    )))]
+}
+
+fn render_section_symbols(
+    object: &ElfObject<SerialIds>,
+    symbols: &ElfSymbolTable<SerialIds>,
+) -> Vec<Box<dyn Widget>> {
+    let mut last_string_table = None;
+
+    let mut table = Table::new();
+    table.set_title("Symbol table:");
+    table.add_row(["Name", "Binding", "Type", "Definition", "Value", "Size"]);
+    for (id, symbol) in &symbols.symbols {
+        let string_table = match &last_string_table {
+            Some((table_id, table)) if *table_id == symbol.name.section() => table,
+            _ => {
+                let section = object.sections.get(symbol.name.section()).expect("missing section");
+                let ElfSectionContent::StringTable(table) = &section.content else {
+                    panic!("section is not a string table");
+                };
+                last_string_table = Some((symbol.name.section(), table));
+                table
+            }
+        };
+        let name = format!(
+            "{}#{}",
+            string_table.get(symbol.name.offset()).expect("missing symbol name"),
+            id.idx(),
+        );
+
+        table.add_row([
+            name,
+            match symbol.binding {
+                ElfSymbolBinding::Local => "Local".into(),
+                ElfSymbolBinding::Global => "Global".into(),
+                ElfSymbolBinding::Weak => "Weak".into(),
+                ElfSymbolBinding::Unknown(unknown) => format!("<unknown: {unknown:#x}>"),
+            },
+            match symbol.type_ {
+                ElfSymbolType::NoType => "-".into(),
+                ElfSymbolType::Object => "Object".into(),
+                ElfSymbolType::Function => "Function".into(),
+                ElfSymbolType::Section => "Section".into(),
+                ElfSymbolType::File => "File".into(),
+                ElfSymbolType::Unknown(unknown) => format!("<unknown: {unknown:#x}>"),
+            },
+            match symbol.definition {
+                ElfSymbolDefinition::Undefined => "Undefined".into(),
+                ElfSymbolDefinition::Absolute => "Absolute".into(),
+                ElfSymbolDefinition::Common => "Common".into(),
+                ElfSymbolDefinition::Section(section_id) => section_name(object, section_id),
+            },
+            format!("{:#x}", symbol.value),
+            format!("{:#x}", symbol.size),
+        ])
+    }
+    vec![Box::new(table)]
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {

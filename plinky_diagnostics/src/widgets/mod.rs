@@ -27,14 +27,3 @@ impl Widget for Box<dyn Widget> {
         self.as_ref().render(writer)
     }
 }
-
-impl<T: Widget> Widget for Vec<T> {
-    fn render(&self, writer: &mut WidgetWriter<'_>) {
-        for (i, widget) in self.iter().enumerate() {
-            if i != 0 {
-                writer.push('\n');
-            }
-            widget.render(writer);
-        }
-    }
-}

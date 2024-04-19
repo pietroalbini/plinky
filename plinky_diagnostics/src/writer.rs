@@ -10,7 +10,7 @@ impl<'a> WidgetWriter<'a> {
         Self { buffer, indent: Vec::new(), last_char: None }
     }
 
-    pub(crate) fn push(&mut self, content: char) {
+    pub fn push(&mut self, content: char) {
         let indents_to_consider = if content == '\n' {
             indents_for_empty_line(&mut self.indent)
         } else {
@@ -33,7 +33,7 @@ impl<'a> WidgetWriter<'a> {
         }
     }
 
-    pub(crate) fn push_str(&mut self, content: &str) {
+    pub fn push_str(&mut self, content: &str) {
         for chr in content.chars() {
             self.push(chr);
         }

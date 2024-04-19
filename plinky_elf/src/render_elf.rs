@@ -1,18 +1,20 @@
 use crate::ids::serial::{SectionId, SerialIds};
 use crate::ids::StringIdGetters;
 use crate::{
-    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfSectionContent,
-    ElfSegmentContent, ElfSegmentType, ElfType,
+    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfSection,
+    ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfType,
 };
-use plinky_diagnostics::widgets::{Table, Text, Widget};
+use plinky_diagnostics::widgets::{Table, Text, Widget, WidgetGroup};
+use plinky_diagnostics::WidgetWriter;
 
 pub fn render_elf(object: &ElfObject<SerialIds>) -> impl Widget {
-    let widgets: Vec<Box<dyn Widget>> = vec![
-        Box::new(render_meta(object)),
-        Box::new(render_sections(object)),
-        Box::new(render_segments(object)),
-    ];
-    widgets
+    let mut widgets: Vec<Box<dyn Widget>> = Vec::new();
+    widgets.push(Box::new(render_meta(object)));
+    for (&id, section) in &object.sections {
+        widgets.push(Box::new(render_section(object, id, section)));
+    }
+    widgets.push(Box::new(render_segments(object)));
+    MultipleWidgets(widgets)
 }
 
 fn render_meta(object: &ElfObject<SerialIds>) -> impl Widget {
@@ -63,8 +65,26 @@ fn render_meta(object: &ElfObject<SerialIds>) -> impl Widget {
     table
 }
 
-fn render_sections(object: &ElfObject<SerialIds>) -> impl Widget {
-    Text::new(format!("{:#?}", object.sections))
+fn render_section(
+    object: &ElfObject<SerialIds>,
+    id: SectionId,
+    section: &ElfSection<SerialIds>,
+) -> impl Widget {
+    let content: Box<dyn Widget> = match &section.content {
+        //ElfSectionContent::Null => todo!(),
+        //ElfSectionContent::Program(_) => todo!(),
+        //ElfSectionContent::Uninitialized(_) => todo!(),
+        //ElfSectionContent::SymbolTable(_) => todo!(),
+        //ElfSectionContent::StringTable(_) => todo!(),
+        //ElfSectionContent::RelocationsTable(_) => todo!(),
+        //ElfSectionContent::Note(_) => todo!(),
+        //ElfSectionContent::Unknown(_) => todo!(),
+        _ => Box::new(Text::new(format!("{:#?}", section.content))),
+    };
+
+    WidgetGroup::new()
+        .name(format!("section {} (address: {:#x})", section_name(object, id), section.memory_address))
+        .add(content)
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {
@@ -124,4 +144,17 @@ fn section_name(object: &ElfObject<SerialIds>, id: SectionId) -> String {
     };
     let name = shstrtab.get(section.name.offset()).expect("missing section name");
     format!("{name}#{}", id.idx())
+}
+
+struct MultipleWidgets(Vec<Box<dyn Widget>>);
+
+impl Widget for MultipleWidgets {
+    fn render(&self, writer: &mut WidgetWriter<'_>) {
+        for (i, widget) in self.0.iter().enumerate() {
+            if i != 0 {
+                writer.push_str("\n\n");
+            }
+            widget.render(writer);
+        }
+    }
 }

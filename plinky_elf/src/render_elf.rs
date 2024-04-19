@@ -3,7 +3,7 @@ use crate::ids::StringIdGetters;
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
     ElfProgramSection, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfType,
+    ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfType,
     ElfUninitializedSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
@@ -77,7 +77,7 @@ fn render_section(
         ElfSectionContent::Program(program) => render_section_program(program),
         ElfSectionContent::Uninitialized(uninit) => render_section_uninit(uninit),
         ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, symbols),
-        //ElfSectionContent::StringTable(_) => todo!(),
+        ElfSectionContent::StringTable(strings) => render_section_strings(strings),
         //ElfSectionContent::RelocationsTable(_) => todo!(),
         //ElfSectionContent::Note(_) => todo!(),
         //ElfSectionContent::Unknown(_) => todo!(),
@@ -169,6 +169,15 @@ fn render_section_symbols(
             format!("{:#x}", symbol.value),
             format!("{:#x}", symbol.size),
         ])
+    }
+    vec![Box::new(table)]
+}
+
+fn render_section_strings(strings: &ElfStringTable) -> Vec<Box<dyn Widget>> {
+    let mut table = Table::new();
+    table.set_title("Strings table:");
+    for (offset, string) in strings.all_with_offsets() {
+        table.add_row([format!("{offset:#x}"), string.to_string()]);
     }
     vec![Box::new(table)]
 }

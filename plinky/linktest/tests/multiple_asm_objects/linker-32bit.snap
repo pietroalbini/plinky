@@ -231,19 +231,22 @@ debug print: built elf
  │
  │  section .shstrtab#1 (address: 0x0)
  │   │
- │   │  StringTable(
- │   │      ElfStringTable {
- │   │          strings: {
- │   │              0: "",
- │   │              1: ".rodata",
- │   │              9: ".text",
- │   │              15: ".rodata",
- │   │              23: ".text",
- │   │              29: ".comment",
- │   │              38: ".shstrtab",
- │   │          },
- │   │      },
- │   │  )
+ │   │    Strings table:
+ │   │  ╭──────┬───────────╮
+ │   │  │ 0x0  │           │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1  │ .rodata   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x9  │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0xf  │ .rodata   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x17 │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1d │ .comment  │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x26 │ .shstrtab │
+ │   │  ╰──────┴───────────╯
  │   ┴
  │
  │  section .rodata#2 (address: 0x400000)

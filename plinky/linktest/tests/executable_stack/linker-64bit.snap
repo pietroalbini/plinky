@@ -30,18 +30,20 @@ debug print: built elf
  │
  │  section .shstrtab#1 (address: 0x0)
  │   │
- │   │  StringTable(
- │   │      ElfStringTable {
- │   │          strings: {
- │   │              0: "",
- │   │              1: ".text",
- │   │              7: ".text.payload",
- │   │              21: ".rodata",
- │   │              29: ".comment",
- │   │              38: ".shstrtab",
- │   │          },
- │   │      },
- │   │  )
+ │   │    Strings table:
+ │   │  ╭──────┬───────────────╮
+ │   │  │ 0x0  │               │
+ │   │  ├──────┼───────────────┤
+ │   │  │ 0x1  │ .text         │
+ │   │  ├──────┼───────────────┤
+ │   │  │ 0x7  │ .text.payload │
+ │   │  ├──────┼───────────────┤
+ │   │  │ 0x15 │ .rodata       │
+ │   │  ├──────┼───────────────┤
+ │   │  │ 0x1d │ .comment      │
+ │   │  ├──────┼───────────────┤
+ │   │  │ 0x26 │ .shstrtab     │
+ │   │  ╰──────┴───────────────╯
  │   ┴
  │
  │  section .text#2 (address: 0x401000)

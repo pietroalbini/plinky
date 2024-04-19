@@ -113,18 +113,20 @@ debug print: built elf
  │
  │  section .shstrtab#1 (address: 0x0)
  │   │
- │   │  StringTable(
- │   │      ElfStringTable {
- │   │          strings: {
- │   │              0: "",
- │   │              1: ".text",
- │   │              7: ".text",
- │   │              13: ".comment",
- │   │              22: ".custom_messages",
- │   │              39: ".shstrtab",
- │   │          },
- │   │      },
- │   │  )
+ │   │    Strings table:
+ │   │  ╭──────┬──────────────────╮
+ │   │  │ 0x0  │                  │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x1  │ .text            │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x7  │ .text            │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0xd  │ .comment         │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x16 │ .custom_messages │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x27 │ .shstrtab        │
+ │   │  ╰──────┴──────────────────╯
  │   ┴
  │
  │  section .text#2 (address: 0x401000)

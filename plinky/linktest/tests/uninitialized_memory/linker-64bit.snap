@@ -61,17 +61,18 @@ debug print: built elf
  │
  │  section .shstrtab#1 (address: 0x0)
  │   │
- │   │  StringTable(
- │   │      ElfStringTable {
- │   │          strings: {
- │   │              0: "",
- │   │              1: ".bss",
- │   │              6: ".text",
- │   │              12: ".comment",
- │   │              21: ".shstrtab",
- │   │          },
- │   │      },
- │   │  )
+ │   │    Strings table:
+ │   │  ╭──────┬───────────╮
+ │   │  │ 0x0  │           │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1  │ .bss      │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x6  │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0xc  │ .comment  │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x15 │ .shstrtab │
+ │   │  ╰──────┴───────────╯
  │   ┴
  │
  │  section .bss#2 (address: 0x401000)

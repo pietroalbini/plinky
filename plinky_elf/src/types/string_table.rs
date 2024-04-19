@@ -32,6 +32,10 @@ impl ElfStringTable {
         self.strings.values().map(|s| s.as_str())
     }
 
+    pub(crate) fn all_with_offsets(&self) -> impl Iterator<Item = (u32, &str)> {
+        self.strings.iter().map(|(o, s)| (*o, s.as_str()))
+    }
+
     pub fn len(&self) -> usize {
         self.strings.values().map(|s| s.len() + 1).sum()
     }

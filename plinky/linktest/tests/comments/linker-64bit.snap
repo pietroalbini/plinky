@@ -70,17 +70,18 @@ debug print: built elf
  │
  │  section .shstrtab#1 (address: 0x0)
  │   │
- │   │  StringTable(
- │   │      ElfStringTable {
- │   │          strings: {
- │   │              0: "",
- │   │              1: ".comment",
- │   │              10: ".text",
- │   │              16: ".comment",
- │   │              25: ".shstrtab",
- │   │          },
- │   │      },
- │   │  )
+ │   │    Strings table:
+ │   │  ╭──────┬───────────╮
+ │   │  │ 0x0  │           │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1  │ .comment  │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0xa  │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x10 │ .comment  │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x19 │ .shstrtab │
+ │   │  ╰──────┴───────────╯
  │   ┴
  │
  │  section .comment#2 (address: 0x0)

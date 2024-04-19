@@ -34,26 +34,17 @@ section .text#1 (address: 0x0)
 
 section .rel.text#2 (address: 0x0)
  │
- │  RelocationsTable(
- │      ElfRelocationsTable {
- │          symbol_table: section#10,
- │          applies_to_section: section#1,
- │          relocations: [
- │              ElfRelocation {
- │                  offset: 21,
- │                  symbol: symbol#3,
- │                  relocation_type: X86_32,
- │                  addend: None,
- │              },
- │              ElfRelocation {
- │                  offset: 26,
- │                  symbol: symbol#5,
- │                  relocation_type: X86_PC32,
- │                  addend: None,
- │              },
- │          ],
- │      },
- │  )
+ │  symbol table:       .symtab#10
+ │  applies to section: .text#1
+ │
+ │    Relocations:
+ │  ╭──────────┬───────────┬────────┬────────╮
+ │  │ Type     │ Symbol    │ Offset │ Addend │
+ │  ├──────────┼───────────┼────────┼────────┤
+ │  │ X86_32   │ #10#3     │ 0x15   │ -      │
+ │  ├──────────┼───────────┼────────┼────────┤
+ │  │ X86_PC32 │ puts#10#5 │ 0x1a   │ -      │
+ │  ╰──────────┴───────────┴────────┴────────╯
  ┴
 
 section .data#3 (address: 0x0)
@@ -114,40 +105,35 @@ section .eh_frame#8 (address: 0x0)
 
 section .rel.eh_frame#9 (address: 0x0)
  │
- │  RelocationsTable(
- │      ElfRelocationsTable {
- │          symbol_table: section#10,
- │          applies_to_section: section#8,
- │          relocations: [
- │              ElfRelocation {
- │                  offset: 32,
- │                  symbol: symbol#2,
- │                  relocation_type: X86_PC32,
- │                  addend: None,
- │              },
- │          ],
- │      },
- │  )
+ │  symbol table:       .symtab#10
+ │  applies to section: .eh_frame#8
+ │
+ │    Relocations:
+ │  ╭──────────┬────────┬────────┬────────╮
+ │  │ Type     │ Symbol │ Offset │ Addend │
+ │  ├──────────┼────────┼────────┼────────┤
+ │  │ X86_PC32 │ #10#2  │ 0x20   │ -      │
+ │  ╰──────────┴────────┴────────┴────────╯
  ┴
 
 section .symtab#10 (address: 0x0)
  │
  │    Symbol table:
- │  ╭─────────────┬─────────┬──────────┬────────────┬───────┬──────╮
- │  │ Name        │ Binding │ Type     │ Definition │ Value │ Size │
- │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
- │  │ #0          │ Local   │ -        │ Undefined  │ 0x0   │ 0x0  │
- │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
- │  │ hello_c.c#1 │ Local   │ File     │ Absolute   │ 0x0   │ 0x0  │
- │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
- │  │ #2          │ Local   │ Section  │ .text#1    │ 0x0   │ 0x0  │
- │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
- │  │ #3          │ Local   │ Section  │ .rodata#5  │ 0x0   │ 0x0  │
- │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
- │  │ main#4      │ Global  │ Function │ .text#1    │ 0x0   │ 0x2e │
- │  ├─────────────┼─────────┼──────────┼────────────┼───────┼──────┤
- │  │ puts#5      │ Global  │ -        │ Undefined  │ 0x0   │ 0x0  │
- │  ╰─────────────┴─────────┴──────────┴────────────┴───────┴──────╯
+ │  ╭────────────────┬─────────┬──────────┬────────────┬───────┬──────╮
+ │  │ Name           │ Binding │ Type     │ Definition │ Value │ Size │
+ │  ├────────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ #10#0          │ Local   │ -        │ Undefined  │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ hello_c.c#10#1 │ Local   │ File     │ Absolute   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ #10#2          │ Local   │ Section  │ .text#1    │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ #10#3          │ Local   │ Section  │ .rodata#5  │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ main#10#4      │ Global  │ Function │ .text#1    │ 0x0   │ 0x2e │
+ │  ├────────────────┼─────────┼──────────┼────────────┼───────┼──────┤
+ │  │ puts#10#5      │ Global  │ -        │ Undefined  │ 0x0   │ 0x0  │
+ │  ╰────────────────┴─────────┴──────────┴────────────┴───────┴──────╯
  ┴
 
 section .strtab#11 (address: 0x0)

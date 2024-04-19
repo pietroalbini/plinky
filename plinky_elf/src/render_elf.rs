@@ -1,10 +1,10 @@
-use crate::ids::serial::{SectionId, SerialIds};
+use crate::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use crate::ids::StringIdGetters;
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
-    ElfProgramSection, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-    ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfType,
-    ElfUninitializedSection,
+    ElfProgramSection, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfSegmentContent,
+    ElfSegmentType, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfType, ElfUninitializedSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::WidgetWriter;
@@ -76,9 +76,9 @@ fn render_section(
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
         ElfSectionContent::Program(program) => render_section_program(program),
         ElfSectionContent::Uninitialized(uninit) => render_section_uninit(uninit),
-        ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, symbols),
+        ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, id, symbols),
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
-        //ElfSectionContent::RelocationsTable(_) => todo!(),
+        ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(object, relocs),
         //ElfSectionContent::Note(_) => todo!(),
         //ElfSectionContent::Unknown(_) => todo!(),
         _ => vec![Box::new(Text::new(format!("{:#?}", section.content)))],
@@ -119,33 +119,15 @@ fn render_section_uninit(uninit: &ElfUninitializedSection) -> Vec<Box<dyn Widget
 
 fn render_section_symbols(
     object: &ElfObject<SerialIds>,
+    section_id: SectionId,
     symbols: &ElfSymbolTable<SerialIds>,
 ) -> Vec<Box<dyn Widget>> {
-    let mut last_string_table = None;
-
     let mut table = Table::new();
     table.set_title("Symbol table:");
     table.add_row(["Name", "Binding", "Type", "Definition", "Value", "Size"]);
     for (id, symbol) in &symbols.symbols {
-        let string_table = match &last_string_table {
-            Some((table_id, table)) if *table_id == symbol.name.section() => table,
-            _ => {
-                let section = object.sections.get(symbol.name.section()).expect("missing section");
-                let ElfSectionContent::StringTable(table) = &section.content else {
-                    panic!("section is not a string table");
-                };
-                last_string_table = Some((symbol.name.section(), table));
-                table
-            }
-        };
-        let name = format!(
-            "{}#{}",
-            string_table.get(symbol.name.offset()).expect("missing symbol name"),
-            id.idx(),
-        );
-
         table.add_row([
-            name,
+            symbol_name(object, section_id, *id),
             match symbol.binding {
                 ElfSymbolBinding::Local => "Local".into(),
                 ElfSymbolBinding::Global => "Global".into(),
@@ -180,6 +162,37 @@ fn render_section_strings(strings: &ElfStringTable) -> Vec<Box<dyn Widget>> {
         table.add_row([format!("{offset:#x}"), string.to_string()]);
     }
     vec![Box::new(table)]
+}
+
+fn render_section_relocs(
+    object: &ElfObject<SerialIds>,
+    relocs: &ElfRelocationsTable<SerialIds>,
+) -> Vec<Box<dyn Widget>> {
+    let intro = Text::new(format!(
+        "symbol table:       {}\n\
+         applies to section: {}",
+        section_name(object, relocs.symbol_table),
+        section_name(object, relocs.applies_to_section),
+    ));
+
+    let mut table = Table::new();
+    table.set_title("Relocations:");
+    table.add_row(["Type", "Symbol", "Offset", "Addend"]);
+    for relocation in &relocs.relocations {
+        let addend = match relocation.addend {
+            Some(num @ 0..) => format!("{:#x}", num),
+            Some(num) => format!("-{:#x}", num.abs()),
+            None => "-".into(),
+        };
+        table.add_row([
+            format!("{:?}", relocation.relocation_type),
+            symbol_name(object, relocs.symbol_table, relocation.symbol),
+            format!("{:#x}", relocation.offset),
+            addend,
+        ]);
+    }
+
+    vec![Box::new(intro), Box::new(table)]
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {
@@ -237,12 +250,24 @@ fn render_perms(perms: &ElfPermissions) -> String {
 
 fn section_name(object: &ElfObject<SerialIds>, id: SectionId) -> String {
     let section = object.sections.get(&id).expect("invalid section id");
-    let shstrtab = object.sections.get(&section.name.section()).expect("invalid string section id");
-    let ElfSectionContent::StringTable(shstrtab) = &shstrtab.content else {
+    format!("{}#{}", resolve_string(object, section.name), id.idx())
+}
+
+fn symbol_name(object: &ElfObject<SerialIds>, symbol_table_id: SectionId, id: SymbolId) -> String {
+    let symbol_table = object.sections.get(&symbol_table_id).expect("invalid symbol table id");
+    let ElfSectionContent::SymbolTable(symbol_table) = &symbol_table.content else {
+        panic!("symbol table id is not a symbol table");
+    };
+    let symbol = symbol_table.symbols.get(&id).expect("invalid symbol id");
+    format!("{}#{}#{}", resolve_string(object, symbol.name), symbol_table_id.idx(), id.idx())
+}
+
+fn resolve_string(object: &ElfObject<SerialIds>, id: StringId) -> &str {
+    let table = object.sections.get(&id.section()).expect("invalid string section id");
+    let ElfSectionContent::StringTable(table) = &table.content else {
         panic!("string section id is not a string table");
     };
-    let name = shstrtab.get(section.name.offset()).expect("missing section name");
-    format!("{name}#{}", id.idx())
+    table.get(id.offset()).expect("missing string")
 }
 
 struct MultipleWidgets(Vec<Box<dyn Widget>>);

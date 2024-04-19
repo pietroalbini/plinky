@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-plinky_utils = { path = "../plinky_utils" }
-plinky_macros = { path = "../plinky_macros" }
+plinky_utils.workspace = true
+plinky_macros.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true

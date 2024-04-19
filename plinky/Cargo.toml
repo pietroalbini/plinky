@@ -16,11 +16,11 @@ path = "linktest/harness/main.rs"
 harness = false
 
 [dependencies]
-plinky_ar = { path = "../plinky_ar" }
-plinky_diagnostics = { path = "../plinky_diagnostics" }
-plinky_macros = { path = "../plinky_macros" }
-plinky_elf = { path = "../plinky_elf" }
-plinky_utils = { path = "../plinky_utils" }
+plinky_ar.workspace = true
+plinky_diagnostics.workspace = true
+plinky_macros.workspace = true
+plinky_elf.workspace = true
+plinky_utils.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true

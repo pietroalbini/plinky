@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-plinky_macros_quote = { path = "../plinky_macros_quote/" }
-plinky_utils = { path = "../plinky_utils/" }
+plinky_macros_quote.workspace = true
+plinky_utils.workspace = true
 
 [lib]
 proc-macro = true

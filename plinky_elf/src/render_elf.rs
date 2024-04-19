@@ -1,10 +1,10 @@
 use crate::ids::serial::{SectionId, SerialIds};
 use crate::ids::StringIdGetters;
 use crate::{
-    ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfSection,
-    ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfType,
+    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
+    ElfProgramSection, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfType,
 };
-use plinky_diagnostics::widgets::{Table, Text, Widget, WidgetGroup};
+use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::WidgetWriter;
 
 pub fn render_elf(object: &ElfObject<SerialIds>) -> impl Widget {
@@ -72,7 +72,7 @@ fn render_section(
 ) -> impl Widget {
     let content: Vec<Box<dyn Widget>> = match &section.content {
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
-        //ElfSectionContent::Program(_) => todo!(),
+        ElfSectionContent::Program(program) => render_section_program(program),
         //ElfSectionContent::Uninitialized(_) => todo!(),
         //ElfSectionContent::SymbolTable(_) => todo!(),
         //ElfSectionContent::StringTable(_) => todo!(),
@@ -89,6 +89,22 @@ fn render_section(
             section.memory_address
         ))
         .add_iter(content)
+}
+
+fn render_section_program(program: &ElfProgramSection) -> Vec<Box<dyn Widget>> {
+    let mut intro = format!("program data | permissions: {}", render_perms(&program.perms));
+
+    match program.deduplication {
+        ElfDeduplication::Disabled => {}
+        ElfDeduplication::ZeroTerminatedStrings => {
+            intro.push_str(" | deduplicating zero-terminated strings");
+        }
+        ElfDeduplication::FixedSizeChunks { size } => {
+            intro.push_str(&format!(" | deduplicating chunks of size {size:#x}"));
+        }
+    }
+
+    vec![Box::new(Text::new(intro.trim())), Box::new(HexDump::new(program.raw.0.as_slice()))]
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {
@@ -137,7 +153,11 @@ fn render_perms(perms: &ElfPermissions) -> String {
     push(perms.write, 'W');
     push(perms.execute, 'X');
 
-    output
+    if output.trim().is_empty() {
+        format!("{:1$}", "-", output.len())
+    } else {
+        output
+    }
 }
 
 fn section_name(object: &ElfObject<SerialIds>, id: SectionId) -> String {

@@ -45,48 +45,30 @@ debug print: built elf
  │
  │  section .data#2 (address: 0x401000)
  │   │
- │   │  Program(
- │   │      ElfProgramSection {
- │   │          perms: ElfPermissions(RW),
- │   │          deduplication: Disabled,
- │   │          raw: RawBytes {
- │   │                   ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c   (len: 0xd)
- │   │                 +----------------------------------------+
- │   │              0? | 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a | Hello world!.
- │   │          },
- │   │      },
- │   │  )
+ │   │  program data | permissions: RW
+ │   │
+ │   │  ╭────────────────────────────────────────┬───────────────╮
+ │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
+ │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
  │  section .text#3 (address: 0x400000)
  │   │
- │   │  Program(
- │   │      ElfProgramSection {
- │   │          perms: ElfPermissions(RX),
- │   │          deduplication: Disabled,
- │   │          raw: RawBytes {
- │   │                   ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e ?f   (len: 0x1f)
- │   │                 +-------------------------------------------------+
- │   │              0? | b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba | .............@..
- │   │              1? | 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    | ...............
- │   │          },
- │   │      },
- │   │  )
+ │   │  program data | permissions: R X
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 10 40 00 ba │ .............@.. │
+ │   │  │ 0d 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    │ ...............  │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │  section .comment#4 (address: 0x0)
  │   │
- │   │  Program(
- │   │      ElfProgramSection {
- │   │          perms: ElfPermissions(),
- │   │          deduplication: ZeroTerminatedStrings,
- │   │          raw: RawBytes {
- │   │                   ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?a ?b ?c ?d ?e   (len: 0xf)
- │   │                 +----------------------------------------------+
- │   │              0? | 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 | Linker: plinky.
- │   │          },
- │   │      },
- │   │  )
+ │   │  program data | permissions: -   | deduplicating zero-terminated strings
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
  │    Segments:

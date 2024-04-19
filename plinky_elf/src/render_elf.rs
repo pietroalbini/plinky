@@ -3,6 +3,7 @@ use crate::ids::StringIdGetters;
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
     ElfProgramSection, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfType,
+    ElfUninitializedSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::WidgetWriter;
@@ -73,7 +74,7 @@ fn render_section(
     let content: Vec<Box<dyn Widget>> = match &section.content {
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
         ElfSectionContent::Program(program) => render_section_program(program),
-        //ElfSectionContent::Uninitialized(_) => todo!(),
+        ElfSectionContent::Uninitialized(uninit) => render_section_uninit(uninit),
         //ElfSectionContent::SymbolTable(_) => todo!(),
         //ElfSectionContent::StringTable(_) => todo!(),
         //ElfSectionContent::RelocationsTable(_) => todo!(),
@@ -105,6 +106,12 @@ fn render_section_program(program: &ElfProgramSection) -> Vec<Box<dyn Widget>> {
     }
 
     vec![Box::new(Text::new(intro.trim())), Box::new(HexDump::new(program.raw.0.as_slice()))]
+}
+
+fn render_section_uninit(uninit: &ElfUninitializedSection) -> Vec<Box<dyn Widget>> {
+    vec![Box::new(Text::new(
+        format!("uninitialized | len: {:#x} | permissions: {}", uninit.len, render_perms(&uninit.perms)),
+    ))]
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {

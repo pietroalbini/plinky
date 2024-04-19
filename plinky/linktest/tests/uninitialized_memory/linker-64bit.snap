@@ -76,12 +76,7 @@ debug print: built elf
  │
  │  section .bss#2 (address: 0x401000)
  │   │
- │   │  Uninitialized(
- │   │      ElfUninitializedSection {
- │   │          perms: ElfPermissions(RW),
- │   │          len: 6,
- │   │      },
- │   │  )
+ │   │  uninitialized | len: 0x6 | permissions: RW 
  │   ┴
  │
  │  section .text#3 (address: 0x400000)

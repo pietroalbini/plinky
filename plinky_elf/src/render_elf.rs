@@ -70,8 +70,8 @@ fn render_section(
     id: SectionId,
     section: &ElfSection<SerialIds>,
 ) -> impl Widget {
-    let content: Box<dyn Widget> = match &section.content {
-        //ElfSectionContent::Null => todo!(),
+    let content: Vec<Box<dyn Widget>> = match &section.content {
+        ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
         //ElfSectionContent::Program(_) => todo!(),
         //ElfSectionContent::Uninitialized(_) => todo!(),
         //ElfSectionContent::SymbolTable(_) => todo!(),
@@ -79,12 +79,16 @@ fn render_section(
         //ElfSectionContent::RelocationsTable(_) => todo!(),
         //ElfSectionContent::Note(_) => todo!(),
         //ElfSectionContent::Unknown(_) => todo!(),
-        _ => Box::new(Text::new(format!("{:#?}", section.content))),
+        _ => vec![Box::new(Text::new(format!("{:#?}", section.content)))],
     };
 
     WidgetGroup::new()
-        .name(format!("section {} (address: {:#x})", section_name(object, id), section.memory_address))
-        .add(content)
+        .name(format!(
+            "section {} (address: {:#x})",
+            section_name(object, id),
+            section.memory_address
+        ))
+        .add_iter(content)
 }
 
 fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {

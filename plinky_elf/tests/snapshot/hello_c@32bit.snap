@@ -178,7 +178,4 @@ section .shstrtab#12 (address: 0x0)
  │  ╰──────┴─────────────────╯
  ┴
 
-  Segments:
-╭──────┬───────┬──────────┬─────────╮
-│ Type │ Perms │ Aligment │ Content │
-╰──────┴───────┴──────────┴─────────╯
+No segments in the ELF file.

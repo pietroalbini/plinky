@@ -74,7 +74,7 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
         }
     }
 
-    let rendered = plinky_elf::render_elf(&parsed).render_to_string();
+    let rendered = plinky_elf::render_elf::render(&parsed).render_to_string();
     insta::assert_snapshot!(name, rendered);
     Ok(())
 }

@@ -1,7 +1,7 @@
 use plinky_diagnostics::widgets::Widget;
 use plinky_elf::errors::LoadError;
 use plinky_elf::ids::serial::SerialIds;
-use plinky_elf::{render_elf, ElfObject};
+use plinky_elf::ElfObject;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
@@ -10,7 +10,7 @@ fn actual_main(path: &Path) -> Result<(), LoadError> {
     let mut file = File::open(path)?;
     let object = ElfObject::load(&mut file, &mut SerialIds::new())?;
 
-    println!("{}", render_elf(&object).render_to_string());
+    println!("{}", plinky_elf::render_elf::render(&object).render_to_string());
 
     Ok(())
 }

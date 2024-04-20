@@ -59,7 +59,7 @@ impl LinkerCallbacks for DebugCallbacks {
         if self.print.contains(&DebugPrint::FinalElf) {
             render(
                 Diagnostic::new(DiagnosticKind::DebugPrint, "built elf")
-                    .add(plinky_elf::render_elf(elf)),
+                    .add(plinky_elf::render_elf::render(elf)),
             );
         }
     }

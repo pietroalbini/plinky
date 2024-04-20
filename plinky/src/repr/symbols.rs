@@ -30,6 +30,7 @@ impl Symbols {
             Symbol {
                 id,
                 name: intern(name),
+                type_: SymbolType::NoType,
                 span: intern(ObjectSpan::new_synthetic()),
                 visibility: SymbolVisibility::Global { weak: false },
                 value: SymbolValue::Undefined,
@@ -46,17 +47,17 @@ impl Symbols {
         strings: &Strings,
     ) -> Result<(), LoadSymbolsError> {
         for (symbol_id, elf_symbol) in table.symbols.into_iter() {
-            match elf_symbol.type_ {
-                ElfSymbolType::NoType => {}
-                ElfSymbolType::Object => {}
-                ElfSymbolType::Function => {}
-                ElfSymbolType::Section => {}
+            let type_ = match elf_symbol.type_ {
+                ElfSymbolType::NoType => SymbolType::NoType,
+                ElfSymbolType::Object => SymbolType::Object,
+                ElfSymbolType::Function => SymbolType::Function,
+                ElfSymbolType::Section => SymbolType::Section,
                 // The file symbol type is not actually used, so we can omit it.
                 ElfSymbolType::File => continue,
                 ElfSymbolType::Unknown(_) => {
                     return Err(LoadSymbolsError::UnsupportedUnknownSymbolType)
                 }
-            }
+            };
 
             let name = intern(
                 strings
@@ -66,6 +67,7 @@ impl Symbols {
             let symbol = Symbol {
                 id: symbol_id,
                 name,
+                type_,
                 span,
                 visibility: match elf_symbol.binding {
                     ElfSymbolBinding::Local => SymbolVisibility::Local,
@@ -185,6 +187,7 @@ enum SymbolOrRedirect {
 pub(crate) struct Symbol {
     pub(crate) id: SymbolId,
     pub(crate) name: Interned<String>,
+    pub(crate) type_: SymbolType,
     pub(crate) span: Interned<ObjectSpan>,
     pub(crate) visibility: SymbolVisibility,
     pub(crate) value: SymbolValue,
@@ -213,6 +216,14 @@ impl Symbol {
             }
         }
     }
+}
+
+#[derive(Debug)]
+pub(crate) enum SymbolType {
+    NoType,
+    Function,
+    Object,
+    Section,
 }
 
 #[derive(Debug)]

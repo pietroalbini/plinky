@@ -3,7 +3,7 @@ use crate::debug_print::utils::{permissions, section_name, symbol_name};
 use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
-use crate::repr::symbols::{Symbol, SymbolValue, SymbolVisibility};
+use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SymbolId};
@@ -125,8 +125,14 @@ fn render_symbols<'a>(
 
     let mut table = Table::new();
     table.set_title("Symbols:");
-    table.add_row(["Name", "Source", "Visibility", "Value"]);
+    table.add_row(["Name", "Type", "Source", "Visibility", "Value"]);
     for (id, symbol) in symbols {
+        let type_ = match symbol.type_ {
+            SymbolType::NoType => "none",
+            SymbolType::Function => "function",
+            SymbolType::Object => "object",
+            SymbolType::Section => "section",
+        };
         let visibility = match symbol.visibility {
             SymbolVisibility::Local => "local",
             SymbolVisibility::Global { weak: true } => "global (weak)",
@@ -139,7 +145,13 @@ fn render_symbols<'a>(
             }
             SymbolValue::Undefined => "<undefined>".into(),
         };
-        table.add_row([&symbol_name(object, id), &symbol.span.to_string(), visibility, &value]);
+        table.add_row([
+            symbol_name(object, id).as_str(),
+            type_,
+            &symbol.span.to_string(),
+            visibility,
+            &value,
+        ]);
     }
     table
 }

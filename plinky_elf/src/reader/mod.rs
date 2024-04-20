@@ -7,7 +7,7 @@ mod sections;
 pub(crate) use self::cursor::ReadCursor;
 pub(crate) use self::object::read_object;
 
-use crate::ids::{ElfIds, StringIdGetters};
+use crate::ids::{ElfIds, ReprIdGetters, StringIdGetters};
 
 #[derive(Debug, Clone, Copy)]
 pub struct PendingIds;
@@ -21,8 +21,20 @@ impl ElfIds for PendingIds {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PendingSectionId(u32);
 
+impl ReprIdGetters for PendingSectionId {
+    fn repr_id(&self) -> String {
+        format!("{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PendingSymbolId(PendingSectionId, u32);
+
+impl ReprIdGetters for PendingSymbolId {
+    fn repr_id(&self) -> String {
+        format!("{}#{}", self.0.repr_id(), self.1)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PendingStringId(PendingSectionId, u32);

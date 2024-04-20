@@ -1,16 +1,10 @@
 use super::convert::IdConversionMap;
 use crate::ids::convert::ConvertibleElfIds;
-use crate::ids::{ElfIds, StringIdGetters};
+use crate::ids::{ElfIds, ReprIdGetters, StringIdGetters};
 use crate::{ElfObject, ElfSectionContent};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SectionId(usize);
-
-impl SectionId {
-    pub fn idx(&self) -> usize {
-        self.0
-    }
-}
 
 impl std::fmt::Debug for SectionId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -18,18 +12,24 @@ impl std::fmt::Debug for SectionId {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SymbolId(usize);
-
-impl SymbolId {
-    pub fn idx(&self) -> usize {
-        self.0
+impl ReprIdGetters for SectionId {
+    fn repr_id(&self) -> String {
+        format!("{}", self.0)
     }
 }
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SymbolId(usize);
 
 impl std::fmt::Debug for SymbolId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "symbol#{}", self.0)
+    }
+}
+
+impl ReprIdGetters for SymbolId {
+    fn repr_id(&self) -> String {
+        format!("{}", self.0)
     }
 }
 

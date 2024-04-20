@@ -1,6 +1,7 @@
 use crate::repr::object::Object;
 use crate::repr::symbols::SymbolValue;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
+use plinky_elf::ids::ReprIdGetters;
 use plinky_elf::ElfPermissions;
 
 pub(super) fn permissions(perms: &ElfPermissions) -> String {
@@ -27,7 +28,7 @@ pub(super) fn section_name(object: &Object, id: SectionId) -> String {
         .get(id)
         .map(|section| section.name)
         .or_else(|| object.sections.name_of_removed_section(id))
-        .map(|name| format!("{}#{}", name.resolve(), id.idx()))
+        .map(|name| format!("{}#{}", name.resolve(), id.repr_id()))
         .unwrap_or_else(|| "<unknown section>".into())
 }
 
@@ -38,7 +39,7 @@ pub(super) fn symbol_name(object: &Object, id: SymbolId) -> String {
         ("", SymbolValue::SectionRelative { section, offset: 0 }) => {
             format!("<section {}>", section_name(object, *section))
         }
-        ("", _) => format!("<symbol#{}>", symbol.id.idx()),
-        (name, _) => format!("{}#{}", name, symbol.id.idx()),
+        ("", _) => format!("<symbol#{}>", symbol.id.repr_id()),
+        (name, _) => format!("{}#{}", name, symbol.id.repr_id()),
     }
 }

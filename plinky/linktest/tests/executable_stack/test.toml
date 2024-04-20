@@ -1,6 +1,6 @@
 cmd = ["stack.o", "-z", "execstack"]
 kind = "run-pass"
-debug-print = ["final-elf"]
+debug-print = ["final-elf=@segments"]
 
 [[asm]]
 source = "stack.asm"

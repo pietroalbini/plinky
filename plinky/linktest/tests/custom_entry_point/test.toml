@@ -1,7 +1,7 @@
 cmd = ["hello.o", "-e", "custom_entry"]
 kind = "run-pass"
 archs = ["x86", "x86_64"]
-debug-print = ["final-elf"]
+debug-print = ["final-elf=@meta"]
 
 [[asm]]
 source = "hello.asm"

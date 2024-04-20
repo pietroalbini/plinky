@@ -1,6 +1,10 @@
 cmd = ["foo.o", "bar.o"]
 kind = "run-pass"
-debug-print = ["relocated-object=.custom_messages,.text", "layout", "final-elf"]
+debug-print = [
+    "relocated-object=.custom_messages,.text",
+    "layout",
+    "final-elf=.custom-messages,.text",
+]
 
 [[asm]]
 source = "foo.asm"

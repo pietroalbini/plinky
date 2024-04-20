@@ -13,7 +13,7 @@ source: plinky_elf/tests/snapshot.rs
 ├────────────┼────────────┤
 │ Type       │ Executable │
 ├────────────┼────────────┤
-│ Entrypoint │ 134516736  │
+│ Entrypoint │ 0x8049000  │
 ╰────────────┴────────────╯
 
 section #0 (address: 0x0)

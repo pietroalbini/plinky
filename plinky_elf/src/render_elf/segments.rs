@@ -1,4 +1,5 @@
 use crate::ids::serial::SerialIds;
+use crate::render_elf::utils::{render_perms, section_name};
 use crate::{ElfObject, ElfSegmentContent, ElfSegmentType};
 use plinky_diagnostics::widgets::{Table, Widget};
 
@@ -18,13 +19,13 @@ pub(super) fn render_segments(object: &ElfObject<SerialIds>) -> impl Widget {
                 ElfSegmentType::GnuStack => "GNU stack".into(),
                 ElfSegmentType::Unknown(id) => format!("<unknown: {id:#x}>"),
             },
-            super::render_perms(&segment.perms),
+            render_perms(&segment.perms),
             format!("{:#x}", segment.align),
             match &segment.content {
                 ElfSegmentContent::Empty => "-".into(),
                 ElfSegmentContent::Sections(sections) => sections
                     .iter()
-                    .map(|&id| super::section_name(object, id))
+                    .map(|&id| section_name(object, id))
                     .collect::<Vec<_>>()
                     .join(", "),
                 ElfSegmentContent::Unknown(unknown) => format!(

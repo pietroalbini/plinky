@@ -1,4 +1,5 @@
 use crate::debug_print::filters::{ObjectsFilter, ObjectsFilterParseError};
+use plinky_elf::render_elf::{RenderElfFilters, RenderElfFiltersParseError};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -19,7 +20,7 @@ pub(crate) enum DebugPrint {
     Gc,
     RelocatedObject(ObjectsFilter),
     Layout,
-    FinalElf,
+    FinalElf(RenderElfFilters),
 }
 
 pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
@@ -78,7 +79,10 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                         DebugPrint::RelocatedObject(ObjectsFilter::parse(filter)?)
                     }
                     ("layout", None) => DebugPrint::Layout,
-                    ("final-elf", None) => DebugPrint::FinalElf,
+                    ("final-elf", None) => DebugPrint::FinalElf(RenderElfFilters::all()),
+                    ("final-elf", Some(filter)) => {
+                        DebugPrint::FinalElf(RenderElfFilters::parse(filter)?)
+                    }
                     ("gc", None) => DebugPrint::Gc,
                     _ => return Err(CliError::UnsupportedDebugPrint(raw.into())),
                 });
@@ -133,7 +137,9 @@ pub(crate) enum CliError {
     #[display("unsupported debug print: {f0}")]
     UnsupportedDebugPrint(String),
     #[display("failed to parse debug print filter")]
-    BadFilter(#[from] ObjectsFilterParseError),
+    BadObjectsFilter(#[from] ObjectsFilterParseError),
+    #[display("failed to parse debug print filter")]
+    BadRenderElfFilter(#[from] RenderElfFiltersParseError),
     #[display("debug print enabled multiple times: {f0}")]
     DuplicateDebugPrint(String),
     #[display("flag {f0} is not supported")]

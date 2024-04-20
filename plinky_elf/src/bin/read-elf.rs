@@ -1,28 +1,28 @@
 use plinky_diagnostics::widgets::Widget;
-use plinky_elf::errors::LoadError;
 use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::render_elf::RenderElfFilters;
 use plinky_elf::ElfObject;
 use std::error::Error;
 use std::fs::File;
-use std::path::Path;
 
-fn actual_main(path: &Path) -> Result<(), LoadError> {
+fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let (path, filters) = match args {
+        [path] => (path, RenderElfFilters::all()),
+        [path, filters] => (path, RenderElfFilters::parse(filters)?),
+        _ => usage(),
+    };
+
     let mut file = File::open(path)?;
     let object = ElfObject::load(&mut file, &mut SerialIds::new())?;
 
-    println!("{}", plinky_elf::render_elf::render(&object).render_to_string());
+    println!("{}", plinky_elf::render_elf::render(&object, &filters).render_to_string());
 
     Ok(())
 }
 
 fn main() {
-    let args = std::env::args().collect::<Vec<_>>();
-    if args.len() != 2 {
-        usage();
-    }
-    let path = Path::new(&args[1]);
-
-    if let Err(err) = actual_main(path) {
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    if let Err(err) = actual_main(&args) {
         eprintln!("error: {err}");
 
         let mut source = err.source();

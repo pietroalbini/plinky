@@ -56,11 +56,13 @@ impl LinkerCallbacks for DebugCallbacks {
     }
 
     fn on_elf_built(&self, elf: &ElfObject<SerialIds>) {
-        if self.print.contains(&DebugPrint::FinalElf) {
-            render(
-                Diagnostic::new(DiagnosticKind::DebugPrint, "built elf")
-                    .add(plinky_elf::render_elf::render(elf)),
-            );
+        for print in &self.print {
+            if let DebugPrint::FinalElf(filters) = print {
+                render(
+                    Diagnostic::new(DiagnosticKind::DebugPrint, "built elf")
+                        .add(plinky_elf::render_elf::render(elf, filters)),
+                );
+            }
         }
     }
 }

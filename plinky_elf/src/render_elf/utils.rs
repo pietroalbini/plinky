@@ -37,7 +37,7 @@ pub(super) fn symbol_name(
     format!("{}#{}#{}", resolve_string(object, symbol.name), symbol_table_id.idx(), id.idx())
 }
 
-fn resolve_string(object: &ElfObject<SerialIds>, id: StringId) -> &str {
+pub(super) fn resolve_string(object: &ElfObject<SerialIds>, id: StringId) -> &str {
     let table = object.sections.get(&id.section()).expect("invalid string section id");
     let ElfSectionContent::StringTable(table) = &table.content else {
         panic!("string section id is not a string table");

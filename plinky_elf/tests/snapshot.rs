@@ -3,6 +3,7 @@
 use anyhow::{Context, Error};
 use plinky_diagnostics::widgets::Widget;
 use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::render_elf::RenderElfFilters;
 use plinky_elf::ElfObject;
 use std::fs::File;
 use std::io::BufReader;
@@ -74,7 +75,8 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
         }
     }
 
-    let rendered = plinky_elf::render_elf::render(&parsed).render_to_string();
+    let rendered =
+        plinky_elf::render_elf::render(&parsed, &RenderElfFilters::all()).render_to_string();
     insta::assert_snapshot!(name, rendered);
     Ok(())
 }

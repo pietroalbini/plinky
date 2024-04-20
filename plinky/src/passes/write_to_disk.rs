@@ -1,5 +1,5 @@
+use crate::passes::build_elf::ids::BuiltElfIds;
 use plinky_elf::errors::WriteError;
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use plinky_macros::Error;
 use std::fs::{File, Permissions};
@@ -7,7 +7,7 @@ use std::io::BufWriter;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn run(object: ElfObject<SerialIds>, dest: &Path) -> Result<(), WriteToDiskError> {
+pub(crate) fn run(object: ElfObject<BuiltElfIds>, dest: &Path) -> Result<(), WriteToDiskError> {
     let mut file = BufWriter::new(
         File::create(dest).map_err(|e| WriteToDiskError::FileCreation(dest.into(), e))?,
     );
@@ -23,7 +23,7 @@ pub(crate) fn run(object: ElfObject<SerialIds>, dest: &Path) -> Result<(), Write
 #[derive(Debug, Error)]
 pub(crate) enum WriteToDiskError {
     FileCreation(PathBuf, #[source] std::io::Error),
-    WriteFailed(PathBuf, #[source] WriteError<SerialIds>),
+    WriteFailed(PathBuf, #[source] WriteError<BuiltElfIds>),
     PermissionSetFailed(PathBuf, #[source] std::io::Error),
 }
 

@@ -1,5 +1,6 @@
 use crate::cli::CliOptions;
 use crate::passes;
+use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::deduplicate::DeduplicationError;
 use crate::passes::gc_sections::RemovedSection;
@@ -51,7 +52,7 @@ pub(crate) trait LinkerCallbacks {
 
     fn on_relocations_applied(&self, _object: &Object, _layout: &Layout) {}
 
-    fn on_elf_built(&self, _elf: &ElfObject<SerialIds>) {}
+    fn on_elf_built(&self, _elf: &ElfObject<BuiltElfIds>) {}
 }
 
 #[derive(Debug, Display, Error)]

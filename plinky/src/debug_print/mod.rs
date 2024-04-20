@@ -9,11 +9,11 @@ use crate::debug_print::render_gc::render_gc;
 use crate::debug_print::render_layout::render_layout;
 use crate::debug_print::render_object::render_object;
 use crate::linker::LinkerCallbacks;
+use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use std::collections::BTreeSet;
 
@@ -55,7 +55,7 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_elf_built(&self, elf: &ElfObject<SerialIds>) {
+    fn on_elf_built(&self, elf: &ElfObject<BuiltElfIds>) {
         for print in &self.print {
             if let DebugPrint::FinalElf(filters) = print {
                 render(

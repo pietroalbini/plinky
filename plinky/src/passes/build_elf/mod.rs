@@ -1,10 +1,13 @@
+pub(crate) mod ids;
+
 use super::layout::SectionLayout;
 use crate::interner::Interned;
+use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
-use plinky_elf::ids::serial::{SectionId, SerialIds, StringId};
+use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
     ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -16,8 +19,8 @@ use std::num::NonZeroU64;
 pub(crate) fn run(
     object: Object,
     layout: &Layout,
-) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
-    let mut ids = SerialIds::new();
+) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
+    let mut ids = BuiltElfIds::new();
     let builder = ElfBuilder {
         object,
         layout,
@@ -33,15 +36,15 @@ struct ElfBuilder<'a> {
     object: Object,
     layout: &'a Layout,
 
-    section_ids_mapping: BTreeMap<SectionId, SectionId>,
+    section_ids_mapping: BTreeMap<SectionId, BuiltElfSectionId>,
 
-    ids: SerialIds,
+    ids: BuiltElfIds,
     section_names: PendingStringsTable,
-    section_zero_id: SectionId,
+    section_zero_id: BuiltElfSectionId,
 }
 
 impl ElfBuilder<'_> {
-    fn build(mut self) -> Result<ElfObject<SerialIds>, ElfBuilderError> {
+    fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
         let sections = self.prepare_sections();
         let segments = self.prepare_segments();
@@ -70,14 +73,14 @@ impl ElfBuilder<'_> {
         }
     }
 
-    fn prepare_sections(&mut self) -> BTreeMap<SectionId, ElfSection<SerialIds>> {
+    fn prepare_sections(&mut self) -> BTreeMap<BuiltElfSectionId, ElfSection<BuiltElfIds>> {
         let mut sections = BTreeMap::new();
 
         // The first section must always be the null section.
         sections.insert(
             self.section_zero_id,
             ElfSection {
-                name: StringId::new(self.section_names.id, 0),
+                name: BuiltElfStringId::new(self.section_names.id, 0),
                 memory_address: 0,
                 content: ElfSectionContent::Null,
             },
@@ -131,7 +134,7 @@ impl ElfBuilder<'_> {
         sections
     }
 
-    fn prepare_section_names_table(&mut self) -> ElfSection<SerialIds> {
+    fn prepare_section_names_table(&mut self) -> ElfSection<BuiltElfIds> {
         let name = self.section_names.add(".shstrtab");
         ElfSection {
             name,
@@ -142,7 +145,7 @@ impl ElfBuilder<'_> {
         }
     }
 
-    fn prepare_segments(&self) -> Vec<ElfSegment<SerialIds>> {
+    fn prepare_segments(&self) -> Vec<ElfSegment<BuiltElfIds>> {
         let mut elf_segments = Vec::new();
         for segment in self.layout.iter_segments() {
             elf_segments.push((
@@ -183,23 +186,23 @@ impl ElfBuilder<'_> {
 }
 
 struct PendingStringsTable {
-    id: SectionId,
+    id: BuiltElfSectionId,
     strings: BTreeMap<u32, String>,
     next_offset: u32,
 }
 
 impl PendingStringsTable {
-    fn new(ids: &mut SerialIds) -> Self {
+    fn new(ids: &mut BuiltElfIds) -> Self {
         let mut strings = BTreeMap::new();
         strings.insert(0, String::new()); // First string has to always be empty.
         Self { id: ids.allocate_section_id(), strings, next_offset: 1 }
     }
 
-    fn add(&mut self, string: &str) -> StringId {
+    fn add(&mut self, string: &str) -> BuiltElfStringId {
         let offset = self.next_offset;
         self.next_offset += string.len() as u32 + 1;
         self.strings.insert(offset, string.into());
-        StringId::new(self.id, offset)
+        BuiltElfStringId::new(self.id, offset)
     }
 }
 

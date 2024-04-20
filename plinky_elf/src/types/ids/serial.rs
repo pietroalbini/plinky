@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! new_serial_ids {
     (
         $ids_vis:vis $ids_ty:ident {
@@ -6,10 +7,10 @@ macro_rules! new_serial_ids {
             type StringId = $string_vis:vis $string_ty:ident;
         }
     ) => {
-        use super::convert::IdConversionMap;
-        use crate::ids::convert::ConvertibleElfIds;
-        use crate::ids::{ElfIds, ReprIdGetters, StringIdGetters};
-        use crate::{ElfObject, ElfSectionContent};
+        use $crate::ids::convert::IdConversionMap;
+        use $crate::ids::convert::ConvertibleElfIds;
+        use $crate::ids::{ElfIds, ReprIdGetters, StringIdGetters};
+        use $crate::{ElfObject, ElfSectionContent};
 
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         $section_vis struct $section_ty(usize);

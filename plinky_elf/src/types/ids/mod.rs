@@ -1,4 +1,4 @@
-mod convert;
+pub mod convert;
 pub mod serial;
 
 pub use convert::convert;

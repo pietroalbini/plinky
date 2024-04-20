@@ -103,7 +103,7 @@ debug print: built elf
  │  ├────────────┼────────────┤
  │  │ Type       │ Executable │
  │  ├────────────┼────────────┤
- │  │ Entrypoint │ 4198400    │
+ │  │ Entrypoint │ 0x401000   │
  │  ╰────────────┴────────────╯
  │
  │  section #0 (address: 0x0)

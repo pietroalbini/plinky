@@ -43,7 +43,7 @@ pub(super) fn render_meta(object: &ElfObject<SerialIds>) -> impl Widget {
     table.add_row([
         "Entrypoint".to_string(),
         match object.entry {
-            Some(entry) => entry.to_string(),
+            Some(entry) => format!("{entry:#x}"),
             None => "-".to_string(),
         },
     ]);

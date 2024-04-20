@@ -1,9 +1,9 @@
-use crate::ids::serial::SerialIds;
+use crate::ids::ElfIds;
 use crate::render_elf::utils::{render_perms, section_name};
 use crate::{ElfObject, ElfSegmentContent, ElfSegmentType};
 use plinky_diagnostics::widgets::{Table, Text, Widget};
 
-pub(super) fn render_segments(object: &ElfObject<SerialIds>) -> Box<dyn Widget> {
+pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widget> {
     if object.segments.is_empty() {
         return Box::new(Text::new("No segments in the ELF file."));
     }
@@ -29,7 +29,7 @@ pub(super) fn render_segments(object: &ElfObject<SerialIds>) -> Box<dyn Widget> 
                 ElfSegmentContent::Empty => "-".into(),
                 ElfSegmentContent::Sections(sections) => sections
                     .iter()
-                    .map(|&id| section_name(object, id))
+                    .map(|id| section_name(object, id))
                     .collect::<Vec<_>>()
                     .join(", "),
                 ElfSegmentContent::Unknown(unknown) => format!(

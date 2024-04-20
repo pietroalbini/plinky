@@ -1,4 +1,4 @@
-use crate::ids::serial::{SectionId, SerialIds};
+use crate::ids::ElfIds;
 use crate::render_elf::utils::{render_perms, section_name, symbol_name};
 use crate::{
     ElfDeduplication, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection, ElfRelocationsTable,
@@ -7,10 +7,10 @@ use crate::{
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
-pub(super) fn render_section(
-    object: &ElfObject<SerialIds>,
-    id: SectionId,
-    section: &ElfSection<SerialIds>,
+pub(super) fn render_section<I: ElfIds>(
+    object: &ElfObject<I>,
+    id: &I::SectionId,
+    section: &ElfSection<I>,
 ) -> impl Widget {
     let content: Vec<Box<dyn Widget>> = match &section.content {
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
@@ -26,7 +26,7 @@ pub(super) fn render_section(
     WidgetGroup::new()
         .name(format!(
             "section {} (address: {:#x})",
-            section_name(object, id),
+            section_name(object, &id),
             section.memory_address
         ))
         .add_iter(content)
@@ -56,17 +56,17 @@ fn render_section_uninit(uninit: &ElfUninitializedSection) -> Vec<Box<dyn Widget
     )))]
 }
 
-fn render_section_symbols(
-    object: &ElfObject<SerialIds>,
-    section_id: SectionId,
-    symbols: &ElfSymbolTable<SerialIds>,
+fn render_section_symbols<I: ElfIds>(
+    object: &ElfObject<I>,
+    section_id: &I::SectionId,
+    symbols: &ElfSymbolTable<I>,
 ) -> Vec<Box<dyn Widget>> {
     let mut table = Table::new();
     table.set_title("Symbol table:");
     table.add_row(["Name", "Binding", "Type", "Definition", "Value", "Size"]);
     for (id, symbol) in &symbols.symbols {
         table.add_row([
-            symbol_name(object, section_id, *id),
+            symbol_name(object, section_id, id),
             match symbol.binding {
                 ElfSymbolBinding::Local => "Local".into(),
                 ElfSymbolBinding::Global => "Global".into(),
@@ -81,7 +81,7 @@ fn render_section_symbols(
                 ElfSymbolType::File => "File".into(),
                 ElfSymbolType::Unknown(unknown) => format!("<unknown: {unknown:#x}>"),
             },
-            match symbol.definition {
+            match &symbol.definition {
                 ElfSymbolDefinition::Undefined => "Undefined".into(),
                 ElfSymbolDefinition::Absolute => "Absolute".into(),
                 ElfSymbolDefinition::Common => "Common".into(),
@@ -103,15 +103,15 @@ fn render_section_strings(strings: &ElfStringTable) -> Vec<Box<dyn Widget>> {
     vec![Box::new(table)]
 }
 
-fn render_section_relocs(
-    object: &ElfObject<SerialIds>,
-    relocs: &ElfRelocationsTable<SerialIds>,
+fn render_section_relocs<I: ElfIds>(
+    object: &ElfObject<I>,
+    relocs: &ElfRelocationsTable<I>,
 ) -> Vec<Box<dyn Widget>> {
     let intro = Text::new(format!(
         "symbol table:       {}\n\
          applies to section: {}",
-        section_name(object, relocs.symbol_table),
-        section_name(object, relocs.applies_to_section),
+        section_name(object, &relocs.symbol_table),
+        section_name(object, &relocs.applies_to_section),
     ));
 
     let mut table = Table::new();
@@ -125,7 +125,7 @@ fn render_section_relocs(
         };
         table.add_row([
             format!("{:?}", relocation.relocation_type),
-            symbol_name(object, relocs.symbol_table, relocation.symbol),
+            symbol_name(object, &relocs.symbol_table, &relocation.symbol),
             format!("{:#x}", relocation.offset),
             addend,
         ]);

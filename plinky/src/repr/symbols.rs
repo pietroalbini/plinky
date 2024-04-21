@@ -74,7 +74,7 @@ impl Symbols {
                 id: symbol_id,
                 name,
                 type_,
-                stt_file: file,
+                stt_file,
                 span,
                 visibility: match elf_symbol.binding {
                     ElfSymbolBinding::Local => SymbolVisibility::Local,

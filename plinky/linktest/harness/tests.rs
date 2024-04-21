@@ -134,6 +134,8 @@ impl TestExecution {
 #[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(crate) struct TestSettings {
+    #[serde(default)]
+    pub(crate) ignore: Option<String>,
     cmd: Vec<String>,
     kind: TestKind,
     #[serde(default = "default_test_archs")]

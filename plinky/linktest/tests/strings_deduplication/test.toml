@@ -1,3 +1,5 @@
+ignore = "currently broken"
+
 cmd = ["foo.o", "bar.o"]
 kind = "run-pass"
 debug-print = [

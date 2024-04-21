@@ -27,8 +27,8 @@ pub(crate) fn gather_tests(path: &Path) -> Result<Vec<TestDescAndFn>, Error> {
             tests.push(TestDescAndFn {
                 desc: TestDesc {
                     name: TestName::DynTestName(format!("{name} ({arch_name})")),
-                    ignore: false,
-                    ignore_message: None,
+                    ignore: test_toml.ignore.is_some(),
+                    ignore_message: test_toml.ignore.clone().map(|i| leak(i)),
                     source_file: "",
                     start_line: 0,
                     start_col: 0,
@@ -44,4 +44,8 @@ pub(crate) fn gather_tests(path: &Path) -> Result<Vec<TestDescAndFn>, Error> {
         }
     }
     Ok(tests)
+}
+
+fn leak(string: String) -> &'static str {
+    Box::leak(Box::new(string)).as_str()
 }

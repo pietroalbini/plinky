@@ -62,7 +62,7 @@ impl Symbols {
                 ElfSymbolType::Section => SymbolType::Section,
                 // The file symbol type is not actually used, so we can omit it.
                 ElfSymbolType::File => {
-                    file = Some(name);
+                    stt_file = Some(name);
                     continue;
                 },
                 ElfSymbolType::Unknown(_) => {

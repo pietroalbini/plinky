@@ -47,7 +47,7 @@ impl Symbols {
         table: ElfSymbolTable<SerialIds>,
         strings: &Strings,
     ) -> Result<(), LoadSymbolsError> {
-        let mut file = None;
+        let mut stt_file = None;
         for (symbol_id, elf_symbol) in table.symbols.into_iter() {
             let name = intern(
                 strings

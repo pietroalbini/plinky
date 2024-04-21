@@ -27,7 +27,7 @@ impl Sections {
         Sections { sections, ids_map: BTreeMap::new(), names }
     }
 
-    pub(super) fn add<'a>(
+    pub(super) fn create<'a>(
         &'a mut self,
         name: &'a str,
         content: ElfSectionContent<BuiltElfIds>,
@@ -43,11 +43,7 @@ impl Sections {
         let shstrtab = self.names.add(".shstrtab");
         self.sections.insert(
             self.names.id,
-            ElfSection {
-                name: shstrtab,
-                memory_address: 0,
-                content: ElfSectionContent::StringTable(ElfStringTable::new(self.names.strings)),
-            },
+            ElfSection { name: shstrtab, memory_address: 0, content: self.names.into_elf() },
         );
         self.sections
     }

@@ -10,7 +10,7 @@ use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
-    ElfSegmentType, ElfType, ElfUninitializedSection, RawBytes,
+    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -67,7 +67,7 @@ impl ElfBuilder<'_> {
             match &section.content {
                 SectionContent::Data(data) => {
                     self.sections
-                        .add(
+                        .create(
                             &section.name.resolve(),
                             ElfSectionContent::Program(ElfProgramSection {
                                 perms: section.perms,
@@ -81,7 +81,7 @@ impl ElfBuilder<'_> {
                 }
                 SectionContent::Uninitialized(uninit) => self
                     .sections
-                    .add(
+                    .create(
                         &section.name.resolve(),
                         ElfSectionContent::Uninitialized(ElfUninitializedSection {
                             perms: section.perms,
@@ -151,6 +151,10 @@ impl PendingStringsTable {
         self.next_offset += string.len() as u32 + 1;
         self.strings.insert(offset, string.into());
         BuiltElfStringId::new(self.id, offset)
+    }
+
+    fn into_elf(self) -> ElfSectionContent<BuiltElfIds> {
+        ElfSectionContent::StringTable(ElfStringTable::new(self.strings))
     }
 }
 

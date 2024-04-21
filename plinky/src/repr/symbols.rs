@@ -31,6 +31,7 @@ impl Symbols {
                 id,
                 name: intern(name),
                 type_: SymbolType::NoType,
+                stt_file: None,
                 span: intern(ObjectSpan::new_synthetic()),
                 visibility: SymbolVisibility::Global { weak: false },
                 value: SymbolValue::Undefined,
@@ -46,28 +47,34 @@ impl Symbols {
         table: ElfSymbolTable<SerialIds>,
         strings: &Strings,
     ) -> Result<(), LoadSymbolsError> {
+        let mut file = None;
         for (symbol_id, elf_symbol) in table.symbols.into_iter() {
+            let name = intern(
+                strings
+                    .get(elf_symbol.name)
+                    .map_err(|e| LoadSymbolsError::MissingSymbolName(symbol_id, e))?,
+            );
+
             let type_ = match elf_symbol.type_ {
                 ElfSymbolType::NoType => SymbolType::NoType,
                 ElfSymbolType::Object => SymbolType::Object,
                 ElfSymbolType::Function => SymbolType::Function,
                 ElfSymbolType::Section => SymbolType::Section,
                 // The file symbol type is not actually used, so we can omit it.
-                ElfSymbolType::File => continue,
+                ElfSymbolType::File => {
+                    file = Some(name);
+                    continue;
+                },
                 ElfSymbolType::Unknown(_) => {
                     return Err(LoadSymbolsError::UnsupportedUnknownSymbolType)
                 }
             };
 
-            let name = intern(
-                strings
-                    .get(elf_symbol.name)
-                    .map_err(|e| LoadSymbolsError::MissingSymbolName(symbol_id, e))?,
-            );
             let symbol = Symbol {
                 id: symbol_id,
                 name,
                 type_,
+                stt_file: file,
                 span,
                 visibility: match elf_symbol.binding {
                     ElfSymbolBinding::Local => SymbolVisibility::Local,
@@ -188,6 +195,7 @@ pub(crate) struct Symbol {
     pub(crate) id: SymbolId,
     pub(crate) name: Interned<String>,
     pub(crate) type_: SymbolType,
+    pub(crate) stt_file: Option<Interned<String>>,
     pub(crate) span: Interned<ObjectSpan>,
     pub(crate) visibility: SymbolVisibility,
     pub(crate) value: SymbolValue,

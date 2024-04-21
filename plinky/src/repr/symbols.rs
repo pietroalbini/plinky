@@ -247,7 +247,10 @@ impl Symbol {
                 symbol: self.name,
                 inner: ResolveSymbolErrorKind::Undefined,
             }),
-            SymbolValue::Absolute { value } => Ok(ResolvedSymbol::Absolute(*value)),
+            SymbolValue::Absolute { value } => {
+                assert!(offset == 0);
+                Ok(ResolvedSymbol::Absolute(*value))
+            },
             SymbolValue::SectionRelative { section, offset: section_offset } => {
                 match layout.address(*section, (*section_offset as i64) + offset) {
                     Ok(result) => Ok(ResolvedSymbol::Address(result)),

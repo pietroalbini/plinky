@@ -213,6 +213,10 @@ impl Symbols {
     pub(crate) fn iters_with_redirects(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
         self.symbols.keys().map(|&id| (id, self.get(id)))
     }
+
+    pub(crate) fn null_symbol_id(&self) -> SymbolId {
+        self.null_symbol_id
+    }
 }
 
 #[derive(Debug)]

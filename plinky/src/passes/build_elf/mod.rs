@@ -1,5 +1,6 @@
 pub(crate) mod ids;
 mod sections;
+mod symbols;
 
 use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
@@ -37,6 +38,8 @@ impl ElfBuilder<'_> {
         let entry = self.prepare_entry_point()?;
         self.prepare_sections();
         let segments = self.prepare_segments();
+
+        symbols::add_symbols(&mut self);
 
         Ok(ElfObject {
             env: self.object.env,

@@ -17,7 +17,7 @@ mod read_objects;
 pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
 
-    let mut empty_symbols = Symbols::new();
+    let mut empty_symbols = Symbols::new(ids);
     let entry_point = empty_symbols
         .add_unknown_global(ids, &options.entry)
         .map_err(LoadInputsError::EntryInsertionFailed)?;

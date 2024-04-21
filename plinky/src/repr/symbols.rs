@@ -9,13 +9,29 @@ use std::collections::{btree_map, BTreeMap};
 
 #[derive(Debug)]
 pub(crate) struct Symbols {
+    null_symbol_id: SymbolId,
     symbols: BTreeMap<SymbolId, SymbolOrRedirect>,
     global_symbols: BTreeMap<Interned<String>, SymbolId>,
 }
 
 impl Symbols {
-    pub(crate) fn new() -> Self {
-        Self { symbols: BTreeMap::new(), global_symbols: BTreeMap::new() }
+    pub(crate) fn new(ids: &mut SerialIds) -> Self {
+        let null_symbol_id = ids.allocate_symbol_id();
+
+        let mut symbols = BTreeMap::new();
+        symbols.insert(
+            null_symbol_id,
+            SymbolOrRedirect::Symbol(Symbol {
+                id: null_symbol_id,
+                name: intern(""),
+                type_: SymbolType::NoType,
+                stt_file: None,
+                span: intern(ObjectSpan::new_synthetic()),
+                visibility: SymbolVisibility::Local,
+                value: SymbolValue::Null,
+            }),
+        );
+        Self { null_symbol_id, symbols, global_symbols: BTreeMap::new() }
     }
 
     pub(crate) fn add_unknown_global(
@@ -48,12 +64,27 @@ impl Symbols {
         strings: &Strings,
     ) -> Result<(), LoadSymbolsError> {
         let mut stt_file = None;
+        let mut is_first = true;
         for (symbol_id, elf_symbol) in table.symbols.into_iter() {
-            let name = intern(
+            let name: Interned<String> = intern(
                 strings
                     .get(elf_symbol.name)
                     .map_err(|e| LoadSymbolsError::MissingSymbolName(symbol_id, e))?,
             );
+
+            if is_first {
+                is_first = false;
+
+                // Instead of creating the null symbol for every object we load, we instead
+                // redirect it to the shared null symbol defined during initialization.
+                if name.resolve().is_empty()
+                    && matches!(elf_symbol.definition, ElfSymbolDefinition::Undefined)
+                    && matches!(elf_symbol.type_, ElfSymbolType::NoType)
+                {
+                    self.symbols.insert(symbol_id, SymbolOrRedirect::Redirect(self.null_symbol_id));
+                    continue;
+                }
+            }
 
             let type_ = match elf_symbol.type_ {
                 ElfSymbolType::NoType => SymbolType::NoType,
@@ -64,7 +95,7 @@ impl Symbols {
                 ElfSymbolType::File => {
                     stt_file = Some(name);
                     continue;
-                },
+                }
                 ElfSymbolType::Unknown(_) => {
                     return Err(LoadSymbolsError::UnsupportedUnknownSymbolType)
                 }
@@ -222,6 +253,9 @@ impl Symbol {
                     }),
                 }
             }
+            SymbolValue::Null => {
+                Err(ResolveSymbolError { symbol: self.name, inner: ResolveSymbolErrorKind::Null })
+            }
         }
     }
 }
@@ -245,6 +279,7 @@ pub(crate) enum SymbolValue {
     Absolute { value: u64 },
     SectionRelative { section: SectionId, offset: u64 },
     Undefined,
+    Null,
 }
 
 pub(crate) enum ResolvedSymbol {
@@ -289,6 +324,8 @@ pub(crate) struct ResolveSymbolError {
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum ResolveSymbolErrorKind {
+    #[display("the symbol is the null symbol")]
+    Null,
     #[display("symbol is not defined")]
     Undefined,
     #[transparent]

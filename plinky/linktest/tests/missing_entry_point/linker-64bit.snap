@@ -12,13 +12,13 @@ debug print: loaded object
  │  ╭───────────────────┬─────────┬──────────┬────────────┬───────────────╮
  │  │ Name              │ Type    │ Source   │ Visibility │ Value         │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ <symbol#2>        │ none    │ hello.o  │ local      │ <undefined>   │
+ │  │ <symbol#0>        │ none    │ <plinky> │ local      │ <null>        │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ <section .text#1> │ section │ hello.o  │ local      │ .text#1 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ _start#1          │ none    │ <plinky> │ global     │ <undefined>   │
+ │  │ _start#2          │ none    │ <plinky> │ global     │ <undefined>   │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ custom_entry#6    │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
+ │  │ custom_entry#7    │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
  │  ╰───────────────────┴─────────┴──────────┴────────────┴───────────────╯
  ┴
 

@@ -144,6 +144,7 @@ fn render_symbols<'a>(
                 format!("{} + {offset:#x}", section_name(object, section))
             }
             SymbolValue::Undefined => "<undefined>".into(),
+            SymbolValue::Null => "<null>".into(),
         };
         table.add_row([
             symbol_name(object, id).as_str(),

@@ -210,6 +210,13 @@ impl Symbols {
         })
     }
 
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = (SymbolId, &mut Symbol)> {
+        self.symbols.iter_mut().filter_map(|(id, symbol)| match symbol {
+            SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
+            SymbolOrRedirect::Redirect(_) => None,
+        })
+    }
+
     pub(crate) fn iters_with_redirects(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
         self.symbols.keys().map(|&id| (id, self.get(id)))
     }
@@ -260,6 +267,9 @@ impl Symbol {
                     }),
                 }
             }
+            SymbolValue::SectionVirtualAddress { memory_address, .. } => {
+                Ok(ResolvedSymbol::Address(((*memory_address as i64) + offset) as u64))
+            }
             SymbolValue::Null => {
                 Err(ResolveSymbolError { symbol: self.name, inner: ResolveSymbolErrorKind::Null })
             }
@@ -285,6 +295,7 @@ pub(crate) enum SymbolVisibility {
 pub(crate) enum SymbolValue {
     Absolute { value: u64 },
     SectionRelative { section: SectionId, offset: u64 },
+    SectionVirtualAddress { section: SectionId, memory_address: u64 },
     Undefined,
     Null,
 }

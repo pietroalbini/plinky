@@ -86,7 +86,10 @@ fn add_symbol(
             },
             definition: match &symbol.value {
                 SymbolValue::Absolute { .. } => ElfSymbolDefinition::Absolute,
-                SymbolValue::SectionRelative { section, .. } => {
+                SymbolValue::SectionRelative { .. } => {
+                    panic!("section relative addresses should not reach this stage");
+                }
+                SymbolValue::SectionVirtualAddress { section, .. } => {
                     ElfSymbolDefinition::Section(sections.new_id_of(*section))
                 }
                 SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
@@ -94,7 +97,10 @@ fn add_symbol(
             },
             value: match &symbol.value {
                 SymbolValue::Absolute { value } => *value,
-                SymbolValue::SectionRelative { offset, .. } => *offset,
+                SymbolValue::SectionRelative { .. } => {
+                    panic!("section relative addresses should not reach this stage");
+                }
+                SymbolValue::SectionVirtualAddress { memory_address, .. } => *memory_address,
                 SymbolValue::Undefined => 0,
                 SymbolValue::Null => 0,
             },

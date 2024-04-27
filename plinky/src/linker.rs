@@ -7,6 +7,7 @@ use crate::passes::gc_sections::RemovedSection;
 use crate::passes::layout::Layout;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::relocate::RelocationError;
+use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
 use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
 use plinky_elf::ids::serial::SerialIds;
@@ -35,6 +36,10 @@ pub(crate) fn link_driver(
 
     passes::relocate::run(&mut object, &layout)?;
     callbacks.on_relocations_applied(&object, &layout);
+
+    passes::remove_section_symbols::remove(&mut object);
+    passes::replace_section_relative_symbols::replace(&mut object, &layout)?;
+
     let elf = passes::build_elf::run(object, &layout)?;
     callbacks.on_elf_built(&elf);
 
@@ -65,6 +70,8 @@ pub(crate) enum LinkerError {
     RelocationFailed(RelocationError),
     #[transparent]
     ElfBuildFailed(ElfBuilderError),
+    #[transparent]
+    ReplaceSectionRelativeSymbolsFailed(ReplaceSectionRelativeSymbolsError),
     #[transparent]
     WriteToDiskFailed(WriteToDiskError),
 }

@@ -143,6 +143,9 @@ fn render_symbols<'a>(
             SymbolValue::SectionRelative { section, offset } => {
                 format!("{} + {offset:#x}", section_name(object, section))
             }
+            SymbolValue::SectionVirtualAddress { section, memory_address } => {
+                format!("{memory_address:#x} (in {})", section_name(object, section))
+            }
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),
         };

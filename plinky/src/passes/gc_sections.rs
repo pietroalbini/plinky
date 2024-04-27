@@ -12,6 +12,7 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
             .iters_with_redirects()
             .filter_map(|(id, symbol)| match symbol.value {
                 SymbolValue::SectionRelative { section, .. } => Some((id, section)),
+                SymbolValue::SectionVirtualAddress { section, .. } => Some((id, section)),
                 SymbolValue::Absolute { .. } => None,
                 SymbolValue::Undefined => None,
                 SymbolValue::Null => None,

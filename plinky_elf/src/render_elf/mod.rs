@@ -11,7 +11,10 @@ mod sections;
 mod segments;
 mod utils;
 
-pub fn render<I: ElfIds + 'static>(object: &ElfObject<I>, filters: &RenderElfFilters) -> impl Widget {
+pub fn render<I: ElfIds + 'static>(
+    object: &ElfObject<I>,
+    filters: &RenderElfFilters,
+) -> impl Widget {
     let mut widgets: Vec<Box<dyn Widget>> = Vec::new();
     if filters.meta {
         widgets.push(Box::new(meta::render_meta(object)));

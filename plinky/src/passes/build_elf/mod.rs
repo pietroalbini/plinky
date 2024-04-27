@@ -59,8 +59,9 @@ impl ElfBuilder<'_> {
             ResolvedSymbol::Absolute(_) => {
                 Err(ElfBuilderError::EntryPointNotAnAddress(symbol.name))
             }
-            ResolvedSymbol::Address(addr) => Ok(Some(
-                NonZeroU64::new(addr).ok_or(ElfBuilderError::EntrypointIsZero(symbol.name))?,
+            ResolvedSymbol::Address { memory_address, .. } => Ok(Some(
+                NonZeroU64::new(memory_address)
+                    .ok_or(ElfBuilderError::EntrypointIsZero(symbol.name))?,
             )),
         }
     }

@@ -52,7 +52,7 @@ impl<'a> Relocator<'a> {
             ElfRelocationType::X86_64_PC32
             | ElfRelocationType::X86_PC32
             | ElfRelocationType::X86_64_PLT32 => {
-                let offset = self.layout.address(section_id, relocation.offset as i64)? as i64;
+                let offset = self.layout.address(section_id, relocation.offset as i64)?.1 as i64;
                 editor.write_32(self.symbol(relocation, editor.addend_32())? - offset)
             }
             other => Err(RelocationError::UnsupportedRelocation(other)),

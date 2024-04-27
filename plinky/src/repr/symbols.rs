@@ -257,18 +257,23 @@ impl Symbol {
             SymbolValue::Absolute { value } => {
                 assert!(offset == 0);
                 Ok(ResolvedSymbol::Absolute(*value))
-            },
+            }
             SymbolValue::SectionRelative { section, offset: section_offset } => {
                 match layout.address(*section, (*section_offset as i64) + offset) {
-                    Ok(result) => Ok(ResolvedSymbol::Address(result)),
+                    Ok((section, memory_address)) => {
+                        Ok(ResolvedSymbol::Address { section, memory_address })
+                    }
                     Err(err) => Err(ResolveSymbolError {
                         symbol: self.name,
                         inner: ResolveSymbolErrorKind::Layout(err),
                     }),
                 }
             }
-            SymbolValue::SectionVirtualAddress { memory_address, .. } => {
-                Ok(ResolvedSymbol::Address(((*memory_address as i64) + offset) as u64))
+            SymbolValue::SectionVirtualAddress { section, memory_address } => {
+                Ok(ResolvedSymbol::Address {
+                    section: *section,
+                    memory_address: ((*memory_address as i64) + offset) as u64,
+                })
             }
             SymbolValue::Null => {
                 Err(ResolveSymbolError { symbol: self.name, inner: ResolveSymbolErrorKind::Null })
@@ -302,14 +307,14 @@ pub(crate) enum SymbolValue {
 
 pub(crate) enum ResolvedSymbol {
     Absolute(u64),
-    Address(u64),
+    Address { section: SectionId, memory_address: u64 },
 }
 
 impl ResolvedSymbol {
     pub(crate) fn as_u64(&self) -> u64 {
         match self {
             ResolvedSymbol::Absolute(v) => *v,
-            ResolvedSymbol::Address(v) => *v,
+            ResolvedSymbol::Address { memory_address, .. } => *memory_address,
         }
     }
 }

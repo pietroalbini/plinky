@@ -1,11 +1,9 @@
-ignore = "currently broken"
-
 cmd = ["foo.o", "bar.o"]
 kind = "run-pass"
 debug-print = [
     "relocated-object=.custom_messages,.text",
     "layout",
-    "final-elf=.custom-messages,.text",
+    "final-elf=.custom-messages,.text,.strtab,.symtab",
 ]
 
 [[asm]]

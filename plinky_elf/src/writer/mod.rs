@@ -232,7 +232,7 @@ where
                 ElfSegmentContent::Sections(section_ids) => {
                     let mut section_ids = section_ids.iter();
                     let first_section_id = section_ids.next().unwrap();
-                    let first_section = self.object.sections.get(&first_section_id).unwrap();
+                    let first_section = self.object.sections.get(first_section_id).unwrap();
 
                     let (file_offset, mut file_size, mut memory_size) = match &first_section.content
                     {

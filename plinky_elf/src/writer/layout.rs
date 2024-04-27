@@ -96,7 +96,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 continue;
             };
             for section_id in segment_sections {
-                let Some(deferred) = deferred_program_sections.remove(&section_id) else {
+                let Some(deferred) = deferred_program_sections.remove(section_id) else {
                     continue;
                 };
                 layout.add_part(Part::ProgramSection(section_id.clone()), deferred.len);

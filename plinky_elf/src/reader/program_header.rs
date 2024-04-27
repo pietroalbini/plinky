@@ -38,7 +38,7 @@ pub(super) fn read_program_header(
         {
             ElfSegmentContent::Empty
         } else if let Some(id) = content_map.get(&(header.file_offset, header.file_size)) {
-            ElfSegmentContent::Sections(vec![id.clone()])
+            ElfSegmentContent::Sections(vec![*id])
         } else {
             ElfSegmentContent::Unknown(ElfUnknownSegmentContent {
                 file_offset: header.file_offset,

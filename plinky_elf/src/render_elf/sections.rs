@@ -26,7 +26,7 @@ pub(super) fn render_section<I: ElfIds>(
     WidgetGroup::new()
         .name(format!(
             "section {} (address: {:#x})",
-            section_name(object, &id),
+            section_name(object, id),
             section.memory_address
         ))
         .add_iter(content)

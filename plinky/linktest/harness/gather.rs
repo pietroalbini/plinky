@@ -28,7 +28,7 @@ pub(crate) fn gather_tests(path: &Path) -> Result<Vec<TestDescAndFn>, Error> {
                 desc: TestDesc {
                     name: TestName::DynTestName(format!("{name} ({arch_name})")),
                     ignore: test_toml.ignore.is_some(),
-                    ignore_message: test_toml.ignore.clone().map(|i| leak(i)),
+                    ignore_message: test_toml.ignore.clone().map(leak),
                     source_file: "",
                     start_line: 0,
                     start_col: 0,

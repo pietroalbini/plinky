@@ -20,7 +20,7 @@ pub fn render<I: ElfIds + 'static>(
         widgets.push(Box::new(meta::render_meta(object)));
     }
     for (id, section) in &object.sections {
-        if filters.section(&resolve_string(object, &section.name)) {
+        if filters.section(resolve_string(object, &section.name)) {
             widgets.push(Box::new(sections::render_section(object, id, section)));
         }
     }

@@ -26,7 +26,7 @@ impl CFile {
         };
 
         let source_dir = TempDir::new()?;
-        std::fs::write(source_dir.path().join(&self.source), &source)?;
+        std::fs::write(source_dir.path().join(&self.source), source)?;
 
         eprintln!("compiling {} into {dest_name}...", self.source);
         run(Command::new("cc")

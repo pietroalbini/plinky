@@ -45,7 +45,13 @@ impl<'a> Relocator<'a> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.type_ {
             RelocationType::Absolute32 => {
-                editor.write_32(match self.symbol(relocation, editor.addend_32()?)? {
+                editor.write_u32(match self.symbol(relocation, editor.addend_32()?)? {
+                    ResolvedSymbol::Absolute(absolute) => absolute.into(),
+                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
+                })
+            }
+            RelocationType::AbsoluteSigned32 => {
+                editor.write_i32(match self.symbol(relocation, editor.addend_32()?)? {
                     ResolvedSymbol::Absolute(absolute) => absolute.into(),
                     ResolvedSymbol::Address { memory_address, .. } => memory_address,
                 })
@@ -58,7 +64,7 @@ impl<'a> Relocator<'a> {
                     ResolvedSymbol::Address { memory_address, .. } => memory_address,
                 };
                 let offset = self.layout.address(section_id, relocation.offset.into())?.1;
-                editor.write_32(
+                editor.write_i32(
                     symbol
                         .checked_sub(offset)
                         .ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
@@ -85,7 +91,15 @@ impl ByteEditor<'_> {
         }
     }
 
-    fn write_32(&mut self, value: i128) -> Result<(), RelocationError> {
+    fn write_u32(&mut self, value: i128) -> Result<(), RelocationError> {
+        self.write(
+            &u32::try_from(value)
+                .map_err(|_| RelocationError::RelocatedAddressOutOfBounds)?
+                .to_le_bytes(),
+        )
+    }
+
+    fn write_i32(&mut self, value: i128) -> Result<(), RelocationError> {
         self.write(
             &i32::try_from(value)
                 .map_err(|_| RelocationError::RelocatedAddressOutOfBounds)?

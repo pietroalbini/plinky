@@ -5,6 +5,7 @@ use plinky_macros::{Display, Error};
 #[derive(Debug)]
 pub(crate) enum RelocationType {
     Absolute32,
+    AbsoluteSigned32,
     Relative32,
     PLT32,
 }
@@ -27,8 +28,7 @@ impl TryFrom<ElfRelocation<SerialIds>> for Relocation {
                 ElfRelocationType::X86_PC32 => RelocationType::Relative32,
 
                 ElfRelocationType::X86_64_32 => RelocationType::Absolute32,
-                // TODO: handle X86_64_32 and X86_64_32S differently
-                ElfRelocationType::X86_64_32S => RelocationType::Absolute32,
+                ElfRelocationType::X86_64_32S => RelocationType::AbsoluteSigned32,
                 ElfRelocationType::X86_64_PC32 => RelocationType::Relative32,
                 ElfRelocationType::X86_64_PLT32 => RelocationType::PLT32,
 

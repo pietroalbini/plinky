@@ -76,8 +76,8 @@ impl Layout {
     pub(crate) fn address(
         &self,
         section: SectionId,
-        offset: i64,
-    ) -> Result<(SectionId, u64), AddressResolutionError> {
+        offset: i128,
+    ) -> Result<(SectionId, i128), AddressResolutionError> {
         if let Some(deduplication) = self.deduplications.get(&section) {
             let base = match self.of_section(deduplication.target) {
                 SectionLayout::Allocated { address } => *address,
@@ -91,14 +91,12 @@ impl Layout {
             let map_key = u64::try_from(offset)
                 .map_err(|_| AddressResolutionError::NegativeOffsetToAccessDeduplications)?;
             match deduplication.map.get(&map_key) {
-                Some(&mapped) => Ok((deduplication.target, base + mapped)),
+                Some(&mapped) => Ok((deduplication.target, i128::from(base) + i128::from(mapped))),
                 None => Err(AddressResolutionError::UnalignedReferenceToDeduplication),
             }
         } else {
             match self.of_section(section) {
-                SectionLayout::Allocated { address } => {
-                    Ok((section, (*address as i64 + offset) as u64))
-                }
+                SectionLayout::Allocated { address } => Ok((section, i128::from(*address) + offset)),
                 SectionLayout::NotAllocated => {
                     Err(AddressResolutionError::PointsToUnallocatedSection(section))
                 }

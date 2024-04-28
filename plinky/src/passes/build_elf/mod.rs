@@ -60,8 +60,12 @@ impl ElfBuilder<'_> {
                 Err(ElfBuilderError::EntryPointNotAnAddress(symbol.name))
             }
             ResolvedSymbol::Address { memory_address, .. } => Ok(Some(
-                NonZeroU64::new(memory_address)
-                    .ok_or(ElfBuilderError::EntrypointIsZero(symbol.name))?,
+                NonZeroU64::new(
+                    memory_address
+                        .try_into()
+                        .map_err(|_| ElfBuilderError::EntrypointIsOutOfBounds(memory_address))?,
+                )
+                .ok_or(ElfBuilderError::EntrypointIsZero(symbol.name))?,
             )),
         }
     }
@@ -170,4 +174,6 @@ pub(crate) enum ElfBuilderError {
     EntryPointNotAnAddress(Interned<String>),
     #[display("the entry point is zero")]
     EntrypointIsZero(Interned<String>),
+    #[display("the entry point address {f0:#x} is out of bounds")]
+    EntrypointIsOutOfBounds(i128),
 }

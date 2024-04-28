@@ -2,7 +2,7 @@ use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
-use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, Symbols};
+use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, ResolvedSymbol, Symbols};
 use plinky_elf::ids::serial::SectionId;
 use plinky_macros::{Display, Error};
 
@@ -45,17 +45,30 @@ impl<'a> Relocator<'a> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.type_ {
             RelocationType::Absolute32 => {
-                editor.write_32(self.symbol(relocation, editor.addend_32()?)?)
+                editor.write_32(match self.symbol(relocation, editor.addend_32()?)? {
+                    ResolvedSymbol::Absolute(absolute) => absolute.into(),
+                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
+                })
             }
             RelocationType::Relative32 | RelocationType::PLT32 => {
-                let offset = self.layout.address(section_id, relocation.offset as i64)?.1 as i64;
-                editor.write_32(self.symbol(relocation, editor.addend_32()?)? - offset)
+                let symbol = match self.symbol(relocation, editor.addend_32()?)? {
+                    ResolvedSymbol::Absolute(_) => {
+                        return Err(RelocationError::RelativeRelocationWithAbsoluteValue);
+                    }
+                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
+                };
+                let offset = self.layout.address(section_id, relocation.offset.into())?.1;
+                editor.write_32(
+                    symbol
+                        .checked_sub(offset)
+                        .ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
+                )
             }
         }
     }
 
-    fn symbol(&self, rel: &Relocation, offset: i64) -> Result<i64, RelocationError> {
-        Ok(self.symbols.get(rel.symbol).resolve(self.layout, offset)?.as_u64() as i64)
+    fn symbol(&self, rel: &Relocation, offset: i128) -> Result<ResolvedSymbol, RelocationError> {
+        Ok(self.symbols.get(rel.symbol).resolve(self.layout, offset)?)
     }
 }
 
@@ -65,17 +78,17 @@ struct ByteEditor<'a> {
 }
 
 impl ByteEditor<'_> {
-    fn addend_32(&self) -> Result<i64, RelocationError> {
+    fn addend_32(&self) -> Result<i128, RelocationError> {
         match self.relocation.addend {
-            Some(addend) => Ok(addend),
+            Some(addend) => Ok(addend.into()),
             None => Ok(i32::from_le_bytes(self.read()?).into()),
         }
     }
 
-    fn write_32(&mut self, value: i64) -> Result<(), RelocationError> {
+    fn write_32(&mut self, value: i128) -> Result<(), RelocationError> {
         self.write(
             &i32::try_from(value)
-                .map_err(|_| RelocationError::RelocatedAddressTooLarge(value))?
+                .map_err(|_| RelocationError::RelocatedAddressOutOfBounds)?
                 .to_le_bytes(),
         )
     }
@@ -124,8 +137,10 @@ pub(crate) enum RelocationError {
     SymbolResolution(ResolveSymbolError),
     #[transparent]
     AddressResolution(AddressResolutionError),
-    #[display("relocated address {f0:#x} is too large")]
-    RelocatedAddressTooLarge(i64),
+    #[display("relocated address is out of bounds")]
+    RelocatedAddressOutOfBounds,
     #[display("relocation is trying to access offset {offset:#x} (len: {len:#x}) on a section of size {size:#x}")]
     OutOfBoundsAccess { offset: u64, len: usize, size: usize },
+    #[display("relative relocations with absolute values are not supported")]
+    RelativeRelocationWithAbsoluteValue,
 }

@@ -20,7 +20,12 @@ pub(crate) fn replace(
             panic!("section relative address doesn't resolve into an address");
         };
 
-        symbol.value = SymbolValue::SectionVirtualAddress { section, memory_address };
+        symbol.value = SymbolValue::SectionVirtualAddress {
+            section,
+            memory_address: memory_address.try_into().map_err(|_| {
+                ReplaceSectionRelativeSymbolsError::OutOfBoundsAddress(memory_address)
+            })?,
+        };
     }
 
     Ok(())
@@ -28,7 +33,9 @@ pub(crate) fn replace(
 
 #[derive(Debug, Display, Error)]
 #[display("failed to replace addresses of section relative symbols")]
-pub(crate) struct ReplaceSectionRelativeSymbolsError {
-    #[from]
-    inner: ResolveSymbolError,
+pub(crate) enum ReplaceSectionRelativeSymbolsError {
+    #[display("symbol address {f0:#x} is out of bounds")]
+    OutOfBoundsAddress(i128),
+    #[transparent]
+    ResolveSymbol(ResolveSymbolError),
 }

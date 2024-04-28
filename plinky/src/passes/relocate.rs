@@ -45,11 +45,11 @@ impl<'a> Relocator<'a> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.type_ {
             RelocationType::Absolute32 => {
-                editor.write_32(self.symbol(relocation, editor.addend_32())?)
+                editor.write_32(self.symbol(relocation, editor.addend_32()?)?)
             }
             RelocationType::Relative32 | RelocationType::PLT32 => {
                 let offset = self.layout.address(section_id, relocation.offset as i64)?.1 as i64;
-                editor.write_32(self.symbol(relocation, editor.addend_32())? - offset)
+                editor.write_32(self.symbol(relocation, editor.addend_32()?)? - offset)
             }
         }
     }
@@ -65,25 +65,53 @@ struct ByteEditor<'a> {
 }
 
 impl ByteEditor<'_> {
-    fn addend_32(&self) -> i64 {
+    fn addend_32(&self) -> Result<i64, RelocationError> {
         match self.relocation.addend {
-            Some(addend) => addend,
-            None => {
-                let offset = self.relocation.offset as usize;
-                let bytes = &self.bytes[offset..offset + 4];
-                i32::from_le_bytes(bytes.try_into().unwrap()).into()
-            }
+            Some(addend) => Ok(addend),
+            None => Ok(i32::from_le_bytes(self.read()?).into()),
         }
     }
 
     fn write_32(&mut self, value: i64) -> Result<(), RelocationError> {
-        let bytes = i32::try_from(value)
-            .map_err(|_| RelocationError::RelocatedAddressTooLarge(value))?
-            .to_le_bytes();
+        self.write(
+            &i32::try_from(value)
+                .map_err(|_| RelocationError::RelocatedAddressTooLarge(value))?
+                .to_le_bytes(),
+        )
+    }
 
-        let offset = self.relocation.offset as usize;
-        self.bytes[offset..offset + 4].copy_from_slice(&bytes);
+    fn read<const LEN: usize>(&self) -> Result<[u8; LEN], RelocationError> {
+        let err = Err(RelocationError::OutOfBoundsAccess {
+            offset: self.relocation.offset,
+            len: LEN,
+            size: self.bytes.len(),
+        });
 
+        let Ok(start) = usize::try_from(self.relocation.offset) else { return err };
+        let Some(end) = start.checked_add(LEN) else { return err };
+        if end > self.bytes.len() {
+            return err;
+        }
+
+        let mut data = [0; LEN];
+        data.copy_from_slice(&self.bytes[start..end]);
+        Ok(data)
+    }
+
+    fn write(&mut self, bytes: &[u8]) -> Result<(), RelocationError> {
+        let err = Err(RelocationError::OutOfBoundsAccess {
+            offset: self.relocation.offset,
+            len: bytes.len(),
+            size: self.bytes.len(),
+        });
+
+        let Ok(start) = usize::try_from(self.relocation.offset) else { return err };
+        let Some(end) = start.checked_add(bytes.len()) else { return err };
+        if end > self.bytes.len() {
+            return err;
+        }
+
+        self.bytes[start..end].copy_from_slice(bytes);
         Ok(())
     }
 }
@@ -98,4 +126,6 @@ pub(crate) enum RelocationError {
     AddressResolution(AddressResolutionError),
     #[display("relocated address {f0:#x} is too large")]
     RelocatedAddressTooLarge(i64),
+    #[display("relocation is trying to access offset {offset:#x} (len: {len:#x}) on a section of size {size:#x}")]
+    OutOfBoundsAccess { offset: u64, len: usize, size: usize },
 }

@@ -11,6 +11,7 @@ pub(super) struct CFile {
     source: String,
     output: Option<String>,
     libc: Libc,
+    relocation: Relocation,
 }
 
 impl CFile {
@@ -34,8 +35,6 @@ impl CFile {
             .arg("-c")
             // Disable control-flow protection, as it's not implemented in the linker right now.
             .arg("-fcf-protection=none")
-            // Disable position independent code, as it generates code we cannot link right now.
-            .arg("-fno-pic")
             .arg("-o")
             .arg(dest_dir.join(dest_name))
             .arg(match execution.arch {
@@ -44,6 +43,10 @@ impl CFile {
             })
             .args(match self.libc {
                 Libc::Freestanding => &["-nostdlib"],
+            })
+            .args(match self.relocation {
+                Relocation::Static => &["-fno-pic"] as &[&str],
+                Relocation::PicOnlyGot => &["-fPIC", "-fno-plt"],
             })
             .arg(&self.source))?;
 
@@ -55,4 +58,11 @@ impl CFile {
 #[serde(rename_all = "kebab-case")]
 enum Libc {
     Freestanding,
+}
+
+#[derive(serde::Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+enum Relocation {
+    Static,
+    PicOnlyGot,
 }

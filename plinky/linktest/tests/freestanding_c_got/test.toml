@@ -1,11 +1,11 @@
 cmd = ["hello.o", "syscalls.o"]
-kind = "run-pass"
+kind = "link-fail"
 archs = ["x86", "x86_64"]
 
 [[c]]
 source = "hello.c"
 libc = "freestanding"
-relocation = "static"
+relocation = "pic-only-got"
 
 [[arch.x86.asm]]
 source = "syscalls.32bit.asm"

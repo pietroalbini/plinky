@@ -1,0 +1,15 @@
+---
+source: plinky/linktest/harness/tests.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: failed to parse "hello.o"
+caused by: failed to parse section header number 7
+caused by: failed to read field flags of struct plinky_elf::raw::RawSectionHeader
+caused by: failed to read plinky_elf::raw::RawSectionHeaderFlags
+caused by: unknown bit set to true at position 9
+
+

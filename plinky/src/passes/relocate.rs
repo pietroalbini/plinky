@@ -1,9 +1,9 @@
 use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::object::Object;
+use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, Symbols};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{ElfRelocation, ElfRelocationType};
+use plinky_elf::ids::serial::SectionId;
 use plinky_macros::{Display, Error};
 
 pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), RelocationError> {
@@ -39,33 +39,28 @@ impl<'a> Relocator<'a> {
     fn relocate_one(
         &self,
         section_id: SectionId,
-        relocation: &ElfRelocation<SerialIds>,
+        relocation: &Relocation,
         bytes: &mut [u8],
     ) -> Result<(), RelocationError> {
         let mut editor = ByteEditor { relocation, bytes };
-        match relocation.relocation_type {
-            ElfRelocationType::X86_64_32
-            | ElfRelocationType::X86_64_32S
-            | ElfRelocationType::X86_32 => {
+        match relocation.type_ {
+            RelocationType::Absolute32 => {
                 editor.write_32(self.symbol(relocation, editor.addend_32())?)
             }
-            ElfRelocationType::X86_64_PC32
-            | ElfRelocationType::X86_PC32
-            | ElfRelocationType::X86_64_PLT32 => {
+            RelocationType::Relative32 | RelocationType::PLT32 => {
                 let offset = self.layout.address(section_id, relocation.offset as i64)?.1 as i64;
                 editor.write_32(self.symbol(relocation, editor.addend_32())? - offset)
             }
-            other => Err(RelocationError::UnsupportedRelocation(other)),
         }
     }
 
-    fn symbol(&self, rel: &ElfRelocation<SerialIds>, offset: i64) -> Result<i64, RelocationError> {
+    fn symbol(&self, rel: &Relocation, offset: i64) -> Result<i64, RelocationError> {
         Ok(self.symbols.get(rel.symbol).resolve(self.layout, offset)?.as_u64() as i64)
     }
 }
 
 struct ByteEditor<'a> {
-    relocation: &'a ElfRelocation<SerialIds>,
+    relocation: &'a Relocation,
     bytes: &'a mut [u8],
 }
 
@@ -101,8 +96,6 @@ pub(crate) enum RelocationError {
     SymbolResolution(ResolveSymbolError),
     #[transparent]
     AddressResolution(AddressResolutionError),
-    #[display("unsupported relocation type {f0:?}")]
-    UnsupportedRelocation(ElfRelocationType),
     #[display("relocated address {f0:#x} is too large")]
     RelocatedAddressTooLarge(i64),
 }

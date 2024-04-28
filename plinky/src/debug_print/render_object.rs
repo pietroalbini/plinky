@@ -73,7 +73,7 @@ fn render_data_section(
         table.add_row(["Type", "Symbol", "Offset", "Addend"]);
         for relocation in &data.relocations {
             table.add_row([
-                format!("{:?}", relocation.relocation_type),
+                format!("{:?}", relocation.type_),
                 symbol_name(object, relocation.symbol),
                 format!("{:#x}", relocation.offset),
                 relocation.addend.map(|a| format!("{a:#x}")).unwrap_or_else(String::new),

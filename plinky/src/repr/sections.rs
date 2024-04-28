@@ -1,8 +1,9 @@
 use crate::interner::Interned;
+use crate::repr::relocations::Relocation;
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{ElfDeduplication, ElfPermissions, ElfRelocation};
+use plinky_elf::ids::serial::SectionId;
+use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
@@ -89,7 +90,7 @@ pub(crate) enum SectionContent {
 pub(crate) struct DataSection {
     pub(crate) deduplication: ElfDeduplication,
     pub(crate) bytes: Vec<u8>,
-    pub(crate) relocations: Vec<ElfRelocation<SerialIds>>,
+    pub(crate) relocations: Vec<Relocation>,
 }
 
 #[derive(Debug)]

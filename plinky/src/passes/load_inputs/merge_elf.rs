@@ -8,6 +8,7 @@ use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfNote, ElfObject, ElfSectionContent};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
+use crate::repr::relocations::UnsupportedRelocationType;
 
 pub(super) fn merge(
     ids: &mut SerialIds,
@@ -92,7 +93,12 @@ pub(super) fn merge(
             content: SectionContent::Data(DataSection {
                 deduplication: program.deduplication,
                 bytes: program.raw.0,
-                relocations: relocations.remove(&id).unwrap_or_default(),
+                relocations: relocations
+                    .remove(&id)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|r| r.try_into())
+                    .collect::<Result<_, _>>()?,
             }),
         });
     }
@@ -105,6 +111,8 @@ pub(crate) enum MergeElfError {
     UnsupportedUnknownNote { name: String, type_: u32 },
     #[display("unknown section with type {id:#x?} is not supported")]
     UnsupportedUnknownSection { id: u32 },
+    #[transparent]
+    UnsupportedRelocation(UnsupportedRelocationType),
     #[display("failed to load symbols from section {section_name}")]
     SymbolsLoadingFailed {
         section_name: String,

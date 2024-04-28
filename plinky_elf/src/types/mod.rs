@@ -258,6 +258,18 @@ pub enum ElfRelocationType {
     X86_64_TLSDescCall,
     X86_64_TLSDesc,
     X86_64_IRelative,
+    X86_64_IRelative64,
+    X86_64_GOTPCRelX,
+    X86_64_Rex_GOTPCRelX,
+    X86_64_Code_4_GOTPCRelX,
+    X86_64_Code_4_GOTPCOff,
+    X86_64_Code_4_GOTPC32_TLSDesc,
+    X86_64_Code_5_GOTPCRelX,
+    X86_64_Code_5_GOTPCOff,
+    X86_64_Code_5_GOTPC32_TLSDesc,
+    X86_64_Code_6_GOTPCRelX,
+    X86_64_Code_6_GOTPCOff,
+    X86_64_Code_6_GOTPC32_TLSDesc,
     // Other:
     Unknown(u32),
 }

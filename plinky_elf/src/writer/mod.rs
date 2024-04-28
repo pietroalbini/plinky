@@ -428,6 +428,18 @@ where
                 ElfRelocationType::X86_64_TLSDescCall => 35,
                 ElfRelocationType::X86_64_TLSDesc => 36,
                 ElfRelocationType::X86_64_IRelative => 37,
+                ElfRelocationType::X86_64_IRelative64 => 38,
+                ElfRelocationType::X86_64_GOTPCRelX => 41,
+                ElfRelocationType::X86_64_Rex_GOTPCRelX => 42,
+                ElfRelocationType::X86_64_Code_4_GOTPCRelX => 43,
+                ElfRelocationType::X86_64_Code_4_GOTPCOff => 44,
+                ElfRelocationType::X86_64_Code_4_GOTPC32_TLSDesc => 45,
+                ElfRelocationType::X86_64_Code_5_GOTPCRelX => 46,
+                ElfRelocationType::X86_64_Code_5_GOTPCOff => 47,
+                ElfRelocationType::X86_64_Code_5_GOTPC32_TLSDesc => 48,
+                ElfRelocationType::X86_64_Code_6_GOTPCRelX => 49,
+                ElfRelocationType::X86_64_Code_6_GOTPCOff => 50,
+                ElfRelocationType::X86_64_Code_6_GOTPC32_TLSDesc => 51,
                 ElfRelocationType::Unknown(other) => other as u64,
             };
             let symbol =

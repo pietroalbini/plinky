@@ -7,6 +7,6 @@ no stdout present
 
 === stderr ===
 error: failed to include the ELF file hello.o
-caused by: unsupported relocation type Unknown(41)
+caused by: unsupported relocation type X86_64_GOTPCRelX
 
 

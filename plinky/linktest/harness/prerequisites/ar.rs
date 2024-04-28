@@ -18,11 +18,11 @@ pub(super) struct ArArchive {
 
 impl ArArchive {
     pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
-        let inputs_dir = TempDir::new()?;
-        self.content.build(execution, inputs_dir.path())?;
+        let inputs_dir = TempDir::with_prefix_in("prereq-", dest_dir)?.into_path();
+        self.content.build(execution, &inputs_dir)?;
 
         let mut to_archive = Vec::new();
-        for entry in std::fs::read_dir(inputs_dir.path())? {
+        for entry in std::fs::read_dir(&inputs_dir)? {
             let path = entry?.path();
             if path.is_file() {
                 to_archive.push(path.file_name().unwrap().to_os_string());
@@ -38,7 +38,7 @@ impl ArArchive {
 
         println!("archiving {to_archive:?} into {}...", self.name);
         run(Command::new("ar")
-            .current_dir(inputs_dir.path())
+            .current_dir(&inputs_dir)
             .arg(flags)
             .arg(dest_dir.join(&self.name))
             .args(&to_archive))?;

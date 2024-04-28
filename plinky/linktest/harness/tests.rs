@@ -8,7 +8,7 @@ pub(crate) struct TestExecution {
     root: PathBuf,
     settings: TestSettings,
     pub(crate) arch: TestArch,
-    dest_dir: TempDir,
+    dest_dir: PathBuf,
 }
 
 impl TestExecution {
@@ -17,17 +17,30 @@ impl TestExecution {
         settings: TestSettings,
         arch: TestArch,
     ) -> Result<Self, Error> {
-        Ok(Self { root, settings, arch, dest_dir: TempDir::new()? })
+        Ok(Self {
+            root,
+            settings,
+            arch,
+            // Don't rely on TempDir's automatic deletion. Instead, we delete the directory only if
+            // the tests execute successfully. This allows inspecting the intermediate files.
+            dest_dir: TempDir::new()?.into_path(),
+        })
     }
 
     pub(crate) fn run(self) -> Result<(), Error> {
-        self.settings.prerequisites.build(&self, self.dest_dir.path())?;
+        let dest_dir = self.dest_dir.clone();
+        println!("building prerequisites in {}", dest_dir.display());
+        self.settings.prerequisites.build(&self, &dest_dir)?;
+
         match self.settings.kind {
-            TestKind::LinkFail => self.run_link_fail(),
-            TestKind::LinkPass => self.run_link_pass(),
-            TestKind::RunFail => self.run_run_fail(),
-            TestKind::RunPass => self.run_run_pass(),
+            TestKind::LinkFail => self.run_link_fail()?,
+            TestKind::LinkPass => self.run_link_pass()?,
+            TestKind::RunFail => self.run_run_fail()?,
+            TestKind::RunPass => self.run_run_pass()?,
         }
+
+        let _ = std::fs::remove_dir_all(&dest_dir);
+        Ok(())
     }
 
     fn run_link_fail(self) -> Result<(), Error> {
@@ -60,10 +73,7 @@ impl TestExecution {
 
     fn link_and_snapshot(&self) -> Result<bool, Error> {
         let mut command = Command::new(env!("CARGO_BIN_EXE_ld.plinky"));
-        command
-            .current_dir(self.dest_dir.path())
-            .args(&self.settings.cmd)
-            .env("RUST_BACKTRACE", "1");
+        command.current_dir(&self.dest_dir).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
         for debug_print in &self.settings.debug_print {
             command.args(["--debug-print", debug_print]);
         }
@@ -76,8 +86,8 @@ impl TestExecution {
             bail!("linking was supposed to pass but failed!");
         }
 
-        let mut command = Command::new(self.dest_dir.path().join("a.out"));
-        command.current_dir(self.dest_dir.path());
+        let mut command = Command::new(self.dest_dir.join("a.out"));
+        command.current_dir(&self.dest_dir);
 
         self.record_snapshot("run", "running", &mut command)
     }

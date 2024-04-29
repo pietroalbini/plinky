@@ -3,4 +3,4 @@ kind = "link-pass"
 debug-print = ["loaded-object=.comment", "layout", "final-elf=.comment"]
 
 [[asm]]
-source = "test.asm"
+source = "test.S"

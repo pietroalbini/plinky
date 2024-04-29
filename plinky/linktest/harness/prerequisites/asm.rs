@@ -29,12 +29,11 @@ impl AsmFile {
         std::fs::write(source_dir.path().join(&self.source), source)?;
 
         eprintln!("compiling {} into {dest_name}...", self.source);
-        run(Command::new("nasm")
+        run(Command::new("as")
             .current_dir(source_dir.path())
-            .arg("-f")
             .arg(match (&self.format, execution.arch) {
-                (Some(AsmFormat::Elf32), _) | (None, TestArch::X86) => "elf32",
-                (Some(AsmFormat::Elf64), _) | (None, TestArch::X86_64) => "elf64",
+                (Some(AsmFormat::Elf32), _) | (None, TestArch::X86) => "--32",
+                (Some(AsmFormat::Elf64), _) | (None, TestArch::X86_64) => "--64",
             })
             .arg("-o")
             .arg(dest_dir.join(dest_name))

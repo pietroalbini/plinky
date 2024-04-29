@@ -3,4 +3,4 @@ kind = "run-pass"
 debug-print = ["loaded-object=.bss", "layout", "final-elf=.bss,@segments"]
 
 [[asm]]
-source = "bss.asm"
+source = "bss.S"

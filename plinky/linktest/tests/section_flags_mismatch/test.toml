@@ -3,7 +3,7 @@ kind = "link-pass"
 debug-print = ["layout"]
 
 [[asm]]
-source = "rx.asm"
+source = "rx.S"
 
 [[asm]]
-source = "rwx.asm"
+source = "rwx.S"

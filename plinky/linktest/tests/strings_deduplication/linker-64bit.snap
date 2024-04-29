@@ -12,47 +12,47 @@ debug print: calculated layout
  │  ╭─────────────────────┬────────────────────────┬────────────────╮
  │  │ Section             │ Source object          │ Memory address │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .custom_messages#15 │ mix of foo.o and bar.o │ 0x400000       │
+ │  │ .custom_messages#19 │ mix of foo.o and bar.o │ 0x400000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .text#2             │ foo.o                  │ 0x401000       │
+ │  │ .text#1             │ foo.o                  │ 0x401000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .text#9             │ bar.o                  │ 0x401031       │
+ │  │ .text#10            │ bar.o                  │ 0x401031       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .comment#14         │ <plinky>               │ not allocated  │
+ │  │ .comment#18         │ <plinky>               │ not allocated  │
  │  ╰─────────────────────┴────────────────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬─────────────────────╮
  │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections            │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
- │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#15 │
+ │  │ 0x400000 │ 0x17 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#19 │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼─────────────────────┤
- │  │ 0x401000 │ 0x69 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2             │
- │  │          │      │        │         │                    │ .text#9             │
+ │  │ 0x401000 │ 0x69 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1             │
+ │  │          │      │        │         │                    │ .text#10            │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴─────────────────────╯
  │
- │    deduplication facade .custom_messages#1 in foo.o
+ │    deduplication facade .custom_messages#5 in foo.o
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#15 + 0x0 │
+ │  │ 0x0  │ .custom_messages#19 + 0x0 │
  │  ├──────┼───────────────────────────┤
- │  │ 0x6  │ .custom_messages#15 + 0x6 │
+ │  │ 0x6  │ .custom_messages#19 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  │
- │    deduplication facade .custom_messages#8 in bar.o
+ │    deduplication facade .custom_messages#14 in bar.o
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#15 + 0xf │
+ │  │ 0x0  │ .custom_messages#19 + 0xf │
  │  ├──────┼───────────────────────────┤
- │  │ 0x8  │ .custom_messages#15 + 0x6 │
+ │  │ 0x8  │ .custom_messages#19 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
- │  section .custom_messages#15 (perms: r) in mix of foo.o and bar.o
+ │  section .custom_messages#19 (perms: r) in mix of foo.o and bar.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -64,7 +64,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#2 (perms: rx) in foo.o
+ │  section .text#1 (perms: rx) in foo.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -76,7 +76,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#9 (perms: rx) in bar.o
+ │  section .text#10 (perms: rx) in bar.o
  │   │
  │   │  address: 0x401031
  │   │
@@ -123,29 +123,29 @@ debug print: built elf
  │   │  ├──────┼─────────────┤
  │   │  │ 0x1  │             │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x2  │ bar.asm     │
+ │   │  │ 0x2  │ bar.S       │
  │   │  ├──────┼─────────────┤
- │   │  │ 0xa  │ goodbye     │
+ │   │  │ 0x8  │ goodbye     │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x12 │ goodbye_len │
+ │   │  │ 0x10 │ goodbye_len │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x1e │ bar_end     │
+ │   │  │ 0x1c │ bar_end     │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x26 │ bar_end_len │
+ │   │  │ 0x24 │ bar_end_len │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x32 │ foo.asm     │
+ │   │  │ 0x30 │ foo.S       │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x3a │ hello       │
+ │   │  │ 0x36 │ hello       │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x40 │ hello_len   │
+ │   │  │ 0x3c │ hello_len   │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x4a │ foo_end     │
+ │   │  │ 0x46 │ foo_end     │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x52 │ foo_end_len │
+ │   │  │ 0x4e │ foo_end_len │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x5e │ _start      │
+ │   │  │ 0x5a │ _start      │
  │   │  ├──────┼─────────────┤
- │   │  │ 0x65 │ bar         │
+ │   │  │ 0x61 │ bar         │
  │   │  ╰──────┴─────────────╯
  │   ┴
  │
@@ -157,7 +157,7 @@ debug print: built elf
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
  │   │  │ #0             │ Local   │ -    │ Undefined          │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
- │   │  │ bar.asm#1      │ Local   │ File │ Absolute           │ 0x0      │ 0x0  │
+ │   │  │ bar.S#1        │ Local   │ File │ Absolute           │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
  │   │  │ goodbye#2      │ Local   │ -    │ .custom_messages#5 │ 0x40000f │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
@@ -167,7 +167,7 @@ debug print: built elf
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
  │   │  │ bar_end_len#5  │ Local   │ -    │ Absolute           │ 0x8      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
- │   │  │ foo.asm#6      │ Local   │ File │ Absolute           │ 0x0      │ 0x0  │
+ │   │  │ foo.S#6        │ Local   │ File │ Absolute           │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤
  │   │  │ hello#7        │ Local   │ -    │ .custom_messages#5 │ 0x400000 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────────────┼──────────┼──────┤

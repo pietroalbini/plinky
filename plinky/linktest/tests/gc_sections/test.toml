@@ -3,4 +3,4 @@ kind = "link-pass"
 debug-print = ["loaded-object", "gc", "relocated-object"]
 
 [[asm]]
-source = "foo.asm"
+source = "foo.S"

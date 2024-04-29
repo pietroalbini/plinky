@@ -3,4 +3,4 @@ kind = "link-pass"
 debug-print = ["loaded-object=@env,.note.*"]
 
 [[asm]]
-source = "foo.asm"
+source = "foo.S"

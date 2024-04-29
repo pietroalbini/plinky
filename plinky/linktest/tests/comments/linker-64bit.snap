@@ -8,14 +8,16 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  section .comment#1 (no perms) in test.o
+ │  section .comment#4 (no perms) in test.o
  │   │
- │   │  ╭──────────────────────────────────┬─────────────╮
- │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 │ Hello world │
- │   │  ╰──────────────────────────────────┴─────────────╯
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭─────────────────────────────────────┬──────────────╮
+ │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 │ Hello world. │
+ │   │  ╰─────────────────────────────────────┴──────────────╯
  │   ┴
  │
- │  section .comment#6 (no perms) in <plinky>
+ │  section .comment#8 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -28,42 +30,46 @@ debug print: loaded object
 debug print: calculated layout
  │
  │    Sections:
- │  ╭────────────┬───────────────┬────────────────╮
- │  │ Section    │ Source object │ Memory address │
- │  ├────────────┼───────────────┼────────────────┤
- │  │ .text#2    │ test.o        │ 0x400000       │
- │  ├────────────┼───────────────┼────────────────┤
- │  │ .comment#1 │ test.o        │ not allocated  │
- │  ├────────────┼───────────────┼────────────────┤
- │  │ .comment#6 │ <plinky>      │ not allocated  │
- │  ╰────────────┴───────────────┴────────────────╯
+ │  ╭────────────┬────────────────────────────┬────────────────╮
+ │  │ Section    │ Source object              │ Memory address │
+ │  ├────────────┼────────────────────────────┼────────────────┤
+ │  │ .text#1    │ test.o                     │ 0x400000       │
+ │  ├────────────┼────────────────────────────┼────────────────┤
+ │  │ .comment#9 │ mix of test.o and <plinky> │ not allocated  │
+ │  ╰────────────┴────────────────────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
  │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
- │  │ 0x400000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2  │
+ │  │ 0x400000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1  │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
+ │
+ │    deduplication facade .comment#4 in test.o
+ │  ╭──────┬──────────────────╮
+ │  │ From │ To               │
+ │  ├──────┼──────────────────┤
+ │  │ 0x0  │ .comment#9 + 0x0 │
+ │  ╰──────┴──────────────────╯
+ │
+ │    deduplication facade .comment#8 in <plinky>
+ │  ╭──────┬──────────────────╮
+ │  │ From │ To               │
+ │  ├──────┼──────────────────┤
+ │  │ 0x0  │ .comment#9 + 0xc │
+ │  ╰──────┴──────────────────╯
  ┴
 
 debug print: built elf
  │
- │  section .comment#2 (address: 0x0)
- │   │
- │   │  program data | permissions: -
- │   │
- │   │  ╭──────────────────────────────────┬─────────────╮
- │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 │ Hello world │
- │   │  ╰──────────────────────────────────┴─────────────╯
- │   ┴
- │
- │  section .comment#4 (address: 0x0)
+ │  section .comment#3 (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │
- │   │  ╭──────────────────────────────────────────────┬─────────────────╮
- │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
- │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 00 4c 69 6e 6b │ Hello world.Link │
+ │   │  │ 65 72 3a 20 70 6c 69 6e 6b 79 00                │ er: plinky.      │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  ┴
 

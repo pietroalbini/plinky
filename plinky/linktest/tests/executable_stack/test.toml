@@ -3,5 +3,5 @@ kind = "run-pass"
 debug-print = ["final-elf=@segments"]
 
 [[asm]]
-source = "stack.asm"
+source = "stack.S"
 format = "elf32"

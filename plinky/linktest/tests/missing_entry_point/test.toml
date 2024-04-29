@@ -3,4 +3,4 @@ kind = "link-fail"
 debug-print = ["loaded-object=@symbols"]
 
 [[asm]]
-source = "hello.asm"
+source = "hello.S"

@@ -3,13 +3,13 @@ kind = "run-pass"
 debug-print = ["loaded-object"]
 
 [[asm]]
-source = "entry.asm"
+source = "entry.S"
 
 [[ar]]
 name = "archived.a"
 
 [[ar.asm]]
-source = "hello.asm"
+source = "hello.S"
 
 [[ar.asm]]
-source = "goodbye.asm"
+source = "goodbye.S"

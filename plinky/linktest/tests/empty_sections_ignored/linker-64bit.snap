@@ -10,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#7 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -19,7 +19,7 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .text.b#3 (perms: r) in foo.o
+ │  section .text.b#5 (perms: rx) in foo.o
  │   │
  │   │  ╭────┬───╮
  │   │  │ 90 │ . │
@@ -27,15 +27,13 @@ debug print: loaded object
  │   ┴
  │
  │    Symbols:
- │  ╭─────────────────────┬─────────┬──────────┬────────────┬─────────────────╮
- │  │ Name                │ Type    │ Source   │ Visibility │ Value           │
- │  ├─────────────────────┼─────────┼──────────┼────────────┼─────────────────┤
- │  │ <symbol#0>          │ none    │ <plinky> │ local      │ <null>          │
- │  ├─────────────────────┼─────────┼──────────┼────────────┼─────────────────┤
- │  │ <section .text.b#3> │ section │ foo.o    │ local      │ .text.b#3 + 0x0 │
- │  ├─────────────────────┼─────────┼──────────┼────────────┼─────────────────┤
- │  │ _start#2            │ none    │ foo.o    │ global     │ .text.b#3 + 0x0 │
- │  ╰─────────────────────┴─────────┴──────────┴────────────┴─────────────────╯
+ │  ╭────────────┬──────┬──────────┬────────────┬─────────────────╮
+ │  │ Name       │ Type │ Source   │ Visibility │ Value           │
+ │  ├────────────┼──────┼──────────┼────────────┼─────────────────┤
+ │  │ <symbol#0> │ none │ <plinky> │ local      │ <null>          │
+ │  ├────────────┼──────┼──────────┼────────────┼─────────────────┤
+ │  │ _start#2   │ none │ foo.o    │ global     │ .text.b#5 + 0x0 │
+ │  ╰────────────┴──────┴──────────┴────────────┴─────────────────╯
  ┴
 
 

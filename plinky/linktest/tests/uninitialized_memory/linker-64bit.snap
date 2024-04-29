@@ -8,7 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  uninitialized section .bss#1 (perms: rw) in bss.o
+ │  uninitialized section .bss#4 (perms: rw) in bss.o
  │   │
  │   │  length: 0x6
  │   ┴
@@ -20,26 +20,26 @@ debug print: calculated layout
  │  ╭────────────┬───────────────┬────────────────╮
  │  │ Section    │ Source object │ Memory address │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .text#2    │ bss.o         │ 0x400000       │
+ │  │ .text#1    │ bss.o         │ 0x400000       │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .bss#1     │ bss.o         │ 0x401000       │
+ │  │ .bss#4     │ bss.o         │ 0x401000       │
  │  ├────────────┼───────────────┼────────────────┤
- │  │ .comment#7 │ <plinky>      │ not allocated  │
+ │  │ .comment#8 │ <plinky>      │ not allocated  │
  │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
  │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
- │  │ 0x400000 │ 0x52 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2  │
+ │  │ 0x400000 │ 0x52 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1  │
  │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
- │  │ 0x401000 │ 0x6  │ 0x1000 │ uninit  │ ElfPermissions(RW) │ .bss#1   │
+ │  │ 0x401000 │ 0x6  │ 0x1000 │ uninit  │ ElfPermissions(RW) │ .bss#4   │
  │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
  ┴
 
 debug print: built elf
  │
- │  section .bss#2 (address: 0x401000)
+ │  section .bss#3 (address: 0x401000)
  │   │
  │   │  uninitialized | len: 0x6 | permissions: RW 
  │   ┴
@@ -48,9 +48,9 @@ debug print: built elf
  │  ╭───────────┬───────┬──────────┬─────────╮
  │  │ Type      │ Perms │ Aligment │ Content │
  │  ├───────────┼───────┼──────────┼─────────┤
- │  │ Load      │ R X   │ 0x1000   │ .text#3 │
+ │  │ Load      │ R X   │ 0x1000   │ .text#2 │
  │  ├───────────┼───────┼──────────┼─────────┤
- │  │ Load      │ RW    │ 0x1000   │ .bss#2  │
+ │  │ Load      │ RW    │ 0x1000   │ .bss#3  │
  │  ├───────────┼───────┼──────────┼─────────┤
  │  │ GNU stack │ RW    │ 0x1      │ -       │
  │  ╰───────────┴───────┴──────────┴─────────╯

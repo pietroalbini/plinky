@@ -8,9 +8,9 @@ libc = "freestanding"
 relocation = "pic-only-got"
 
 [[arch.x86.asm]]
-source = "syscalls.32bit.asm"
+source = "syscalls.32bit.S"
 output = "syscalls.o"
 
 [[arch.x86_64.asm]]
-source = "syscalls.64bit.asm"
+source = "syscalls.64bit.S"
 output = "syscalls.o"

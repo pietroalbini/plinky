@@ -7,7 +7,7 @@ debug-print = [
 ]
 
 [[asm]]
-source = "foo.asm"
+source = "foo.S"
 
 [[asm]]
-source = "bar.asm"
+source = "bar.S"

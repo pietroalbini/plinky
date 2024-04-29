@@ -1,5 +1,5 @@
 ---
-source: plinky/tests/linktest/main.rs
+source: plinky/linktest/harness/tests.rs
 ---
 running exited with exit status: 0
 

@@ -29,7 +29,7 @@ macro_rules! test {
 
 test!(
     hello_asm,
-    "tests/snapshot/hello_asm.asm",
+    "tests/snapshot/hello_asm.S",
     x86,
     x86_64,
     x86__linked,
@@ -44,7 +44,7 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
     let meta = Metadata::from_name(name);
 
     let mut object_file = match source.rsplit_once('.').map(|(_name, ext)| ext) {
-        Some("asm") => compile_asm(source, meta.variant)?,
+        Some("S") => compile_asm(source, meta.variant)?,
         Some("c") => compile_c(source, meta.variant)?,
         Some(other) => panic!("unsupported extension: {other}"),
         None => panic!("missing extension for {source}"),
@@ -83,13 +83,12 @@ fn implement_test(source: &str, name: &str) -> Result<(), Error> {
 
 fn compile_asm(source: &str, variant: Variant) -> Result<NamedTempFile, Error> {
     let dest = NamedTempFile::new()?;
-    let status = Command::new("nasm")
+    let status = Command::new("as")
         .arg("-o")
         .arg(dest.path())
-        .arg("-f")
         .arg(match variant {
-            Variant::X86 => "elf32",
-            Variant::X86_64 => "elf64",
+            Variant::X86 => "--32",
+            Variant::X86_64 => "--64",
         })
         .arg(source)
         .status()?;

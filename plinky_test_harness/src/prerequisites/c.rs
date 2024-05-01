@@ -4,7 +4,7 @@ use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub(super) struct CFile {
     source: String,
@@ -53,13 +53,13 @@ impl CFile {
     }
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 enum Libc {
     Freestanding,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 enum Relocation {
     Static,

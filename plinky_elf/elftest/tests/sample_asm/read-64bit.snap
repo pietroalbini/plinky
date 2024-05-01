@@ -1,6 +1,9 @@
 ---
-source: plinky_elf/tests/snapshot.rs
+source: plinky_test_harness/src/utils.rs
 ---
+reading exited with exit status: 0
+
+=== stdout ===
   Metadata:
 ╭────────────┬─────────────╮
 │ Class      │ ELF 64bit   │
@@ -71,7 +74,7 @@ section .symtab#5 (address: 0x0)
  │  ├───────────────┼─────────┼─────────┼────────────┼───────┼──────┤
  │  │ #0            │ Local   │ -       │ Undefined  │ 0x0   │ 0x0  │
  │  ├───────────────┼─────────┼─────────┼────────────┼───────┼──────┤
- │  │ hello_asm.S#1 │ Local   │ File    │ Absolute   │ 0x0   │ 0x0  │
+ │  │ hello.S#1     │ Local   │ File    │ Absolute   │ 0x0   │ 0x0  │
  │  ├───────────────┼─────────┼─────────┼────────────┼───────┼──────┤
  │  │ #2            │ Local   │ Section │ .data#3    │ 0x0   │ 0x0  │
  │  ├───────────────┼─────────┼─────────┼────────────┼───────┼──────┤
@@ -95,19 +98,19 @@ section .strtab#6 (address: 0x0)
  │  ╭──────┬─────────────╮
  │  │ 0x0  │             │
  │  ├──────┼─────────────┤
- │  │ 0x1  │ hello_asm.S │
+ │  │ 0x1  │ hello.S     │
  │  ├──────┼─────────────┤
- │  │ 0xd  │ msg_hello   │
+ │  │ 0x9  │ msg_hello   │
  │  ├──────┼─────────────┤
- │  │ 0x17 │ len_hello   │
+ │  │ 0x13 │ len_hello   │
  │  ├──────┼─────────────┤
- │  │ 0x21 │ msg_goodbye │
+ │  │ 0x1d │ msg_goodbye │
  │  ├──────┼─────────────┤
- │  │ 0x2d │ len_goodbye │
+ │  │ 0x29 │ len_goodbye │
  │  ├──────┼─────────────┤
- │  │ 0x39 │ uninit      │
+ │  │ 0x35 │ uninit      │
  │  ├──────┼─────────────┤
- │  │ 0x40 │ _start      │
+ │  │ 0x3c │ _start      │
  │  ╰──────┴─────────────╯
  ┴
 
@@ -132,3 +135,7 @@ section .shstrtab#7 (address: 0x0)
  ┴
 
 No segments in the ELF file.
+
+
+no stderr present
+

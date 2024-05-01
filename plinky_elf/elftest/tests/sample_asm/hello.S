@@ -1,5 +1,5 @@
 .intel_syntax noprefix
-.file "hello_asm.S"
+.file "hello.S"
 
 .global _start
 

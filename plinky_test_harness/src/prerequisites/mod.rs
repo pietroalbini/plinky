@@ -1,6 +1,7 @@
 mod ar;
 mod asm;
 mod c;
+mod ld;
 mod rust;
 
 use crate::prerequisites::ar::ArArchive;
@@ -10,6 +11,7 @@ use crate::prerequisites::rust::RustFile;
 use anyhow::Error;
 use std::collections::BTreeMap;
 use std::path::Path;
+use crate::prerequisites::ld::LdInvocation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
 pub enum Arch {
@@ -19,7 +21,7 @@ pub enum Arch {
     X86_64,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Prerequisites {
     #[serde(default)]
@@ -28,6 +30,8 @@ pub struct Prerequisites {
     c: Vec<CFile>,
     #[serde(default)]
     ar: Vec<ArArchive>,
+    #[serde(default)]
+    ld: Vec<LdInvocation>,
     #[serde(default)]
     rust: Vec<RustFile>,
     #[serde(default)]
@@ -47,6 +51,9 @@ impl Prerequisites {
         }
         for rust in &self.rust {
             rust.build(arch, source_dir, dest_dir)?;
+        }
+        for ld in &self.ld {
+            ld.build(arch, source_dir, dest_dir)?;
         }
         if let Some(arch_specific) = self.arch.get(&arch) {
             arch_specific.build(arch, source_dir, dest_dir)?;

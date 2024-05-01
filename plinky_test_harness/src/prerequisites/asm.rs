@@ -4,7 +4,7 @@ use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub(super) struct AsmFile {
     source: String,
@@ -42,7 +42,7 @@ impl AsmFile {
     }
 }
 
-#[derive(serde::Deserialize, Clone, Copy)]
+#[derive(serde::Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 enum AsmFormat {
     Elf32,

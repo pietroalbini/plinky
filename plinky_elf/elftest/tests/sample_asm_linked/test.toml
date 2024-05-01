@@ -1,0 +1,8 @@
+read = "hello"
+archs = ["x86", "x86_64"]
+
+[[ld]]
+dest = "hello"
+
+[[ld.asm]]
+source = "hello.S"

@@ -54,6 +54,7 @@ pub fn record_snapshot(
     Ok(success)
 }
 
+#[track_caller]
 pub fn err_str<T>(result: Result<T, Error>) -> Result<T, String> {
     result.map_err(|err| {
         let mut repr = format!("error: {err}\n");
@@ -62,6 +63,6 @@ pub fn err_str<T>(result: Result<T, Error>) -> Result<T, String> {
             repr.push_str(&format!("  cause: {err}\n"));
             source = err.source();
         }
-        repr
+        panic!("{repr}")
     })
 }

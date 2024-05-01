@@ -164,8 +164,11 @@ dependencies = [
  "insta",
  "plinky_diagnostics",
  "plinky_macros",
+ "plinky_test_harness",
  "plinky_utils",
+ "serde",
  "tempfile",
+ "toml",
 ]
 
 [[package]]

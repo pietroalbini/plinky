@@ -1,0 +1,7 @@
+read = "hello.o"
+archs = ["x86", "x86_64"]
+
+[[c]]
+source = "hello.c"
+libc = "freestanding"
+relocation = "static"

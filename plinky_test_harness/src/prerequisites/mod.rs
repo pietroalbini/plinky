@@ -7,14 +7,21 @@ use crate::prerequisites::ar::ArArchive;
 use crate::prerequisites::asm::AsmFile;
 use crate::prerequisites::c::CFile;
 use crate::prerequisites::rust::RustFile;
-use crate::tests::{TestArch, TestExecution};
 use anyhow::Error;
 use std::collections::BTreeMap;
 use std::path::Path;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+pub enum Arch {
+    #[serde(rename = "x86")]
+    X86,
+    #[serde(rename = "x86_64")]
+    X86_64,
+}
+
 #[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Prerequisites {
+pub struct Prerequisites {
     #[serde(default)]
     asm: Vec<AsmFile>,
     #[serde(default)]
@@ -24,25 +31,25 @@ pub(crate) struct Prerequisites {
     #[serde(default)]
     rust: Vec<RustFile>,
     #[serde(default)]
-    arch: BTreeMap<TestArch, Prerequisites>,
+    arch: BTreeMap<Arch, Prerequisites>,
 }
 
 impl Prerequisites {
-    pub(crate) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
+    pub fn build(&self, arch: Arch, source_dir: &Path, dest_dir: &Path) -> Result<(), Error> {
         for asm in &self.asm {
-            asm.build(execution, dest_dir)?;
+            asm.build(arch, source_dir, dest_dir)?;
         }
         for c in &self.c {
-            c.build(execution, dest_dir)?;
+            c.build(arch, source_dir, dest_dir)?;
         }
         for ar in &self.ar {
-            ar.build(execution, dest_dir)?;
+            ar.build(arch, source_dir, dest_dir)?;
         }
         for rust in &self.rust {
-            rust.build(execution, dest_dir)?;
+            rust.build(arch, source_dir, dest_dir)?;
         }
-        if let Some(arch_specific) = self.arch.get(&execution.arch) {
-            arch_specific.build(execution, dest_dir)?;
+        if let Some(arch_specific) = self.arch.get(&arch) {
+            arch_specific.build(arch, source_dir, dest_dir)?;
         }
         Ok(())
     }

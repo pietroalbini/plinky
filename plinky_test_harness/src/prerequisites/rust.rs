@@ -1,9 +1,8 @@
-use crate::tests::TestExecution;
+use crate::prerequisites::Arch;
 use crate::utils::run;
 use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
-use tempfile::TempDir;
 
 #[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -14,19 +13,19 @@ pub(super) struct RustFile {
 }
 
 impl RustFile {
-    pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
-        let source = execution.file(&self.source)?;
-
+    pub(super) fn build(
+        &self,
+        _arch: Arch,
+        source_dir: &Path,
+        dest_dir: &Path,
+    ) -> Result<(), Error> {
         let dest_name = format!(
             "lib{}.a",
             self.source.rsplit_once('.').map(|(name, _ext)| name).unwrap_or(&self.source)
         );
 
-        let source_dir = TempDir::new()?;
-        std::fs::write(source_dir.path().join(&self.source), source)?;
-
         run(Command::new("rustc")
-            .current_dir(source_dir.path())
+            .current_dir(source_dir)
             .arg(&self.source)
             .arg("-o")
             .arg(dest_dir.join(dest_name))

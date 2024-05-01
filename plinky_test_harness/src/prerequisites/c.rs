@@ -1,9 +1,8 @@
-use crate::tests::{TestArch, TestExecution};
+use crate::prerequisites::Arch;
 use crate::utils::run;
 use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
-use tempfile::TempDir;
 
 #[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -15,9 +14,12 @@ pub(super) struct CFile {
 }
 
 impl CFile {
-    pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
-        let source = execution.file(&self.source)?;
-
+    pub(super) fn build(
+        &self,
+        arch: Arch,
+        source_dir: &Path,
+        dest_dir: &Path,
+    ) -> Result<(), Error> {
         let dest_name = match &self.output {
             Some(output) => output.clone(),
             None => format!(
@@ -26,20 +28,17 @@ impl CFile {
             ),
         };
 
-        let source_dir = TempDir::new()?;
-        std::fs::write(source_dir.path().join(&self.source), source)?;
-
         eprintln!("compiling {} into {dest_name}...", self.source);
         run(Command::new("cc")
-            .current_dir(source_dir.path())
+            .current_dir(source_dir)
             .arg("-c")
             // Disable control-flow protection, as it's not implemented in the linker right now.
             .arg("-fcf-protection=none")
             .arg("-o")
             .arg(dest_dir.join(dest_name))
-            .arg(match execution.arch {
-                TestArch::X86 => "-m32",
-                TestArch::X86_64 => "-m64",
+            .arg(match arch {
+                Arch::X86 => "-m32",
+                Arch::X86_64 => "-m64",
             })
             .args(match self.libc {
                 Libc::Freestanding => &["-nostdlib"],

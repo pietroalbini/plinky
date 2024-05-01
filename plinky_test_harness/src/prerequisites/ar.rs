@@ -1,5 +1,4 @@
-use crate::prerequisites::Prerequisites;
-use crate::tests::TestExecution;
+use crate::prerequisites::{Arch, Prerequisites};
 use crate::utils::run;
 use anyhow::Error;
 use std::path::Path;
@@ -17,9 +16,9 @@ pub(super) struct ArArchive {
 }
 
 impl ArArchive {
-    pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
+    pub(super) fn build(&self, arch: Arch, source_dir: &Path, dest_dir: &Path) -> Result<(), Error> {
         let inputs_dir = TempDir::with_prefix_in("prereq-", dest_dir)?.into_path();
-        self.content.build(execution, &inputs_dir)?;
+        self.content.build(arch, source_dir, &inputs_dir)?;
 
         let mut to_archive = Vec::new();
         for entry in std::fs::read_dir(&inputs_dir)? {

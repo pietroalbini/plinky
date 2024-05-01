@@ -130,11 +130,11 @@ name = "plinky"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "insta",
  "plinky_ar",
  "plinky_diagnostics",
  "plinky_elf",
  "plinky_macros",
+ "plinky_test_harness",
  "plinky_utils",
  "serde",
  "tempfile",
@@ -179,6 +179,16 @@ dependencies = [
 [[package]]
 name = "plinky_macros_quote"
 version = "0.0.0"
+
+[[package]]
+name = "plinky_test_harness"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "insta",
+ "serde",
+ "tempfile",
+]
 
 [[package]]
 name = "plinky_utils"

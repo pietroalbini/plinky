@@ -1,9 +1,8 @@
-use crate::tests::{TestArch, TestExecution};
+use crate::prerequisites::Arch;
 use crate::utils::run;
 use anyhow::Error;
 use std::path::Path;
 use std::process::Command;
-use tempfile::TempDir;
 
 #[derive(serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -14,9 +13,12 @@ pub(super) struct AsmFile {
 }
 
 impl AsmFile {
-    pub(super) fn build(&self, execution: &TestExecution, dest_dir: &Path) -> Result<(), Error> {
-        let source = execution.file(&self.source)?;
-
+    pub(super) fn build(
+        &self,
+        arch: Arch,
+        source_dir: &Path,
+        dest_dir: &Path,
+    ) -> Result<(), Error> {
         let dest_name = match &self.output {
             Some(output) => output.clone(),
             None => format!(
@@ -25,15 +27,12 @@ impl AsmFile {
             ),
         };
 
-        let source_dir = TempDir::new()?;
-        std::fs::write(source_dir.path().join(&self.source), source)?;
-
         eprintln!("compiling {} into {dest_name}...", self.source);
         run(Command::new("as")
-            .current_dir(source_dir.path())
-            .arg(match (&self.format, execution.arch) {
-                (Some(AsmFormat::Elf32), _) | (None, TestArch::X86) => "--32",
-                (Some(AsmFormat::Elf64), _) | (None, TestArch::X86_64) => "--64",
+            .current_dir(source_dir)
+            .arg(match (&self.format, arch) {
+                (Some(AsmFormat::Elf32), _) | (None, Arch::X86) => "--32",
+                (Some(AsmFormat::Elf64), _) | (None, Arch::X86_64) => "--64",
             })
             .arg("-o")
             .arg(dest_dir.join(dest_name))

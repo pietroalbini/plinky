@@ -1,0 +1,5 @@
+read = "groups.o"
+archs = ["x86", "x86_64"]
+
+[[asm]]
+source = "groups.S"

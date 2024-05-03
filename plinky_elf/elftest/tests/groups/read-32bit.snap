@@ -1,0 +1,15 @@
+---
+source: plinky_test_harness/src/utils.rs
+assertion_line: 52
+---
+reading exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: failed to parse section header number 7
+  cause: failed to read field flags of struct plinky_elf::raw::RawSectionHeader
+  cause: failed to read plinky_elf::raw::RawSectionHeaderFlags
+  cause: unknown bit set to true at position 9
+
+

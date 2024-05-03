@@ -89,6 +89,9 @@ impl TestExecution {
 
         let mut command = Command::new(env!("CARGO_BIN_EXE_read-elf"));
         command.current_dir(&self.dest_dir).arg(file);
+        if let Some(filter) = &self.toml.filter {
+            command.arg(filter);
+        }
 
         if !self.record_snapshot("read", "reading", &mut command)? {
             bail!("failed to read the ELF file");
@@ -115,6 +118,8 @@ impl TestExecution {
 struct TestToml {
     read: PathBuf,
     archs: Vec<Arch>,
+    #[serde(default)]
+    filter: Option<String>,
     #[serde(flatten)]
     prerequisites: Prerequisites,
 }

@@ -1,5 +1,6 @@
 read = "groups.o"
 archs = ["x86", "x86_64"]
+filter = ".group*,.rodata*,.symtab"
 
 [[asm]]
 source = "groups.S"

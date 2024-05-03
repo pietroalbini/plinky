@@ -2,14 +2,97 @@
 source: plinky_test_harness/src/utils.rs
 assertion_line: 52
 ---
-reading exited with exit status: 1
+reading exited with exit status: 0
 
-no stdout present
+=== stdout ===
+section .group#1 (address: 0x0)
+ │
+ │  group | signature: first_group#2
+ │
+ │    Sections:
+ │  ╭──────────────────╮
+ │  │ .rodata.group1#7 │
+ │  ╰──────────────────╯
+ ┴
 
-=== stderr ===
-error: failed to parse section header number 7
-  cause: failed to read field flags of struct plinky_elf::raw::RawSectionHeader
-  cause: failed to read plinky_elf::raw::RawSectionHeaderFlags
-  cause: unknown bit set to true at position 9
+section .group#2 (address: 0x0)
+ │
+ │  group | COMDAT | signature: second_group#3
+ │
+ │    Sections:
+ │  ╭────────────────────╮
+ │  │ .rodata.group2_1#8 │
+ │  ├────────────────────┤
+ │  │ .rodata.group2_2#9 │
+ │  ╰────────────────────╯
+ ┴
 
+section .group#3 (address: 0x0)
+ │
+ │  group | signature: third_group#4
+ │
+ │    Sections:
+ │  ╭───────────────────╮
+ │  │ .rodata.group3#10 │
+ │  ╰───────────────────╯
+ ┴
+
+section .rodata.group1#7 (address: 0x0, part of a group)
+ │
+ │  program data | permissions: R
+ │
+ │  ╭──────────────────────────────────┬─────────────╮
+ │  │ 46 69 72 73 74 20 67 72 6f 75 70 │ First group │
+ │  ╰──────────────────────────────────┴─────────────╯
+ ┴
+
+section .rodata.group2_1#8 (address: 0x0, part of a group)
+ │
+ │  program data | permissions: R
+ │
+ │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │  │ 46 69 72 73 74 20 70 61 72 74 20 6f 66 20 73 65 │ First part of se │
+ │  │ 63 6f 6e 64 20 67 72 6f 75 70                   │ cond group       │
+ │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ ┴
+
+section .rodata.group2_2#9 (address: 0x0, part of a group)
+ │
+ │  program data | permissions: R
+ │
+ │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │  │ 53 65 63 6f 6e 64 20 70 61 72 74 20 6f 66 20 73 │ Second part of s │
+ │  │ 65 63 6f 6e 64 20 67 72 6f 75 70                │ econd group      │
+ │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ ┴
+
+section .rodata.group3#10 (address: 0x0, part of a group)
+ │
+ │  program data | permissions: R
+ │
+ │  ╭──────────────────────────────────┬─────────────╮
+ │  │ 54 68 69 72 64 20 67 72 6f 75 70 │ Third group │
+ │  ╰──────────────────────────────────┴─────────────╯
+ ┴
+
+section .symtab#11 (address: 0x0)
+ │
+ │    Symbol table:
+ │  ╭────────────────┬─────────┬──────┬────────────┬───────┬──────╮
+ │  │ Name           │ Binding │ Type │ Definition │ Value │ Size │
+ │  ├────────────────┼─────────┼──────┼────────────┼───────┼──────┤
+ │  │ #0             │ Local   │ -    │ Undefined  │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼───────┼──────┤
+ │  │ groups.S#1     │ Local   │ File │ Absolute   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼───────┼──────┤
+ │  │ first_group#2  │ Local   │ -    │ .group#1   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼───────┼──────┤
+ │  │ second_group#3 │ Local   │ -    │ .group#2   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼───────┼──────┤
+ │  │ third_group#4  │ Local   │ -    │ .group#3   │ 0x0   │ 0x0  │
+ │  ╰────────────────┴─────────┴──────┴────────────┴───────┴──────╯
+ ┴
+
+
+no stderr present
 

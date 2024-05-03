@@ -1,6 +1,7 @@
 use crate::ids::ElfIds;
 use crate::raw::{
-    RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela, RawSectionHeader, RawSymbol,
+    RawGroupFlags, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
+    RawSectionHeader, RawSymbol,
 };
 use crate::{ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent};
 use plinky_macros::{Display, Error};
@@ -75,6 +76,13 @@ impl<I: ElfIds> WriteLayout<I> {
                             (RawRel::size(layout.class) * table.relocations.len()) as _
                         },
                     )
+                }
+                ElfSectionContent::Group(group) => {
+                    layout.add_part(
+                        Part::Group(id.clone()),
+                        RawGroupFlags::size(layout.class)
+                            + u32::size(layout.class) * group.sections.len(),
+                    );
                 }
                 ElfSectionContent::Note(_) => {
                     return Err(WriteLayoutError::WritingNotesUnsupported);
@@ -152,6 +160,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::StringTable(this) => this == id,
                 Part::SymbolTable(this) => this == id,
                 Part::Padding(_) => false,
+                Part::Group(this) => this == id,
                 Part::RelocationsTable { id: this, .. } => this == id,
             })
             .map(|(_, value)| value)
@@ -170,6 +179,7 @@ pub(super) enum Part<SectionId> {
     StringTable(SectionId),
     SymbolTable(SectionId),
     RelocationsTable { id: SectionId, rela: bool },
+    Group(SectionId),
     Padding(PaddingId),
 }
 

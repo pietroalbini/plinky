@@ -5,8 +5,8 @@ pub(crate) use self::layout::WriteLayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader, RawProgramHeaderFlags, RawRel,
-    RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
+    RawGroupFlags, RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader,
+    RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
@@ -52,6 +52,7 @@ where
                 Part::StringTable(id) => self.write_string_table(id)?,
                 Part::SymbolTable(id) => self.write_symbol_table(id)?,
                 Part::RelocationsTable { id, rela } => self.write_relocations_table(id, *rela)?,
+                Part::Group(id) => self.write_group(id)?,
                 Part::Padding(_) => self.write_padding(part)?,
             }
         }
@@ -150,32 +151,38 @@ where
                     })
                     .next()
                     .expect("relocations table not in layout"),
+                ElfSectionContent::Group(_) => 17,
             };
+
+            let mut flags = match &section.content {
+                ElfSectionContent::Program(p) => {
+                    let mut flags = self.perms_to_section_flags(&p.perms);
+                    match p.deduplication {
+                        ElfDeduplication::Disabled => {}
+                        ElfDeduplication::ZeroTerminatedStrings => {
+                            flags.merge = true;
+                            flags.strings = true;
+                        }
+                        ElfDeduplication::FixedSizeChunks { .. } => {
+                            flags.merge = true;
+                        }
+                    }
+                    flags
+                }
+                ElfSectionContent::RelocationsTable(_) => {
+                    RawSectionHeaderFlags { info_link: true, ..RawSectionHeaderFlags::zero() }
+                }
+                _ => RawSectionHeaderFlags::zero(),
+            };
+            if section.part_of_group {
+                flags.group = true;
+            }
 
             let metadata = self.layout.metadata_of_section(id);
             self.write_raw(RawSectionHeader {
                 name_offset: section.name.offset(),
                 type_,
-                flags: match &section.content {
-                    ElfSectionContent::Program(p) => {
-                        let mut flags = self.perms_to_section_flags(&p.perms);
-                        match p.deduplication {
-                            ElfDeduplication::Disabled => {}
-                            ElfDeduplication::ZeroTerminatedStrings => {
-                                flags.merge = true;
-                                flags.strings = true;
-                            }
-                            ElfDeduplication::FixedSizeChunks { .. } => {
-                                flags.merge = true;
-                            }
-                        }
-                        flags
-                    }
-                    ElfSectionContent::RelocationsTable(_) => {
-                        RawSectionHeaderFlags { info_link: true, ..RawSectionHeaderFlags::zero() }
-                    }
-                    _ => RawSectionHeaderFlags::zero(),
-                },
+                flags,
                 memory_address: section.memory_address,
                 offset: metadata.offset,
                 size: metadata.len,
@@ -194,6 +201,7 @@ where
                     ElfSectionContent::RelocationsTable(table) => {
                         self.section_idx(&table.symbol_table) as _
                     }
+                    ElfSectionContent::Group(group) => self.section_idx(&group.symbol_table) as _,
                     _ => 0,
                 },
                 info: match &section.content {
@@ -206,6 +214,24 @@ where
                         as _,
                     ElfSectionContent::RelocationsTable(table) => {
                         self.section_idx(&table.applies_to_section) as _
+                    }
+                    ElfSectionContent::Group(group) => {
+                        let ElfSectionContent::SymbolTable(symbol_table) =
+                            &self.object.sections.get(&group.symbol_table).unwrap().content
+                        else {
+                            return Err(WriteError::WrongSectionTypeForGroupSymbolTable {
+                                group: id.clone(),
+                                symbol_table: group.symbol_table.clone(),
+                            });
+                        };
+                        symbol_table
+                            .symbols
+                            .iter()
+                            .position(|(id, _)| *id == group.signature)
+                            .ok_or_else(|| WriteError::MissingGroupSignature {
+                                group: id.clone(),
+                                signature: group.signature.clone(),
+                            })? as _
                     }
                     _ => 0,
                 },
@@ -466,6 +492,17 @@ where
             }
         }
 
+        Ok(())
+    }
+
+    fn write_group(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
+        let ElfSectionContent::Group(group) = &self.object.sections.get(id).unwrap().content else {
+            panic!("section {id:?} is not a group");
+        };
+        self.write_raw(RawGroupFlags { comdat: group.comdat })?;
+        for section in &group.sections {
+            self.write_raw(self.section_idx(section) as u32)?;
+        }
         Ok(())
     }
 

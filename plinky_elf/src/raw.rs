@@ -68,6 +68,8 @@ pub(crate) struct RawSectionHeaderFlags {
     pub(crate) strings: bool,
     #[bit(6)]
     pub(crate) info_link: bool,
+    #[bit(9)]
+    pub(crate) group: bool,
 }
 
 #[derive(RawType)]
@@ -134,4 +136,10 @@ pub(crate) struct RawRela {
     pub(crate) info: u64,
     #[pointer_size]
     pub(crate) addend: i64,
+}
+
+#[derive(Bitfield)]
+#[bitfield_repr(u32)]
+pub(crate) struct RawGroupFlags {
+    pub(crate) comdat: bool,
 }

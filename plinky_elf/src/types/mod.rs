@@ -103,6 +103,7 @@ pub enum ElfMachine {
 pub struct ElfSection<I: ElfIds> {
     pub name: I::StringId,
     pub memory_address: u64,
+    pub part_of_group: bool,
     pub content: ElfSectionContent<I>,
 }
 
@@ -115,6 +116,7 @@ pub enum ElfSectionContent<I: ElfIds> {
     StringTable(ElfStringTable),
     RelocationsTable(ElfRelocationsTable<I>),
     Note(ElfNotesTable),
+    Group(ElfGroup<I>),
     Unknown(ElfUnknownSection),
 }
 
@@ -272,6 +274,14 @@ pub enum ElfRelocationType {
     X86_64_Code_6_GOTPC32_TLSDesc,
     // Other:
     Unknown(u32),
+}
+
+#[derive(Debug)]
+pub struct ElfGroup<I: ElfIds> {
+    pub symbol_table: I::SectionId,
+    pub signature: I::SymbolId,
+    pub sections: Vec<I::SectionId>,
+    pub comdat: bool,
 }
 
 #[derive(Debug)]

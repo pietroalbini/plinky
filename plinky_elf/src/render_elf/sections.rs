@@ -1,9 +1,9 @@
 use crate::ids::ElfIds;
 use crate::render_elf::utils::{render_perms, section_name, symbol_name};
 use crate::{
-    ElfDeduplication, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection, ElfRelocationsTable,
-    ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition,
-    ElfSymbolTable, ElfSymbolType, ElfUninitializedSection, ElfUnknownSection,
+    ElfDeduplication, ElfGroup, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection,
+    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding,
+    ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
@@ -19,13 +19,19 @@ pub(super) fn render_section<I: ElfIds>(
         ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, id, symbols),
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
         ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(object, relocs),
+        ElfSectionContent::Group(group) => render_section_group(object, group),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
 
+    let mut extra = String::new();
+    if section.part_of_group {
+        extra.push_str(", part of a group");
+    }
+
     WidgetGroup::new()
         .name(format!(
-            "section {} (address: {:#x})",
+            "section {} (address: {:#x}{extra})",
             section_name(object, id),
             section.memory_address
         ))
@@ -132,6 +138,26 @@ fn render_section_relocs<I: ElfIds>(
     }
 
     vec![Box::new(intro), Box::new(table)]
+}
+
+fn render_section_group<I: ElfIds>(
+    object: &ElfObject<I>,
+    group: &ElfGroup<I>,
+) -> Vec<Box<dyn Widget>> {
+    let mut info = "group | ".to_string();
+    if group.comdat {
+        info.push_str("COMDAT | ");
+    }
+    info.push_str("signature: ");
+    info.push_str(&symbol_name(object, &group.symbol_table, &group.signature));
+
+    let mut sections = Table::new();
+    sections.set_title("Sections:");
+    for section in &group.sections {
+        sections.add_row([section_name(object, section)]);
+    }
+
+    vec![Box::new(Text::new(info)), Box::new(sections)]
 }
 
 fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {

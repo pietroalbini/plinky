@@ -1,11 +1,11 @@
 use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
-use crate::raw::{RawRel, RawRela, RawSectionHeader, RawSymbol};
+use crate::raw::{RawGroupFlags, RawRel, RawRela, RawSectionHeader, RawSymbol};
 use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
-    ElfClass, ElfDeduplication, ElfPermissions, ElfProgramSection, ElfRelocation,
+    ElfClass, ElfDeduplication, ElfGroup, ElfPermissions, ElfProgramSection, ElfRelocation,
     ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
     ElfUninitializedSection, ElfUnknownSection, RawBytes,
@@ -61,6 +61,7 @@ fn read_section(
         7 => SectionType::Note,
         8 => SectionType::Uninit,
         9 => SectionType::Relocations { rela: false },
+        17 => SectionType::Group,
         other => SectionType::Unknown(other),
     };
 
@@ -143,6 +144,10 @@ fn read_section(
             },
             len: header.size,
         }),
+        SectionType::Group => {
+            let raw = read_section_raw_content(&header, cursor)?;
+            ElfSectionContent::Group(read_group(&header, cursor, &raw)?)
+        }
         SectionType::Unknown(other) => ElfSectionContent::Unknown(ElfUnknownSection {
             id: other,
             raw: RawBytes(read_section_raw_content(&header, cursor)?),
@@ -158,6 +163,7 @@ fn read_section(
     Ok(ElfSection {
         name: PendingStringId(section_names_table, header.name_offset),
         memory_address: header.memory_address,
+        part_of_group: header.flags.group,
         content,
     })
 }
@@ -178,6 +184,7 @@ enum SectionType {
     Relocations { rela: bool },
     Note,
     Uninit,
+    Group,
     Unknown(u32),
 }
 
@@ -355,4 +362,25 @@ fn read_relocation(
         relocation_type,
         addend,
     })
+}
+
+fn read_group(
+    header: &RawSectionHeader,
+    cursor: &mut ReadCursor<'_>,
+    raw_content: &[u8],
+) -> Result<ElfGroup<PendingIds>, LoadError> {
+    let mut inner = std::io::Cursor::new(raw_content);
+    let mut cursor = cursor.duplicate(&mut inner);
+
+    let symbol_table = PendingSectionId(header.link);
+    let signature = PendingSymbolId(symbol_table, header.info);
+
+    let flags: RawGroupFlags = cursor.read_raw()?;
+
+    let mut sections = Vec::new();
+    while cursor.current_position()? < raw_content.len() as u64 {
+        sections.push(PendingSectionId(cursor.read_raw::<u32>()?));
+    }
+
+    Ok(ElfGroup { symbol_table, signature, sections, comdat: flags.comdat })
 }

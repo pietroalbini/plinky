@@ -1,6 +1,7 @@
 use crate::cli::CliOptions;
 use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
+use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::repr::object::Object;
 use crate::repr::sections::Sections;
 use crate::repr::strings::Strings;
@@ -13,6 +14,7 @@ use plinky_macros::{Display, Error};
 mod cleanup;
 mod merge_elf;
 mod read_objects;
+mod section_groups;
 
 pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
@@ -22,16 +24,16 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
         .add_unknown_global(ids, &options.entry)
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
-    let mut state = State::Empty { symbols: empty_symbols };
+    let mut state = State::Empty { symbols: empty_symbols, section_groups: SectionGroups::new() };
     loop {
         let symbols = match &state {
-            State::Empty { symbols } => symbols,
+            State::Empty { symbols, .. } => symbols,
             State::WithContent { object, .. } => &object.symbols,
         };
         let Some((source, elf)) = reader.next_object(ids, symbols)? else { break };
 
         state = match state {
-            State::Empty { symbols } => {
+            State::Empty { symbols, mut section_groups } => {
                 let mut object = Object {
                     env: elf.env,
                     sections: Sections::new(),
@@ -41,11 +43,11 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     executable_stack: options.executable_stack,
                     gnu_stack_section_ignored: false,
                 };
-                merge_elf::merge(ids, &mut object, source.clone(), elf)
+                merge_elf::merge(ids, &mut object, section_groups.for_object(), source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
-                State::WithContent { object, first_span: source }
+                State::WithContent { object, section_groups, first_span: source }
             }
-            State::WithContent { mut object, first_span } => {
+            State::WithContent { mut object, mut section_groups, first_span } => {
                 if object.env != elf.env {
                     return Err(LoadInputsError::MismatchedEnv {
                         first_span: first_span.clone(),
@@ -54,25 +56,25 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                         current_env: elf.env,
                     });
                 }
-                merge_elf::merge(ids, &mut object, source.clone(), elf)
+                merge_elf::merge(ids, &mut object, section_groups.for_object(), source.clone(), elf)
                     .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
-                State::WithContent { object, first_span }
+                State::WithContent { object, section_groups, first_span }
             }
         }
     }
 
     match state {
         State::Empty { .. } => Err(LoadInputsError::NoInputFiles),
-        State::WithContent { mut object, .. } => {
-            cleanup::run(&mut object);
+        State::WithContent { mut object, section_groups, .. } => {
+            cleanup::run(&mut object, &section_groups);
             Ok(object)
         }
     }
 }
 
 enum State {
-    Empty { symbols: Symbols },
-    WithContent { object: Object, first_span: ObjectSpan },
+    Empty { symbols: Symbols, section_groups: SectionGroups },
+    WithContent { object: Object, section_groups: SectionGroups, first_span: ObjectSpan },
 }
 
 #[derive(Debug, Error, Display)]

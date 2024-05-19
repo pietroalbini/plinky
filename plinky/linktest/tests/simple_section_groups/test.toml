@@ -1,0 +1,10 @@
+cmd = ["foo.o", "bar.o"]
+kind = "link-pass"
+debug-print = ["loaded-object"]
+archs = ["x86", "x86_64"]
+
+[[asm]]
+source = "foo.S"
+
+[[asm]]
+source = "bar.S"

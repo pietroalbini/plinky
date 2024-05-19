@@ -21,7 +21,12 @@ impl Sections {
         // The first section must always be the null section.
         sections.insert(
             zero_id,
-            ElfSection { name: names.zero_id, memory_address: 0, content: ElfSectionContent::Null },
+            ElfSection {
+                name: names.zero_id,
+                memory_address: 0,
+                part_of_group: false,
+                content: ElfSectionContent::Null,
+            },
         );
 
         Sections { sections, ids_map: BTreeMap::new(), names }
@@ -43,7 +48,12 @@ impl Sections {
         let shstrtab = self.names.add(".shstrtab");
         self.sections.insert(
             self.names.id,
-            ElfSection { name: shstrtab, memory_address: 0, content: self.names.into_elf() },
+            ElfSection {
+                name: shstrtab,
+                memory_address: 0,
+                part_of_group: false,
+                content: self.names.into_elf(),
+            },
         );
         self.sections
     }
@@ -82,6 +92,7 @@ impl SectionBuilder<'_> {
             ElfSection {
                 name: self.parent.names.add(self.name),
                 memory_address: self.memory_address,
+                part_of_group: false,
                 content: self.content,
             },
         );

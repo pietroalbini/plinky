@@ -1,8 +1,10 @@
 use crate::interner::intern;
+use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
+use crate::repr::symbols::SymbolValue;
 
-pub(super) fn run(object: &mut Object) {
+pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
     let gnu_stack = intern(".note.GNU-stack");
 
     let mut removed_gnu_stack = false;
@@ -22,6 +24,21 @@ pub(super) fn run(object: &mut Object) {
                 sections_to_remove.push(section.id);
             }
         }
+    }
+
+    let mut symbols_to_remove = Vec::new();
+    for (id, symbol) in object.symbols.iter() {
+        // GNU AS generates symbols for each section group, pointing to the SHT_GROUP. This is not
+        // really useful, as nothing can refer to that section and the SHT_GROUP wouldn't be loaded
+        // in memory anyway. To avoid the linker crashing when it sees a symbol to the section that
+        // wasn't loaded, we remove all symbols pointing to a SHT_GROUP.
+        let SymbolValue::SectionRelative { section, .. } = &symbol.value else { continue };
+        if section_groups.is_section_a_group_definition(*section) {
+            symbols_to_remove.push(id);
+        }
+    }
+    for symbol_id in symbols_to_remove {
+        object.symbols.remove(symbol_id);
     }
 
     object.gnu_stack_section_ignored |= removed_gnu_stack;

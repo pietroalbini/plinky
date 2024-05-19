@@ -1,0 +1,49 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  class: Elf32, endian: Little, abi: SystemV, machine: X86
+ │
+ │  section .comment#18 (no perms) in <plinky>
+ │   │
+ │   │  zero-terminated strings should be deduplicated
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
+ │  section .text#2 (perms: rx) in foo.o
+ │   │
+ │   │  ╭────┬───╮
+ │   │  │ 90 │ . │
+ │   │  ╰────┴───╯
+ │   ┴
+ │
+ │  section .text.sample_group#5 (perms: rx) in foo.o
+ │   │
+ │   │  ╭──────────┬─────╮
+ │   │  │ 90 90 90 │ ... │
+ │   │  ╰──────────┴─────╯
+ │   ┴
+ │
+ │    Symbols:
+ │  ╭─────────────────┬──────┬──────────┬────────────┬────────────────────────────╮
+ │  │ Name            │ Type │ Source   │ Visibility │ Value                      │
+ │  ├─────────────────┼──────┼──────────┼────────────┼────────────────────────────┤
+ │  │ <symbol#0>      │ none │ <plinky> │ local      │ <null>                     │
+ │  ├─────────────────┼──────┼──────────┼────────────┼────────────────────────────┤
+ │  │ _start#2        │ none │ foo.o    │ global     │ .text#2 + 0x0              │
+ │  ├─────────────────┼──────┼──────────┼────────────┼────────────────────────────┤
+ │  │ sample_symbol#8 │ none │ foo.o    │ global     │ .text.sample_group#5 + 0x0 │
+ │  ╰─────────────────┴──────┴──────────┴────────────┴────────────────────────────╯
+ ┴
+
+
+

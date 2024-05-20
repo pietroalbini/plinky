@@ -135,8 +135,10 @@ fn render_symbols<'a>(
         };
         let visibility = match symbol.visibility {
             SymbolVisibility::Local => "local",
-            SymbolVisibility::Global { weak: true } => "global (weak)",
-            SymbolVisibility::Global { weak: false } => "global",
+            SymbolVisibility::Global { weak: true, hidden: true } => "global (weak, hidden)",
+            SymbolVisibility::Global { weak: true, hidden: false } => "global (weak)",
+            SymbolVisibility::Global { weak: false, hidden: true } => "global (hidden)",
+            SymbolVisibility::Global { weak: false, hidden: false } => "global",
         };
         let value = match symbol.value {
             SymbolValue::Absolute { value } => format!("{value:#x}"),

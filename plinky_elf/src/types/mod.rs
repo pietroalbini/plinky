@@ -173,6 +173,7 @@ pub struct ElfSymbol<I: ElfIds> {
     pub name: I::StringId,
     pub binding: ElfSymbolBinding,
     pub type_: ElfSymbolType,
+    pub visibility: ElfSymbolVisibility,
     pub definition: ElfSymbolDefinition<I>,
     pub value: u64,
     pub size: u64,
@@ -194,6 +195,16 @@ pub enum ElfSymbolType {
     Section,
     File,
     Unknown(u8),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ElfSymbolVisibility {
+    Default,
+    Hidden,
+    Protected,
+    Exported,
+    Singleton,
+    Eliminate,
 }
 
 #[derive(Debug)]

@@ -47,6 +47,8 @@ pub enum LoadError {
     FixedSizeChunksMergeWithZeroLenChunks { section_idx: u32 },
     #[display("flag SHF_MERGE was applied on an unsupported section (section {section_idx})")]
     MergeFlagOnUnsupportedSection { section_idx: u32 },
+    #[display("bad symbol visibility: {f0}")]
+    BadSymbolVisibility(u8),
     #[display("failed to parse section header number {idx}")]
     FailedToParseSectionHeader {
         idx: u32,

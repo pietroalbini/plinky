@@ -3,7 +3,8 @@ use crate::render_elf::utils::{render_perms, section_name, symbol_name};
 use crate::{
     ElfDeduplication, ElfGroup, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection,
     ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding,
-    ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfUninitializedSection, ElfUnknownSection,
+    ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
+    ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
@@ -69,7 +70,7 @@ fn render_section_symbols<I: ElfIds>(
 ) -> Vec<Box<dyn Widget>> {
     let mut table = Table::new();
     table.set_title("Symbol table:");
-    table.add_row(["Name", "Binding", "Type", "Definition", "Value", "Size"]);
+    table.add_row(["Name", "Binding", "Type", "Visibility", "Definition", "Value", "Size"]);
     for (id, symbol) in &symbols.symbols {
         table.add_row([
             symbol_name(object, section_id, id),
@@ -87,6 +88,15 @@ fn render_section_symbols<I: ElfIds>(
                 ElfSymbolType::File => "File".into(),
                 ElfSymbolType::Unknown(unknown) => format!("<unknown: {unknown:#x}>"),
             },
+            match symbol.visibility {
+                ElfSymbolVisibility::Default => "Default",
+                ElfSymbolVisibility::Hidden => "Hidden",
+                ElfSymbolVisibility::Protected => "Protected",
+                ElfSymbolVisibility::Exported => "Exported",
+                ElfSymbolVisibility::Singleton => "Singleton",
+                ElfSymbolVisibility::Eliminate => "Eliminate",
+            }
+            .into(),
             match &symbol.definition {
                 ElfSymbolDefinition::Undefined => "Undefined".into(),
                 ElfSymbolDefinition::Absolute => "Absolute".into(),

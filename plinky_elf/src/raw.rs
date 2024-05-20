@@ -76,7 +76,7 @@ pub(crate) struct RawSectionHeaderFlags {
 pub(crate) struct RawSymbol {
     pub(crate) name_offset: u32,
     pub(crate) info: u8,
-    pub(crate) reserved: RawPadding<1>,
+    pub(crate) other: u8,
     pub(crate) definition: u16,
     #[pointer_size]
     #[placed_on_elf32_after = "name_offset"]

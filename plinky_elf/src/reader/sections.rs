@@ -5,10 +5,7 @@ use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
-    ElfClass, ElfDeduplication, ElfGroup, ElfPermissions, ElfProgramSection, ElfRelocation,
-    ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
-    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
-    ElfUninitializedSection, ElfUnknownSection, RawBytes,
+    ElfClass, ElfDeduplication, ElfGroup, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection, RawBytes
 };
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
@@ -247,6 +244,15 @@ fn read_symbol(
             3 => ElfSymbolType::Section,
             4 => ElfSymbolType::File,
             other => ElfSymbolType::Unknown(other),
+        },
+        visibility: match symbol.other {
+            0 => ElfSymbolVisibility::Default,
+            1 | 2 => ElfSymbolVisibility::Hidden,
+            3 => ElfSymbolVisibility::Protected,
+            4 => ElfSymbolVisibility::Exported,
+            5 => ElfSymbolVisibility::Singleton,
+            6 => ElfSymbolVisibility::Eliminate,
+            other => return Err(LoadError::BadSymbolVisibility(other)),
         },
         definition: match symbol.definition {
             0x0000 => ElfSymbolDefinition::Undefined, // SHN_UNDEF

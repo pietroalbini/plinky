@@ -94,6 +94,7 @@ where
                                                     name: map.string_id(&symbol.name),
                                                     binding: symbol.binding,
                                                     type_: symbol.type_,
+                                                    visibility: symbol.visibility,
                                                     definition: match symbol.definition {
                                                         ElfSymbolDefinition::Undefined => {
                                                             ElfSymbolDefinition::Undefined

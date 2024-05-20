@@ -4,7 +4,7 @@ use crate::passes::build_elf::{ElfBuilder, PendingStringsTable};
 use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType,
+    ElfSymbolType, ElfSymbolVisibility,
 };
 use std::collections::BTreeMap;
 
@@ -42,6 +42,7 @@ pub(super) fn add_symbols(builder: &mut ElfBuilder<'_>) {
                 name: strings.add(file.expect("symbol without a STT_FILE").resolve().as_str()),
                 binding: ElfSymbolBinding::Local,
                 type_: ElfSymbolType::File,
+                visibility: ElfSymbolVisibility::Default,
                 definition: ElfSymbolDefinition::Absolute,
                 value: 0,
                 size: 0,
@@ -75,8 +76,13 @@ fn add_symbol(
             name: strings.add(symbol.name.resolve().as_str()),
             binding: match &symbol.visibility {
                 SymbolVisibility::Local => ElfSymbolBinding::Local,
-                SymbolVisibility::Global { weak: true } => ElfSymbolBinding::Weak,
-                SymbolVisibility::Global { weak: false } => ElfSymbolBinding::Global,
+                SymbolVisibility::Global { weak: true, hidden: _ } => ElfSymbolBinding::Weak,
+                SymbolVisibility::Global { weak: false, hidden: _ } => ElfSymbolBinding::Global,
+            },
+            visibility: match &symbol.visibility {
+                SymbolVisibility::Local => ElfSymbolVisibility::Default,
+                SymbolVisibility::Global { weak: _, hidden: false } => ElfSymbolVisibility::Default,
+                SymbolVisibility::Global { weak: _, hidden: true } => ElfSymbolVisibility::Hidden,
             },
             type_: match &symbol.type_ {
                 SymbolType::NoType => ElfSymbolType::NoType,

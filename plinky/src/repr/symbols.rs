@@ -3,7 +3,9 @@ use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::strings::{MissingStringError, Strings};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plinky_elf::{ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType};
+use plinky_elf::{
+    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
+};
 use plinky_macros::{Display, Error};
 use std::collections::{btree_map, BTreeMap};
 
@@ -49,7 +51,7 @@ impl Symbols {
                 type_: SymbolType::NoType,
                 stt_file: None,
                 span: intern(ObjectSpan::new_synthetic()),
-                visibility: SymbolVisibility::Global { weak: false },
+                visibility: SymbolVisibility::Global { weak: false, hidden: false },
                 value: SymbolValue::Undefined,
             },
         )?;
@@ -101,17 +103,30 @@ impl Symbols {
                 }
             };
 
+            let hidden = match elf_symbol.visibility {
+                ElfSymbolVisibility::Default => false,
+                ElfSymbolVisibility::Hidden => true,
+                other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
+            };
+
             let symbol = Symbol {
                 id: symbol_id,
                 name,
                 type_,
                 stt_file,
                 span,
-                visibility: match elf_symbol.binding {
-                    ElfSymbolBinding::Local => SymbolVisibility::Local,
-                    ElfSymbolBinding::Global => SymbolVisibility::Global { weak: false },
-                    ElfSymbolBinding::Weak => SymbolVisibility::Global { weak: true },
-                    ElfSymbolBinding::Unknown(_) => {
+                visibility: match (elf_symbol.binding, hidden) {
+                    (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
+                    (ElfSymbolBinding::Local, true) => {
+                        return Err(LoadSymbolsError::LocalHiddenSymbol);
+                    }
+                    (ElfSymbolBinding::Global, hidden) => {
+                        SymbolVisibility::Global { weak: false, hidden }
+                    }
+                    (ElfSymbolBinding::Weak, hidden) => {
+                        SymbolVisibility::Global { weak: true, hidden }
+                    }
+                    (ElfSymbolBinding::Unknown(_), _) => {
                         return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
                     }
                 },
@@ -142,7 +157,7 @@ impl Symbols {
             SymbolVisibility::Local => {
                 self.symbols.insert(id, SymbolOrRedirect::Symbol(symbol));
             }
-            SymbolVisibility::Global { weak: false } => {
+            SymbolVisibility::Global { weak: false, hidden: _ } => {
                 // For global symbols, we generate a new symbol ID for each unique name, and
                 // redirect to it all of the concrete references to that global name.
                 let global_id = *self
@@ -172,7 +187,7 @@ impl Symbols {
                     }
                 }
             }
-            SymbolVisibility::Global { weak: true } => {
+            SymbolVisibility::Global { weak: true, hidden: _ } => {
                 todo!("weak symbols are not supported yet")
             }
         }
@@ -293,7 +308,7 @@ pub(crate) enum SymbolType {
 #[derive(Debug)]
 pub(crate) enum SymbolVisibility {
     Local,
-    Global { weak: bool },
+    Global { weak: bool, hidden: bool },
 }
 
 #[derive(Debug)]
@@ -322,6 +337,10 @@ pub(crate) enum LoadSymbolsError {
     UnsupportedUnknownSymbolBinding,
     #[display("unknown symbol types are not supported")]
     UnsupportedUnknownSymbolType,
+    #[display("unsupported symbol visibility {f0:?}")]
+    UnsupportedVisibility(ElfSymbolVisibility),
+    #[display("local symbols cannot have hidden visibility")]
+    LocalHiddenSymbol,
     #[display("missing name for symbol {f0:?}")]
     MissingSymbolName(SymbolId, #[source] MissingStringError),
     #[display("duplicate global symbol {f0}")]

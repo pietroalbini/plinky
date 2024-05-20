@@ -10,9 +10,7 @@ use crate::raw::{
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
-    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
-    ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfType,
+    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility, ElfType
 };
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
@@ -377,7 +375,14 @@ where
             self.write_raw(RawSymbol {
                 name_offset: symbol.name.offset(),
                 info,
-                reserved: RawPadding,
+                other: match &symbol.visibility {
+                    ElfSymbolVisibility::Default => 0,
+                    ElfSymbolVisibility::Hidden => 2,
+                    ElfSymbolVisibility::Protected => 3,
+                    ElfSymbolVisibility::Exported => 4,
+                    ElfSymbolVisibility::Singleton => 5,
+                    ElfSymbolVisibility::Eliminate => 6,
+                },
                 definition: match &symbol.definition {
                     ElfSymbolDefinition::Undefined => 0x0000,
                     ElfSymbolDefinition::Absolute => 0xFFF1,

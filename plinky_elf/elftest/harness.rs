@@ -125,6 +125,6 @@ struct TestToml {
 }
 
 fn main() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("elftest").join("tests");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("elftest");
     plinky_test_harness::main(&path, Elftest);
 }

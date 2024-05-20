@@ -154,6 +154,6 @@ enum TestKind {
 }
 
 fn main() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("linktest").join("tests");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("linktest");
     plinky_test_harness::main(&path, Linktest);
 }

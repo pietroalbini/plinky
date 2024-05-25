@@ -1,6 +1,7 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use crate::passes::build_elf::PendingStringsTable;
 use crate::passes::layout::SectionLayout;
+use crate::utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfSection, ElfSectionContent};
 use std::collections::BTreeMap;
@@ -37,7 +38,13 @@ impl Sections {
         name: &'a str,
         content: ElfSectionContent<BuiltElfIds>,
     ) -> SectionBuilder<'a> {
-        SectionBuilder { parent: self, name, content, memory_address: 0, old_id: None }
+        SectionBuilder {
+            parent: self,
+            name,
+            content,
+            memory_address: Address::from(0u64),
+            old_id: None,
+        }
     }
 
     pub(super) fn new_id_of(&self, old_id: SectionId) -> BuiltElfSectionId {
@@ -64,7 +71,7 @@ pub(super) struct SectionBuilder<'a> {
     parent: &'a mut Sections,
     name: &'a str,
     content: ElfSectionContent<BuiltElfIds>,
-    memory_address: u64,
+    memory_address: Address,
     old_id: Option<SectionId>,
 }
 
@@ -91,7 +98,7 @@ impl SectionBuilder<'_> {
             id,
             ElfSection {
                 name: self.parent.names.add(self.name),
-                memory_address: self.memory_address,
+                memory_address: self.memory_address.extract(),
                 part_of_group: false,
                 content: self.content,
             },

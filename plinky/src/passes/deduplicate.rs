@@ -1,6 +1,7 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, Section, SectionContent};
+use crate::utils::ints::Offset;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
@@ -81,13 +82,13 @@ fn deduplicate(
             let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
                 Some(idx) => {
-                    deduplication.map.insert(chunk_start as _, *idx as _);
+                    deduplication.map.insert(Offset::len(chunk_start), *idx);
                 }
                 None => {
                     let idx = merged.len();
                     merged.extend_from_slice(chunk);
-                    seen.insert(chunk, idx);
-                    deduplication.map.insert(chunk_start as _, idx as _);
+                    seen.insert(chunk, Offset::len(idx));
+                    deduplication.map.insert(Offset::len(chunk_start), Offset::len(idx));
                 }
             }
         }
@@ -165,7 +166,7 @@ fn split(
 pub(crate) struct Deduplication {
     pub(crate) target: SectionId,
     pub(crate) source: ObjectSpan,
-    pub(crate) map: BTreeMap<u64, u64>,
+    pub(crate) map: BTreeMap<Offset, Offset>,
 }
 
 #[derive(Debug, Display, Error)]

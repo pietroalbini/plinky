@@ -5,7 +5,10 @@ use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
-    ElfClass, ElfDeduplication, ElfGroup, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection, RawBytes
+    ElfClass, ElfDeduplication, ElfGroup, ElfPermissions, ElfProgramSection, ElfRelocation,
+    ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
+    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection, RawBytes,
 };
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;

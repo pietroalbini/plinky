@@ -1,3 +1,4 @@
+use crate::utils::ints::Offset;
 use plinky_elf::ids::serial::{SerialIds, SymbolId};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
@@ -42,8 +43,8 @@ impl RelocationType {
 pub(crate) struct Relocation {
     pub(crate) type_: RelocationType,
     pub(crate) symbol: SymbolId,
-    pub(crate) offset: u64,
-    pub(crate) addend: Option<i64>,
+    pub(crate) offset: Offset,
+    pub(crate) addend: Option<Offset>,
 }
 
 impl TryFrom<ElfRelocation<SerialIds>> for Relocation {
@@ -69,8 +70,8 @@ impl TryFrom<ElfRelocation<SerialIds>> for Relocation {
                 elf_type => return Err(UnsupportedRelocationType { elf_type }),
             },
             symbol: value.symbol,
-            offset: value.offset,
-            addend: value.addend,
+            offset: (value.offset as i64).into(),
+            addend: value.addend.map(|a| a.into()),
         })
     }
 }

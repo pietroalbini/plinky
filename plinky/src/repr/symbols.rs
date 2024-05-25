@@ -1,6 +1,7 @@
 use crate::interner::{intern, Interned};
 use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::strings::{MissingStringError, Strings};
+use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{
@@ -133,12 +134,13 @@ impl Symbols {
                 value: match elf_symbol.definition {
                     ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
                     ElfSymbolDefinition::Absolute => {
-                        SymbolValue::Absolute { value: elf_symbol.value }
+                        SymbolValue::Absolute { value: elf_symbol.value.into() }
                     }
                     ElfSymbolDefinition::Common => todo!(),
-                    ElfSymbolDefinition::Section(section) => {
-                        SymbolValue::SectionRelative { section, offset: elf_symbol.value }
-                    }
+                    ElfSymbolDefinition::Section(section) => SymbolValue::SectionRelative {
+                        section,
+                        offset: (elf_symbol.value as i64).into(),
+                    },
                 },
             };
 
@@ -262,38 +264,39 @@ impl Symbol {
     pub(crate) fn resolve(
         &self,
         layout: &Layout,
-        offset: i128,
+        offset: Offset,
     ) -> Result<ResolvedSymbol, ResolveSymbolError> {
-        match &self.value {
-            SymbolValue::Undefined => Err(ResolveSymbolError {
-                symbol: self.name,
-                inner: ResolveSymbolErrorKind::Undefined,
-            }),
-            SymbolValue::Absolute { value } => {
-                assert!(offset == 0);
-                Ok(ResolvedSymbol::Absolute(*value))
-            }
-            SymbolValue::SectionRelative { section, offset: section_offset } => {
-                match layout.address(*section, i128::from(*section_offset) + offset) {
-                    Ok((section, memory_address)) => {
-                        Ok(ResolvedSymbol::Address { section, memory_address })
-                    }
-                    Err(err) => Err(ResolveSymbolError {
-                        symbol: self.name,
-                        inner: ResolveSymbolErrorKind::Layout(err),
-                    }),
+        fn resolve_inner(
+            symbol: &Symbol,
+            layout: &Layout,
+            offset: Offset,
+        ) -> Result<ResolvedSymbol, ResolveSymbolErrorKind> {
+            match &symbol.value {
+                SymbolValue::Undefined => Err(ResolveSymbolErrorKind::Undefined),
+                SymbolValue::Absolute { value } => {
+                    assert!(offset == Offset::from(0));
+                    Ok(ResolvedSymbol::Absolute(*value))
                 }
-            }
-            SymbolValue::SectionVirtualAddress { section, memory_address } => {
-                Ok(ResolvedSymbol::Address {
-                    section: *section,
-                    memory_address: i128::from(*memory_address) + offset,
-                })
-            }
-            SymbolValue::Null => {
-                Err(ResolveSymbolError { symbol: self.name, inner: ResolveSymbolErrorKind::Null })
+                SymbolValue::SectionRelative { section, offset: section_offset } => {
+                    match layout.address(*section, section_offset.add(offset)?) {
+                        Ok((section, memory_address)) => {
+                            Ok(ResolvedSymbol::Address { section, memory_address })
+                        }
+                        Err(err) => Err(ResolveSymbolErrorKind::Layout(err)),
+                    }
+                }
+                SymbolValue::SectionVirtualAddress { section, memory_address } => {
+                    Ok(ResolvedSymbol::Address {
+                        section: *section,
+                        memory_address: memory_address.offset(offset)?,
+                    })
+                }
+                SymbolValue::Null => Err(ResolveSymbolErrorKind::Null),
             }
         }
+
+        resolve_inner(self, layout, offset)
+            .map_err(|inner| ResolveSymbolError { symbol: self.name, inner })
     }
 }
 
@@ -313,16 +316,16 @@ pub(crate) enum SymbolVisibility {
 
 #[derive(Debug)]
 pub(crate) enum SymbolValue {
-    Absolute { value: u64 },
-    SectionRelative { section: SectionId, offset: u64 },
-    SectionVirtualAddress { section: SectionId, memory_address: u64 },
+    Absolute { value: Absolute },
+    SectionRelative { section: SectionId, offset: Offset },
+    SectionVirtualAddress { section: SectionId, memory_address: Address },
     Undefined,
     Null,
 }
 
 pub(crate) enum ResolvedSymbol {
-    Absolute(u64),
-    Address { section: SectionId, memory_address: i128 },
+    Absolute(Absolute),
+    Address { section: SectionId, memory_address: Address },
 }
 
 #[derive(Debug, Error, Display)]
@@ -363,4 +366,6 @@ pub(crate) enum ResolveSymbolErrorKind {
     Undefined,
     #[transparent]
     Layout(AddressResolutionError),
+    #[transparent]
+    OutOfBounds(OutOfBoundsError),
 }

@@ -21,7 +21,7 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
             section_name(object, id),
             source.to_string(),
             match layout.of_section(id) {
-                SectionLayout::Allocated { address } => format!("{address:#x}"),
+                SectionLayout::Allocated { address } => format!("{address}"),
                 SectionLayout::NotAllocated => "not allocated".to_string(),
             },
         ]);
@@ -74,7 +74,7 @@ fn render_deduplication(
     ));
     table.add_row(["From", "To"]);
     for (from, to) in &deduplication.map {
-        table.add_row([format!("{from:#x}"), format!("{target} + {to:#x}")]);
+        table.add_row([format!("{from}"), format!("{target} + {to}")]);
     }
 
     Box::new(table)

@@ -7,11 +7,11 @@ mod rust;
 use crate::prerequisites::ar::ArArchive;
 use crate::prerequisites::asm::AsmFile;
 use crate::prerequisites::c::CFile;
+use crate::prerequisites::ld::LdInvocation;
 use crate::prerequisites::rust::RustFile;
 use anyhow::Error;
 use std::collections::BTreeMap;
 use std::path::Path;
-use crate::prerequisites::ld::LdInvocation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
 pub enum Arch {

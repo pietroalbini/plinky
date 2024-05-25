@@ -82,10 +82,7 @@ pub enum WriteError<I: ElfIds> {
     #[display("group {group:?}'s symbol table {symbol_table:?} is not actually a symbol table")]
     WrongSectionTypeForGroupSymbolTable { group: I::SectionId, symbol_table: I::SectionId },
     #[display("group {group:?}'s signature {signature:?} is missing")]
-    MissingGroupSignature {
-        group: I::SectionId,
-        signature: I::SymbolId,
-    },
+    MissingGroupSignature { group: I::SectionId, signature: I::SymbolId },
     #[display("failed to calculate the resulting ELF layout")]
     LayoutError(#[from] WriteLayoutError),
 }

@@ -75,8 +75,8 @@ fn render_data_section(
             table.add_row([
                 format!("{:?}", relocation.type_),
                 symbol_name(object, relocation.symbol),
-                format!("{:#x}", relocation.offset),
-                relocation.addend.map(|a| format!("{a:#x}")).unwrap_or_else(String::new),
+                format!("{}", relocation.offset),
+                relocation.addend.map(|a| format!("{a}")).unwrap_or_else(String::new),
             ])
         }
         Some(table)
@@ -141,12 +141,12 @@ fn render_symbols<'a>(
             SymbolVisibility::Global { weak: false, hidden: false } => "global",
         };
         let value = match symbol.value {
-            SymbolValue::Absolute { value } => format!("{value:#x}"),
+            SymbolValue::Absolute { value } => format!("{value}"),
             SymbolValue::SectionRelative { section, offset } => {
-                format!("{} + {offset:#x}", section_name(object, section))
+                format!("{} + {offset}", section_name(object, section))
             }
             SymbolValue::SectionVirtualAddress { section, memory_address } => {
-                format!("{memory_address:#x} (in {})", section_name(object, section))
+                format!("{memory_address} (in {})", section_name(object, section))
             }
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),
@@ -164,7 +164,7 @@ fn render_symbols<'a>(
 
 fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
     layout.map(|layout| match layout.of_section(id) {
-        SectionLayout::Allocated { address } => Text::new(format!("address: {address:#x}")),
+        SectionLayout::Allocated { address } => Text::new(format!("address: {address}")),
         SectionLayout::NotAllocated => Text::new("not allocated in the resulting memory"),
     })
 }

@@ -2,6 +2,7 @@ use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSymbolId};
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::{ElfBuilder, PendingStringsTable};
 use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
+use crate::utils::ints::ExtractNumber;
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,
@@ -102,11 +103,13 @@ fn add_symbol(
                 SymbolValue::Null => ElfSymbolDefinition::Undefined,
             },
             value: match &symbol.value {
-                SymbolValue::Absolute { value } => *value,
+                SymbolValue::Absolute { value } => value.extract(),
                 SymbolValue::SectionRelative { .. } => {
                     panic!("section relative addresses should not reach this stage");
                 }
-                SymbolValue::SectionVirtualAddress { memory_address, .. } => *memory_address,
+                SymbolValue::SectionVirtualAddress { memory_address, .. } => {
+                    memory_address.extract()
+                }
                 SymbolValue::Undefined => 0,
                 SymbolValue::Null => 0,
             },

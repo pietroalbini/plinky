@@ -9,6 +9,7 @@ use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
+use crate::utils::ints::{Address, ExtractNumber};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -53,7 +54,7 @@ impl ElfBuilder<'_> {
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
         let symbol = self.object.symbols.get(self.object.entry_point);
         let resolved =
-            symbol.resolve(self.layout, 0).map_err(ElfBuilderError::EntryPointResolution)?;
+            symbol.resolve(self.layout, 0.into()).map_err(ElfBuilderError::EntryPointResolution)?;
 
         match resolved {
             ResolvedSymbol::Absolute(_) => {
@@ -62,6 +63,7 @@ impl ElfBuilder<'_> {
             ResolvedSymbol::Address { memory_address, .. } => Ok(Some(
                 NonZeroU64::new(
                     memory_address
+                        .extract()
                         .try_into()
                         .map_err(|_| ElfBuilderError::EntrypointIsOutOfBounds(memory_address))?,
                 )
@@ -174,6 +176,6 @@ pub(crate) enum ElfBuilderError {
     EntryPointNotAnAddress(Interned<String>),
     #[display("the entry point is zero")]
     EntrypointIsZero(Interned<String>),
-    #[display("the entry point address {f0:#x} is out of bounds")]
-    EntrypointIsOutOfBounds(i128),
+    #[display("the entry point address {f0} is out of bounds")]
+    EntrypointIsOutOfBounds(Address),
 }

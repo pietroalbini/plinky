@@ -1,6 +1,7 @@
 use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
+use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
@@ -32,7 +33,9 @@ pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplica
 
             let mut segment_len = 0;
             for &(section, len) in &sections {
-                layout.sections.insert(section, SectionLayout::Allocated { address });
+                layout
+                    .sections
+                    .insert(section, SectionLayout::Allocated { address: address.into() });
                 address += len;
                 segment_len += len;
             }
@@ -76,8 +79,8 @@ impl Layout {
     pub(crate) fn address(
         &self,
         section: SectionId,
-        offset: i128,
-    ) -> Result<(SectionId, i128), AddressResolutionError> {
+        offset: Offset,
+    ) -> Result<(SectionId, Address), AddressResolutionError> {
         if let Some(deduplication) = self.deduplications.get(&section) {
             let base = match self.of_section(deduplication.target) {
                 SectionLayout::Allocated { address } => *address,
@@ -88,15 +91,13 @@ impl Layout {
                 }
             };
 
-            let map_key = u64::try_from(offset)
-                .map_err(|_| AddressResolutionError::NegativeOffsetToAccessDeduplications)?;
-            match deduplication.map.get(&map_key) {
-                Some(&mapped) => Ok((deduplication.target, i128::from(base) + i128::from(mapped))),
+            match deduplication.map.get(&offset) {
+                Some(&mapped) => Ok((deduplication.target, base.offset(mapped)?)),
                 None => Err(AddressResolutionError::UnalignedReferenceToDeduplication),
             }
         } else {
             match self.of_section(section) {
-                SectionLayout::Allocated { address } => Ok((section, i128::from(*address) + offset)),
+                SectionLayout::Allocated { address } => Ok((section, address.offset(offset)?)),
                 SectionLayout::NotAllocated => {
                     Err(AddressResolutionError::PointsToUnallocatedSection(section))
                 }
@@ -115,7 +116,7 @@ impl Layout {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum SectionLayout {
-    Allocated { address: u64 },
+    Allocated { address: Address },
     NotAllocated,
 }
 
@@ -138,8 +139,8 @@ pub(crate) enum SegmentType {
 pub(crate) enum AddressResolutionError {
     #[display("address points to section {f0:?}, which is not going to be allocated in memory")]
     PointsToUnallocatedSection(SectionId),
-    #[display("negative offset was used to access deduplications")]
-    NegativeOffsetToAccessDeduplications,
     #[display("referenced an offset not aligned to the deduplication boundaries")]
     UnalignedReferenceToDeduplication,
+    #[transparent]
+    OutOfBounds(OutOfBoundsError),
 }

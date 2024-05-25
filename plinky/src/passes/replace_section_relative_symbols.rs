@@ -12,7 +12,7 @@ pub(crate) fn replace(
             continue;
         };
 
-        let resolved = symbol.resolve(layout, 0)?;
+        let resolved = symbol.resolve(layout, 0.into())?;
         // Note that the section returned by symbol resolution might be different than the section
         // of the symbol itself. This could happen due to deduplication, as the section the
         // original symbol points to might be a deduplication facade.
@@ -20,12 +20,7 @@ pub(crate) fn replace(
             panic!("section relative address doesn't resolve into an address");
         };
 
-        symbol.value = SymbolValue::SectionVirtualAddress {
-            section,
-            memory_address: memory_address.try_into().map_err(|_| {
-                ReplaceSectionRelativeSymbolsError::OutOfBoundsAddress(memory_address)
-            })?,
-        };
+        symbol.value = SymbolValue::SectionVirtualAddress { section, memory_address };
     }
 
     Ok(())
@@ -34,8 +29,6 @@ pub(crate) fn replace(
 #[derive(Debug, Display, Error)]
 #[display("failed to replace addresses of section relative symbols")]
 pub(crate) enum ReplaceSectionRelativeSymbolsError {
-    #[display("symbol address {f0:#x} is out of bounds")]
-    OutOfBoundsAddress(i128),
     #[transparent]
     ResolveSymbol(ResolveSymbolError),
 }

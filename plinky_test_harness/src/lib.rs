@@ -2,8 +2,8 @@
 
 extern crate test;
 
-pub mod utils;
 pub mod prerequisites;
+pub mod utils;
 
 use crate::utils::err_str;
 use anyhow::Error;

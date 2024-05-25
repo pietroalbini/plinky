@@ -1,5 +1,6 @@
 use crate::repr::object::Object;
 use crate::repr::symbols::SymbolValue;
+use crate::utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::ids::ReprIdGetters;
 use plinky_elf::ElfPermissions;
@@ -36,7 +37,7 @@ pub(super) fn symbol_name(object: &Object, id: SymbolId) -> String {
     let symbol = object.symbols.get(id);
     let name = symbol.name.resolve();
     match (name.as_str(), &symbol.value) {
-        ("", SymbolValue::SectionRelative { section, offset: 0 }) => {
+        ("", SymbolValue::SectionRelative { section, offset }) if offset.extract() == 0 => {
             format!("<section {}>", section_name(object, *section))
         }
         ("", _) => format!("<symbol#{}>", symbol.id.repr_id()),

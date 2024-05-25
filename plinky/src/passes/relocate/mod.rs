@@ -1,10 +1,13 @@
+mod editor;
+
 use crate::passes::generate_got::GOT;
 use crate::passes::layout::{AddressResolutionError, Layout};
+use crate::passes::relocate::editor::ByteEditor;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, ResolvedSymbol, Symbols};
-use crate::utils::ints::{Absolute, Address, ExtractNumber, Offset, OutOfBoundsError};
+use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfClass, ElfEnvironment};
 use plinky_macros::{Display, Error};
@@ -143,79 +146,6 @@ impl<'a> Relocator<'a> {
             }
             ResolvedSymbol::Address { memory_address, .. } => Ok(memory_address),
         }
-    }
-}
-
-struct ByteEditor<'a> {
-    relocation: &'a Relocation,
-    bytes: &'a mut [u8],
-}
-
-impl ByteEditor<'_> {
-    fn addend_32(&self) -> Result<Offset, RelocationErrorInner> {
-        match self.relocation.addend {
-            Some(addend) => Ok(addend.into()),
-            None => Ok(i32::from_le_bytes(self.read()?).into()),
-        }
-    }
-
-    fn write_u32<N>(&mut self, value: N) -> Result<(), RelocationErrorInner>
-    where
-        N: ExtractNumber,
-        N::Type: TryInto<u32>,
-    {
-        self.write(&value.extract().try_into().map_err(|_| OutOfBoundsError)?.to_le_bytes())
-    }
-
-    fn write_u64<N>(&mut self, value: N) -> Result<(), RelocationErrorInner>
-    where
-        N: ExtractNumber,
-        N::Type: TryInto<u64>,
-    {
-        self.write(&value.extract().try_into().map_err(|_| OutOfBoundsError)?.to_le_bytes())
-    }
-
-    fn write_i32<N>(&mut self, value: N) -> Result<(), RelocationErrorInner>
-    where
-        N: ExtractNumber,
-        N::Type: TryInto<i32>,
-    {
-        self.write(&value.extract().try_into().map_err(|_| OutOfBoundsError)?.to_le_bytes())
-    }
-
-    fn read<const LEN: usize>(&self) -> Result<[u8; LEN], RelocationErrorInner> {
-        let err = Err(RelocationErrorInner::OutOfBoundsAccess {
-            offset: self.relocation.offset,
-            len: LEN,
-            size: self.bytes.len(),
-        });
-
-        let Ok(start) = usize::try_from(self.relocation.offset.extract()) else { return err };
-        let Some(end) = start.checked_add(LEN) else { return err };
-        if end > self.bytes.len() {
-            return err;
-        }
-
-        let mut data = [0; LEN];
-        data.copy_from_slice(&self.bytes[start..end]);
-        Ok(data)
-    }
-
-    fn write(&mut self, bytes: &[u8]) -> Result<(), RelocationErrorInner> {
-        let err = Err(RelocationErrorInner::OutOfBoundsAccess {
-            offset: self.relocation.offset,
-            len: bytes.len(),
-            size: self.bytes.len(),
-        });
-
-        let Ok(start) = usize::try_from(self.relocation.offset.extract()) else { return err };
-        let Some(end) = start.checked_add(bytes.len()) else { return err };
-        if end > self.bytes.len() {
-            return err;
-        }
-
-        self.bytes[start..end].copy_from_slice(bytes);
-        Ok(())
     }
 }
 

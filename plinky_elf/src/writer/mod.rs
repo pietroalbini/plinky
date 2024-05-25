@@ -10,7 +10,9 @@ use crate::raw::{
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
-    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility, ElfType
+    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
+    ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
+    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility, ElfType,
 };
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
@@ -243,6 +245,16 @@ where
                         deduplication: ElfDeduplication::ZeroTerminatedStrings,
                         ..
                     }) => 1,
+                    ElfSectionContent::SymbolTable(_) => {
+                        RawSymbol::size(self.object.env.class) as _
+                    }
+                    ElfSectionContent::RelocationsTable(r) => {
+                        if r.relocations.first().map(|f| f.addend.is_some()).unwrap_or(false) {
+                            RawRela::size(self.object.env.class) as _
+                        } else {
+                            RawRel::size(self.object.env.class) as _
+                        }
+                    }
                     _ => 0,
                 },
             })?;

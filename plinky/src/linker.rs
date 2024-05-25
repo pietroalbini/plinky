@@ -31,6 +31,8 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
+    passes::generate_got::generate_got(&mut ids, &mut object);
+
     let layout = passes::layout::run(&object, deduplications);
     callbacks.on_layout_calculated(&object, &layout);
 

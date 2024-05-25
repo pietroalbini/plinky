@@ -39,12 +39,19 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     sections: Sections::new(),
                     strings: Strings::new(),
                     symbols,
+                    got: None,
                     entry_point,
                     executable_stack: options.executable_stack,
                     gnu_stack_section_ignored: false,
                 };
-                merge_elf::merge(ids, &mut object, section_groups.for_object(), source.clone(), elf)
-                    .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
+                merge_elf::merge(
+                    ids,
+                    &mut object,
+                    section_groups.for_object(),
+                    source.clone(),
+                    elf,
+                )
+                .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
                 State::WithContent { object, section_groups, first_span: source }
             }
             State::WithContent { mut object, mut section_groups, first_span } => {
@@ -56,8 +63,14 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                         current_env: elf.env,
                     });
                 }
-                merge_elf::merge(ids, &mut object, section_groups.for_object(), source.clone(), elf)
-                    .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
+                merge_elf::merge(
+                    ids,
+                    &mut object,
+                    section_groups.for_object(),
+                    source.clone(),
+                    elf,
+                )
+                .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
                 State::WithContent { object, section_groups, first_span }
             }
         }

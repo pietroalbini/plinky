@@ -1,6 +1,7 @@
 cmd = ["hello.o", "syscalls.o"]
-kind = "link-fail"
+kind = "run-pass"
 archs = ["x86", "x86_64"]
+debug-print = ["loaded-object=.text", "relocated-object=.text,.got,@symbols"]
 
 [[c]]
 source = "hello.c"

@@ -1,3 +1,4 @@
+use crate::passes::generate_got::GOT;
 use crate::repr::sections::Sections;
 use crate::repr::strings::Strings;
 use crate::repr::symbols::Symbols;
@@ -10,6 +11,7 @@ pub(crate) struct Object {
     pub(crate) sections: Sections,
     pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
+    pub(crate) got: Option<GOT>,
     pub(crate) entry_point: SymbolId,
     pub(crate) executable_stack: bool,
     pub(crate) gnu_stack_section_ignored: bool,

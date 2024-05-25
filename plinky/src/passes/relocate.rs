@@ -1,13 +1,16 @@
 use crate::passes::layout::{AddressResolutionError, Layout};
+use crate::passes::generate_got::GOT;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, ResolvedSymbol, Symbols};
 use plinky_elf::ids::serial::SectionId;
+use plinky_elf::{ElfClass, ElfEnvironment};
 use plinky_macros::{Display, Error};
 
 pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), RelocationError> {
-    let relocator = Relocator { layout, symbols: &object.symbols };
+    let relocator =
+        Relocator { layout, symbols: &object.symbols, env: &object.env, got: object.got.as_ref() };
     for section in object.sections.iter_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
@@ -20,6 +23,8 @@ pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), Relocation
 }
 
 struct Relocator<'a> {
+    env: &'a ElfEnvironment,
+    got: Option<&'a GOT>,
     layout: &'a Layout,
     symbols: &'a Symbols,
 }
@@ -70,7 +75,65 @@ impl<'a> Relocator<'a> {
                         .ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
                 )
             }
+            RelocationType::GOTRelative32 => {
+                let got = self.got()?;
+                let slot: i128 = got.offset(relocation.symbol).into();
+                let offset = self.layout.address(section_id, relocation.offset.into())?.1;
+                let got_addr = self.layout.address(got.id, 0)?.1;
+                let addend = editor.addend_32()?;
+
+                editor.write_i32(
+                    slot.checked_add(got_addr)
+                        .and_then(|v| v.checked_add(addend))
+                        .and_then(|v| v.checked_sub(offset))
+                        .ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
+                )
+            }
+            RelocationType::GOTIndex32 => {
+                let slot: i128 = self.got()?.offset(relocation.symbol).into();
+                let addend = editor.addend_32()?;
+                editor.write_u32(
+                    slot.checked_add(addend).ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
+                )
+            }
+            RelocationType::FillGOTSlot => {
+                let symbol = match self.symbol(relocation, 0)? {
+                    ResolvedSymbol::Absolute(absolute) => absolute.into(),
+                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
+                };
+                match self.env.class {
+                    ElfClass::Elf32 => editor.write_u32(symbol),
+                    ElfClass::Elf64 => editor.write_u64(symbol),
+                }
+            }
+            RelocationType::GOTLocationRelative32 => {
+                let got_addr = self.layout.address(self.got()?.id, 0)?.1;
+                let addend = editor.addend_32()?;
+                let offset = self.layout.address(section_id, relocation.offset.into())?.1;
+                editor.write_i32(
+                    got_addr
+                        .checked_add(addend)
+                        .and_then(|v| v.checked_sub(offset))
+                        .ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
+                )
+            }
+            RelocationType::OffsetFromGOT32 => {
+                let symbol = match self.symbol(relocation, editor.addend_32()?)? {
+                    ResolvedSymbol::Absolute(_) => {
+                        return Err(RelocationError::RelativeRelocationWithAbsoluteValue);
+                    }
+                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
+                };
+                let got = self.layout.address(self.got()?.id, 0)?.1;
+                editor.write_i32(
+                    symbol.checked_sub(got).ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
+                )
+            }
         }
+    }
+
+    fn got(&self) -> Result<&GOT, RelocationError> {
+        self.got.ok_or(RelocationError::GOTRelativeWithoutGOT)
     }
 
     fn symbol(&self, rel: &Relocation, offset: i128) -> Result<ResolvedSymbol, RelocationError> {
@@ -94,6 +157,14 @@ impl ByteEditor<'_> {
     fn write_u32(&mut self, value: i128) -> Result<(), RelocationError> {
         self.write(
             &u32::try_from(value)
+                .map_err(|_| RelocationError::RelocatedAddressOutOfBounds)?
+                .to_le_bytes(),
+        )
+    }
+
+    fn write_u64(&mut self, value: i128) -> Result<(), RelocationError> {
+        self.write(
+            &u64::try_from(value)
                 .map_err(|_| RelocationError::RelocatedAddressOutOfBounds)?
                 .to_le_bytes(),
         )
@@ -157,4 +228,6 @@ pub(crate) enum RelocationError {
     OutOfBoundsAccess { offset: u64, len: usize, size: usize },
     #[display("relative relocations with absolute values are not supported")]
     RelativeRelocationWithAbsoluteValue,
+    #[display("GOT-relative addressing used without a GOT")]
+    GOTRelativeWithoutGOT,
 }

@@ -1,5 +1,5 @@
-use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::passes::generate_got::GOT;
+use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
@@ -50,24 +50,13 @@ impl<'a> Relocator<'a> {
         let mut editor = ByteEditor { relocation, bytes };
         match relocation.type_ {
             RelocationType::Absolute32 => {
-                editor.write_u32(match self.symbol(relocation, editor.addend_32()?)? {
-                    ResolvedSymbol::Absolute(absolute) => absolute.into(),
-                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
-                })
+                editor.write_u32(self.symbol_as_value(relocation, editor.addend_32()?)?)
             }
             RelocationType::AbsoluteSigned32 => {
-                editor.write_i32(match self.symbol(relocation, editor.addend_32()?)? {
-                    ResolvedSymbol::Absolute(absolute) => absolute.into(),
-                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
-                })
+                editor.write_i32(self.symbol_as_value(relocation, editor.addend_32()?)?)
             }
             RelocationType::Relative32 | RelocationType::PLT32 => {
-                let symbol = match self.symbol(relocation, editor.addend_32()?)? {
-                    ResolvedSymbol::Absolute(_) => {
-                        return Err(RelocationError::RelativeRelocationWithAbsoluteValue);
-                    }
-                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
-                };
+                let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
                 let offset = self.layout.address(section_id, relocation.offset.into())?.1;
                 editor.write_i32(
                     symbol
@@ -97,10 +86,7 @@ impl<'a> Relocator<'a> {
                 )
             }
             RelocationType::FillGOTSlot => {
-                let symbol = match self.symbol(relocation, 0)? {
-                    ResolvedSymbol::Absolute(absolute) => absolute.into(),
-                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
-                };
+                let symbol = self.symbol_as_value(relocation, 0)?;
                 match self.env.class {
                     ElfClass::Elf32 => editor.write_u32(symbol),
                     ElfClass::Elf64 => editor.write_u64(symbol),
@@ -118,12 +104,7 @@ impl<'a> Relocator<'a> {
                 )
             }
             RelocationType::OffsetFromGOT32 => {
-                let symbol = match self.symbol(relocation, editor.addend_32()?)? {
-                    ResolvedSymbol::Absolute(_) => {
-                        return Err(RelocationError::RelativeRelocationWithAbsoluteValue);
-                    }
-                    ResolvedSymbol::Address { memory_address, .. } => memory_address,
-                };
+                let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
                 let got = self.layout.address(self.got()?.id, 0)?.1;
                 editor.write_i32(
                     symbol.checked_sub(got).ok_or(RelocationError::RelocatedAddressOutOfBounds)?,
@@ -138,6 +119,22 @@ impl<'a> Relocator<'a> {
 
     fn symbol(&self, rel: &Relocation, offset: i128) -> Result<ResolvedSymbol, RelocationError> {
         Ok(self.symbols.get(rel.symbol).resolve(self.layout, offset)?)
+    }
+
+    fn symbol_as_value(&self, rel: &Relocation, offset: i128) -> Result<i128, RelocationError> {
+        match self.symbol(rel, offset)? {
+            ResolvedSymbol::Absolute(absolute) => Ok(absolute.into()),
+            ResolvedSymbol::Address { memory_address, .. } => Ok(memory_address),
+        }
+    }
+
+    fn symbol_as_address(&self, rel: &Relocation, offset: i128) -> Result<i128, RelocationError> {
+        match self.symbol(rel, offset)? {
+            ResolvedSymbol::Absolute(_) => {
+                return Err(RelocationError::RelativeRelocationWithAbsoluteValue);
+            }
+            ResolvedSymbol::Address { memory_address, .. } => Ok(memory_address),
+        }
     }
 }
 

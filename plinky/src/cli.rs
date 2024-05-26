@@ -4,6 +4,11 @@ use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
+// GNU ld loves to be inconsistent, and thus some long flags are prefixed with a single dash
+// rather than a double dash. To ensure we still parse the CLI correctly, we have a list of
+// flags that should be emitted as LongShortFlag.
+const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie"];
+
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<PathBuf>,
@@ -12,6 +17,13 @@ pub(crate) struct CliOptions {
     pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
+    pub(crate) mode: Mode,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Mode {
+    PositionDependent,
+    PositionIndependent,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
@@ -27,13 +39,14 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     args: I,
 ) -> Result<CliOptions, CliError> {
     let args = args.map(|s| s.into()).collect::<Vec<_>>();
-    let mut lexer = CliLexer::new(&args);
+    let mut lexer = CliLexer::new(&args, LONG_SHORT_FLAG);
 
     let mut inputs = Vec::new();
     let mut output = None;
     let mut entry = None;
     let mut executable_stack = None;
     let mut gc_sections = None;
+    let mut mode = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -47,6 +60,14 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongFlag("entry") | CliToken::ShortFlag("e") => {
                 reject_duplicate(&token, &mut entry, || lexer.expect_flag_value(&token))?;
+            }
+
+            CliToken::LongShortFlag("no-pie") => {
+                reject_multiple_modes(&mut mode, Mode::PositionDependent)?;
+            }
+
+            CliToken::LongShortFlag("pie") => {
+                reject_multiple_modes(&mut mode, Mode::PositionIndependent)?;
             }
 
             CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
@@ -101,7 +122,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 return Err(CliError::FlagDoesNotAcceptValues(previous_token.unwrap().to_string()));
             }
 
-            CliToken::ShortFlag(_) | CliToken::LongFlag(_) => {
+            CliToken::ShortFlag(_) | CliToken::LongFlag(_) | CliToken::LongShortFlag(_) => {
                 return Err(CliError::UnsupportedFlag(token.to_string()));
             }
         }
@@ -115,6 +136,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
+        mode: mode.unwrap_or(Mode::PositionDependent),
     })
 }
 
@@ -127,6 +149,16 @@ fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
         Some(_) => Err(CliError::DuplicateFlag(token.to_string())),
         None => {
             *storage = Some(f()?);
+            Ok(())
+        }
+    }
+}
+
+fn reject_multiple_modes(storage: &mut Option<Mode>, new: Mode) -> Result<(), CliError> {
+    match storage {
+        Some(_) => return Err(CliError::MultipleModeChanges),
+        None => {
+            *storage = Some(new);
             Ok(())
         }
     }
@@ -146,6 +178,8 @@ pub(crate) enum CliError {
     UnsupportedFlag(String),
     #[display("flag {f0} provided multiple times")]
     DuplicateFlag(String),
+    #[display("multiple flags changing the linking mode are passed")]
+    MultipleModeChanges,
     #[display("flag {f0} does not accept values")]
     FlagDoesNotAcceptValues(String),
     #[display("missing value for flag {f0}")]
@@ -158,6 +192,7 @@ enum CliToken<'a> {
     FlagValue(&'a str),
     ShortFlag(&'a str),
     LongFlag(&'a str),
+    LongShortFlag(&'a str),
 }
 
 impl std::fmt::Display for CliToken<'_> {
@@ -166,19 +201,21 @@ impl std::fmt::Display for CliToken<'_> {
             CliToken::StandaloneValue(v) | CliToken::FlagValue(v) => f.write_str(v),
             CliToken::ShortFlag(flag) => write!(f, "-{flag}"),
             CliToken::LongFlag(flag) => write!(f, "--{flag}"),
+            CliToken::LongShortFlag(flag) => write!(f, "-{flag}"),
         }
     }
 }
 
 struct CliLexer<'a> {
+    long_short_flags: &'static [&'static str],
     iter: std::slice::Iter<'a, String>,
     verbatim: bool,
     force_next: Option<CliToken<'a>>,
 }
 
 impl<'a> CliLexer<'a> {
-    fn new(args: &'a [String]) -> Self {
-        Self { iter: args.iter(), verbatim: false, force_next: None }
+    fn new(args: &'a [String], long_short_flags: &'static [&'static str]) -> Self {
+        Self { long_short_flags, iter: args.iter(), verbatim: false, force_next: None }
     }
 
     fn expect_flag_value(&mut self, flag: &CliToken<'_>) -> Result<&'a str, CliError> {
@@ -218,6 +255,18 @@ impl<'a> Iterator for CliLexer<'a> {
             }
 
             if let Some(option) = token.strip_prefix('-') {
+                // Handle long flags starting with a single dash, sigh.
+                for long_short_flag in self.long_short_flags {
+                    if option == *long_short_flag {
+                        return Some(CliToken::LongShortFlag(option));
+                    } else if let Some(value) =
+                        option.strip_prefix(long_short_flag).and_then(|o| o.strip_prefix('='))
+                    {
+                        self.force_next = Some(CliToken::FlagValue(value));
+                        return Some(CliToken::LongShortFlag(*long_short_flag));
+                    }
+                }
+
                 if option.len() == 1 {
                     return Some(CliToken::ShortFlag(option));
                 } else {
@@ -248,11 +297,13 @@ mod tests {
     fn test_lexer() {
         use CliToken::*;
 
+        let long_short_flags = &["xy"];
         let args = &[
-            "a", "b", "--c", "d", "--e=f", "-", "-g", "h", "-ijkl", "--", "-mo", "--pq", "--", "r",
+            "a", "b", "--c", "d", "--e=f", "-", "-g", "h", "-ijkl", "-xy", "-xy=z", "-xyz", "--",
+            "-mo", "--pq", "--", "r",
         ];
         let args_str = args.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        let tokens = CliLexer::new(&args_str).collect::<Vec<_>>();
+        let tokens = CliLexer::new(&args_str, long_short_flags).collect::<Vec<_>>();
 
         assert_eq!(
             &[
@@ -267,6 +318,11 @@ mod tests {
                 StandaloneValue("h"),
                 ShortFlag("i"),
                 FlagValue("jkl"),
+                LongShortFlag("xy"),
+                LongShortFlag("xy"),
+                FlagValue("z"),
+                ShortFlag("x"),
+                FlagValue("yz"),
                 StandaloneValue("-mo"),
                 StandaloneValue("--pq"),
                 StandaloneValue("--"),
@@ -484,6 +540,38 @@ mod tests {
     }
 
     #[test]
+    fn test_no_pie() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                mode: Mode::PositionDependent,
+                ..default_options()
+            }),
+            parse(["foo", "-no-pie"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_pie() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                mode: Mode::PositionIndependent,
+                ..default_options()
+            }),
+            parse(["foo", "-pie"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_duplicate_modes() {
+        assert_eq!(
+            Err(CliError::MultipleModeChanges),
+            parse(["foo", "-no-pie", "-pie"].into_iter())
+        );
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -499,6 +587,7 @@ mod tests {
             gc_sections: false,
             debug_print: BTreeSet::new(),
             executable_stack: false,
+            mode: Mode::PositionDependent,
         }
     }
 }

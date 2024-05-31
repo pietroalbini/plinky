@@ -1,5 +1,6 @@
 ---
 source: plinky_test_harness/src/utils.rs
+assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -39,9 +40,9 @@ debug print: loaded object
  │  ├─────────────────┼──────┼──────────┼─────────────────┼────────────────────────────┤
  │  │ <symbol#0>      │ none │ <plinky> │ local           │ <null>                     │
  │  ├─────────────────┼──────┼──────────┼─────────────────┼────────────────────────────┤
- │  │ _start#2        │ none │ foo.o    │ global          │ .text#2 + 0x0              │
+ │  │ _start#1        │ none │ foo.o    │ global          │ .text#2 + 0x0              │
  │  ├─────────────────┼──────┼──────────┼─────────────────┼────────────────────────────┤
- │  │ sample_symbol#8 │ none │ foo.o    │ global (hidden) │ .text.sample_group#5 + 0x0 │
+ │  │ sample_symbol#6 │ none │ foo.o    │ global (hidden) │ .text.sample_group#5 + 0x0 │
  │  ╰─────────────────┴──────┴──────────┴─────────────────┴────────────────────────────╯
  ┴
 

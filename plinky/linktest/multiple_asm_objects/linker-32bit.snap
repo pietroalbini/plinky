@@ -1,5 +1,6 @@
 ---
 source: plinky_test_harness/src/utils.rs
+assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -61,7 +62,7 @@ debug print: loaded object
  │   │  ├────────────┼──────────────────────┼────────┼────────┤
  │   │  │ Absolute32 │ <section .rodata#14> │ 0xb    │        │
  │   │  ├────────────┼──────────────────────┼────────┼────────┤
- │   │  │ Relative32 │ goodbye#9            │ 0x17   │        │
+ │   │  │ Relative32 │ goodbye#7            │ 0x17   │        │
  │   │  ╰────────────┴──────────────────────┴────────┴────────╯
  │   ┴
  │
@@ -75,17 +76,17 @@ debug print: loaded object
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ <section .rodata#14> │ section │ hello.o   │ local      │ .rodata#14 + 0x0 │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ _start#2             │ none    │ hello.o   │ global     │ .text#10 + 0x0   │
+ │  │ _start#1             │ none    │ hello.o   │ global     │ .text#10 + 0x0   │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ goodbye#9            │ none    │ goodbye.o │ global     │ .text#1 + 0x0    │
+ │  │ goodbye#7            │ none    │ goodbye.o │ global     │ .text#1 + 0x0    │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ len#7                │ none    │ goodbye.o │ local      │ 0xf              │
+ │  │ len#6                │ none    │ goodbye.o │ local      │ 0xf              │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ len#14               │ none    │ hello.o   │ local      │ 0xd              │
+ │  │ len#12               │ none    │ hello.o   │ local      │ 0xd              │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ msg#6                │ none    │ goodbye.o │ local      │ .rodata#5 + 0x0  │
+ │  │ msg#5                │ none    │ goodbye.o │ local      │ .rodata#5 + 0x0  │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ msg#13               │ none    │ hello.o   │ local      │ .rodata#14 + 0x0 │
+ │  │ msg#11               │ none    │ hello.o   │ local      │ .rodata#14 + 0x0 │
  │  ╰──────────────────────┴─────────┴───────────┴────────────┴──────────────────╯
  ┴
 
@@ -181,17 +182,17 @@ debug print: object after relocations are applied
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ <section .rodata#14> │ section │ hello.o   │ local      │ .rodata#14 + 0x0 │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ _start#2             │ none    │ hello.o   │ global     │ .text#10 + 0x0   │
+ │  │ _start#1             │ none    │ hello.o   │ global     │ .text#10 + 0x0   │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ goodbye#9            │ none    │ goodbye.o │ global     │ .text#1 + 0x0    │
+ │  │ goodbye#7            │ none    │ goodbye.o │ global     │ .text#1 + 0x0    │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ len#7                │ none    │ goodbye.o │ local      │ 0xf              │
+ │  │ len#6                │ none    │ goodbye.o │ local      │ 0xf              │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ len#14               │ none    │ hello.o   │ local      │ 0xd              │
+ │  │ len#12               │ none    │ hello.o   │ local      │ 0xd              │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ msg#6                │ none    │ goodbye.o │ local      │ .rodata#5 + 0x0  │
+ │  │ msg#5                │ none    │ goodbye.o │ local      │ .rodata#5 + 0x0  │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ msg#13               │ none    │ hello.o   │ local      │ .rodata#14 + 0x0 │
+ │  │ msg#11               │ none    │ hello.o   │ local      │ .rodata#14 + 0x0 │
  │  ╰──────────────────────┴─────────┴───────────┴────────────┴──────────────────╯
  ┴
 

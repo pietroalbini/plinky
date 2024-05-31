@@ -1,5 +1,6 @@
 ---
-source: plinky/linktest/harness/tests.rs
+source: plinky_test_harness/src/utils.rs
+assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -96,15 +97,15 @@ debug print: loaded object
  │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
  │  │ <section .rodata.surname#10> │ section │ foo.o    │ local      │ .rodata.surname#10 + 0x0 │
  │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ _start#2                     │ none    │ foo.o    │ global     │ .text#1 + 0x0            │
+ │  │ _start#1                     │ none    │ foo.o    │ global     │ .text#1 + 0x0            │
  │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ excluded#8                   │ none    │ foo.o    │ local      │ .text.bar#7 + 0x0        │
+ │  │ excluded#7                   │ none    │ foo.o    │ local      │ .text.bar#7 + 0x0        │
  │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ name#7                       │ none    │ foo.o    │ local      │ .rodata.name#9 + 0x0     │
+ │  │ name#6                       │ none    │ foo.o    │ local      │ .rodata.name#9 + 0x0     │
  │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ sample#5                     │ none    │ foo.o    │ local      │ .text.foo#5 + 0x0        │
+ │  │ sample#4                     │ none    │ foo.o    │ local      │ .text.foo#5 + 0x0        │
  │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ surname#9                    │ none    │ foo.o    │ local      │ .rodata.surname#10 + 0x0 │
+ │  │ surname#8                    │ none    │ foo.o    │ local      │ .rodata.surname#10 + 0x0 │
  │  ╰──────────────────────────────┴─────────┴──────────┴────────────┴──────────────────────────╯
  ┴
 
@@ -173,11 +174,11 @@ debug print: object after relocations are applied
  │  ├──────────────────────────┼─────────┼──────────┼────────────┼──────────────────────┤
  │  │ <section .rodata.name#9> │ section │ foo.o    │ local      │ .rodata.name#9 + 0x0 │
  │  ├──────────────────────────┼─────────┼──────────┼────────────┼──────────────────────┤
- │  │ _start#2                 │ none    │ foo.o    │ global     │ .text#1 + 0x0        │
+ │  │ _start#1                 │ none    │ foo.o    │ global     │ .text#1 + 0x0        │
  │  ├──────────────────────────┼─────────┼──────────┼────────────┼──────────────────────┤
- │  │ name#7                   │ none    │ foo.o    │ local      │ .rodata.name#9 + 0x0 │
+ │  │ name#6                   │ none    │ foo.o    │ local      │ .rodata.name#9 + 0x0 │
  │  ├──────────────────────────┼─────────┼──────────┼────────────┼──────────────────────┤
- │  │ sample#5                 │ none    │ foo.o    │ local      │ .text.foo#5 + 0x0    │
+ │  │ sample#4                 │ none    │ foo.o    │ local      │ .text.foo#5 + 0x0    │
  │  ╰──────────────────────────┴─────────┴──────────┴────────────┴──────────────────────╯
  ┴
 

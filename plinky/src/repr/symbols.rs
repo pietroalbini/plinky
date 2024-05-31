@@ -40,18 +40,15 @@ impl Symbols {
         name: &str,
     ) -> Result<SymbolId, LoadSymbolsError> {
         let id = ids.allocate_symbol_id();
-        self.add_symbol(
-            ids,
-            Symbol {
-                id,
-                name: intern(name),
-                type_: SymbolType::NoType,
-                stt_file: None,
-                span: intern(ObjectSpan::new_synthetic()),
-                visibility: SymbolVisibility::Global { weak: false, hidden: false },
-                value: SymbolValue::Undefined,
-            },
-        )?;
+        self.add_symbol(Symbol {
+            id,
+            name: intern(name),
+            type_: SymbolType::NoType,
+            stt_file: None,
+            span: intern(ObjectSpan::new_synthetic()),
+            visibility: SymbolVisibility::Global { weak: false, hidden: false },
+            value: SymbolValue::Undefined,
+        })?;
         Ok(id)
     }
 
@@ -59,11 +56,7 @@ impl Symbols {
         self.symbols.insert(from, SymbolOrRedirect::Redirect(to));
     }
 
-    pub(crate) fn add_symbol(
-        &mut self,
-        ids: &mut SerialIds,
-        mut symbol: Symbol,
-    ) -> Result<(), LoadSymbolsError> {
+    pub(crate) fn add_symbol(&mut self, mut symbol: Symbol) -> Result<(), LoadSymbolsError> {
         match symbol.visibility {
             SymbolVisibility::Local => {
                 self.symbols.insert(symbol.id, SymbolOrRedirect::Symbol(symbol));
@@ -71,11 +64,10 @@ impl Symbols {
             SymbolVisibility::Global { weak: false, hidden: _ } => {
                 // For global symbols, we generate a new symbol ID for each unique name, and
                 // redirect to it all of the concrete references to that global name.
-                let global_id = *self
-                    .global_symbols
-                    .entry(symbol.name)
-                    .or_insert_with(|| ids.allocate_symbol_id());
-                self.add_redirect(symbol.id, global_id);
+                let global_id = *self.global_symbols.entry(symbol.name).or_insert(symbol.id);
+                if symbol.id != global_id {
+                    self.add_redirect(symbol.id, global_id);
+                }
 
                 // Ensure the ID contained in the symbol is the global ID, not the original ID.
                 symbol.id = global_id;

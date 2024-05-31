@@ -4,10 +4,15 @@ use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::UnsupportedRelocationType;
 use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
-use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
+use crate::repr::symbols::{
+    LoadSymbolsError, Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols,
+};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{ElfNote, ElfObject, ElfSectionContent, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility};
+use plinky_elf::{
+    ElfNote, ElfObject, ElfSectionContent, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfSymbolVisibility,
+};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
@@ -200,7 +205,7 @@ fn merge_symbols(
             },
         };
 
-        symbols.add_symbol(ids, symbol)?;
+        symbols.add_symbol(symbol)?;
     }
     Ok(())
 }

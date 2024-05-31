@@ -1,5 +1,6 @@
 ---
 source: plinky_test_harness/src/utils.rs
+assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -49,11 +50,11 @@ debug print: loaded object
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ <section .data#3> │ section │ hello.o  │ local      │ .data#3 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ _start#2          │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
+ │  │ _start#1          │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ len#7             │ none    │ hello.o  │ local      │ 0xd           │
+ │  │ len#6             │ none    │ hello.o  │ local      │ 0xd           │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ msg#6             │ none    │ hello.o  │ local      │ .data#3 + 0x0 │
+ │  │ msg#5             │ none    │ hello.o  │ local      │ .data#3 + 0x0 │
  │  ╰───────────────────┴─────────┴──────────┴────────────┴───────────────╯
  ┴
 
@@ -122,11 +123,11 @@ debug print: object after relocations are applied
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ <section .data#3> │ section │ hello.o  │ local      │ .data#3 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ _start#2          │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
+ │  │ _start#1          │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ len#7             │ none    │ hello.o  │ local      │ 0xd           │
+ │  │ len#6             │ none    │ hello.o  │ local      │ 0xd           │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ msg#6             │ none    │ hello.o  │ local      │ .data#3 + 0x0 │
+ │  │ msg#5             │ none    │ hello.o  │ local      │ .data#3 + 0x0 │
  │  ╰───────────────────┴─────────┴──────────┴────────────┴───────────────╯
  ┴
 

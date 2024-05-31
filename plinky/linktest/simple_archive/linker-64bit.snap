@@ -1,5 +1,6 @@
 ---
-source: plinky/linktest/harness/tests.rs
+source: plinky_test_harness/src/utils.rs
+assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -37,9 +38,9 @@ debug print: loaded object
  │   │  ╭────────────┬─────────────┬────────┬────────╮
  │   │  │ Type       │ Symbol      │ Offset │ Addend │
  │   │  ├────────────┼─────────────┼────────┼────────┤
- │   │  │ Absolute32 │ hello#8     │ 0xb    │ 0x0    │
+ │   │  │ Absolute32 │ hello#5     │ 0xb    │ 0x0    │
  │   │  ├────────────┼─────────────┼────────┼────────┤
- │   │  │ Absolute32 │ hello_len#9 │ 0x10   │ 0x0    │
+ │   │  │ Absolute32 │ hello_len#6 │ 0x10   │ 0x0    │
  │   │  ╰────────────┴─────────────┴────────┴────────╯
  │   ┴
  │
@@ -49,11 +50,11 @@ debug print: loaded object
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
  │  │ <symbol#0>  │ none │ <plinky>                          │ local      │ <null>         │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
- │  │ _start#2    │ none │ entry.o                           │ global     │ .text#1 + 0x0  │
+ │  │ _start#1    │ none │ entry.o                           │ global     │ .text#1 + 0x0  │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
- │  │ hello#8     │ none │ hello.o inside archive archived.a │ global     │ .data#10 + 0x0 │
+ │  │ hello#5     │ none │ hello.o inside archive archived.a │ global     │ .data#10 + 0x0 │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
- │  │ hello_len#9 │ none │ hello.o inside archive archived.a │ global     │ 0xd            │
+ │  │ hello_len#6 │ none │ hello.o inside archive archived.a │ global     │ 0xd            │
  │  ╰─────────────┴──────┴───────────────────────────────────┴────────────┴────────────────╯
  ┴
 

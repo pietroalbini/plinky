@@ -15,7 +15,7 @@ mod cleanup;
 mod merge_elf;
 mod read_objects;
 mod section_groups;
-pub(crate) mod strings;
+mod strings;
 
 pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
@@ -25,7 +25,11 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
         .add_unknown_global(ids, &options.entry)
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
-    let mut state = State::Empty { symbols: empty_symbols, strings: Strings::new(), section_groups: SectionGroups::new() };
+    let mut state = State::Empty {
+        symbols: empty_symbols,
+        strings: Strings::new(),
+        section_groups: SectionGroups::new(),
+    };
     loop {
         let symbols = match &state {
             State::Empty { symbols, .. } => symbols,

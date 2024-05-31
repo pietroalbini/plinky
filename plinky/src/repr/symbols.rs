@@ -1,12 +1,9 @@
 use crate::interner::{intern, Interned};
 use crate::passes::layout::{AddressResolutionError, Layout};
-use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plinky_elf::{
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
-};
+use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
 use std::collections::{btree_map, BTreeMap};
 
@@ -45,7 +42,6 @@ impl Symbols {
         let id = ids.allocate_symbol_id();
         self.add_symbol(
             ids,
-            id,
             Symbol {
                 id,
                 name: intern(name),
@@ -59,105 +55,18 @@ impl Symbols {
         Ok(id)
     }
 
-    pub(crate) fn load_table(
-        &mut self,
-        ids: &mut SerialIds,
-        span: Interned<ObjectSpan>,
-        table: ElfSymbolTable<SerialIds>,
-        strings: &Strings,
-    ) -> Result<(), LoadSymbolsError> {
-        let mut stt_file = None;
-        let mut is_first = true;
-        for (symbol_id, elf_symbol) in table.symbols.into_iter() {
-            let name: Interned<String> = intern(
-                strings
-                    .get(elf_symbol.name)
-                    .map_err(|e| LoadSymbolsError::MissingSymbolName(symbol_id, e))?,
-            );
-
-            if is_first {
-                is_first = false;
-
-                // Instead of creating the null symbol for every object we load, we instead
-                // redirect it to the shared null symbol defined during initialization.
-                if name.resolve().is_empty()
-                    && matches!(elf_symbol.definition, ElfSymbolDefinition::Undefined)
-                    && matches!(elf_symbol.type_, ElfSymbolType::NoType)
-                {
-                    self.symbols.insert(symbol_id, SymbolOrRedirect::Redirect(self.null_symbol_id));
-                    continue;
-                }
-            }
-
-            let type_ = match elf_symbol.type_ {
-                ElfSymbolType::NoType => SymbolType::NoType,
-                ElfSymbolType::Object => SymbolType::Object,
-                ElfSymbolType::Function => SymbolType::Function,
-                ElfSymbolType::Section => SymbolType::Section,
-                // The file symbol type is not actually used, so we can omit it.
-                ElfSymbolType::File => {
-                    stt_file = Some(name);
-                    continue;
-                }
-                ElfSymbolType::Unknown(_) => {
-                    return Err(LoadSymbolsError::UnsupportedUnknownSymbolType)
-                }
-            };
-
-            let hidden = match elf_symbol.visibility {
-                ElfSymbolVisibility::Default => false,
-                ElfSymbolVisibility::Hidden => true,
-                other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
-            };
-
-            let symbol = Symbol {
-                id: symbol_id,
-                name,
-                type_,
-                stt_file,
-                span,
-                visibility: match (elf_symbol.binding, hidden) {
-                    (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
-                    (ElfSymbolBinding::Local, true) => {
-                        return Err(LoadSymbolsError::LocalHiddenSymbol);
-                    }
-                    (ElfSymbolBinding::Global, hidden) => {
-                        SymbolVisibility::Global { weak: false, hidden }
-                    }
-                    (ElfSymbolBinding::Weak, hidden) => {
-                        SymbolVisibility::Global { weak: true, hidden }
-                    }
-                    (ElfSymbolBinding::Unknown(_), _) => {
-                        return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
-                    }
-                },
-                value: match elf_symbol.definition {
-                    ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
-                    ElfSymbolDefinition::Absolute => {
-                        SymbolValue::Absolute { value: elf_symbol.value.into() }
-                    }
-                    ElfSymbolDefinition::Common => todo!(),
-                    ElfSymbolDefinition::Section(section) => SymbolValue::SectionRelative {
-                        section,
-                        offset: (elf_symbol.value as i64).into(),
-                    },
-                },
-            };
-
-            self.add_symbol(ids, symbol_id, symbol)?;
-        }
-        Ok(())
+    pub(crate) fn add_redirect(&mut self, from: SymbolId, to: SymbolId) {
+        self.symbols.insert(from, SymbolOrRedirect::Redirect(to));
     }
 
-    fn add_symbol(
+    pub(crate) fn add_symbol(
         &mut self,
         ids: &mut SerialIds,
-        id: SymbolId,
         mut symbol: Symbol,
     ) -> Result<(), LoadSymbolsError> {
         match symbol.visibility {
             SymbolVisibility::Local => {
-                self.symbols.insert(id, SymbolOrRedirect::Symbol(symbol));
+                self.symbols.insert(symbol.id, SymbolOrRedirect::Symbol(symbol));
             }
             SymbolVisibility::Global { weak: false, hidden: _ } => {
                 // For global symbols, we generate a new symbol ID for each unique name, and
@@ -166,7 +75,7 @@ impl Symbols {
                     .global_symbols
                     .entry(symbol.name)
                     .or_insert_with(|| ids.allocate_symbol_id());
-                self.symbols.insert(id, SymbolOrRedirect::Redirect(global_id));
+                self.add_redirect(symbol.id, global_id);
 
                 // Ensure the ID contained in the symbol is the global ID, not the original ID.
                 symbol.id = global_id;
@@ -345,7 +254,7 @@ pub(crate) enum LoadSymbolsError {
     #[display("local symbols cannot have hidden visibility")]
     LocalHiddenSymbol,
     #[display("missing name for symbol {f0:?}")]
-    MissingSymbolName(SymbolId, #[source] MissingStringError),
+    MissingSymbolName(SymbolId),
     #[display("duplicate global symbol {f0}")]
     DuplicateGlobalSymbol(Interned<String>),
 }

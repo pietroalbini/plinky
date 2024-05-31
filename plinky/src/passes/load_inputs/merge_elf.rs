@@ -1,13 +1,13 @@
-use crate::interner::intern;
+use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::UnsupportedRelocationType;
 use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
-use crate::repr::symbols::LoadSymbolsError;
+use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{ElfNote, ElfObject, ElfSectionContent};
+use plinky_elf::{ElfNote, ElfObject, ElfSectionContent, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
@@ -68,7 +68,7 @@ pub(super) fn merge(
     // to resolve the strings as part of symbol loading.
     for (name_id, mut table) in symbol_tables {
         section_groups.filter_symbol_table(&mut table)?;
-        object.symbols.load_table(ids, intern(source.clone()), table, &strings).map_err(
+        merge_symbols(&mut object.symbols, ids, intern(source.clone()), table, &strings).map_err(
             |inner| MergeElfError::SymbolsLoadingFailed {
                 section_name: strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,
@@ -113,6 +113,94 @@ pub(super) fn merge(
                     .collect::<Result<_, _>>()?,
             }),
         });
+    }
+    Ok(())
+}
+
+fn merge_symbols(
+    symbols: &mut Symbols,
+    ids: &mut SerialIds,
+    span: Interned<ObjectSpan>,
+    table: ElfSymbolTable<SerialIds>,
+    strings: &Strings,
+) -> Result<(), LoadSymbolsError> {
+    let mut stt_file = None;
+    let mut is_first = true;
+    for (symbol_id, elf_symbol) in table.symbols.into_iter() {
+        let name: Interned<String> = intern(
+            strings
+                .get(elf_symbol.name)
+                .map_err(|_| LoadSymbolsError::MissingSymbolName(symbol_id))?,
+        );
+
+        if is_first {
+            is_first = false;
+
+            // Instead of creating the null symbol for every object we load, we instead
+            // redirect it to the shared null symbol defined during initialization.
+            if name.resolve().is_empty()
+                && matches!(elf_symbol.definition, ElfSymbolDefinition::Undefined)
+                && matches!(elf_symbol.type_, ElfSymbolType::NoType)
+            {
+                symbols.add_redirect(symbol_id, symbols.null_symbol_id());
+                continue;
+            }
+        }
+
+        let type_ = match elf_symbol.type_ {
+            ElfSymbolType::NoType => SymbolType::NoType,
+            ElfSymbolType::Object => SymbolType::Object,
+            ElfSymbolType::Function => SymbolType::Function,
+            ElfSymbolType::Section => SymbolType::Section,
+            // The file symbol type is not actually used, so we can omit it.
+            ElfSymbolType::File => {
+                stt_file = Some(name);
+                continue;
+            }
+            ElfSymbolType::Unknown(_) => {
+                return Err(LoadSymbolsError::UnsupportedUnknownSymbolType)
+            }
+        };
+
+        let hidden = match elf_symbol.visibility {
+            ElfSymbolVisibility::Default => false,
+            ElfSymbolVisibility::Hidden => true,
+            other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
+        };
+
+        let symbol = Symbol {
+            id: symbol_id,
+            name,
+            type_,
+            stt_file,
+            span,
+            visibility: match (elf_symbol.binding, hidden) {
+                (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
+                (ElfSymbolBinding::Local, true) => {
+                    return Err(LoadSymbolsError::LocalHiddenSymbol);
+                }
+                (ElfSymbolBinding::Global, hidden) => {
+                    SymbolVisibility::Global { weak: false, hidden }
+                }
+                (ElfSymbolBinding::Weak, hidden) => SymbolVisibility::Global { weak: true, hidden },
+                (ElfSymbolBinding::Unknown(_), _) => {
+                    return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
+                }
+            },
+            value: match elf_symbol.definition {
+                ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
+                ElfSymbolDefinition::Absolute => {
+                    SymbolValue::Absolute { value: elf_symbol.value.into() }
+                }
+                ElfSymbolDefinition::Common => todo!(),
+                ElfSymbolDefinition::Section(section) => SymbolValue::SectionRelative {
+                    section,
+                    offset: (elf_symbol.value as i64).into(),
+                },
+            },
+        };
+
+        symbols.add_symbol(ids, symbol)?;
     }
     Ok(())
 }

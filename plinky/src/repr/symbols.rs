@@ -1,6 +1,6 @@
 use crate::interner::{intern, Interned};
 use crate::passes::layout::{AddressResolutionError, Layout};
-use crate::repr::strings::{MissingStringError, Strings};
+use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};

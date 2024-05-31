@@ -1,6 +1,5 @@
 use crate::passes::generate_got::GOT;
 use crate::repr::sections::Sections;
-use crate::repr::strings::Strings;
 use crate::repr::symbols::Symbols;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::ElfEnvironment;
@@ -9,7 +8,6 @@ use plinky_elf::ElfEnvironment;
 pub(crate) struct Object {
     pub(crate) env: ElfEnvironment,
     pub(crate) sections: Sections,
-    pub(crate) strings: Strings,
     pub(crate) symbols: Symbols,
     pub(crate) got: Option<GOT>,
     pub(crate) entry_point: SymbolId,

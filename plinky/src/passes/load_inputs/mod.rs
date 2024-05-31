@@ -2,9 +2,9 @@ use crate::cli::CliOptions;
 use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::passes::load_inputs::section_groups::SectionGroups;
+use crate::passes::load_inputs::strings::Strings;
 use crate::repr::object::Object;
 use crate::repr::sections::Sections;
-use crate::repr::strings::Strings;
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
@@ -15,6 +15,7 @@ mod cleanup;
 mod merge_elf;
 mod read_objects;
 mod section_groups;
+pub(crate) mod strings;
 
 pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
@@ -24,7 +25,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
         .add_unknown_global(ids, &options.entry)
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
-    let mut state = State::Empty { symbols: empty_symbols, section_groups: SectionGroups::new() };
+    let mut state = State::Empty { symbols: empty_symbols, strings: Strings::new(), section_groups: SectionGroups::new() };
     loop {
         let symbols = match &state {
             State::Empty { symbols, .. } => symbols,
@@ -33,11 +34,10 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
         let Some((source, elf)) = reader.next_object(ids, symbols)? else { break };
 
         state = match state {
-            State::Empty { symbols, mut section_groups } => {
+            State::Empty { symbols, mut section_groups, mut strings } => {
                 let mut object = Object {
                     env: elf.env,
                     sections: Sections::new(),
-                    strings: Strings::new(),
                     symbols,
                     got: None,
                     entry_point,
@@ -47,14 +47,15 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                 merge_elf::merge(
                     ids,
                     &mut object,
+                    &mut strings,
                     section_groups.for_object(),
                     source.clone(),
                     elf,
                 )
                 .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
-                State::WithContent { object, section_groups, first_span: source }
+                State::WithContent { object, strings, section_groups, first_span: source }
             }
-            State::WithContent { mut object, mut section_groups, first_span } => {
+            State::WithContent { mut object, mut strings, mut section_groups, first_span } => {
                 if object.env != elf.env {
                     return Err(LoadInputsError::MismatchedEnv {
                         first_span: first_span.clone(),
@@ -66,12 +67,13 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                 merge_elf::merge(
                     ids,
                     &mut object,
+                    &mut strings,
                     section_groups.for_object(),
                     source.clone(),
                     elf,
                 )
                 .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
-                State::WithContent { object, section_groups, first_span }
+                State::WithContent { object, strings, section_groups, first_span }
             }
         }
     }
@@ -86,8 +88,17 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
 }
 
 enum State {
-    Empty { symbols: Symbols, section_groups: SectionGroups },
-    WithContent { object: Object, section_groups: SectionGroups, first_span: ObjectSpan },
+    Empty {
+        symbols: Symbols,
+        strings: Strings,
+        section_groups: SectionGroups,
+    },
+    WithContent {
+        object: Object,
+        strings: Strings,
+        section_groups: SectionGroups,
+        first_span: ObjectSpan,
+    },
 }
 
 #[derive(Debug, Error, Display)]

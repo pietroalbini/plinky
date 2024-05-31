@@ -1,5 +1,5 @@
 use crate::interner::{intern, Interned};
-use crate::repr::strings::{MissingStringError, Strings};
+use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use plinky_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plinky_macros::{Display, Error};

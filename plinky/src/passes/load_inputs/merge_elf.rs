@@ -1,9 +1,9 @@
 use crate::interner::intern;
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
+use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::UnsupportedRelocationType;
 use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
-use crate::repr::strings::MissingStringError;
 use crate::repr::symbols::LoadSymbolsError;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 pub(super) fn merge(
     ids: &mut SerialIds,
     object: &mut Object,
+    strings: &mut Strings,
     mut section_groups: SectionGroupsForObject<'_>,
     source: ObjectSpan,
     elf: ElfObject<SerialIds>,
@@ -34,7 +35,7 @@ pub(super) fn merge(
                 uninitialized_sections.push((section_id, section.name, uninit));
             }
             ElfSectionContent::SymbolTable(table) => symbol_tables.push((section.name, table)),
-            ElfSectionContent::StringTable(table) => object.strings.load_table(section_id, table),
+            ElfSectionContent::StringTable(table) => strings.load_table(section_id, table),
             ElfSectionContent::RelocationsTable(table) => {
                 relocations.insert(table.applies_to_section, table.relocations);
             }
@@ -60,16 +61,16 @@ pub(super) fn merge(
     // This is loaded after the string tables are loaded by the previous iteration, as we need to
     // resolve the signature of section groups.
     for (id, group) in pending_groups {
-        section_groups.add_group(&object.strings, &symbol_tables, id, group)?;
+        section_groups.add_group(&strings, &symbol_tables, id, group)?;
     }
 
     // This is loaded after the string tables are loaded by the previous iteration, as we need
     // to resolve the strings as part of symbol loading.
     for (name_id, mut table) in symbol_tables {
         section_groups.filter_symbol_table(&mut table)?;
-        object.symbols.load_table(ids, intern(source.clone()), table, &object.strings).map_err(
+        object.symbols.load_table(ids, intern(source.clone()), table, &strings).map_err(
             |inner| MergeElfError::SymbolsLoadingFailed {
-                section_name: object.strings.get(name_id).unwrap_or("<unknown>").into(),
+                section_name: strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,
             },
         )?;
@@ -82,10 +83,7 @@ pub(super) fn merge(
         object.sections.add(Section {
             id,
             name: intern(
-                object
-                    .strings
-                    .get(name)
-                    .map_err(|err| MergeElfError::MissingSectionName { id, err })?,
+                strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
             ),
             perms: uninit.perms,
             source: source.clone(),
@@ -100,10 +98,7 @@ pub(super) fn merge(
         object.sections.add(Section {
             id,
             name: intern(
-                object
-                    .strings
-                    .get(name)
-                    .map_err(|err| MergeElfError::MissingSectionName { id, err })?,
+                strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
             ),
             perms: program.perms,
             source: source.clone(),

@@ -1,0 +1,2 @@
+# Avoid syntax highlighting on GitHub for Insta snapshots
+*.snap linguist-language=text

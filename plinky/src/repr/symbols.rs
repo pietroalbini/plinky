@@ -5,13 +5,14 @@ use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{btree_map, BTreeMap, BTreeSet};
 
 #[derive(Debug)]
 pub(crate) struct Symbols {
     null_symbol_id: SymbolId,
     symbols: BTreeMap<SymbolId, SymbolOrRedirect>,
     global_symbols: BTreeMap<Interned<String>, SymbolId>,
+    dynamic_symbols: BTreeSet<SymbolId>,
 }
 
 impl Symbols {
@@ -31,7 +32,12 @@ impl Symbols {
                 value: SymbolValue::Null,
             }),
         );
-        Self { null_symbol_id, symbols, global_symbols: BTreeMap::new() }
+        Self {
+            null_symbol_id,
+            symbols,
+            global_symbols: BTreeMap::new(),
+            dynamic_symbols: BTreeSet::new(),
+        }
     }
 
     pub(crate) fn add_unknown_global(
@@ -121,6 +127,10 @@ impl Symbols {
         Ok(self.get(*self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })?))
     }
 
+    pub(crate) fn add_symbol_to_dynamic(&mut self, id: SymbolId) {
+        self.dynamic_symbols.insert(id);
+    }
+
     pub(crate) fn iter(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
         self.symbols.iter().filter_map(|(id, symbol)| match symbol {
             SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
@@ -137,6 +147,16 @@ impl Symbols {
 
     pub(crate) fn iters_with_redirects(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
         self.symbols.keys().map(|&id| (id, self.get(id)))
+    }
+
+    pub(crate) fn iter_dynamic_symbols(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
+        self.iter().filter(|(_, symbol)| {
+            self.dynamic_symbols.contains(&symbol.id) || symbol.id == self.null_symbol_id
+        })
+    }
+
+    pub(crate) fn has_dynamic_symbols(&self) -> bool {
+        self.dynamic_symbols.len() > 0
     }
 
     pub(crate) fn null_symbol_id(&self) -> SymbolId {

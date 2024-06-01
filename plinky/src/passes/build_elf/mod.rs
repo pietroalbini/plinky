@@ -1,7 +1,10 @@
+mod dynamic;
 pub(crate) mod ids;
 mod sections;
+mod relocations;
 mod symbols;
 
+use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::build_elf::sections::Sections;
@@ -40,7 +43,12 @@ impl ElfBuilder<'_> {
         self.prepare_sections();
         let segments = self.prepare_segments();
 
-        symbols::add_symbols(&mut self);
+        symbols::add_symbols(&mut self, ".symtab", ".strtab", |symbols| symbols.iter());
+
+        match self.object.mode {
+            Mode::PositionDependent => {}
+            Mode::PositionIndependent => dynamic::add(&mut self),
+        }
 
         Ok(ElfObject {
             env: self.object.env,
@@ -89,18 +97,19 @@ impl ElfBuilder<'_> {
                         .old_id(section.id)
                         .add(&mut self.ids);
                 }
-                SectionContent::Uninitialized(uninit) => self
-                    .sections
-                    .create(
-                        &section.name.resolve(),
-                        ElfSectionContent::Uninitialized(ElfUninitializedSection {
-                            perms: section.perms,
-                            len: uninit.len,
-                        }),
-                    )
-                    .layout(self.layout.of_section(section.id))
-                    .old_id(section.id)
-                    .add(&mut self.ids),
+                SectionContent::Uninitialized(uninit) => {
+                    self.sections
+                        .create(
+                            &section.name.resolve(),
+                            ElfSectionContent::Uninitialized(ElfUninitializedSection {
+                                perms: section.perms,
+                                len: uninit.len,
+                            }),
+                        )
+                        .layout(self.layout.of_section(section.id))
+                        .old_id(section.id)
+                        .add(&mut self.ids);
+                }
             }
         }
     }

@@ -3,7 +3,7 @@ use plinky_elf::ids::serial::{SerialIds, SymbolId};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum RelocationType {
     Absolute32,
     AbsoluteSigned32,

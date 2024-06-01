@@ -6,21 +6,27 @@ pub(crate) struct ObjectsFilter {
     pub(super) env: bool,
     sections: SectionsFilter,
     pub(super) symbols: bool,
+    pub(super) dynamic: bool,
 }
 
 impl ObjectsFilter {
     pub(crate) fn all() -> Self {
-        ObjectsFilter { env: true, sections: SectionsFilter::All, symbols: true }
+        ObjectsFilter { env: true, sections: SectionsFilter::All, symbols: true, dynamic: true }
     }
 
     pub(crate) fn parse(raw: &str) -> Result<Self, ObjectsFilterParseError> {
-        let mut filter =
-            ObjectsFilter { env: false, sections: SectionsFilter::None, symbols: false };
+        let mut filter = ObjectsFilter {
+            env: false,
+            sections: SectionsFilter::None,
+            symbols: false,
+            dynamic: false,
+        };
 
         for part in FilterPart::parse_iter(raw) {
             match part? {
                 FilterPart::Special("env") => filter.env = true,
                 FilterPart::Special("symbols") => filter.symbols = true,
+                FilterPart::Special("dynamic") => filter.dynamic = true,
                 FilterPart::Special("sections") => match &filter.sections {
                     SectionsFilter::Some(_) => {
                         return Err(ObjectsFilterParseError::CantMixSectionFilters)

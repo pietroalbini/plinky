@@ -20,7 +20,7 @@ pub(crate) struct CliOptions {
     pub(crate) mode: Mode,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Mode {
     PositionDependent,
     PositionIndependent,

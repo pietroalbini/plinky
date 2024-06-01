@@ -2,6 +2,7 @@ use crate::debug_print::filters::ObjectsFilter;
 use crate::debug_print::utils::{permissions, section_name, symbol_name};
 use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
+use crate::repr::relocations::Relocation;
 use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
 use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
@@ -26,7 +27,13 @@ pub(super) fn render_object(
                 .filter(|section| filter.section(&section.name.resolve()))
                 .map(|section| render_section(object, layout, section)),
         )
-        .add_iter(filter.symbols.then(|| render_symbols(object, object.symbols.iter())))
+        .add_iter(filter.symbols.then(|| render_symbols(object, "Symbols:", object.symbols.iter())))
+        .add_iter((filter.dynamic && object.symbols.has_dynamic_symbols()).then(|| {
+            render_symbols(object, "Dynamic symbols:", object.symbols.iter_dynamic_symbols())
+        }))
+        .add_iter((filter.dynamic && !object.dynamic_relocations.is_empty()).then(|| {
+            render_relocations(object, "Dynamic relocations:", &object.dynamic_relocations)
+        }))
 }
 
 fn render_env(object: &Object) -> Text {
@@ -68,18 +75,7 @@ fn render_data_section(
     let relocations = if data.relocations.is_empty() {
         None
     } else {
-        let mut table = Table::new();
-        table.set_title("Relocations:");
-        table.add_row(["Type", "Symbol", "Offset", "Addend"]);
-        for relocation in &data.relocations {
-            table.add_row([
-                format!("{:?}", relocation.type_),
-                symbol_name(object, relocation.symbol),
-                format!("{}", relocation.offset),
-                relocation.addend.map(|a| format!("{a}")).unwrap_or_else(String::new),
-            ])
-        }
-        Some(table)
+        Some(render_relocations(object, "Relocations:", &data.relocations))
     };
 
     Box::new(
@@ -95,6 +91,21 @@ fn render_data_section(
             .add(HexDump::new(data.bytes.clone()))
             .add_iter(relocations),
     )
+}
+
+fn render_relocations(object: &Object, title: &str, relocations: &[Relocation]) -> Box<dyn Widget> {
+    let mut table = Table::new();
+    table.set_title(title);
+    table.add_row(["Type", "Symbol", "Offset", "Addend"]);
+    for relocation in relocations {
+        table.add_row([
+            format!("{:?}", relocation.type_),
+            symbol_name(object, relocation.symbol),
+            format!("{}", relocation.offset),
+            relocation.addend.map(|a| format!("{a}")).unwrap_or_else(String::new),
+        ])
+    }
+    Box::new(table)
 }
 
 fn render_uninitialized_section(
@@ -118,13 +129,14 @@ fn render_uninitialized_section(
 
 fn render_symbols<'a>(
     object: &Object,
+    title: &str,
     symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
 ) -> Table {
     let mut symbols = symbols.collect::<Vec<_>>();
     symbols.sort_by_key(|(_, symbol)| symbol.name);
 
     let mut table = Table::new();
-    table.set_title("Symbols:");
+    table.set_title(title);
     table.add_row(["Name", "Type", "Source", "Visibility", "Value"]);
     for (id, symbol) in symbols {
         let type_ = match symbol.type_ {

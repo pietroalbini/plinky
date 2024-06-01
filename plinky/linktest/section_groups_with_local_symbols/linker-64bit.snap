@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 1
 

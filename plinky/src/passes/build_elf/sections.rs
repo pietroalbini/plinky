@@ -7,6 +7,7 @@ use plinky_elf::{ElfSection, ElfSectionContent};
 use std::collections::BTreeMap;
 
 pub(super) struct Sections {
+    pub(super) zero_id: BuiltElfSectionId,
     sections: BTreeMap<BuiltElfSectionId, ElfSection<BuiltElfIds>>,
     ids_map: BTreeMap<SectionId, BuiltElfSectionId>,
     names: PendingStringsTable,
@@ -30,7 +31,7 @@ impl Sections {
             },
         );
 
-        Sections { sections, ids_map: BTreeMap::new(), names }
+        Sections { zero_id, sections, ids_map: BTreeMap::new(), names }
     }
 
     pub(super) fn create<'a>(
@@ -89,8 +90,10 @@ impl SectionBuilder<'_> {
         self
     }
 
-    pub(super) fn add(self, ids: &mut BuiltElfIds) {
-        self.add_with_id(ids.allocate_section_id())
+    pub(super) fn add(self, ids: &mut BuiltElfIds) -> BuiltElfSectionId {
+        let id = ids.allocate_section_id();
+        self.add_with_id(id);
+        id
     }
 
     pub(super) fn add_with_id(self, id: BuiltElfSectionId) {

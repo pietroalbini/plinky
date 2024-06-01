@@ -43,13 +43,14 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     env: elf.env,
                     sections: Sections::new(),
                     symbols,
+                    dynamic_relocations: Vec::new(),
                     got: None,
                     entry_point,
+                    mode: options.mode,
                     executable_stack: options.executable_stack,
                     gnu_stack_section_ignored: false,
                 };
                 merge_elf::merge(
-                    ids,
                     &mut object,
                     &mut strings,
                     section_groups.for_object(),
@@ -69,7 +70,6 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     });
                 }
                 merge_elf::merge(
-                    ids,
                     &mut object,
                     &mut strings,
                     section_groups.for_object(),

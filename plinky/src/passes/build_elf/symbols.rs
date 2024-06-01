@@ -1,23 +1,34 @@
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSymbolId};
+use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::{ElfBuilder, PendingStringsTable};
-use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
+use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
 use crate::utils::ints::ExtractNumber;
+use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,
 };
 use std::collections::BTreeMap;
 
-pub(super) fn add_symbols(builder: &mut ElfBuilder<'_>) {
+pub(super) fn add_symbols<'a, F, I>(
+    builder: &'a mut ElfBuilder<'_>,
+    symtab: &str,
+    strtab: &str,
+    getter: F,
+) -> AddSymbolsOutput
+where
+    F: FnOnce(&'a Symbols) -> I,
+    I: Iterator<Item = (SymbolId, &'a Symbol)>,
+{
     let mut strings = PendingStringsTable::new(&mut builder.ids);
     let strings_id = strings.id;
     let mut symbols = BTreeMap::new();
+    let mut conversion = BTreeMap::new();
 
     let mut null_symbol = None;
     let mut global_symbols = Vec::new();
     let mut local_by_source = BTreeMap::new();
-    for (symbol_id, symbol) in builder.object.symbols.iter() {
+    for (symbol_id, symbol) in getter(&builder.object.symbols) {
         if symbol_id == builder.object.symbols.null_symbol_id() {
             assert!(null_symbol.is_none());
             null_symbol = Some(symbol);
@@ -33,6 +44,7 @@ pub(super) fn add_symbols(builder: &mut ElfBuilder<'_>) {
         &mut builder.sections,
         &mut symbols,
         &mut strings,
+        &mut conversion,
         null_symbol.expect("missing null symbol"),
     );
 
@@ -50,18 +62,39 @@ pub(super) fn add_symbols(builder: &mut ElfBuilder<'_>) {
             },
         );
         for symbol in symbols_in_file {
-            add_symbol(&mut builder.ids, &mut builder.sections, &mut symbols, &mut strings, symbol);
+            add_symbol(
+                &mut builder.ids,
+                &mut builder.sections,
+                &mut symbols,
+                &mut strings,
+                &mut conversion,
+                symbol,
+            );
         }
     }
     for symbol in global_symbols {
-        add_symbol(&mut builder.ids, &mut builder.sections, &mut symbols, &mut strings, symbol);
+        add_symbol(
+            &mut builder.ids,
+            &mut builder.sections,
+            &mut symbols,
+            &mut strings,
+            &mut conversion,
+            symbol,
+        );
     }
 
-    builder
+    let table = builder
         .sections
-        .create(".symtab", ElfSectionContent::SymbolTable(ElfSymbolTable { symbols }))
+        .create(symtab, ElfSectionContent::SymbolTable(ElfSymbolTable { symbols }))
         .add(&mut builder.ids);
-    builder.sections.create(".strtab", strings.into_elf()).add_with_id(strings_id);
+    builder.sections.create(strtab, strings.into_elf()).add_with_id(strings_id);
+
+    AddSymbolsOutput { table, conversion }
+}
+
+pub(super) struct AddSymbolsOutput {
+    pub(super) table: BuiltElfSectionId,
+    pub(super) conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
 }
 
 fn add_symbol(
@@ -69,10 +102,12 @@ fn add_symbol(
     sections: &mut Sections,
     symbols: &mut BTreeMap<BuiltElfSymbolId, ElfSymbol<BuiltElfIds>>,
     strings: &mut PendingStringsTable,
+    conversion: &mut BTreeMap<SymbolId, BuiltElfSymbolId>,
     symbol: &Symbol,
 ) {
+    let id = ids.allocate_symbol_id();
     symbols.insert(
-        ids.allocate_symbol_id(),
+        id,
         ElfSymbol {
             name: strings.add(symbol.name.resolve().as_str()),
             binding: match &symbol.visibility {
@@ -116,4 +151,5 @@ fn add_symbol(
             size: 0,
         },
     );
+    conversion.insert(symbol.id, id);
 }

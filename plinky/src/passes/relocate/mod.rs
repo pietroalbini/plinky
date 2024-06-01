@@ -1,5 +1,6 @@
 mod editor;
 
+use crate::cli::Mode;
 use crate::passes::generate_got::GOT;
 use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::passes::relocate::editor::ByteEditor;
@@ -13,8 +14,14 @@ use plinky_elf::{ElfClass, ElfEnvironment};
 use plinky_macros::{Display, Error};
 
 pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), RelocationError> {
-    let relocator =
-        Relocator { layout, symbols: &object.symbols, env: &object.env, got: object.got.as_ref() };
+    let mut relocator = Relocator {
+        layout,
+        symbols: &mut object.symbols,
+        dynamic_relocations: &mut object.dynamic_relocations,
+        env: &object.env,
+        got: object.got.as_ref(),
+        mode: object.mode,
+    };
     for section in object.sections.iter_mut() {
         match &mut section.content {
             SectionContent::Data(data) => {
@@ -29,13 +36,15 @@ pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), Relocation
 struct Relocator<'a> {
     env: &'a ElfEnvironment,
     got: Option<&'a GOT>,
+    dynamic_relocations: &'a mut Vec<Relocation>,
+    mode: Mode,
     layout: &'a Layout,
-    symbols: &'a Symbols,
+    symbols: &'a mut Symbols,
 }
 
 impl<'a> Relocator<'a> {
     fn relocate(
-        &self,
+        &mut self,
         section_id: SectionId,
         data_section: &mut DataSection,
     ) -> Result<(), RelocationError> {
@@ -53,7 +62,7 @@ impl<'a> Relocator<'a> {
     }
 
     fn relocate_one(
-        &self,
+        &mut self,
         section_id: SectionId,
         relocation: &Relocation,
         bytes: &mut [u8],
@@ -91,13 +100,31 @@ impl<'a> Relocator<'a> {
                 let addend = editor.addend_32()?;
                 editor.write_u32(slot.add(addend)?)
             }
-            RelocationType::FillGOTSlot => {
-                let symbol = self.symbol_as_absolute(relocation, 0.into())?;
-                match self.env.class {
-                    ElfClass::Elf32 => editor.write_u32(symbol),
-                    ElfClass::Elf64 => editor.write_u64(symbol),
+            RelocationType::FillGOTSlot => match self.mode {
+                Mode::PositionDependent => {
+                    let symbol = self.symbol_as_absolute(relocation, 0.into())?;
+                    match self.env.class {
+                        ElfClass::Elf32 => editor.write_u32(symbol),
+                        ElfClass::Elf64 => editor.write_u64(symbol),
+                    }
                 }
-            }
+                Mode::PositionIndependent => {
+                    self.symbols.add_symbol_to_dynamic(relocation.symbol);
+
+                    self.dynamic_relocations.push(Relocation {
+                        type_: RelocationType::FillGOTSlot,
+                        symbol: relocation.symbol,
+                        offset: self
+                            .layout
+                            .address(section_id, relocation.offset)?
+                            .1
+                            .as_offset()?,
+                        addend: relocation.addend,
+                    });
+
+                    Ok(())
+                }
+            },
             RelocationType::GOTLocationRelative32 => {
                 let got_addr = self.layout.address(self.got()?.id, 0.into())?.1;
                 let addend = editor.addend_32()?;

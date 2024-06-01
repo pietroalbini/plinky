@@ -12,7 +12,8 @@ use crate::writer::layout::{Part, WriteLayout};
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
     ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility, ElfType,
+    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
+    ElfType,
 };
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
@@ -133,7 +134,8 @@ where
                 }
 
                 ElfSectionContent::Program(_) => 1,
-                ElfSectionContent::SymbolTable(_) => 2,
+                ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: false, .. }) => 2,
+                ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: true, .. }) => 11,
                 ElfSectionContent::StringTable(_) => 3,
                 ElfSectionContent::Hash(_) => 5,
                 ElfSectionContent::Note(_) => todo!(),

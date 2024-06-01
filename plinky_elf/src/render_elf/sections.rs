@@ -71,7 +71,11 @@ fn render_section_symbols<I: ElfIds>(
     symbols: &ElfSymbolTable<I>,
 ) -> Vec<Box<dyn Widget>> {
     let mut table = Table::new();
-    table.set_title("Symbol table:");
+    if symbols.dynsym {
+        table.set_title("Dynamic symbol table:");
+    } else {
+        table.set_title("Symbol table:");
+    }
     table.add_row(["Name", "Binding", "Type", "Visibility", "Definition", "Value", "Size"]);
     for (id, symbol) in &symbols.symbols {
         table.add_row([

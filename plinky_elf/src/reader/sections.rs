@@ -55,13 +55,14 @@ fn read_section(
     let ty = match header.type_ {
         0 => SectionType::Null,
         1 => SectionType::Program,
-        2 => SectionType::SymbolTable,
+        2 => SectionType::SymbolTable { dynsym: false },
         3 => SectionType::StringTable,
         4 => SectionType::Relocations { rela: true },
         5 => SectionType::Hash,
         7 => SectionType::Note,
         8 => SectionType::Uninit,
         9 => SectionType::Relocations { rela: false },
+        11 => SectionType::SymbolTable { dynsym: true },
         17 => SectionType::Group,
         other => SectionType::Unknown(other),
     };
@@ -118,9 +119,9 @@ fn read_section(
             deduplication: deduplication.take().unwrap_or(ElfDeduplication::Disabled),
             raw: RawBytes(read_section_raw_content(&header, cursor)?),
         }),
-        SectionType::SymbolTable => {
+        SectionType::SymbolTable { dynsym } => {
             let raw = read_section_raw_content(&header, cursor)?;
-            read_symbol_table(cursor, &raw, PendingSectionId(header.link), current_section)?
+            read_symbol_table(cursor, &raw, PendingSectionId(header.link), current_section, dynsym)?
         }
         SectionType::StringTable => read_string_table(&read_section_raw_content(&header, cursor)?)?,
         SectionType::Relocations { rela } => {
@@ -184,7 +185,7 @@ fn read_section_raw_content(
 enum SectionType {
     Null,
     Program,
-    SymbolTable,
+    SymbolTable { dynsym: bool },
     StringTable,
     Relocations { rela: bool },
     Note,
@@ -218,6 +219,7 @@ fn read_symbol_table(
     raw_content: &[u8],
     strings_table: PendingSectionId,
     current_section: PendingSectionId,
+    dynsym: bool,
 ) -> Result<ElfSectionContent<PendingIds>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
@@ -230,7 +232,7 @@ fn read_symbol_table(
         );
     }
 
-    Ok(ElfSectionContent::SymbolTable(ElfSymbolTable { symbols }))
+    Ok(ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym, symbols }))
 }
 
 fn read_symbol(

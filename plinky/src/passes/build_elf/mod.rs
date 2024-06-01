@@ -43,7 +43,7 @@ impl ElfBuilder<'_> {
         self.prepare_sections();
         let segments = self.prepare_segments();
 
-        symbols::add_symbols(&mut self, ".symtab", ".strtab", |symbols| symbols.iter());
+        symbols::add_symbols(&mut self, ".symtab", ".strtab", false, |symbols| symbols.iter());
 
         match self.object.mode {
             Mode::PositionDependent => {}

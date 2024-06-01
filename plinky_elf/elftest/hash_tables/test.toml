@@ -1,6 +1,6 @@
 read = "hello.so"
 archs = ["x86", "x86_64"]
-filter = "*hash"
+filter = "*hash,.dynsym"
 
 # We currently cannot roundtrip this, as the ELF contains dynamic linking
 # sections that are not implemented yet.

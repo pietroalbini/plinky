@@ -139,7 +139,7 @@ debug print: built elf
  │
  │  section .dynsym#12 (address: 0x0)
  │   │
- │   │    Symbol table:
+ │   │    Dynamic symbol table:
  │   │  ╭─────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
  │   │  │ Name    │ Binding │ Type │ Visibility │ Definition │ Value    │ Size │
  │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤

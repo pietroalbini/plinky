@@ -166,6 +166,7 @@ pub struct ElfUnknownSection {
 
 #[derive(Debug)]
 pub struct ElfSymbolTable<I: ElfIds> {
+    pub dynsym: bool,
     pub symbols: BTreeMap<I::SymbolId, ElfSymbol<I>>,
 }
 

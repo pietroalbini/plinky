@@ -14,6 +14,7 @@ pub(super) fn add_symbols<'a, F, I>(
     builder: &'a mut ElfBuilder<'_>,
     symtab: &str,
     strtab: &str,
+    is_dynamic: bool,
     getter: F,
 ) -> AddSymbolsOutput
 where
@@ -85,7 +86,10 @@ where
 
     let table = builder
         .sections
-        .create(symtab, ElfSectionContent::SymbolTable(ElfSymbolTable { symbols }))
+        .create(
+            symtab,
+            ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: is_dynamic, symbols }),
+        )
         .add(&mut builder.ids);
     builder.sections.create(strtab, strings.into_elf()).add_with_id(strings_id);
 

@@ -38,7 +38,12 @@ pub(super) fn merge(
             ElfSectionContent::Uninitialized(uninit) => {
                 uninitialized_sections.push((section_id, section.name, uninit));
             }
-            ElfSectionContent::SymbolTable(table) => symbol_tables.push((section.name, table)),
+            ElfSectionContent::SymbolTable(table) => {
+                if table.dynsym {
+                    return Err(MergeElfError::UnsupportedDynamicSymbolTable);
+                }
+                symbol_tables.push((section.name, table))
+            }
             ElfSectionContent::StringTable(table) => strings.load_table(section_id, table),
             ElfSectionContent::RelocationsTable(table) => {
                 relocations.insert(table.applies_to_section, table.relocations);
@@ -219,6 +224,8 @@ pub(crate) enum MergeElfError {
     UnsupportedUnknownSection { id: u32 },
     #[transparent]
     UnsupportedRelocation(UnsupportedRelocationType),
+    #[display("unsupported dynamic symbol tables")]
+    UnsupportedDynamicSymbolTable,
     #[display("failed to load symbols from section {section_name}")]
     SymbolsLoadingFailed {
         section_name: String,

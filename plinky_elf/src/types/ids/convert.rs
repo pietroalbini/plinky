@@ -85,6 +85,7 @@ where
                             }
                             ElfSectionContent::SymbolTable(table) => {
                                 ElfSectionContent::SymbolTable(ElfSymbolTable {
+                                    dynsym: table.dynsym,
                                     symbols: table
                                         .symbols
                                         .into_iter()

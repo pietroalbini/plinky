@@ -7,7 +7,6 @@ use crate::{
     ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
-use std::collections::BTreeMap;
 
 pub(super) fn render_section<I: ElfIds>(
     object: &ElfObject<I>,
@@ -180,26 +179,39 @@ fn render_section_hash<I: ElfIds>(
     object: &ElfObject<I>,
     hash: &ElfHash<I>,
 ) -> Vec<Box<dyn Widget>> {
+    let ElfSectionContent::SymbolTable(symbol_table) =
+        &object.sections.get(&hash.symbol_table).unwrap().content
+    else {
+        panic!("hash table's symbol table is not a symbol table");
+    };
+
     let info = Text::new(format!("Hash table for {}", section_name(object, &hash.symbol_table)));
 
-    let mut buckets_with_count = BTreeMap::new();
+    let mut buckets = Vec::new();
     for mut entry in hash.buckets.iter().copied() {
-        let mut count = 0;
+        let mut items = Vec::new();
         while entry != 0 {
-            count += 1;
+            items.push(symbol_table.symbols.keys().skip(entry as usize).next().unwrap());
             entry = hash.chain[entry as usize];
         }
-        *buckets_with_count.entry(count).or_insert(0) += 1;
+        buckets.push(items);
     }
 
-    let mut stats = Table::new();
-    stats.set_title("Statistics:");
-    stats.add_row(["Number of entries in the bucket", "Number of buckets with those entries"]);
-    for (entries, buckets) in buckets_with_count {
-        stats.add_row([entries.to_string(), buckets.to_string()]);
+    let mut content = Table::new();
+    content.set_title("Content:");
+    content.add_row(["Bucket ID", "Symbols in bucket"]);
+    for (id, symbols) in buckets.iter().enumerate() {
+        let mut symbols_str = String::new();
+        for (pos, symbol) in symbols.iter().enumerate() {
+            if pos != 0 {
+                symbols_str.push('\n');
+            }
+            symbols_str.push_str(&symbol_name(object, &hash.symbol_table, symbol));
+        }
+        content.add_row([id.to_string(), symbols_str]);
     }
 
-    vec![Box::new(info), Box::new(stats)]
+    vec![Box::new(info), Box::new(content)]
 }
 
 fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {

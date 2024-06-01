@@ -1,11 +1,11 @@
 use crate::ids::ElfIds;
 use crate::raw::{
-    RawGroupFlags, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
+    RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
     RawSectionHeader, RawSymbol,
 };
 use crate::{ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent};
 use plinky_macros::{Display, Error};
-use plinky_utils::raw_types::RawType;
+use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
 
 const ALIGN: u64 = 0x1000;
@@ -84,6 +84,15 @@ impl<I: ElfIds> WriteLayout<I> {
                             + u32::size(layout.class) * group.sections.len(),
                     );
                 }
+                ElfSectionContent::Hash(hash) => {
+                    let size = <u64 as RawTypeAsPointerSize>::size(layout.class);
+                    layout.add_part(
+                        Part::Hash(id.clone()),
+                        RawHashHeader::size(layout.class)
+                            + hash.buckets.len() * size
+                            + hash.chain.len(),
+                    )
+                }
                 ElfSectionContent::Note(_) => {
                     return Err(WriteLayoutError::WritingNotesUnsupported);
                 }
@@ -161,6 +170,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::SymbolTable(this) => this == id,
                 Part::Padding(_) => false,
                 Part::Group(this) => this == id,
+                Part::Hash(this) => this == id,
                 Part::RelocationsTable { id: this, .. } => this == id,
             })
             .map(|(_, value)| value)
@@ -178,6 +188,7 @@ pub(super) enum Part<SectionId> {
     ProgramSection(SectionId),
     StringTable(SectionId),
     SymbolTable(SectionId),
+    Hash(SectionId),
     RelocationsTable { id: SectionId, rela: bool },
     Group(SectionId),
     Padding(PaddingId),

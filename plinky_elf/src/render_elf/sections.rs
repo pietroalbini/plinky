@@ -1,12 +1,13 @@
 use crate::ids::ElfIds;
 use crate::render_elf::utils::{render_perms, section_name, symbol_name};
 use crate::{
-    ElfDeduplication, ElfGroup, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection,
+    ElfDeduplication, ElfGroup, ElfHash, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection,
     ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding,
     ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
     ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
+use std::collections::BTreeMap;
 
 pub(super) fn render_section<I: ElfIds>(
     object: &ElfObject<I>,
@@ -21,6 +22,7 @@ pub(super) fn render_section<I: ElfIds>(
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
         ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(object, relocs),
         ElfSectionContent::Group(group) => render_section_group(object, group),
+        ElfSectionContent::Hash(hash) => render_section_hash(object, hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
@@ -168,6 +170,32 @@ fn render_section_group<I: ElfIds>(
     }
 
     vec![Box::new(Text::new(info)), Box::new(sections)]
+}
+
+fn render_section_hash<I: ElfIds>(
+    object: &ElfObject<I>,
+    hash: &ElfHash<I>,
+) -> Vec<Box<dyn Widget>> {
+    let info = Text::new(format!("Hash table for {}", section_name(object, &hash.symbol_table)));
+
+    let mut buckets_with_count = BTreeMap::new();
+    for mut entry in hash.buckets.iter().copied() {
+        let mut count = 0;
+        while entry != 0 {
+            count += 1;
+            entry = hash.chain[entry as usize];
+        }
+        *buckets_with_count.entry(count).or_insert(0) += 1;
+    }
+
+    let mut stats = Table::new();
+    stats.set_title("Statistics:");
+    stats.add_row(["Number of entries in the bucket", "Number of buckets with those entries"]);
+    for (entries, buckets) in buckets_with_count {
+        stats.add_row([entries.to_string(), buckets.to_string()]);
+    }
+
+    vec![Box::new(info), Box::new(stats)]
 }
 
 fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {

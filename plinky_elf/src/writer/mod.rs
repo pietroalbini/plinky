@@ -5,7 +5,7 @@ pub(crate) use self::layout::WriteLayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
 use crate::raw::{
-    RawGroupFlags, RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader,
+    RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader,
     RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
 };
 use crate::writer::layout::{Part, WriteLayout};
@@ -53,6 +53,7 @@ where
                 Part::SymbolTable(id) => self.write_symbol_table(id)?,
                 Part::RelocationsTable { id, rela } => self.write_relocations_table(id, *rela)?,
                 Part::Group(id) => self.write_group(id)?,
+                Part::Hash(id) => self.write_hash(id)?,
                 Part::Padding(_) => self.write_padding(part)?,
             }
         }
@@ -134,6 +135,7 @@ where
                 ElfSectionContent::Program(_) => 1,
                 ElfSectionContent::SymbolTable(_) => 2,
                 ElfSectionContent::StringTable(_) => 3,
+                ElfSectionContent::Hash(_) => 5,
                 ElfSectionContent::Note(_) => todo!(),
                 ElfSectionContent::Unknown(_) => panic!("unknown section"),
                 ElfSectionContent::RelocationsTable(_) => self
@@ -201,6 +203,7 @@ where
                     ElfSectionContent::RelocationsTable(table) => {
                         self.section_idx(&table.symbol_table) as _
                     }
+                    ElfSectionContent::Hash(hash) => self.section_idx(&hash.symbol_table) as _,
                     ElfSectionContent::Group(group) => self.section_idx(&group.symbol_table) as _,
                     _ => 0,
                 },
@@ -528,6 +531,23 @@ where
         self.write_raw(RawGroupFlags { comdat: group.comdat })?;
         for section in &group.sections {
             self.write_raw(self.section_idx(section) as u32)?;
+        }
+        Ok(())
+    }
+
+    fn write_hash(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
+        let ElfSectionContent::Hash(hash) = &self.object.sections.get(id).unwrap().content else {
+            panic!("section {id:?} is not a hash");
+        };
+        self.write_raw(RawHashHeader {
+            bucket_count: hash.buckets.len().try_into().expect("too many buckets"),
+            chain_count: hash.chain.len().try_into().expect("too many chain elements"),
+        })?;
+        for entry in &hash.buckets {
+            self.write_raw(*entry)?;
+        }
+        for entry in &hash.chain {
+            self.write_raw(*entry)?;
         }
         Ok(())
     }

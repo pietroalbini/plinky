@@ -117,6 +117,7 @@ pub enum ElfSectionContent<I: ElfIds> {
     RelocationsTable(ElfRelocationsTable<I>),
     Note(ElfNotesTable),
     Group(ElfGroup<I>),
+    Hash(ElfHash<I>),
     Unknown(ElfUnknownSection),
 }
 
@@ -302,6 +303,13 @@ pub struct ElfGroup<I: ElfIds> {
     pub signature: I::SymbolId,
     pub sections: Vec<I::SectionId>,
     pub comdat: bool,
+}
+
+#[derive(Debug)]
+pub struct ElfHash<I: ElfIds> {
+    pub symbol_table: I::SectionId,
+    pub buckets: Vec<u32>,
+    pub chain: Vec<u32>,
 }
 
 #[derive(Debug)]

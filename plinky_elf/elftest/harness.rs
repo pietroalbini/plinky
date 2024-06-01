@@ -61,8 +61,10 @@ impl TestExecution {
 
         insta::allow_duplicates! {
             self.read(&self.toml.read)?;
-            let roundtrip = self.roundtrip(&self.toml.read)?;
-            self.read(&roundtrip)?;
+            if self.toml.roundtrip {
+                let roundtrip = self.roundtrip(&self.toml.read)?;
+                self.read(&roundtrip)?;
+            }
 
             Ok::<(), Error>(())
         }?;
@@ -118,10 +120,16 @@ impl TestExecution {
 struct TestToml {
     read: PathBuf,
     archs: Vec<Arch>,
+    #[serde(default = "default_true")]
+    roundtrip: bool,
     #[serde(default)]
     filter: Option<String>,
     #[serde(flatten)]
     prerequisites: Prerequisites,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn main() {

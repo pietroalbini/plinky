@@ -9,6 +9,8 @@ use tempfile::TempDir;
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(super) struct LdInvocation {
     dest: String,
+    #[serde(default)]
+    shared_library: bool,
     #[serde(flatten)]
     content: Prerequisites,
 }
@@ -38,6 +40,7 @@ impl LdInvocation {
             .arg("-o")
             .arg(dest_dir.join(&self.dest))
             .args(to_link)
+            .args(if self.shared_library { &["-shared"] as &[_] } else { &[] })
             .args(match arch {
                 Arch::X86 => ["-m", "elf_i386"],
                 Arch::X86_64 => ["-m", "elf_x86_64"],

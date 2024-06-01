@@ -1,0 +1,16 @@
+read = "hello.so"
+archs = ["x86", "x86_64"]
+filter = "*hash"
+
+# We currently cannot roundtrip this, as the ELF contains dynamic linking
+# sections that are not implemented yet.
+roundtrip = false
+
+[[ld]]
+dest = "hello.so"
+shared-library = true
+
+[[ld.c]]
+source = "hello.c"
+libc = "freestanding"
+relocation = "pic"

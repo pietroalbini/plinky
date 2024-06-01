@@ -1,7 +1,8 @@
 use crate::ids::ElfIds;
 use crate::{
-    ElfGroup, ElfObject, ElfRelocation, ElfRelocationsTable, ElfSection, ElfSectionContent,
-    ElfSegment, ElfSegmentContent, ElfSymbol, ElfSymbolDefinition, ElfSymbolTable,
+    ElfGroup, ElfHash, ElfObject, ElfRelocation, ElfRelocationsTable, ElfSection,
+    ElfSectionContent, ElfSegment, ElfSegmentContent, ElfSymbol, ElfSymbolDefinition,
+    ElfSymbolTable,
 };
 use std::collections::BTreeMap;
 
@@ -141,6 +142,11 @@ where
                                 signature: map.symbol_id(&g.signature),
                                 sections: g.sections.iter().map(|s| map.section_id(s)).collect(),
                                 comdat: g.comdat,
+                            }),
+                            ElfSectionContent::Hash(h) => ElfSectionContent::Hash(ElfHash {
+                                symbol_table: map.section_id(&h.symbol_table),
+                                buckets: h.buckets,
+                                chain: h.chain,
                             }),
                             ElfSectionContent::Note(n) => ElfSectionContent::Note(n),
                             ElfSectionContent::Unknown(u) => ElfSectionContent::Unknown(u),

@@ -44,6 +44,9 @@ pub(super) fn merge(
                 relocations.insert(table.applies_to_section, table.relocations);
             }
             ElfSectionContent::Group(group) => pending_groups.push((section_id, group)),
+            ElfSectionContent::Hash(_) => {
+                // We don't need hash tables imported from the ELF file, we build our own.
+            }
             ElfSectionContent::Note(table) => {
                 for note in table.notes {
                     match note {

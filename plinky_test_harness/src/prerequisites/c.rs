@@ -46,6 +46,7 @@ impl CFile {
             .args(match self.relocation {
                 Relocation::Static => &["-fno-pic"] as &[&str],
                 Relocation::PicOnlyGot => &["-fPIC", "-fno-plt"],
+                Relocation::Pic => &["-fPIC"],
             })
             .arg(&self.source))?;
 
@@ -64,4 +65,5 @@ enum Libc {
 enum Relocation {
     Static,
     PicOnlyGot,
+    Pic,
 }

@@ -138,6 +138,12 @@ pub(crate) struct RawRela {
     pub(crate) addend: i64,
 }
 
+#[derive(RawType)]
+pub(crate) struct RawHashHeader {
+    pub(crate) bucket_count: u32,
+    pub(crate) chain_count: u32,
+}
+
 #[derive(Bitfield)]
 #[bitfield_repr(u32)]
 pub(crate) struct RawGroupFlags {

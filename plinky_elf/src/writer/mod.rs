@@ -10,10 +10,10 @@ use crate::raw::{
 };
 use crate::writer::layout::{Part, WriteLayout};
 use crate::{
-    ElfABI, ElfClass, ElfDeduplication, ElfEndian, ElfMachine, ElfObject, ElfPermissions,
-    ElfProgramSection, ElfRelocationType, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
-    ElfType,
+    ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfObject,
+    ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent,
+    ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfSymbolVisibility, ElfType,
 };
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
@@ -55,6 +55,7 @@ where
                 Part::RelocationsTable { id, rela } => self.write_relocations_table(id, *rela)?,
                 Part::Group(id) => self.write_group(id)?,
                 Part::Hash(id) => self.write_hash(id)?,
+                Part::Dynamic(id) => self.write_dynamic(id)?,
                 Part::Padding(_) => self.write_padding(part)?,
             }
         }
@@ -138,6 +139,7 @@ where
                 ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: true, .. }) => 11,
                 ElfSectionContent::StringTable(_) => 3,
                 ElfSectionContent::Hash(_) => 5,
+                ElfSectionContent::Dynamic(_) => 6,
                 ElfSectionContent::Note(_) => todo!(),
                 ElfSectionContent::Unknown(_) => panic!("unknown section"),
                 ElfSectionContent::RelocationsTable(_) => self
@@ -551,6 +553,75 @@ where
         for entry in &hash.chain {
             self.write_raw(*entry)?;
         }
+        Ok(())
+    }
+
+    fn write_dynamic(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
+        let ElfSectionContent::Dynamic(dynamic) = &self.object.sections.get(id).unwrap().content
+        else {
+            panic!("section {id:?} is not a dynamic section");
+        };
+
+        for directive in &dynamic.directives {
+            let (tag, value) = match directive {
+                ElfDynamicDirective::Null => (0, 0),
+                ElfDynamicDirective::Needed { string_table_offset } => (1, *string_table_offset),
+                ElfDynamicDirective::PLTRelocationsSize { bytes } => (2, *bytes),
+                ElfDynamicDirective::PLTGOT { address } => (3, *address),
+                ElfDynamicDirective::Hash { address } => (4, *address),
+                ElfDynamicDirective::GnuHash { address } => (0x6ffffef5, *address),
+                ElfDynamicDirective::StringTable { address } => (5, *address),
+                ElfDynamicDirective::SymbolTable { address } => (6, *address),
+                ElfDynamicDirective::Rela { address } => (7, *address),
+                ElfDynamicDirective::RelaSize { bytes } => (8, *bytes),
+                ElfDynamicDirective::RelaEntrySize { bytes } => (9, *bytes),
+                ElfDynamicDirective::StringTableSize { bytes } => (10, *bytes),
+                ElfDynamicDirective::SymbolTableEntrySize { bytes } => (11, *bytes),
+                ElfDynamicDirective::InitFunction { address } => (12, *address),
+                ElfDynamicDirective::FiniFunction { address } => (13, *address),
+                ElfDynamicDirective::SharedObjectName { string_table_offset } => {
+                    (14, *string_table_offset)
+                }
+                ElfDynamicDirective::RuntimePath { string_table_offset } => {
+                    (15, *string_table_offset)
+                }
+                ElfDynamicDirective::Symbolic => (16, 0),
+                ElfDynamicDirective::Rel { address } => (17, *address),
+                ElfDynamicDirective::RelSize { bytes } => (18, *bytes),
+                ElfDynamicDirective::RelEntrySize { bytes } => (19, *bytes),
+                ElfDynamicDirective::PTLRelocationsMode { mode } => (
+                    20,
+                    match mode {
+                        ElfPLTRelocationsMode::Rel => 17,
+                        ElfPLTRelocationsMode::Rela => 7,
+                        ElfPLTRelocationsMode::Unknown(other) => *other,
+                    },
+                ),
+                ElfDynamicDirective::Debug { address } => (21, *address),
+                ElfDynamicDirective::RelocationsWillModifyText => (22, 0),
+                ElfDynamicDirective::JumpRel { address } => (23, *address),
+                ElfDynamicDirective::BindNow => (24, 0),
+                ElfDynamicDirective::Unknown { tag, value } => (*tag, *value),
+            };
+            match self.object.env.class {
+                ElfClass::Elf32 => {
+                    self.write_raw::<i32>(
+                        tag.try_into()
+                            .map_err(|_| WriteError::DynamicValueDoesNotFit { value: tag })?,
+                    )?;
+                    self.write_raw::<u32>(
+                        value
+                            .try_into()
+                            .map_err(|_| WriteError::DynamicValueDoesNotFit { value })?,
+                    )?;
+                }
+                ElfClass::Elf64 => {
+                    self.write_raw(tag)?;
+                    self.write_raw(value)?;
+                }
+            }
+        }
+
         Ok(())
     }
 

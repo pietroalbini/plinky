@@ -52,6 +52,9 @@ pub(super) fn merge(
             ElfSectionContent::Hash(_) => {
                 // We don't need hash tables imported from the ELF file, we build our own.
             }
+            ElfSectionContent::Dynamic(_) => {
+                return Err(MergeElfError::UnsupportedDynamicSection);
+            }
             ElfSectionContent::Note(table) => {
                 for note in table.notes {
                     match note {
@@ -226,6 +229,8 @@ pub(crate) enum MergeElfError {
     UnsupportedRelocation(UnsupportedRelocationType),
     #[display("unsupported dynamic symbol tables")]
     UnsupportedDynamicSymbolTable,
+    #[display("loading dynamic metadata sections is not supported")]
+    UnsupportedDynamicSection,
     #[display("failed to load symbols from section {section_name}")]
     SymbolsLoadingFailed {
         section_name: String,

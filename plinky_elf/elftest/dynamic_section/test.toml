@@ -1,0 +1,16 @@
+read = "dynamic.so"
+archs = ["x86", "x86_64"]
+filter = ".dyn*,*plt,@segments"
+
+# We currently cannot roundtrip this, as the ELF contains dynamic linking
+# sections that are not implemented yet.
+roundtrip = false
+
+[[ld]]
+dest = "dynamic.so"
+shared-library = true
+
+[[ld.c]]
+source = "dynamic.c"
+libc = "freestanding"
+relocation = "pic"

@@ -149,6 +149,7 @@ where
                                 buckets: h.buckets,
                                 chain: h.chain,
                             }),
+                            ElfSectionContent::Dynamic(d) => ElfSectionContent::Dynamic(d),
                             ElfSectionContent::Note(n) => ElfSectionContent::Note(n),
                             ElfSectionContent::Unknown(u) => ElfSectionContent::Unknown(u),
                         },

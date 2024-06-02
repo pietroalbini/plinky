@@ -1,10 +1,10 @@
 use crate::ids::ElfIds;
 use crate::render_elf::utils::{render_perms, section_name, symbol_name};
 use crate::{
-    ElfDeduplication, ElfGroup, ElfHash, ElfNote, ElfNotesTable, ElfObject, ElfProgramSection,
-    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding,
-    ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
-    ElfUninitializedSection, ElfUnknownSection,
+    ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGroup, ElfHash, ElfNote, ElfNotesTable,
+    ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelocationsTable, ElfSection,
+    ElfSectionContent, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
@@ -23,6 +23,7 @@ pub(super) fn render_section<I: ElfIds>(
         ElfSectionContent::Group(group) => render_section_group(object, group),
         ElfSectionContent::Hash(hash) => render_section_hash(object, hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
+        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(dynamic),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
 
@@ -231,6 +232,98 @@ fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
     }
 
     output
+}
+
+fn render_section_dynamic(dynamic: &ElfDynamic) -> Vec<Box<dyn Widget>> {
+    enum Value<'a> {
+        Bytes(&'a u64),
+        Addr(&'a u64),
+        StrOff(&'a u64),
+        Str(String),
+        None,
+    }
+
+    let mut table = Table::new();
+    table.set_title("Dynamic information:");
+    table.add_row(["Kind", "Value"]);
+    for directive in &dynamic.directives {
+        let (name, value) = match directive {
+            ElfDynamicDirective::Null => ("Null", Value::None),
+            ElfDynamicDirective::Needed { string_table_offset } => {
+                ("Needed libraries", Value::StrOff(string_table_offset))
+            }
+            ElfDynamicDirective::PLTRelocationsSize { bytes } => {
+                ("PLT relocations size", Value::Bytes(bytes))
+            }
+            ElfDynamicDirective::PLTGOT { address } => ("PLT GOT", Value::Addr(address)),
+            ElfDynamicDirective::Hash { address } => ("Hash table", Value::Addr(address)),
+            ElfDynamicDirective::GnuHash { address } => ("GNU hash table", Value::Addr(address)),
+            ElfDynamicDirective::StringTable { address } => ("String table", Value::Addr(address)),
+            ElfDynamicDirective::SymbolTable { address } => ("Symbol table", Value::Addr(address)),
+            ElfDynamicDirective::Rela { address } => ("RelocationsA table", Value::Addr(address)),
+            ElfDynamicDirective::RelaSize { bytes } => ("RelocationsA size", Value::Bytes(bytes)),
+            ElfDynamicDirective::RelaEntrySize { bytes } => {
+                ("RelocationsA entry size", Value::Bytes(bytes))
+            }
+            ElfDynamicDirective::StringTableSize { bytes } => {
+                ("String table size", Value::Bytes(bytes))
+            }
+            ElfDynamicDirective::SymbolTableEntrySize { bytes } => {
+                ("Symbol table entry size", Value::Bytes(bytes))
+            }
+            ElfDynamicDirective::InitFunction { address } => {
+                ("Initialization function", Value::Addr(address))
+            }
+            ElfDynamicDirective::FiniFunction { address } => {
+                ("Finalization function", Value::Addr(address))
+            }
+            ElfDynamicDirective::SharedObjectName { string_table_offset } => {
+                ("Shared object name", Value::StrOff(string_table_offset))
+            }
+            ElfDynamicDirective::RuntimePath { string_table_offset } => {
+                ("Runtime path", Value::StrOff(string_table_offset))
+            }
+            ElfDynamicDirective::Symbolic => ("Enable symbolic resolution", Value::None),
+            ElfDynamicDirective::Rel { address } => ("Relocations table", Value::Addr(address)),
+            ElfDynamicDirective::RelSize { bytes } => {
+                ("Relocations table size", Value::Bytes(bytes))
+            }
+            ElfDynamicDirective::RelEntrySize { bytes } => {
+                ("Relocations table entry size", Value::Bytes(bytes))
+            }
+            ElfDynamicDirective::PTLRelocationsMode { mode } => (
+                "PLT relocations type",
+                Value::Str(match mode {
+                    ElfPLTRelocationsMode::Rel => "Relocations".into(),
+                    ElfPLTRelocationsMode::Rela => "RelocationsA".into(),
+                    ElfPLTRelocationsMode::Unknown(num) => format!("<unknown {num:#x}>"),
+                }),
+            ),
+            ElfDynamicDirective::Debug { address } => ("Debug information", Value::Addr(address)),
+            ElfDynamicDirective::RelocationsWillModifyText => {
+                ("Relocations will modify text sections", Value::None)
+            }
+            ElfDynamicDirective::JumpRel { address } => {
+                ("Jump PLT relocations", Value::Addr(address))
+            }
+            ElfDynamicDirective::BindNow => ("Bind now", Value::None),
+            ElfDynamicDirective::Unknown { tag, value } => {
+                table.add_row([format!("<unknown {tag:#x}>"), format!("{value:#x}")]);
+                continue;
+            }
+        };
+        table.add_row([
+            name.into(),
+            match value {
+                Value::Bytes(bytes) => format!("{bytes} bytes"),
+                Value::Addr(addr) => format!("address {addr:#x}"),
+                Value::StrOff(off) => format!("offset {off:#} in the string table"),
+                Value::Str(string) => string,
+                Value::None => "-".to_string(),
+            },
+        ]);
+    }
+    vec![Box::new(table)]
 }
 
 fn render_section_unknown(unknown: &ElfUnknownSection) -> Vec<Box<dyn Widget>> {

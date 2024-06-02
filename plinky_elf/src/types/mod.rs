@@ -118,6 +118,7 @@ pub enum ElfSectionContent<I: ElfIds> {
     Note(ElfNotesTable),
     Group(ElfGroup<I>),
     Hash(ElfHash<I>),
+    Dynamic(ElfDynamic),
     Unknown(ElfUnknownSection),
 }
 
@@ -311,6 +312,49 @@ pub struct ElfHash<I: ElfIds> {
     pub symbol_table: I::SectionId,
     pub buckets: Vec<u32>,
     pub chain: Vec<u32>,
+}
+
+#[derive(Debug)]
+pub struct ElfDynamic {
+    pub directives: Vec<ElfDynamicDirective>,
+}
+
+#[derive(Debug)]
+pub enum ElfDynamicDirective {
+    Null,
+    Needed { string_table_offset: u64 },
+    PLTRelocationsSize { bytes: u64 },
+    PLTGOT { address: u64 },
+    Hash { address: u64 },
+    GnuHash { address: u64 },
+    StringTable { address: u64 },
+    SymbolTable { address: u64 },
+    Rela { address: u64 },
+    RelaSize { bytes: u64 },
+    RelaEntrySize { bytes: u64 },
+    StringTableSize { bytes: u64 },
+    SymbolTableEntrySize { bytes: u64 },
+    InitFunction { address: u64 },
+    FiniFunction { address: u64 },
+    SharedObjectName { string_table_offset: u64 },
+    RuntimePath { string_table_offset: u64 },
+    Symbolic,
+    Rel { address: u64 },
+    RelSize { bytes: u64 },
+    RelEntrySize { bytes: u64 },
+    PTLRelocationsMode { mode: ElfPLTRelocationsMode },
+    Debug { address: u64 },
+    RelocationsWillModifyText,
+    JumpRel { address: u64 },
+    BindNow,
+    Unknown { tag: u64, value: u64 },
+}
+
+#[derive(Debug)]
+pub enum ElfPLTRelocationsMode {
+    Rel,
+    Rela,
+    Unknown(u64),
 }
 
 #[derive(Debug)]

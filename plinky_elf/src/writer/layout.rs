@@ -93,6 +93,10 @@ impl<I: ElfIds> WriteLayout<I> {
                             + hash.chain.len(),
                     )
                 }
+                ElfSectionContent::Dynamic(dynamic) => {
+                    let size = <u64 as RawTypeAsPointerSize>::size(layout.class) * 2;
+                    layout.add_part(Part::Dynamic(id.clone()), dynamic.directives.len() * size);
+                }
                 ElfSectionContent::Note(_) => {
                     return Err(WriteLayoutError::WritingNotesUnsupported);
                 }
@@ -171,6 +175,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::Padding(_) => false,
                 Part::Group(this) => this == id,
                 Part::Hash(this) => this == id,
+                Part::Dynamic(this) => this == id,
                 Part::RelocationsTable { id: this, .. } => this == id,
             })
             .map(|(_, value)| value)
@@ -191,6 +196,7 @@ pub(super) enum Part<SectionId> {
     Hash(SectionId),
     RelocationsTable { id: SectionId, rela: bool },
     Group(SectionId),
+    Dynamic(SectionId),
     Padding(PaddingId),
 }
 

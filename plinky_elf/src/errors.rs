@@ -83,6 +83,8 @@ pub enum WriteError<I: ElfIds> {
     WrongSectionTypeForGroupSymbolTable { group: I::SectionId, symbol_table: I::SectionId },
     #[display("group {group:?}'s signature {signature:?} is missing")]
     MissingGroupSignature { group: I::SectionId, signature: I::SymbolId },
+    #[display("value {value} in the dynamic table does not fit")]
+    DynamicValueDoesNotFit { value: u64 },
     #[display("failed to calculate the resulting ELF layout")]
     LayoutError(#[from] WriteLayoutError),
 }

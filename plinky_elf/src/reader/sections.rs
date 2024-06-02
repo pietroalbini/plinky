@@ -36,7 +36,8 @@ pub(super) fn read_sections(
                 segment_content_map,
                 section_names_table,
                 PendingSectionId(idx as _),
-            )?,
+            )
+            .map_err(|inner| LoadError::FailedToParseSection { idx, inner: Box::new(inner) })?,
         );
     }
 

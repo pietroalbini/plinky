@@ -55,6 +55,12 @@ pub enum LoadError {
         #[source]
         inner: Box<LoadError>,
     },
+    #[display("failed to parse section number {idx}")]
+    FailedToParseSection {
+        idx: u16,
+        #[source]
+        inner: Box<LoadError>,
+    },
     #[display("misaligned file: parsed until {current:#x}, expected to be at {expected:#x}")]
     MisalignedFile { current: usize, expected: usize },
 }

@@ -374,6 +374,7 @@ pub enum ElfSegmentType {
     Note,
     ProgramHeaderTable,
     GnuStack,
+    GnuRelRO,
     Unknown(u32),
 }
 

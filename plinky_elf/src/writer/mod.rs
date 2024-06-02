@@ -337,6 +337,7 @@ where
                     ElfSegmentType::Note => 4,
                     ElfSegmentType::ProgramHeaderTable => 5,
                     ElfSegmentType::GnuStack => 0x6474e551,
+                    ElfSegmentType::GnuRelRO => 0x6474e552,
                     ElfSegmentType::Unknown(_) => panic!("unknown segment"),
                 },
                 file_offset,

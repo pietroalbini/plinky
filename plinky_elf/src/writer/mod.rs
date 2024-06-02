@@ -284,6 +284,14 @@ where
                             (metadata.offset, metadata.len, program.raw.0.len() as u64)
                         }
                         ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len),
+                        ElfSectionContent::Dynamic(dynamic) => {
+                            let size: u64 = match self.object.env.class {
+                                ElfClass::Elf32 => 8,
+                                ElfClass::Elf64 => 16,
+                            };
+                            let metadata = self.layout.metadata_of_section(first_section_id);
+                            (metadata.offset, metadata.len, size * dynamic.directives.len() as u64)
+                        }
                         _ => unimplemented!(),
                     };
 

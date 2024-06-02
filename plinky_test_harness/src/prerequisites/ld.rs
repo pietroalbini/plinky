@@ -41,6 +41,7 @@ impl LdInvocation {
             .arg(dest_dir.join(&self.dest))
             .args(to_link)
             .args(if self.shared_library { &["-shared"] as &[_] } else { &[] })
+            .arg("--hash-style=sysv") // FIXME: temporary until we implement GNU hash
             .args(match arch {
                 Arch::X86 => ["-m", "elf_i386"],
                 Arch::X86_64 => ["-m", "elf_x86_64"],

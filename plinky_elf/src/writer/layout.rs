@@ -85,12 +85,12 @@ impl<I: ElfIds> WriteLayout<I> {
                     );
                 }
                 ElfSectionContent::Hash(hash) => {
-                    let size = <u64 as RawTypeAsPointerSize>::size(layout.class);
+                    let size = u32::size(layout.class);
                     layout.add_part(
                         Part::Hash(id.clone()),
                         RawHashHeader::size(layout.class)
                             + hash.buckets.len() * size
-                            + hash.chain.len(),
+                            + hash.chain.len() * size,
                     )
                 }
                 ElfSectionContent::Dynamic(dynamic) => {

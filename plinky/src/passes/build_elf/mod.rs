@@ -1,7 +1,7 @@
 mod dynamic;
 pub(crate) mod ids;
-mod sections;
 mod relocations;
+mod sections;
 mod symbols;
 
 use crate::cli::Mode;

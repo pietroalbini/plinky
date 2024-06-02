@@ -1,7 +1,7 @@
 cmd = ["hello.o", "syscalls.o", "-pie"]
 kind = "link-pass"
 archs = ["x86", "x86_64"]
-debug-print = ["loaded-object=.text", "relocated-object=.text,.got,@symbols,@dynamic", "final-elf=.dyn*,.rel*"]
+debug-print = ["loaded-object=.text", "relocated-object=.text,.got,@symbols,@dynamic", "final-elf=.dyn*,.rel*,.*hash"]
 
 [[c]]
 source = "hello.c"

@@ -1,12 +1,10 @@
-pub mod ids;
 mod string_table;
 
 pub use self::string_table::ElfStringTable;
 
 use crate::errors::{LoadError, WriteError};
-use crate::ids::{convert, ConvertibleElfIds, StringIdGetters};
+use crate::ids::{convert, ConvertibleElfIds, ElfIds, StringIdGetters};
 use crate::reader::{read_object, PendingIds, ReadCursor};
-use crate::types::ids::ElfIds;
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
 use plinky_utils::{Bits, Endian};

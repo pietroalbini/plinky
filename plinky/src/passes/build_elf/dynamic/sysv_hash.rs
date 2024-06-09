@@ -5,7 +5,7 @@ use crate::repr::symbols::Symbol;
 use plinky_elf::{ElfHash, ElfSectionContent};
 
 pub(crate) fn add_sysv_hash<'a, F, I>(
-    builder: &'a mut ElfBuilder<'_>,
+    builder: &'a mut ElfBuilder,
     name: &str,
     symbol_table: BuiltElfSectionId,
     getter: F,

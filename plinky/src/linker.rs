@@ -43,7 +43,7 @@ pub(crate) fn link_driver(
     passes::replace_section_relative_symbols::replace(&mut object, &layout)?;
     passes::demote_global_hidden_symbols::run(&mut object);
 
-    let elf = passes::build_elf::run(object, &layout)?;
+    let elf = passes::build_elf::run(object, layout)?;
     callbacks.on_elf_built(&elf);
 
     passes::write_to_disk::run(elf, &options.output)?;

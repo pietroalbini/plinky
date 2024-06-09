@@ -5,7 +5,7 @@ use crate::passes::build_elf::relocations::add_rela;
 use crate::passes::build_elf::symbols::add_symbols;
 use crate::passes::build_elf::ElfBuilder;
 
-pub(crate) fn add(builder: &mut ElfBuilder<'_>) {
+pub(crate) fn add(builder: &mut ElfBuilder) {
     let dynsym =
         add_symbols(builder, ".dynsym", ".dynstr", true, |symbols| symbols.iter_dynamic_symbols());
 

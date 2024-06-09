@@ -11,7 +11,7 @@ use plinky_elf::{
 use std::collections::BTreeMap;
 
 pub(super) fn add_symbols<'a, F, I>(
-    builder: &'a mut ElfBuilder<'_>,
+    builder: &'a mut ElfBuilder,
     symtab: &str,
     strtab: &str,
     is_dynamic: bool,

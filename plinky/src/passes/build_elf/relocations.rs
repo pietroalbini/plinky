@@ -6,7 +6,7 @@ use crate::utils::ints::ExtractNumber;
 use plinky_elf::{ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable};
 
 pub(crate) fn add_rela<'a, F, I>(
-    builder: &'a mut ElfBuilder<'_>,
+    builder: &'a mut ElfBuilder,
     name: &str,
     symtab: &AddSymbolsOutput,
     getter: F,

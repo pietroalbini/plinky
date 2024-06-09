@@ -23,21 +23,21 @@ use std::num::NonZeroU64;
 
 pub(crate) fn run(
     object: Object,
-    layout: &Layout,
+    layout: Layout,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
     let builder = ElfBuilder { object, layout, sections: Sections::new(&mut ids), ids };
     builder.build()
 }
 
-struct ElfBuilder<'a> {
+struct ElfBuilder {
     object: Object,
-    layout: &'a Layout,
+    layout: Layout,
     sections: Sections,
     ids: BuiltElfIds,
 }
 
-impl ElfBuilder<'_> {
+impl ElfBuilder {
     fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
         self.prepare_sections();
@@ -61,8 +61,9 @@ impl ElfBuilder<'_> {
 
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
         let symbol = self.object.symbols.get(self.object.entry_point);
-        let resolved =
-            symbol.resolve(self.layout, 0.into()).map_err(ElfBuilderError::EntryPointResolution)?;
+        let resolved = symbol
+            .resolve(&self.layout, 0.into())
+            .map_err(ElfBuilderError::EntryPointResolution)?;
 
         match resolved {
             ResolvedSymbol::Absolute(_) => {

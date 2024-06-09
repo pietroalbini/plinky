@@ -1,5 +1,5 @@
 cmd = ["hello.o", "syscalls.o", "-pie"]
-kind = "link-pass"
+kind = "run-fail"
 archs = ["x86", "x86_64"]
 debug-print = ["loaded-object=.text", "layout", "relocated-object=.text,.got,.interp,@symbols,@dynamic", "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta"]
 

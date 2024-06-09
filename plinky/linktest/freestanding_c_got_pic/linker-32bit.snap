@@ -189,6 +189,21 @@ debug print: object after relocations are applied
 
 debug print: built elf
  │
+ │    Metadata:
+ │  ╭────────────┬───────────────╮
+ │  │ Class      │ ELF 32bit     │
+ │  ├────────────┼───────────────┤
+ │  │ Endian     │ Little        │
+ │  ├────────────┼───────────────┤
+ │  │ ABI        │ System V      │
+ │  ├────────────┼───────────────┤
+ │  │ Machine    │ x86           │
+ │  ├────────────┼───────────────┤
+ │  │ Type       │ Shared object │
+ │  ├────────────┼───────────────┤
+ │  │ Entrypoint │ 0x402000      │
+ │  ╰────────────┴───────────────╯
+ │
  │  section .interp#7 (address: 0x400000)
  │   │
  │   │  program data | permissions: R

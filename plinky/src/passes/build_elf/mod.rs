@@ -66,7 +66,10 @@ impl ElfBuilder {
 
         Ok(ElfObject {
             env: self.object.env,
-            type_: ElfType::Executable,
+            type_: match self.object.mode {
+                Mode::PositionDependent => ElfType::Executable,
+                Mode::PositionIndependent => ElfType::SharedObject,
+            },
             entry,
             sections: self.sections.finalize(),
             segments,

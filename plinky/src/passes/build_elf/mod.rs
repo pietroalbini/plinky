@@ -4,6 +4,7 @@ mod relocations;
 mod sections;
 mod symbols;
 
+use super::layout::SegmentType;
 use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
@@ -134,7 +135,11 @@ impl ElfBuilder {
             elf_segments.push((
                 segment.start,
                 ElfSegment {
-                    type_: ElfSegmentType::Load,
+                    type_: match segment.type_ {
+                        SegmentType::Program => ElfSegmentType::Load,
+                        SegmentType::Uninitialized => ElfSegmentType::Load,
+                        SegmentType::Dynamic => ElfSegmentType::Dynamic,
+                    },
                     perms: segment.perms,
                     content: ElfSegmentContent::Sections(
                         segment.sections.iter().map(|id| self.sections.new_id_of(*id)).collect(),

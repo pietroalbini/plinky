@@ -101,6 +101,10 @@ impl Layout {
         self.segments.iter()
     }
 
+    pub(crate) fn add_segment(&mut self, segment: Segment) {
+        self.segments.push(segment);
+    }
+
     pub(crate) fn prepare_segment(&mut self) -> PendingSegment {
         PendingSegment { start: self.current_address, sections: Vec::new(), len: 0, layout: self }
     }
@@ -159,6 +163,7 @@ pub(crate) struct Segment {
 pub(crate) enum SegmentType {
     Program,
     Uninitialized,
+    Dynamic,
 }
 
 #[derive(Debug, Display, Error)]

@@ -38,6 +38,7 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
             match segment.type_ {
                 SegmentType::Program => "program".into(),
                 SegmentType::Uninitialized => "uninit".into(),
+                SegmentType::Dynamic => "dynamic".into(),
             },
             format!("{:?}", segment.perms),
             segment

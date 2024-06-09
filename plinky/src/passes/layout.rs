@@ -25,32 +25,19 @@ pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplica
         }
     }
 
-    let mut layout = Layout { segments: Vec::new(), sections: BTreeMap::new(), deduplications };
-    let mut address = BASE_ADDRESS;
+    let mut layout = Layout {
+        current_address: BASE_ADDRESS,
+        segments: Vec::new(),
+        sections: BTreeMap::new(),
+        deduplications,
+    };
     for ((perms, type_), sections) in grouped.into_iter() {
         if perms.read || perms.write || perms.execute {
-            let start = address;
-
-            let mut segment_len = 0;
+            let mut segment = layout.prepare_segment();
             for &(section, len) in &sections {
-                layout
-                    .sections
-                    .insert(section, SectionLayout::Allocated { address: address.into() });
-                address += len;
-                segment_len += len;
+                segment.add_section(section, len);
             }
-
-            layout.segments.push(Segment {
-                start,
-                len: segment_len,
-                perms,
-                type_,
-                align: PAGE_SIZE,
-                sections: sections.iter().map(|(id, _)| *id).collect(),
-            });
-
-            // Align to the page boundary.
-            address = (address + PAGE_SIZE) & !(PAGE_SIZE - 1);
+            segment.finalize(type_, perms);
         } else {
             // Avoid allocating sections that cannot be accessed at runtime.
             for (section, _) in sections {
@@ -63,6 +50,7 @@ pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplica
 }
 
 pub(crate) struct Layout {
+    current_address: u64,
     segments: Vec<Segment>,
     sections: BTreeMap<SectionId, SectionLayout>,
     deduplications: BTreeMap<SectionId, Deduplication>,
@@ -111,6 +99,47 @@ impl Layout {
 
     pub(crate) fn iter_segments(&self) -> impl Iterator<Item = &Segment> {
         self.segments.iter()
+    }
+
+    pub(crate) fn prepare_segment(&mut self) -> PendingSegment {
+        PendingSegment {
+            start: self.current_address,
+            sections: Vec::new(),
+            len: 0,
+            layout: self,
+        }
+    }
+}
+
+pub(crate) struct PendingSegment<'a> {
+    layout: &'a mut Layout,
+    sections: Vec<SectionId>,
+    start: u64,
+    len: u64,
+}
+
+impl PendingSegment<'_> {
+    pub(crate) fn add_section(&mut self, id: SectionId, len: u64) {
+        self.layout
+            .sections
+            .insert(id, SectionLayout::Allocated { address: self.layout.current_address.into() });
+        self.layout.current_address += len;
+        self.len += len;
+        self.sections.push(id);
+    }
+
+    pub(crate) fn finalize(self, type_: SegmentType, perms: ElfPermissions) {
+        self.layout.segments.push(Segment {
+            start: self.start,
+            len: self.len,
+            align: PAGE_SIZE,
+            type_,
+            perms,
+            sections: self.sections,
+        });
+
+        // Align to the page boundary.
+        self.layout.current_address = (self.layout.current_address + PAGE_SIZE) & !(PAGE_SIZE - 1);
     }
 }
 

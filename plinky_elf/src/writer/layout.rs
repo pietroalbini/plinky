@@ -3,7 +3,9 @@ use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
     RawSectionHeader, RawSymbol,
 };
-use crate::{ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent};
+use crate::{
+    ElfClass, ElfObject, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
+};
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
@@ -40,96 +42,116 @@ impl<I: ElfIds> WriteLayout<I> {
             RawProgramHeader::size(layout.class) * object.segments.len(),
         );
 
-        let mut deferred_program_sections: BTreeMap<I::SectionId, _> = BTreeMap::new();
+        let sections_in_load_segments = object
+            .segments
+            .iter()
+            .enumerate()
+            .filter(|(_idx, s)| matches!(s.type_, ElfSegmentType::Load))
+            .flat_map(|(idx, s)| match &s.content {
+                ElfSegmentContent::Empty => {
+                    Box::new(std::iter::empty()) as Box<dyn Iterator<Item = _>>
+                }
+                ElfSegmentContent::Sections(s) => Box::new(s.iter().map(move |s| (s, idx))),
+                ElfSegmentContent::Unknown(_) => Box::new(std::iter::empty()),
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        // We need to be careful in how sections are written in the resulting ELF file: each LOAD
+        // segment *as a whole* needs to be page aligned, while sections within the segment need to
+        // be contiguous. To address that, we split sections into sections that are not part of any
+        // segment and thus can be written adjacent to each other at the start of the ELF (the
+        // "preamble"), and sections that belong to a segment.
+        //
+        // We then proceed to write all the preamble sections, and after that write all the
+        // segments while being careful of page-aligning each of them.
+        let mut put_in_preamble = Vec::new();
+        let mut put_in_segments = BTreeMap::new();
         for (id, section) in &object.sections {
-            match &section.content {
-                ElfSectionContent::Null => {}
-                ElfSectionContent::Program(program) => {
-                    deferred_program_sections
-                        .insert(id.clone(), DeferredProgramSection { len: program.raw.len() });
-                }
-                ElfSectionContent::Uninitialized(_) => {
-                    // Uninitialized sections are not part of the file layout.
-                }
-                ElfSectionContent::SymbolTable(table) => layout.add_part(
-                    Part::SymbolTable(id.clone()),
-                    RawSymbol::size(layout.class) * table.symbols.len(),
-                ),
-                ElfSectionContent::StringTable(table) => {
-                    layout.add_part(Part::StringTable(id.clone()), table.len());
-                }
-                ElfSectionContent::RelocationsTable(table) => {
-                    let mut rela = None;
-                    for relocation in &table.relocations {
-                        match rela {
-                            Some(rela) if rela == relocation.addend.is_some() => {}
-                            Some(_) => return Err(WriteLayoutError::MixedRelRela),
-                            None => rela = Some(relocation.addend.is_some()),
-                        }
-                    }
-                    let rela = rela.unwrap_or(false);
-                    layout.add_part(
-                        Part::RelocationsTable { id: id.clone(), rela },
-                        if rela {
-                            (RawRela::size(layout.class) * table.relocations.len()) as _
-                        } else {
-                            (RawRel::size(layout.class) * table.relocations.len()) as _
-                        },
-                    )
-                }
-                ElfSectionContent::Group(group) => {
-                    layout.add_part(
-                        Part::Group(id.clone()),
-                        RawGroupFlags::size(layout.class)
-                            + u32::size(layout.class) * group.sections.len(),
-                    );
-                }
-                ElfSectionContent::Hash(hash) => {
-                    let size = u32::size(layout.class);
-                    layout.add_part(
-                        Part::Hash(id.clone()),
-                        RawHashHeader::size(layout.class)
-                            + hash.buckets.len() * size
-                            + hash.chain.len() * size,
-                    )
-                }
-                ElfSectionContent::Dynamic(dynamic) => {
-                    let size = <u64 as RawTypeAsPointerSize>::size(layout.class) * 2;
-                    layout.add_part(Part::Dynamic(id.clone()), dynamic.directives.len() * size);
-                }
-                ElfSectionContent::Note(_) => {
-                    return Err(WriteLayoutError::WritingNotesUnsupported);
-                }
-                ElfSectionContent::Unknown(_) => {
-                    return Err(WriteLayoutError::UnknownSection);
-                }
+            if let Some(segment) = sections_in_load_segments.get(&id) {
+                put_in_segments.entry(*segment).or_insert_with(Vec::new).push((id, section));
+            } else {
+                put_in_preamble.push((id, section));
             }
         }
-
-        // We need sections belonging to the same segment to reside adjacent in memory, otherwise
-        // the segment can't load them as a block. To do so, we first add to the layout all of the
-        // sections belonging to each segment, without page alignment between them, and only after
-        // we add the sections that didn't belong to any segment.
-
-        for segment in &object.segments {
+        for (id, section) in put_in_preamble {
+            layout.add_section(id, section)?;
+        }
+        for segment_sections in put_in_segments.values() {
             layout.align_to_page();
-            let ElfSegmentContent::Sections(segment_sections) = &segment.content else {
-                continue;
-            };
-            for section_id in segment_sections {
-                let Some(deferred) = deferred_program_sections.remove(section_id) else {
-                    continue;
-                };
-                layout.add_part(Part::ProgramSection(section_id.clone()), deferred.len);
+            for (id, section) in segment_sections {
+                layout.add_section(id, section)?;
             }
         }
-        for (id, deferred) in deferred_program_sections {
-            layout.align_to_page();
-            layout.add_part(Part::ProgramSection(id), deferred.len);
-        }
-        layout.align_to_page();
 
         Ok(layout)
+    }
+
+    fn add_section(
+        &mut self,
+        id: &I::SectionId,
+        section: &ElfSection<I>,
+    ) -> Result<(), WriteLayoutError> {
+        match &section.content {
+            ElfSectionContent::Null => {}
+            ElfSectionContent::Program(program) => {
+                self.add_part(Part::ProgramSection(id.clone()), program.raw.len())
+            }
+            ElfSectionContent::Uninitialized(_) => {
+                // Uninitialized sections are not part of the file layout.
+            }
+            ElfSectionContent::SymbolTable(table) => self.add_part(
+                Part::SymbolTable(id.clone()),
+                RawSymbol::size(self.class) * table.symbols.len(),
+            ),
+            ElfSectionContent::StringTable(table) => {
+                self.add_part(Part::StringTable(id.clone()), table.len());
+            }
+            ElfSectionContent::RelocationsTable(table) => {
+                let mut rela = None;
+                for relocation in &table.relocations {
+                    match rela {
+                        Some(rela) if rela == relocation.addend.is_some() => {}
+                        Some(_) => return Err(WriteLayoutError::MixedRelRela),
+                        None => rela = Some(relocation.addend.is_some()),
+                    }
+                }
+                let rela = rela.unwrap_or(false);
+                self.add_part(
+                    Part::RelocationsTable { id: id.clone(), rela },
+                    if rela {
+                        (RawRela::size(self.class) * table.relocations.len()) as _
+                    } else {
+                        (RawRel::size(self.class) * table.relocations.len()) as _
+                    },
+                )
+            }
+            ElfSectionContent::Group(group) => {
+                self.add_part(
+                    Part::Group(id.clone()),
+                    RawGroupFlags::size(self.class) + u32::size(self.class) * group.sections.len(),
+                );
+            }
+            ElfSectionContent::Hash(hash) => {
+                let size = u32::size(self.class);
+                self.add_part(
+                    Part::Hash(id.clone()),
+                    RawHashHeader::size(self.class)
+                        + hash.buckets.len() * size
+                        + hash.chain.len() * size,
+                )
+            }
+            ElfSectionContent::Dynamic(dynamic) => {
+                let size = <u64 as RawTypeAsPointerSize>::size(self.class) * 2;
+                self.add_part(Part::Dynamic(id.clone()), dynamic.directives.len() * size);
+            }
+            ElfSectionContent::Note(_) => {
+                return Err(WriteLayoutError::WritingNotesUnsupported);
+            }
+            ElfSectionContent::Unknown(_) => {
+                return Err(WriteLayoutError::UnknownSection);
+            }
+        }
+        Ok(())
     }
 
     fn add_part(&mut self, part: Part<I::SectionId>, len: usize) {
@@ -207,10 +229,6 @@ pub(super) struct PaddingId(usize);
 pub(super) struct PartMetadata {
     pub(super) len: u64,
     pub(super) offset: u64,
-}
-
-struct DeferredProgramSection {
-    len: usize,
 }
 
 #[derive(Debug, Error, Display)]

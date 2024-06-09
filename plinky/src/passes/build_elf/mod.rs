@@ -41,14 +41,14 @@ impl ElfBuilder {
     fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
         let entry = self.prepare_entry_point()?;
         self.prepare_sections();
-        let segments = self.prepare_segments();
-
-        symbols::add_symbols(&mut self, ".symtab", ".strtab", false, |symbols| symbols.iter());
 
         match self.object.mode {
             Mode::PositionDependent => {}
             Mode::PositionIndependent => dynamic::add(&mut self),
         }
+
+        symbols::add_symbols(&mut self, ".symtab", ".strtab", false, |symbols| symbols.iter());
+        let segments = self.prepare_segments();
 
         Ok(ElfObject {
             env: self.object.env,

@@ -123,7 +123,7 @@ debug print: object after relocations are applied
 
 debug print: built elf
  │
- │  section .dynstr#11 (address: 0x0)
+ │  section .dynstr#9 (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭─────┬───────╮
@@ -137,45 +137,45 @@ debug print: built elf
  │   │  ╰─────┴───────╯
  │   ┴
  │
- │  section .dynsym#12 (address: 0x0)
+ │  section .dynsym#10 (address: 0x0)
  │   │
  │   │    Dynamic symbol table:
  │   │  ╭─────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
  │   │  │ Name    │ Binding │ Type │ Visibility │ Definition │ Value    │ Size │
  │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ #7      │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
+ │   │  │ #0      │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
  │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ write#8 │ Global  │ -    │ Default    │ .text#6    │ 0x401038 │ 0x0  │
+ │   │  │ write#1 │ Global  │ -    │ Default    │ .text#6    │ 0x401038 │ 0x0  │
  │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ exit#9  │ Global  │ -    │ Default    │ .text#6    │ 0x401052 │ 0x0  │
+ │   │  │ exit#2  │ Global  │ -    │ Default    │ .text#6    │ 0x401052 │ 0x0  │
  │   │  ╰─────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
  │   ┴
  │
- │  section .rela.dyn#13 (address: 0x0)
+ │  section .rela.dyn#11 (address: 0x0)
  │   │
- │   │  symbol table:       .dynsym#12
+ │   │  symbol table:       .dynsym#10
  │   │  applies to section: #0
  │   │
  │   │    Relocations:
  │   │  ╭──────────────┬─────────┬──────────┬────────╮
  │   │  │ Type         │ Symbol  │ Offset   │ Addend │
  │   │  ├──────────────┼─────────┼──────────┼────────┤
- │   │  │ X86_GLOB_DAT │ write#8 │ 0x402000 │ 0x0    │
+ │   │  │ X86_GLOB_DAT │ write#1 │ 0x402000 │ 0x0    │
  │   │  ├──────────────┼─────────┼──────────┼────────┤
- │   │  │ X86_GLOB_DAT │ exit#9  │ 0x402004 │ 0x0    │
+ │   │  │ X86_GLOB_DAT │ exit#2  │ 0x402004 │ 0x0    │
  │   │  ╰──────────────┴─────────┴──────────┴────────╯
  │   ┴
  │
- │  section .hash#14 (address: 0x0)
+ │  section .hash#12 (address: 0x0)
  │   │
- │   │  Hash table for .dynsym#12
+ │   │  Hash table for .dynsym#10
  │   │
  │   │    Content:
  │   │  ╭───────────┬───────────────────╮
  │   │  │ Bucket ID │ Symbols in bucket │
  │   │  ├───────────┼───────────────────┤
- │   │  │ 0         │ exit#9            │
- │   │  │           │ write#8           │
+ │   │  │ 0         │ exit#2            │
+ │   │  │           │ write#1           │
  │   │  ╰───────────┴───────────────────╯
  │   ┴
  ┴

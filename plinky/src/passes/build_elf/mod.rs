@@ -139,6 +139,7 @@ impl ElfBuilder {
                         SegmentType::Program => ElfSegmentType::Load,
                         SegmentType::Uninitialized => ElfSegmentType::Load,
                         SegmentType::Dynamic => ElfSegmentType::Dynamic,
+                        SegmentType::Interpreter => ElfSegmentType::Interpreter,
                     },
                     perms: segment.perms,
                     content: ElfSegmentContent::Sections(

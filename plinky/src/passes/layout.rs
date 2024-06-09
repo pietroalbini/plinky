@@ -10,16 +10,27 @@ use std::collections::BTreeMap;
 const BASE_ADDRESS: u64 = 0x400000;
 const PAGE_SIZE: u64 = 0x1000;
 
-pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplication>) -> Layout {
+pub(crate) fn run(
+    object: &Object,
+    deduplications: BTreeMap<SectionId, Deduplication>,
+    interp_section: Option<SectionId>,
+) -> Layout {
     let mut grouped: BTreeMap<_, Vec<_>> = BTreeMap::new();
     for section in object.sections.iter() {
         match &section.content {
             SectionContent::Data(data) => grouped
-                .entry((section.perms, SegmentType::Program))
+                .entry((
+                    if Some(section.id) == interp_section {
+                        SegmentType::Interpreter
+                    } else {
+                        SegmentType::Program
+                    },
+                    section.perms,
+                ))
                 .or_default()
                 .push((section.id, data.bytes.len() as u64)),
             SectionContent::Uninitialized(uninit) => grouped
-                .entry((section.perms, SegmentType::Uninitialized))
+                .entry((SegmentType::Uninitialized, section.perms))
                 .or_default()
                 .push((section.id, uninit.len)),
         }
@@ -31,7 +42,7 @@ pub(crate) fn run(object: &Object, deduplications: BTreeMap<SectionId, Deduplica
         sections: BTreeMap::new(),
         deduplications,
     };
-    for ((perms, type_), sections) in grouped.into_iter() {
+    for ((type_, perms), sections) in grouped.into_iter() {
         if perms.read || perms.write || perms.execute {
             let mut segment = layout.prepare_segment();
             for &(section, len) in &sections {
@@ -161,6 +172,7 @@ pub(crate) struct Segment {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum SegmentType {
+    Interpreter,
     Program,
     Uninitialized,
     Dynamic,

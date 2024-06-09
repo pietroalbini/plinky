@@ -3,6 +3,7 @@ pub(crate) mod deduplicate;
 pub(crate) mod demote_global_hidden_symbols;
 pub(crate) mod gc_sections;
 pub(crate) mod generate_got;
+pub(crate) mod inject_interpreter;
 pub(crate) mod inject_version;
 pub(crate) mod layout;
 pub(crate) mod load_inputs;

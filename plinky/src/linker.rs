@@ -22,6 +22,7 @@ pub(crate) fn link_driver(
 
     let mut object = passes::load_inputs::run(options, &mut ids)?;
     passes::inject_version::run(&mut ids, &mut object);
+    let interp_section = passes::inject_interpreter::run(&mut ids, &mut object);
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {
@@ -33,7 +34,7 @@ pub(crate) fn link_driver(
 
     passes::generate_got::generate_got(&mut ids, &mut object);
 
-    let layout = passes::layout::run(&object, deduplications);
+    let layout = passes::layout::run(&object, deduplications, interp_section);
     callbacks.on_layout_calculated(&object, &layout);
 
     passes::relocate::run(&mut object, &layout)?;

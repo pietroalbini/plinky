@@ -102,12 +102,7 @@ impl Layout {
     }
 
     pub(crate) fn prepare_segment(&mut self) -> PendingSegment {
-        PendingSegment {
-            start: self.current_address,
-            sections: Vec::new(),
-            len: 0,
-            layout: self,
-        }
+        PendingSegment { start: self.current_address, sections: Vec::new(), len: 0, layout: self }
     }
 }
 
@@ -119,13 +114,15 @@ pub(crate) struct PendingSegment<'a> {
 }
 
 impl PendingSegment<'_> {
-    pub(crate) fn add_section(&mut self, id: SectionId, len: u64) {
-        self.layout
-            .sections
-            .insert(id, SectionLayout::Allocated { address: self.layout.current_address.into() });
+    pub(crate) fn add_section(&mut self, id: SectionId, len: u64) -> SectionLayout {
+        let layout = SectionLayout::Allocated { address: self.layout.current_address.into() };
+
+        self.layout.sections.insert(id, layout);
         self.layout.current_address += len;
         self.len += len;
         self.sections.push(id);
+
+        layout
     }
 
     pub(crate) fn finalize(self, type_: SegmentType, perms: ElfPermissions) {
@@ -143,7 +140,7 @@ impl PendingSegment<'_> {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum SectionLayout {
     Allocated { address: Address },
     NotAllocated,

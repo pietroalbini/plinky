@@ -4,9 +4,11 @@ pub use self::string_table::ElfStringTable;
 
 use crate::errors::{LoadError, WriteError};
 use crate::ids::{convert, ConvertibleElfIds, ElfIds, StringIdGetters};
+use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
+use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use plinky_utils::{Bits, Endian};
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -118,6 +120,44 @@ pub enum ElfSectionContent<I: ElfIds> {
     Hash(ElfHash<I>),
     Dynamic(ElfDynamic),
     Unknown(ElfUnknownSection),
+}
+
+impl<I: ElfIds> ElfSectionContent<I> {
+    pub fn content_size(&self, bits: ElfClass) -> usize {
+        match self {
+            ElfSectionContent::Null => 0,
+            ElfSectionContent::Program(p) => p.raw.len(),
+            ElfSectionContent::Uninitialized(u) => u.len as usize,
+            ElfSectionContent::SymbolTable(s) => RawSymbol::size(bits) * s.symbols.len(),
+            ElfSectionContent::StringTable(s) => s.len(),
+            ElfSectionContent::RelocationsTable(r) => {
+                let mut rel = 0;
+                let mut rela = 0;
+                for one in &r.relocations {
+                    if one.addend.is_some() {
+                        rela += 1;
+                    } else {
+                        rel += 1;
+                    }
+                }
+                RawRel::size(bits) * rel + RawRela::size(bits) * rela
+            }
+            ElfSectionContent::Group(g) => {
+                RawGroupFlags::size(bits) + u32::size(bits) * g.sections.len()
+            }
+            ElfSectionContent::Hash(h) => {
+                RawHashHeader::size(bits)
+                    + u32::size(bits) * h.buckets.len()
+                    + u32::size(bits) * h.chain.len()
+            }
+            ElfSectionContent::Dynamic(d) => {
+                let size = <u64 as RawTypeAsPointerSize>::size(bits) * 2;
+                d.directives.len() * size
+            }
+            ElfSectionContent::Note(_) => unimplemented!(),
+            ElfSectionContent::Unknown(_) => unimplemented!(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

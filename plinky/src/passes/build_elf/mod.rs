@@ -14,6 +14,7 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::ints::{Address, ExtractNumber};
+use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -25,9 +26,10 @@ use std::num::NonZeroU64;
 pub(crate) fn run(
     object: Object,
     layout: Layout,
+    old_ids: SerialIds,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
-    let builder = ElfBuilder { object, layout, sections: Sections::new(&mut ids), ids };
+    let builder = ElfBuilder { object, layout, sections: Sections::new(&mut ids), ids, old_ids };
     builder.build()
 }
 
@@ -36,6 +38,7 @@ struct ElfBuilder {
     layout: Layout,
     sections: Sections,
     ids: BuiltElfIds,
+    old_ids: SerialIds,
 }
 
 impl ElfBuilder {

@@ -279,42 +279,36 @@ where
 
                     let (file_offset, mut file_size, mut memory_size) = match &first_section.content
                     {
-                        ElfSectionContent::Program(program) => {
-                            let metadata = self.layout.metadata_of_section(first_section_id);
-                            (metadata.offset, metadata.len, program.raw.0.len() as u64)
-                        }
                         ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len),
-                        ElfSectionContent::Dynamic(dynamic) => {
-                            let size: u64 = match self.object.env.class {
-                                ElfClass::Elf32 => 8,
-                                ElfClass::Elf64 => 16,
-                            };
+                        content => {
                             let metadata = self.layout.metadata_of_section(first_section_id);
-                            (metadata.offset, metadata.len, size * dynamic.directives.len() as u64)
+                            (
+                                metadata.offset,
+                                metadata.len,
+                                content.content_size(self.object.env.class) as u64,
+                            )
                         }
-                        _ => unimplemented!(),
                     };
 
                     let mut expected_next_file_offset = file_offset + file_size;
                     for section_id in section_ids {
                         let section = self.object.sections.get(section_id).unwrap();
                         match &section.content {
-                            ElfSectionContent::Program(program) => {
-                                let metadata = self.layout.metadata_of_section(section_id);
-                                if metadata.offset != expected_next_file_offset {
-                                    panic!("sections in segment are not adjacent");
-                                }
-                                expected_next_file_offset += metadata.len;
-                                file_size += metadata.len;
-                                memory_size += program.raw.0.len() as u64;
-                            }
                             ElfSectionContent::Uninitialized(uninit) => {
                                 if expected_next_file_offset != 0 {
                                     panic!("mixed uninitialized section with program sections in segment");
                                 }
                                 memory_size += uninit.len;
                             }
-                            _ => unimplemented!(),
+                            content => {
+                                let metadata = self.layout.metadata_of_section(section_id);
+                                if metadata.offset != expected_next_file_offset {
+                                    panic!("sections in segment are not adjacent");
+                                }
+                                expected_next_file_offset += metadata.len;
+                                file_size += metadata.len;
+                                memory_size += content.content_size(self.object.env.class) as u64;
+                            }
                         }
                     }
                     (file_offset, file_size, first_section.memory_address, memory_size)

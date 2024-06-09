@@ -1,40 +1,34 @@
-use crate::passes::build_elf::symbols::AddSymbolsOutput;
-use crate::passes::build_elf::ElfBuilder;
-use crate::repr::object::Object;
+use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::utils::ints::ExtractNumber;
-use plinky_elf::{ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable};
+use plinky_elf::ids::serial::SymbolId;
+use plinky_elf::{
+    ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
+};
+use std::collections::BTreeMap;
 
-pub(crate) fn add_rela<'a, F, I>(
-    builder: &'a mut ElfBuilder,
-    name: &str,
-    symtab: &AddSymbolsOutput,
-    getter: F,
-) where
-    F: FnOnce(&'a Object) -> I,
-    I: Iterator<Item = &'a Relocation>,
-{
+pub(crate) fn create_rela<'a>(
+    relocations: impl Iterator<Item = &'a Relocation>,
+    class: ElfClass,
+    applies_to_section: BuiltElfSectionId,
+    symbol_table: BuiltElfSectionId,
+    symbol_conversion: &BTreeMap<SymbolId, BuiltElfSymbolId>,
+) -> ElfSectionContent<BuiltElfIds> {
     let mut elf_relocations = Vec::new();
-    for relocation in getter(&builder.object) {
+    for relocation in relocations {
         elf_relocations.push(ElfRelocation {
             offset: relocation.offset.extract().try_into().unwrap(),
-            symbol: *symtab.conversion.get(&relocation.symbol).unwrap(),
-            relocation_type: convert_relocation_type(builder.object.env.class, relocation.type_),
+            symbol: *symbol_conversion.get(&relocation.symbol).unwrap(),
+            relocation_type: convert_relocation_type(class, relocation.type_),
             addend: relocation.addend.map(|off| off.extract()),
         });
     }
 
-    builder
-        .sections
-        .create(
-            name,
-            plinky_elf::ElfSectionContent::RelocationsTable(ElfRelocationsTable {
-                symbol_table: symtab.table,
-                applies_to_section: builder.sections.zero_id,
-                relocations: elf_relocations,
-            }),
-        )
-        .add(&mut builder.ids);
+    plinky_elf::ElfSectionContent::RelocationsTable(ElfRelocationsTable {
+        symbol_table,
+        applies_to_section,
+        relocations: elf_relocations,
+    })
 }
 
 fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocationType {

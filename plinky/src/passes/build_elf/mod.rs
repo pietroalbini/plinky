@@ -8,6 +8,7 @@ use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::build_elf::sections::Sections;
+use crate::passes::build_elf::symbols::{create_symbols, SymbolTableKind};
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
@@ -47,7 +48,16 @@ impl ElfBuilder {
             Mode::PositionIndependent => dynamic::add(&mut self),
         }
 
-        symbols::add_symbols(&mut self, ".symtab", ".strtab", false, |symbols| symbols.iter());
+        let symbols = create_symbols(
+            self.object.symbols.iter(),
+            self.object.symbols.null_symbol_id(),
+            &mut self.ids,
+            &mut self.sections,
+            SymbolTableKind::SymTab,
+        );
+        self.sections.create(".symtab", symbols.symbol_table).add(&mut self.ids);
+        self.sections.create(".strtab", symbols.string_table).add_with_id(symbols.string_table_id);
+
         let segments = self.prepare_segments();
 
         Ok(ElfObject {

@@ -1,19 +1,12 @@
-use crate::passes::build_elf::ids::BuiltElfSectionId;
-use crate::passes::build_elf::ElfBuilder;
-use crate::repr::object::Object;
+use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use crate::repr::symbols::Symbol;
 use plinky_elf::{ElfHash, ElfSectionContent};
 
-pub(crate) fn add_sysv_hash<'a, F, I>(
-    builder: &'a mut ElfBuilder,
-    name: &str,
+pub(crate) fn create_sysv_hash<'a>(
+    symbols: impl Iterator<Item = &'a Symbol>,
     symbol_table: BuiltElfSectionId,
-    getter: F,
-) where
-    F: FnOnce(&'a Object) -> I,
-    I: Iterator<Item = &'a Symbol>,
-{
-    let names = getter(&builder.object).map(|sym| sym.name).collect::<Vec<_>>();
+) -> ElfSectionContent<BuiltElfIds> {
+    let names = symbols.map(|sym| sym.name).collect::<Vec<_>>();
 
     let mut buckets = vec![0; num_buckets(names.len())];
     let mut chain = vec![0; names.len()];
@@ -51,10 +44,7 @@ pub(crate) fn add_sysv_hash<'a, F, I>(
         chain[pos] = existing_value_in_bucket;
     }
 
-    builder
-        .sections
-        .create(name, ElfSectionContent::Hash(ElfHash { symbol_table, buckets, chain }))
-        .add(&mut builder.ids);
+    ElfSectionContent::Hash(ElfHash { symbol_table, buckets, chain })
 }
 
 fn num_buckets(symbols_count: usize) -> usize {

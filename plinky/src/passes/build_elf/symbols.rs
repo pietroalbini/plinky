@@ -1,36 +1,30 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::passes::build_elf::sections::Sections;
-use crate::passes::build_elf::{ElfBuilder, PendingStringsTable};
-use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
+use crate::passes::build_elf::PendingStringsTable;
+use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
-    ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfSymbolVisibility,
+    ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility
 };
 use std::collections::BTreeMap;
 
-pub(super) fn add_symbols<'a, F, I>(
-    builder: &'a mut ElfBuilder,
-    symtab: &str,
-    strtab: &str,
-    is_dynamic: bool,
-    getter: F,
-) -> AddSymbolsOutput
-where
-    F: FnOnce(&'a Symbols) -> I,
-    I: Iterator<Item = (SymbolId, &'a Symbol)>,
-{
-    let mut strings = PendingStringsTable::new(&mut builder.ids);
-    let strings_id = strings.id;
+pub(super) fn create_symbols<'a>(
+    input_symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
+    null_symbol_id: SymbolId,
+    ids: &mut BuiltElfIds,
+    sections: &mut Sections,
+    kind: SymbolTableKind,
+) -> CreateSymbolsOutput {
+    let mut strings = PendingStringsTable::new(ids);
     let mut symbols = BTreeMap::new();
     let mut conversion = BTreeMap::new();
 
     let mut null_symbol = None;
     let mut global_symbols = Vec::new();
     let mut local_by_source = BTreeMap::new();
-    for (symbol_id, symbol) in getter(&builder.object.symbols) {
-        if symbol_id == builder.object.symbols.null_symbol_id() {
+    for (symbol_id, symbol) in input_symbols {
+        if symbol_id == null_symbol_id {
             assert!(null_symbol.is_none());
             null_symbol = Some(symbol);
         } else if let SymbolVisibility::Global { .. } = &symbol.visibility {
@@ -41,8 +35,8 @@ where
     }
 
     add_symbol(
-        &mut builder.ids,
-        &mut builder.sections,
+        ids,
+        sections,
         &mut symbols,
         &mut strings,
         &mut conversion,
@@ -51,7 +45,7 @@ where
 
     for (file, symbols_in_file) in local_by_source {
         symbols.insert(
-            builder.ids.allocate_symbol_id(),
+            ids.allocate_symbol_id(),
             ElfSymbol {
                 name: strings.add(file.expect("symbol without a STT_FILE").resolve().as_str()),
                 binding: ElfSymbolBinding::Local,
@@ -63,41 +57,36 @@ where
             },
         );
         for symbol in symbols_in_file {
-            add_symbol(
-                &mut builder.ids,
-                &mut builder.sections,
-                &mut symbols,
-                &mut strings,
-                &mut conversion,
-                symbol,
-            );
+            add_symbol(ids, sections, &mut symbols, &mut strings, &mut conversion, symbol);
         }
     }
     for symbol in global_symbols {
-        add_symbol(
-            &mut builder.ids,
-            &mut builder.sections,
-            &mut symbols,
-            &mut strings,
-            &mut conversion,
-            symbol,
-        );
+        add_symbol(ids, sections, &mut symbols, &mut strings, &mut conversion, symbol);
     }
 
-    let table = builder
-        .sections
-        .create(
-            symtab,
-            ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: is_dynamic, symbols }),
-        )
-        .add(&mut builder.ids);
-    builder.sections.create(strtab, strings.into_elf()).add_with_id(strings_id);
-
-    AddSymbolsOutput { table, conversion }
+    CreateSymbolsOutput {
+        symbol_table: ElfSectionContent::SymbolTable(ElfSymbolTable {
+            dynsym: match kind {
+                SymbolTableKind::SymTab => false,
+                SymbolTableKind::DynSym => true,
+            },
+            symbols,
+        }),
+        string_table_id: strings.id,
+        string_table: strings.into_elf(),
+        conversion,
+    }
 }
 
-pub(super) struct AddSymbolsOutput {
-    pub(super) table: BuiltElfSectionId,
+pub(super) enum SymbolTableKind {
+    SymTab,
+    DynSym,
+}
+
+pub(super) struct CreateSymbolsOutput {
+    pub(super) symbol_table: ElfSectionContent<BuiltElfIds>,
+    pub(super) string_table: ElfSectionContent<BuiltElfIds>,
+    pub(super) string_table_id: BuiltElfSectionId,
     pub(super) conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
 }
 

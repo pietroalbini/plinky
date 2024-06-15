@@ -272,7 +272,8 @@ debug print: built elf
  │
  │  section .dynamic#14 (address: 0x40406d)
  │   │
- │   │    Dynamic information:
+ │   │  dynamic information | string table: .dynstr#10
+ │   │
  │   │  ╭─────────────────────────┬──────────────────╮
  │   │  │ Kind                    │ Value            │
  │   │  ├─────────────────────────┼──────────────────┤

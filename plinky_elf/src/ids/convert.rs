@@ -1,6 +1,6 @@
 use crate::ids::ElfIds;
 use crate::{
-    ElfGroup, ElfHash, ElfObject, ElfRelocation, ElfRelocationsTable, ElfSection,
+    ElfDynamic, ElfGroup, ElfHash, ElfObject, ElfRelocation, ElfRelocationsTable, ElfSection,
     ElfSectionContent, ElfSegment, ElfSegmentContent, ElfSymbol, ElfSymbolDefinition,
     ElfSymbolTable,
 };
@@ -149,7 +149,12 @@ where
                                 buckets: h.buckets,
                                 chain: h.chain,
                             }),
-                            ElfSectionContent::Dynamic(d) => ElfSectionContent::Dynamic(d),
+                            ElfSectionContent::Dynamic(d) => {
+                                ElfSectionContent::Dynamic(ElfDynamic {
+                                    string_table: map.section_id(&d.string_table),
+                                    directives: d.directives,
+                                })
+                            }
                             ElfSectionContent::Note(n) => ElfSectionContent::Note(n),
                             ElfSectionContent::Unknown(u) => ElfSectionContent::Unknown(u),
                         },

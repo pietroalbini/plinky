@@ -55,7 +55,8 @@ section .plt#5 (address: 0x1000)
 
 section .dynamic#8 (address: 0x3f88)
  │
- │    Dynamic information:
+ │  dynamic information | string table: .dynstr#3
+ │
  │  ╭─────────────────────────┬────────────────╮
  │  │ Kind                    │ Value          │
  │  ├─────────────────────────┼────────────────┤

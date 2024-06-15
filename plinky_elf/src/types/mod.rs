@@ -118,7 +118,7 @@ pub enum ElfSectionContent<I: ElfIds> {
     Note(ElfNotesTable),
     Group(ElfGroup<I>),
     Hash(ElfHash<I>),
-    Dynamic(ElfDynamic),
+    Dynamic(ElfDynamic<I>),
     Unknown(ElfUnknownSection),
 }
 
@@ -353,7 +353,8 @@ pub struct ElfHash<I: ElfIds> {
 }
 
 #[derive(Debug)]
-pub struct ElfDynamic {
+pub struct ElfDynamic<I: ElfIds> {
+    pub string_table: I::SectionId,
     pub directives: Vec<ElfDynamicDirective>,
 }
 

@@ -87,6 +87,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     let dynamic_id = builder.ids.allocate_section_id();
     let dynamic_old_id = builder.old_ids.allocate_section_id();
     let dynamic = ElfSectionContent::Dynamic(ElfDynamic {
+        string_table: symbols.string_table_id,
         directives: vec![
             ElfDynamicDirective::Hash { address: hash_addr.extract() },
             ElfDynamicDirective::StringTable { address: dynstr_addr.extract() },

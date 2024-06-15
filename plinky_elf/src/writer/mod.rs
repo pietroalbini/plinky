@@ -209,6 +209,9 @@ where
                     }
                     ElfSectionContent::Hash(hash) => self.section_idx(&hash.symbol_table) as _,
                     ElfSectionContent::Group(group) => self.section_idx(&group.symbol_table) as _,
+                    ElfSectionContent::Dynamic(dynamic) => {
+                        self.section_idx(&dynamic.string_table) as _
+                    }
                     _ => 0,
                 },
                 info: match &section.content {

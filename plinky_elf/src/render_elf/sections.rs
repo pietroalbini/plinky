@@ -23,7 +23,7 @@ pub(super) fn render_section<I: ElfIds>(
         ElfSectionContent::Group(group) => render_section_group(object, group),
         ElfSectionContent::Hash(hash) => render_section_hash(object, hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
-        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(dynamic),
+        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(object, dynamic),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
 
@@ -234,7 +234,10 @@ fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
     output
 }
 
-fn render_section_dynamic(dynamic: &ElfDynamic) -> Vec<Box<dyn Widget>> {
+fn render_section_dynamic<I: ElfIds>(
+    object: &ElfObject<I>,
+    dynamic: &ElfDynamic<I>,
+) -> Vec<Box<dyn Widget>> {
     enum Value<'a> {
         Bytes(&'a u64),
         Addr(&'a u64),
@@ -243,8 +246,12 @@ fn render_section_dynamic(dynamic: &ElfDynamic) -> Vec<Box<dyn Widget>> {
         None,
     }
 
+    let info = Text::new(format!(
+        "dynamic information | string table: {}",
+        section_name(object, &dynamic.string_table)
+    ));
+
     let mut table = Table::new();
-    table.set_title("Dynamic information:");
     table.add_row(["Kind", "Value"]);
     for directive in &dynamic.directives {
         let (name, value) = match directive {
@@ -323,7 +330,8 @@ fn render_section_dynamic(dynamic: &ElfDynamic) -> Vec<Box<dyn Widget>> {
             },
         ]);
     }
-    vec![Box::new(table)]
+
+    vec![Box::new(info), Box::new(table)]
 }
 
 fn render_section_unknown(unknown: &ElfUnknownSection) -> Vec<Box<dyn Widget>> {

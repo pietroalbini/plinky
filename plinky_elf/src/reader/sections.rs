@@ -159,7 +159,7 @@ fn read_section(
         }
         SectionType::Dynamic => {
             let raw = read_section_raw_content(&header, cursor)?;
-            ElfSectionContent::Dynamic(read_dynamic(&raw, cursor)?)
+            ElfSectionContent::Dynamic(read_dynamic(&header, &raw, cursor)?)
         }
         SectionType::Unknown(other) => ElfSectionContent::Unknown(ElfUnknownSection {
             id: other,
@@ -442,7 +442,11 @@ fn read_hash(
     Ok(hash)
 }
 
-fn read_dynamic(raw_content: &[u8], cursor: &mut ReadCursor) -> Result<ElfDynamic, LoadError> {
+fn read_dynamic(
+    header: &RawSectionHeader,
+    raw_content: &[u8],
+    cursor: &mut ReadCursor,
+) -> Result<ElfDynamic<PendingIds>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -493,5 +497,5 @@ fn read_dynamic(raw_content: &[u8], cursor: &mut ReadCursor) -> Result<ElfDynami
         });
     }
 
-    Ok(ElfDynamic { directives })
+    Ok(ElfDynamic { string_table: PendingSectionId(header.link), directives })
 }

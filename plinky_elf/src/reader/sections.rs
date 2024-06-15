@@ -5,12 +5,13 @@ use crate::reader::notes::read_notes;
 use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
-    ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGroup, ElfHash,
-    ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocation, ElfRelocationType,
-    ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbol,
-    ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility,
-    ElfUninitializedSection, ElfUnknownSection, RawBytes,
+    ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfGroup,
+    ElfHash, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocation,
+    ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
+    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection, RawBytes,
 };
+use plinky_utils::bitfields::Bitfield;
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -493,6 +494,9 @@ fn read_dynamic(
             23 => ElfDynamicDirective::JumpRel { address: value },
             24 => ElfDynamicDirective::BindNow,
             0x6ffffef5 => ElfDynamicDirective::GnuHash { address: value },
+            0x6ffffffb => ElfDynamicDirective::Flags1(
+                ElfDynamicFlags1::read(value).map_err(LoadError::DynamicFlags1)?,
+            ),
             _ => ElfDynamicDirective::Unknown { tag, value },
         });
     }

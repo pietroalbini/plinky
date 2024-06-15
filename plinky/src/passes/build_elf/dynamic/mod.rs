@@ -8,7 +8,7 @@ use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::{SectionLayout, Segment, SegmentType};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
-use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPermissions, ElfSectionContent};
+use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfPermissions, ElfSectionContent};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 
 macro_rules! add_section {
@@ -97,6 +97,9 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             ElfDynamicDirective::Rela { address: rela_addr.extract() },
             ElfDynamicDirective::RelaSize { bytes: rela_len as _ },
             ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ },
+            ElfDynamicDirective::Flags1(ElfDynamicFlags1 {
+                pie: true,
+            }),
             ElfDynamicDirective::Null,
         ],
     });

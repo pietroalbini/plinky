@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use std::io::Write;
 use std::num::NonZeroU64;
 use std::ops::Deref;
+use plinky_macros::Bitfield;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {
@@ -386,7 +387,15 @@ pub enum ElfDynamicDirective {
     RelocationsWillModifyText,
     JumpRel { address: u64 },
     BindNow,
+    Flags1(ElfDynamicFlags1),
     Unknown { tag: u64, value: u64 },
+}
+
+#[derive(Debug, Bitfield)]
+#[bitfield_repr(u64)]
+pub struct ElfDynamicFlags1 {
+    #[bit(27)]
+    pub pie: bool,
 }
 
 #[derive(Debug)]

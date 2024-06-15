@@ -15,6 +15,7 @@ use crate::{
     ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility, ElfType,
 };
+use plinky_utils::bitfields::Bitfield;
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -607,6 +608,7 @@ where
                 ElfDynamicDirective::RelocationsWillModifyText => (22, 0),
                 ElfDynamicDirective::JumpRel { address } => (23, *address),
                 ElfDynamicDirective::BindNow => (24, 0),
+                ElfDynamicDirective::Flags1(flags) => (0x6ffffffb, Bitfield::write(flags)),
                 ElfDynamicDirective::Unknown { tag, value } => (*tag, *value),
             };
             match self.object.env.class {

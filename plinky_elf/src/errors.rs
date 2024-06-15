@@ -2,6 +2,7 @@ use crate::ids::ElfIds;
 use crate::writer::WriteLayoutError;
 use crate::ElfABI;
 use plinky_macros::{Display, Error};
+use plinky_utils::bitfields::BitfieldReadError;
 
 #[derive(Debug, Error, Display)]
 pub enum LoadError {
@@ -49,6 +50,8 @@ pub enum LoadError {
     MergeFlagOnUnsupportedSection { section_idx: u32 },
     #[display("bad symbol visibility: {f0}")]
     BadSymbolVisibility(u8),
+    #[display("failed to parse the flags1 field of the dynamic table")]
+    DynamicFlags1(BitfieldReadError),
     #[display("failed to parse section header number {idx}")]
     FailedToParseSectionHeader {
         idx: u32,

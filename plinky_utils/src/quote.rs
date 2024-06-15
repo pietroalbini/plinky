@@ -33,3 +33,12 @@ impl<T: Quote + Clone> Quote for [T] {
         self.iter().cloned().map(|v| v.to_token_stream()).collect()
     }
 }
+
+impl<T: Quote> Quote for Option<T> {
+    fn to_token_stream(&self) -> TokenStream {
+        match self {
+            Some(inner) => inner.to_token_stream(),
+            None => TokenStream::new(),
+        }
+    }
+}

@@ -314,7 +314,7 @@ fn render_section_dynamic<I: ElfIds>(
                 ("Jump PLT relocations", Value::Addr(address))
             }
             ElfDynamicDirective::BindNow => ("Bind now", Value::None),
-            ElfDynamicDirective::Flags1(flags1) => ("Flags1", Value::Str(format!("{flags1:?}"))),
+            ElfDynamicDirective::Flags1(flags1) => ("Flags1", Value::Str(flags1.to_string())),
             ElfDynamicDirective::Unknown { tag, value } => {
                 table.add_row([format!("<unknown {tag:#x}>"), format!("{value:#x}")]);
                 continue;

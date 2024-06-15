@@ -393,6 +393,7 @@ pub enum ElfDynamicDirective {
 
 #[derive(Debug, Bitfield)]
 #[bitfield_repr(u64)]
+#[bitfield_display_comma_separated]
 pub struct ElfDynamicFlags1 {
     #[bit(27)]
     pub pie: bool,

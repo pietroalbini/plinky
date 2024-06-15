@@ -10,18 +10,35 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 
     let fields = generate_fields(&parsed)?;
 
-    Ok(generate_impl_for(
+    let bitfield_impl = generate_impl_for(
         &Item::Struct(parsed.clone()),
         "plinky_utils::bitfields::Bitfield",
         quote! {
-            #{ type_repr(&parsed)? }
-            #{ fn_read(&fields) }
-            #{ fn_write(&fields) }
+            #{ bitfield_type_repr(&parsed)? }
+            #{ bitfield_fn_read(&fields) }
+            #{ bitfield_fn_write(&fields) }
         },
-    ))
+    );
+
+    let display_impl = if let Some(attr) = parsed.attrs.get("bitfield_display_comma_separated")? {
+        attr.must_be_empty()?;
+
+        Some(generate_impl_for(
+            &Item::Struct(parsed.clone()),
+            "std::fmt::Display",
+            display_fn_fmt(&fields),
+        ))
+    } else {
+        None
+    };
+
+    Ok(quote! {
+        #bitfield_impl
+        #display_impl
+    })
 }
 
-fn type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
+fn bitfield_type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
     let repr = if let Some(attr) = struct_.attrs.get("bitfield_repr")? {
         attr.get_parenthesis_one_expr()?
     } else {
@@ -31,7 +48,7 @@ fn type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
     Ok(quote! { type Repr = #{ ident(repr) }; })
 }
 
-fn fn_read(fields: &Fields) -> TokenStream {
+fn bitfield_fn_read(fields: &Fields) -> TokenStream {
     let result = match fields {
         Fields::None => quote!(Self),
         Fields::TupleLike(fields) => {
@@ -60,7 +77,7 @@ fn fn_read(fields: &Fields) -> TokenStream {
     }
 }
 
-fn fn_write(fields: &Fields) -> TokenStream {
+fn bitfield_fn_write(fields: &Fields) -> TokenStream {
     let mut setters = Vec::new();
     match fields {
         Fields::None => {}
@@ -81,6 +98,46 @@ fn fn_write(fields: &Fields) -> TokenStream {
             let mut writer = plinky_utils::bitfields::BitfieldWriter::new();
             #setters
             writer.value()
+        }
+    }
+}
+
+fn display_fn_fmt(fields: &Fields) -> TokenStream {
+    let comma = quote! { f.write_str(", ")?; };
+
+    let mut writes = Vec::new();
+    match fields {
+        Fields::None => {},
+        Fields::TupleLike(fields) => {
+            for (idx, bit) in fields.iter().enumerate() {
+                if idx != 0 {
+                    writes.push(comma.clone());
+                }
+                writes.push(quote! {
+                    if self.#{ literal(idx) } {
+                        f.write_str(stringify!(#bit))?;
+                    }
+                });
+            }
+        },
+        Fields::StructLike(fields) => {
+            for (idx, (name, _)) in fields.iter().enumerate() {
+                if idx != 0 {
+                    writes.push(comma.clone());
+                }
+                writes.push(quote! {
+                    if self.#name {
+                        f.write_str(stringify!(#name))?;
+                    }
+                })
+            }
+        },
+    }
+
+    quote! {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            #writes
+            Ok(())
         }
     }
 }

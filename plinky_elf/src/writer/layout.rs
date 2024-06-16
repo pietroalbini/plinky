@@ -17,6 +17,7 @@ pub(super) struct WriteLayout<I: ElfIds> {
     parts: Vec<Part<I::SectionId>>,
     metadata: BTreeMap<Part<I::SectionId>, PartMetadata>,
     current_offset: u64,
+    pub(super) header_size: u64,
     next_padding_id: usize,
     class: ElfClass,
 }
@@ -27,20 +28,14 @@ impl<I: ElfIds> WriteLayout<I> {
             parts: Vec::new(),
             metadata: BTreeMap::new(),
             current_offset: 0,
+            header_size: 0,
             next_padding_id: 0,
             class: object.env.class,
         };
 
         layout.add_part(Part::Identification, RawIdentification::size(layout.class));
         layout.add_part(Part::Header, RawHeader::size(layout.class));
-        layout.add_part(
-            Part::SectionHeaders,
-            RawSectionHeader::size(layout.class) * object.sections.len(),
-        );
-        layout.add_part(
-            Part::ProgramHeaders,
-            RawProgramHeader::size(layout.class) * object.segments.len(),
-        );
+        layout.header_size = layout.current_offset;
 
         let sections_in_load_segments = object
             .segments
@@ -51,6 +46,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 ElfSegmentContent::Empty => {
                     Box::new(std::iter::empty()) as Box<dyn Iterator<Item = _>>
                 }
+                ElfSegmentContent::ElfHeader => Box::new(std::iter::empty()),
                 ElfSegmentContent::Sections(s) => Box::new(s.iter().map(move |s| (s, idx))),
                 ElfSegmentContent::Unknown(_) => Box::new(std::iter::empty()),
             })
@@ -82,6 +78,16 @@ impl<I: ElfIds> WriteLayout<I> {
                 layout.add_section(id, section)?;
             }
         }
+
+        layout.add_part(
+            Part::SectionHeaders,
+            RawSectionHeader::size(layout.class) * object.sections.len(),
+        );
+        layout.add_part(
+            Part::ProgramHeaders,
+            RawProgramHeader::size(layout.class) * object.segments.len(),
+        );
+
 
         Ok(layout)
     }

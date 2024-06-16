@@ -8,7 +8,9 @@ use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::{SectionLayout, Segment, SegmentType};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
-use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfPermissions, ElfSectionContent};
+use plinky_elf::{
+    ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfPermissions, ElfSectionContent,
+};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 
 macro_rules! add_section {
@@ -97,9 +99,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             ElfDynamicDirective::Rela { address: rela_addr.extract() },
             ElfDynamicDirective::RelaSize { bytes: rela_len as _ },
             ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ },
-            ElfDynamicDirective::Flags1(ElfDynamicFlags1 {
-                pie: true,
-            }),
+            ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true }),
             ElfDynamicDirective::Null,
         ],
     });
@@ -119,5 +119,14 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         type_: SegmentType::Dynamic,
         perms: ElfPermissions { read: true, write: false, execute: false },
         sections: vec![dynamic_old_id],
+    });
+
+    builder.layout.add_segment(Segment {
+        start: 0,
+        len: 0,
+        align: 0x1000,
+        type_: SegmentType::ElfHeader,
+        perms: ElfPermissions { read: true, write: false, execute: false },
+        sections: Vec::new(),
     });
 }

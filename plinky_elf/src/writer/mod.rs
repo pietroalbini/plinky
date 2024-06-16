@@ -317,6 +317,9 @@ where
                     }
                     (file_offset, file_size, first_section.memory_address, memory_size)
                 }
+                ElfSegmentContent::ElfHeader => {
+                    (0, self.layout.header_size, 0, self.layout.header_size)
+                }
                 ElfSegmentContent::Unknown(unknown) => (
                     unknown.file_offset,
                     unknown.file_size,

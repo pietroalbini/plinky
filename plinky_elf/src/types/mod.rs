@@ -430,6 +430,7 @@ pub enum ElfSegmentType {
 #[derive(Debug, Clone)]
 pub enum ElfSegmentContent<I: ElfIds> {
     Empty,
+    ElfHeader,
     Sections(Vec<I::SectionId>),
     Unknown(ElfUnknownSegmentContent),
 }

@@ -139,15 +139,26 @@ impl ElfBuilder {
                 segment.start,
                 ElfSegment {
                     type_: match segment.type_ {
+                        SegmentType::ElfHeader => ElfSegmentType::Load,
                         SegmentType::Program => ElfSegmentType::Load,
                         SegmentType::Uninitialized => ElfSegmentType::Load,
                         SegmentType::Dynamic => ElfSegmentType::Dynamic,
                         SegmentType::Interpreter => ElfSegmentType::Interpreter,
                     },
                     perms: segment.perms,
-                    content: ElfSegmentContent::Sections(
-                        segment.sections.iter().map(|id| self.sections.new_id_of(*id)).collect(),
-                    ),
+                    content: match segment.type_ {
+                        SegmentType::ElfHeader => {
+                            assert!(segment.sections.is_empty());
+                            ElfSegmentContent::ElfHeader
+                        },
+                        _ => ElfSegmentContent::Sections(
+                            segment
+                                .sections
+                                .iter()
+                                .map(|id| self.sections.new_id_of(*id))
+                                .collect(),
+                        ),
+                    },
                     align: segment.align,
                 },
             ));

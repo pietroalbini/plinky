@@ -36,6 +36,7 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
             format!("{:#x}", segment.len),
             format!("{:#x}", segment.align),
             match segment.type_ {
+                SegmentType::ElfHeader => "elf header".into(),
                 SegmentType::Program => "program".into(),
                 SegmentType::Uninitialized => "uninit".into(),
                 SegmentType::Dynamic => "dynamic".into(),

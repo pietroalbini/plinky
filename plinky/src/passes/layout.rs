@@ -177,6 +177,7 @@ pub(crate) struct Segment {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum SegmentType {
+    ElfHeader,
     Interpreter,
     Program,
     Uninitialized,

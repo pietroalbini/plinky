@@ -6,9 +6,11 @@ use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
+use crate::cli::Mode;
 
-const BASE_ADDRESS: u64 = 0x400000;
 const PAGE_SIZE: u64 = 0x1000;
+const STATIC_BASE_ADDRESS: u64 = 0x400000;
+const PIE_BASE_ADDRESS: u64 = PAGE_SIZE;
 
 pub(crate) fn run(
     object: &Object,
@@ -37,7 +39,10 @@ pub(crate) fn run(
     }
 
     let mut layout = Layout {
-        current_address: BASE_ADDRESS,
+        current_address: match object.mode {
+            Mode::PositionDependent => STATIC_BASE_ADDRESS,
+            Mode::PositionIndependent => PIE_BASE_ADDRESS,
+        },
         segments: Vec::new(),
         sections: BTreeMap::new(),
         deduplications,

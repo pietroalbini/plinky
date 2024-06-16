@@ -17,6 +17,7 @@ pub(crate) struct CliOptions {
     pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
+    pub(crate) dynamic_linker: Option<String>,
     pub(crate) mode: Mode,
 }
 
@@ -47,6 +48,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut executable_stack = None;
     let mut gc_sections = None;
     let mut mode = None;
+    let mut dynamic_linker = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -60,6 +62,10 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongFlag("entry") | CliToken::ShortFlag("e") => {
                 reject_duplicate(&token, &mut entry, || lexer.expect_flag_value(&token))?;
+            }
+
+            CliToken::LongFlag("dynamic-linker") => {
+                reject_duplicate(&token, &mut dynamic_linker, || lexer.expect_flag_value(&token))?;
             }
 
             CliToken::LongShortFlag("no-pie") => {
@@ -136,6 +142,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
+        dynamic_linker: dynamic_linker.map(|s| s.into()),
         mode: mode.unwrap_or(Mode::PositionDependent),
     })
 }
@@ -540,6 +547,26 @@ mod tests {
     }
 
     #[test]
+    fn test_dynamic_linker() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                dynamic_linker: Some("bar".into()),
+                ..default_options()
+            }),
+            parse(["foo", "--dynamic-linker=bar"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_duplicate_dynamic_linker() {
+        assert_eq!(
+            Err(CliError::DuplicateFlag("--dynamic-linker".into())),
+            parse(["foo", "--dynamic-linker", "bar", "--dynamic-linker=baz"].into_iter())
+        );
+    }
+
+    #[test]
     fn test_no_pie() {
         assert_eq!(
             Ok(CliOptions {
@@ -587,6 +614,7 @@ mod tests {
             gc_sections: false,
             debug_print: BTreeSet::new(),
             executable_stack: false,
+            dynamic_linker: None,
             mode: Mode::PositionDependent,
         }
     }

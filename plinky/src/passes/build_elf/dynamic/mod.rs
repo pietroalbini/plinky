@@ -103,7 +103,6 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             ElfDynamicDirective::Null,
         ],
     });
-    let dynamic_len = dynamic.content_size(bits);
     let dynamic_addr =
         add_section!(builder, segment, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
 
@@ -114,7 +113,6 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
 
     builder.layout.add_segment(Segment {
         start: dynamic_addr.extract(),
-        len: dynamic_len as _,
         align: <u64 as RawTypeAsPointerSize>::size(bits) as _,
         type_: SegmentType::Dynamic,
         perms: ElfPermissions { read: true, write: false, execute: false },
@@ -123,7 +121,6 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
 
     builder.layout.add_segment(Segment {
         start: 0,
-        len: 0,
         align: 0x1000,
         type_: SegmentType::ElfHeader,
         perms: ElfPermissions { read: true, write: false, execute: false },

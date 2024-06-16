@@ -1,5 +1,5 @@
 ---
-source: plinky/linktest/harness/tests.rs
+source: plinky_test_harness/src/utils.rs
 ---
 linking exited with exit status: 0
 
@@ -39,11 +39,11 @@ debug print: calculated layout
  │  ╰────────────┴────────────────────────────┴────────────────╯
  │
  │    Segments:
- │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
- │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections │
- │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
- │  │ 0x400000 │ 0x1  │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1  │
- │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
+ │  ╭──────────┬────────┬─────────┬────────────────────┬──────────╮
+ │  │ Start    │ Align  │ Type    │ Permissions        │ Sections │
+ │  ├──────────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1  │
+ │  ╰──────────┴────────┴─────────┴────────────────────┴──────────╯
  │
  │    deduplication facade .comment#4 in test.o
  │  ╭──────┬──────────────────╮

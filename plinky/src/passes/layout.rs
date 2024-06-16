@@ -122,7 +122,7 @@ impl Layout {
     }
 
     pub(crate) fn prepare_segment(&mut self) -> PendingSegment {
-        PendingSegment { start: self.current_address, sections: Vec::new(), len: 0, layout: self }
+        PendingSegment { start: self.current_address, sections: Vec::new(), layout: self }
     }
 }
 
@@ -130,7 +130,6 @@ pub(crate) struct PendingSegment<'a> {
     layout: &'a mut Layout,
     sections: Vec<SectionId>,
     start: u64,
-    len: u64,
 }
 
 impl PendingSegment<'_> {
@@ -139,7 +138,6 @@ impl PendingSegment<'_> {
 
         self.layout.sections.insert(id, layout);
         self.layout.current_address += len;
-        self.len += len;
         self.sections.push(id);
 
         layout
@@ -148,7 +146,6 @@ impl PendingSegment<'_> {
     pub(crate) fn finalize(self, type_: SegmentType, perms: ElfPermissions) {
         self.layout.segments.push(Segment {
             start: self.start,
-            len: self.len,
             align: PAGE_SIZE,
             type_,
             perms,
@@ -168,7 +165,6 @@ pub(crate) enum SectionLayout {
 
 pub(crate) struct Segment {
     pub(crate) start: u64,
-    pub(crate) len: u64,
     pub(crate) align: u64,
     pub(crate) type_: SegmentType,
     pub(crate) perms: ElfPermissions,

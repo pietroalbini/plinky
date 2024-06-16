@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -72,13 +71,13 @@ debug print: calculated layout
  │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
- │  ╭──────────┬──────┬────────┬─────────┬────────────────────┬──────────╮
- │  │ Start    │ Size │ Align  │ Type    │ Permissions        │ Sections │
- │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
- │  │ 0x400000 │ 0x1f │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1  │
- │  ├──────────┼──────┼────────┼─────────┼────────────────────┼──────────┤
- │  │ 0x401000 │ 0xd  │ 0x1000 │ program │ ElfPermissions(RW) │ .data#3  │
- │  ╰──────────┴──────┴────────┴─────────┴────────────────────┴──────────╯
+ │  ╭──────────┬────────┬─────────┬────────────────────┬──────────╮
+ │  │ Start    │ Align  │ Type    │ Permissions        │ Sections │
+ │  ├──────────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1  │
+ │  ├──────────┼────────┼─────────┼────────────────────┼──────────┤
+ │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RW) │ .data#3  │
+ │  ╰──────────┴────────┴─────────┴────────────────────┴──────────╯
  ┴
 
 debug print: object after relocations are applied

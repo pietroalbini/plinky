@@ -29,11 +29,10 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
 
     let mut segments = Table::new();
     segments.set_title("Segments:");
-    segments.add_row(["Start", "Size", "Align", "Type", "Permissions", "Sections"]);
+    segments.add_row(["Start", "Align", "Type", "Permissions", "Sections"]);
     for segment in layout.iter_segments() {
         segments.add_row([
             format!("{:#x}", segment.start),
-            format!("{:#x}", segment.len),
             format!("{:#x}", segment.align),
             match segment.type_ {
                 SegmentType::ElfHeader => "elf header".into(),

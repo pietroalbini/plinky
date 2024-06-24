@@ -165,7 +165,7 @@ impl ElfBuilder {
         }
 
         // Segments have to be in order in memory, otherwise they will not be loaded.
-        elf_segments.sort_by_key(|(addr, _segment)| *addr);
+        elf_segments.sort_by_key(|(addr, segment)| (segment.type_, *addr));
         let mut elf_segments = elf_segments.into_iter().map(|(_a, s)| s).collect::<Vec<_>>();
 
         // Finally add whether the stack should be executable.

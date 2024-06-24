@@ -414,16 +414,16 @@ pub struct ElfSegment<I: ElfIds> {
     pub align: u64,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub enum ElfSegmentType {
-    Null,
+    ProgramHeaderTable,
+    Interpreter,
     Load,
     Dynamic,
-    Interpreter,
     Note,
-    ProgramHeaderTable,
     GnuStack,
     GnuRelRO,
+    Null,
     Unknown(u32),
 }
 

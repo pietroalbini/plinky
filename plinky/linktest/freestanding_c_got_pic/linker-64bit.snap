@@ -28,7 +28,7 @@ debug print: loaded object
  │   │  ╰───────────────┴─────────────────────┴────────┴────────────────────╯
  │   ┴
  │
- │  section .text#14 (perms: rx) in syscalls.o
+ │  section .text#15 (perms: rx) in syscalls.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 50 53 51 48 c7 c0 04 00 00 00 48 89 fb 48 89 f1 │ PSQH......H..H.. │
@@ -52,7 +52,7 @@ debug print: calculated layout
  │  ├─────────────┼─────────────────────────────┼────────────────┤
  │  │ .text#1     │ hello.o                     │ 0x3000         │
  │  ├─────────────┼─────────────────────────────┼────────────────┤
- │  │ .text#14    │ syscalls.o                  │ 0x3029         │
+ │  │ .text#15    │ syscalls.o                  │ 0x3029         │
  │  ├─────────────┼─────────────────────────────┼────────────────┤
  │  │ .got#23     │ <plinky>                    │ 0x4000         │
  │  ├─────────────┼─────────────────────────────┼────────────────┤
@@ -69,7 +69,7 @@ debug print: calculated layout
  │  │        │        │             │                    │ .eh_frame#8 │
  │  ├────────┼────────┼─────────────┼────────────────────┼─────────────┤
  │  │ 0x3000 │ 0x1000 │ program     │ ElfPermissions(RX) │ .text#1     │
- │  │        │        │             │                    │ .text#14    │
+ │  │        │        │             │                    │ .text#15    │
  │  ├────────┼────────┼─────────────┼────────────────────┼─────────────┤
  │  │ 0x4000 │ 0x1000 │ program     │ ElfPermissions(RW) │ .got#23     │
  │  ╰────────┴────────┴─────────────┴────────────────────┴─────────────╯
@@ -83,11 +83,11 @@ debug print: calculated layout
  │  │ 0x1  │ .comment#22 + 0x1 │
  │  ╰──────┴───────────────────╯
  │
- │    deduplication facade .comment#20 in <plinky>
+ │    deduplication facade .comment#13 in <plinky>
  │  ╭──────┬────────────────────╮
  │  │ From │ To                 │
  │  ├──────┼────────────────────┤
- │  │ 0x0  │ .comment#22 + 0x2c │
+ │  │ 0x0  │ .comment#22 + 0x26 │
  │  ╰──────┴────────────────────╯
  ┴
 
@@ -123,7 +123,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#14 (perms: rx) in syscalls.o
+ │  section .text#15 (perms: rx) in syscalls.o
  │   │
  │   │  address: 0x3029
  │   │
@@ -148,9 +148,9 @@ debug print: object after relocations are applied
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
  │  │ _start#1                │ function │ hello.o    │ global     │ .text#1 + 0x0   │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ exit#9                  │ none     │ syscalls.o │ global     │ .text#14 + 0x16 │
+ │  │ exit#9                  │ none     │ syscalls.o │ global     │ .text#15 + 0x16 │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ write#8                 │ none     │ syscalls.o │ global     │ .text#14 + 0x0  │
+ │  │ write#8                 │ none     │ syscalls.o │ global     │ .text#15 + 0x0  │
  │  ╰─────────────────────────┴──────────┴────────────┴────────────┴─────────────────╯
  │
  │    Dynamic symbols:
@@ -159,9 +159,9 @@ debug print: object after relocations are applied
  │  ├────────────┼──────┼────────────┼────────────┼─────────────────┤
  │  │ <symbol#0> │ none │ <plinky>   │ local      │ <null>          │
  │  ├────────────┼──────┼────────────┼────────────┼─────────────────┤
- │  │ exit#9     │ none │ syscalls.o │ global     │ .text#14 + 0x16 │
+ │  │ exit#9     │ none │ syscalls.o │ global     │ .text#15 + 0x16 │
  │  ├────────────┼──────┼────────────┼────────────┼─────────────────┤
- │  │ write#8    │ none │ syscalls.o │ global     │ .text#14 + 0x0  │
+ │  │ write#8    │ none │ syscalls.o │ global     │ .text#15 + 0x0  │
  │  ╰────────────┴──────┴────────────┴────────────┴─────────────────╯
  │
  │    Dynamic relocations:
@@ -307,6 +307,3 @@ debug print: built elf
  │  │ GNU stack   │ RW    │ 0x1      │ -                                                          │
  │  ╰─────────────┴───────┴──────────┴────────────────────────────────────────────────────────────╯
  ┴
-
-
-

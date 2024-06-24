@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -11,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#15 (no perms) in <plinky>
+ │  section .comment#8 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -20,7 +19,7 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .data#10 (perms: rw) in hello.o inside archive archived.a
+ │  section .data#11 (perms: rw) in hello.o inside archive archived.a
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
@@ -52,11 +51,8 @@ debug print: loaded object
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
  │  │ _start#1    │ none │ entry.o                           │ global     │ .text#1 + 0x0  │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
- │  │ hello#5     │ none │ hello.o inside archive archived.a │ global     │ .data#10 + 0x0 │
+ │  │ hello#5     │ none │ hello.o inside archive archived.a │ global     │ .data#11 + 0x0 │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
  │  │ hello_len#6 │ none │ hello.o inside archive archived.a │ global     │ 0xd            │
  │  ╰─────────────┴──────┴───────────────────────────────────┴────────────┴────────────────╯
  ┴
-
-
-

@@ -16,9 +16,9 @@ debug print: calculated layout
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#1             │ foo.o                  │ 0x401000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .text#10            │ bar.o                  │ 0x401031       │
+ │  │ .text#11            │ bar.o                  │ 0x401031       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .comment#18         │ <plinky>               │ not allocated  │
+ │  │ .comment#9          │ <plinky>               │ not allocated  │
  │  ╰─────────────────────┴────────────────────────┴────────────────╯
  │
  │    Segments:
@@ -28,7 +28,7 @@ debug print: calculated layout
  │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#19 │
  │  ├──────────┼────────┼─────────┼────────────────────┼─────────────────────┤
  │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1             │
- │  │          │        │         │                    │ .text#10            │
+ │  │          │        │         │                    │ .text#11            │
  │  ╰──────────┴────────┴─────────┴────────────────────┴─────────────────────╯
  │
  │    deduplication facade .custom_messages#5 in foo.o
@@ -40,7 +40,7 @@ debug print: calculated layout
  │  │ 0x6  │ .custom_messages#19 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  │
- │    deduplication facade .custom_messages#14 in bar.o
+ │    deduplication facade .custom_messages#15 in bar.o
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
@@ -76,7 +76,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#10 (perms: rx) in bar.o
+ │  section .text#11 (perms: rx) in bar.o
  │   │
  │   │  address: 0x401031
  │   │
@@ -103,7 +103,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#3 (address: 0x401031)
+ │  section .text#4 (address: 0x401031)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -179,10 +179,7 @@ debug print: built elf
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ _start#11      │ Global  │ -    │ Default    │ .text#2            │ 0x401000 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ bar#12         │ Global  │ -    │ Default    │ .text#3            │ 0x401031 │ 0x0  │
+ │   │  │ bar#12         │ Global  │ -    │ Default    │ .text#4            │ 0x401031 │ 0x0  │
  │   │  ╰────────────────┴─────────┴──────┴────────────┴────────────────────┴──────────┴──────╯
  │   ┴
  ┴
-
-
-

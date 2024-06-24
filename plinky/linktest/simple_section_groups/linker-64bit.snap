@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -11,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#18 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -45,6 +44,3 @@ debug print: loaded object
  │  │ sample_symbol#6 │ none │ foo.o    │ global (hidden) │ .text.sample_group#5 + 0x0 │
  │  ╰─────────────────┴──────┴──────────┴─────────────────┴────────────────────────────╯
  ┴
-
-
-

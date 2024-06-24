@@ -10,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf32, endian: Little, abi: SystemV, machine: X86
  │
- │  section .comment#18 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -26,7 +26,7 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .rodata#14 (perms: r) in hello.o
+ │  section .rodata#15 (perms: r) in hello.o
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
@@ -48,7 +48,7 @@ debug print: loaded object
  │   │  ╰────────────┴─────────────────────┴────────┴────────╯
  │   ┴
  │
- │  section .text#10 (perms: rx) in hello.o
+ │  section .text#11 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -59,7 +59,7 @@ debug print: loaded object
  │   │  ╭────────────┬──────────────────────┬────────┬────────╮
  │   │  │ Type       │ Symbol               │ Offset │ Addend │
  │   │  ├────────────┼──────────────────────┼────────┼────────┤
- │   │  │ Absolute32 │ <section .rodata#14> │ 0xb    │        │
+ │   │  │ Absolute32 │ <section .rodata#15> │ 0xb    │        │
  │   │  ├────────────┼──────────────────────┼────────┼────────┤
  │   │  │ Relative32 │ goodbye#7            │ 0x17   │        │
  │   │  ╰────────────┴──────────────────────┴────────┴────────╯
@@ -73,9 +73,9 @@ debug print: loaded object
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ <section .rodata#5>  │ section │ goodbye.o │ local      │ .rodata#5 + 0x0  │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ <section .rodata#14> │ section │ hello.o   │ local      │ .rodata#14 + 0x0 │
+ │  │ <section .rodata#15> │ section │ hello.o   │ local      │ .rodata#15 + 0x0 │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ _start#1             │ none    │ hello.o   │ global     │ .text#10 + 0x0   │
+ │  │ _start#1             │ none    │ hello.o   │ global     │ .text#11 + 0x0   │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ goodbye#7            │ none    │ goodbye.o │ global     │ .text#1 + 0x0    │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
@@ -85,36 +85,36 @@ debug print: loaded object
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ msg#5                │ none    │ goodbye.o │ local      │ .rodata#5 + 0x0  │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ msg#11               │ none    │ hello.o   │ local      │ .rodata#14 + 0x0 │
+ │  │ msg#11               │ none    │ hello.o   │ local      │ .rodata#15 + 0x0 │
  │  ╰──────────────────────┴─────────┴───────────┴────────────┴──────────────────╯
  ┴
 
 debug print: calculated layout
  │
  │    Sections:
- │  ╭─────────────┬───────────────┬────────────────╮
- │  │ Section     │ Source object │ Memory address │
- │  ├─────────────┼───────────────┼────────────────┤
- │  │ .rodata#5   │ goodbye.o     │ 0x400000       │
- │  ├─────────────┼───────────────┼────────────────┤
- │  │ .rodata#14  │ hello.o       │ 0x40000f       │
- │  ├─────────────┼───────────────┼────────────────┤
- │  │ .text#1     │ goodbye.o     │ 0x401000       │
- │  ├─────────────┼───────────────┼────────────────┤
- │  │ .text#10    │ hello.o       │ 0x40101f       │
- │  ├─────────────┼───────────────┼────────────────┤
- │  │ .comment#18 │ <plinky>      │ not allocated  │
- │  ╰─────────────┴───────────────┴────────────────╯
+ │  ╭────────────┬───────────────┬────────────────╮
+ │  │ Section    │ Source object │ Memory address │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .rodata#5  │ goodbye.o     │ 0x400000       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .rodata#15 │ hello.o       │ 0x40000f       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .text#1    │ goodbye.o     │ 0x401000       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .text#11   │ hello.o       │ 0x40101f       │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .comment#9 │ <plinky>      │ not allocated  │
+ │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬────────┬─────────┬────────────────────┬────────────╮
  │  │ Start    │ Align  │ Type    │ Permissions        │ Sections   │
  │  ├──────────┼────────┼─────────┼────────────────────┼────────────┤
  │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(R)  │ .rodata#5  │
- │  │          │        │         │                    │ .rodata#14 │
+ │  │          │        │         │                    │ .rodata#15 │
  │  ├──────────┼────────┼─────────┼────────────────────┼────────────┤
  │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1    │
- │  │          │        │         │                    │ .text#10   │
+ │  │          │        │         │                    │ .text#11   │
  │  ╰──────────┴────────┴─────────┴────────────────────┴────────────╯
  ┴
 
@@ -122,7 +122,7 @@ debug print: object after relocations are applied
  │
  │  class: Elf32, endian: Little, abi: SystemV, machine: X86
  │
- │  section .comment#18 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -142,7 +142,7 @@ debug print: object after relocations are applied
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .rodata#14 (perms: r) in hello.o
+ │  section .rodata#15 (perms: r) in hello.o
  │   │
  │   │  address: 0x40000f
  │   │
@@ -161,7 +161,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#10 (perms: rx) in hello.o
+ │  section .text#11 (perms: rx) in hello.o
  │   │
  │   │  address: 0x40101f
  │   │
@@ -179,9 +179,9 @@ debug print: object after relocations are applied
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ <section .rodata#5>  │ section │ goodbye.o │ local      │ .rodata#5 + 0x0  │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ <section .rodata#14> │ section │ hello.o   │ local      │ .rodata#14 + 0x0 │
+ │  │ <section .rodata#15> │ section │ hello.o   │ local      │ .rodata#15 + 0x0 │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ _start#1             │ none    │ hello.o   │ global     │ .text#10 + 0x0   │
+ │  │ _start#1             │ none    │ hello.o   │ global     │ .text#11 + 0x0   │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ goodbye#7            │ none    │ goodbye.o │ global     │ .text#1 + 0x0    │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
@@ -191,7 +191,7 @@ debug print: object after relocations are applied
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
  │  │ msg#5                │ none    │ goodbye.o │ local      │ .rodata#5 + 0x0  │
  │  ├──────────────────────┼─────────┼───────────┼────────────┼──────────────────┤
- │  │ msg#11               │ none    │ hello.o   │ local      │ .rodata#14 + 0x0 │
+ │  │ msg#11               │ none    │ hello.o   │ local      │ .rodata#15 + 0x0 │
  │  ╰──────────────────────┴─────────┴───────────┴────────────┴──────────────────╯
  ┴
 
@@ -227,11 +227,11 @@ debug print: built elf
  │   │  ├──────┼───────────┤
  │   │  │ 0x7  │ .rodata   │
  │   │  ├──────┼───────────┤
- │   │  │ 0xf  │ .text     │
+ │   │  │ 0xf  │ .comment  │
  │   │  ├──────┼───────────┤
- │   │  │ 0x15 │ .rodata   │
+ │   │  │ 0x18 │ .text     │
  │   │  ├──────┼───────────┤
- │   │  │ 0x1d │ .comment  │
+ │   │  │ 0x1e │ .rodata   │
  │   │  ├──────┼───────────┤
  │   │  │ 0x26 │ .symtab   │
  │   │  ├──────┼───────────┤
@@ -260,7 +260,16 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .text#4 (address: 0x40101f)
+ │  section .comment#4 (address: 0x0)
+ │   │
+ │   │  program data | permissions: -   | deduplicating zero-terminated strings
+ │   │
+ │   │  ╭──────────────────────────────────────────────┬─────────────────╮
+ │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
+ │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
+ │  section .text#5 (address: 0x40101f)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -270,22 +279,13 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata#5 (address: 0x40000f)
+ │  section .rodata#6 (address: 0x40000f)
  │   │
  │   │  program data | permissions: R
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
- │   ┴
- │
- │  section .comment#6 (address: 0x0)
- │   │
- │   │  program data | permissions: -   | deduplicating zero-terminated strings
- │   │
- │   │  ╭──────────────────────────────────────────────┬─────────────────╮
- │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
- │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
  │  section .strtab#7 (address: 0x0)
@@ -330,11 +330,11 @@ debug print: built elf
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ hello.S#4   │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#5       │ Local   │ -    │ Default    │ .rodata#5  │ 0x40000f │ 0x0  │
+ │   │  │ msg#5       │ Local   │ -    │ Default    │ .rodata#6  │ 0x40000f │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ len#6       │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ _start#7    │ Global  │ -    │ Default    │ .text#4    │ 0x40101f │ 0x0  │
+ │   │  │ _start#7    │ Global  │ -    │ Default    │ .text#5    │ 0x40101f │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ goodbye#8   │ Global  │ -    │ Default    │ .text#2    │ 0x401000 │ 0x0  │
  │   │  ╰─────────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
@@ -344,13 +344,10 @@ debug print: built elf
  │  ╭───────────┬───────┬──────────┬──────────────────────╮
  │  │ Type      │ Perms │ Aligment │ Content              │
  │  ├───────────┼───────┼──────────┼──────────────────────┤
- │  │ Load      │ R     │ 0x1000   │ .rodata#3, .rodata#5 │
+ │  │ Load      │ R     │ 0x1000   │ .rodata#3, .rodata#6 │
  │  ├───────────┼───────┼──────────┼──────────────────────┤
- │  │ Load      │ R X   │ 0x1000   │ .text#2, .text#4     │
+ │  │ Load      │ R X   │ 0x1000   │ .text#2, .text#5     │
  │  ├───────────┼───────┼──────────┼──────────────────────┤
  │  │ GNU stack │ RW    │ 0x1      │ -                    │
  │  ╰───────────┴───────┴──────────┴──────────────────────╯
  ┴
-
-
-

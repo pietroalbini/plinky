@@ -12,6 +12,7 @@ use plinky_elf::ElfEnvironment;
 use plinky_macros::{Display, Error};
 
 mod cleanup;
+mod inject_version;
 mod merge_elf;
 mod read_objects;
 mod section_groups;
@@ -50,6 +51,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     executable_stack: options.executable_stack,
                     gnu_stack_section_ignored: false,
                 };
+                inject_version::run(ids, &mut object);
                 merge_elf::merge(
                     &mut object,
                     &mut strings,

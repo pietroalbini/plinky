@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -34,7 +33,7 @@ debug print: loaded object
  │   │  ╰───────────────────────┴─────────────────────────┴────────┴────────╯
  │   ┴
  │
- │  section .text#16 (perms: rx) in syscalls.o
+ │  section .text#17 (perms: rx) in syscalls.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 50 53 51 b8 04 00 00 00 8b 5c 24 10 8b 4c 24 14 │ PSQ......\$..L$. │
@@ -67,7 +66,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#16 (perms: rx) in syscalls.o
+ │  section .text#17 (perms: rx) in syscalls.o
  │   │
  │   │  address: 0x401038
  │   │
@@ -96,11 +95,8 @@ debug print: object after relocations are applied
  │  ├─────────────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────────────────────────────┤
  │  │ _start#1                                │ function │ hello.o    │ global          │ .text#2 + 0x0                       │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────────────────────────────┤
- │  │ exit#11                                 │ none     │ syscalls.o │ global          │ .text#16 + 0x1a                     │
+ │  │ exit#11                                 │ none     │ syscalls.o │ global          │ .text#17 + 0x1a                     │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────────────────────────────┤
- │  │ write#10                                │ none     │ syscalls.o │ global          │ .text#16 + 0x0                      │
+ │  │ write#10                                │ none     │ syscalls.o │ global          │ .text#17 + 0x0                      │
  │  ╰─────────────────────────────────────────┴──────────┴────────────┴─────────────────┴─────────────────────────────────────╯
  ┴
-
-
-

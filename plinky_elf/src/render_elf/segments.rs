@@ -29,6 +29,7 @@ pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widge
             match &segment.content {
                 ElfSegmentContent::Empty => "-".into(),
                 ElfSegmentContent::ElfHeader => "elf header".into(),
+                ElfSegmentContent::ProgramHeader => "program header".into(),
                 ElfSegmentContent::Sections(sections) => sections
                     .iter()
                     .map(|id| section_name(object, id))

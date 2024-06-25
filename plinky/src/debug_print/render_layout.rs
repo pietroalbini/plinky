@@ -1,6 +1,6 @@
 use crate::debug_print::utils::section_name;
 use crate::passes::deduplicate::Deduplication;
-use crate::passes::layout::{Layout, SectionLayout, SegmentType};
+use crate::passes::layout::{Layout, SectionLayout, SegmentContent, SegmentType};
 use crate::repr::object::Object;
 use plinky_diagnostics::widgets::{Table, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
@@ -29,25 +29,28 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
 
     let mut segments = Table::new();
     segments.set_title("Segments:");
-    segments.add_row(["Start", "Align", "Type", "Permissions", "Sections"]);
+    segments.add_row(["Start", "Align", "Type", "Permissions", "Content"]);
     for segment in layout.iter_segments() {
         segments.add_row([
             format!("{:#x}", segment.start),
             format!("{:#x}", segment.align),
             match segment.type_ {
-                SegmentType::ElfHeader => "elf header".into(),
+                SegmentType::ProgramHeader => "program header".into(),
                 SegmentType::Program => "program".into(),
                 SegmentType::Uninitialized => "uninit".into(),
                 SegmentType::Dynamic => "dynamic".into(),
                 SegmentType::Interpreter => "interpreter".into(),
             },
             format!("{:?}", segment.perms),
-            segment
-                .sections
-                .iter()
-                .map(|id| section_name(object, *id))
-                .collect::<Vec<_>>()
-                .join("\n"),
+            match &segment.content {
+                SegmentContent::ElfHeader => "elf header".into(),
+                SegmentContent::ProgramHeader => "program header".into(),
+                SegmentContent::Sections(sections) => sections
+                    .iter()
+                    .map(|id| section_name(object, *id))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            },
         ]);
     }
 

@@ -1,3 +1,4 @@
+use crate::cli::Mode;
 use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
@@ -6,7 +7,6 @@ use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
-use crate::cli::Mode;
 
 const PAGE_SIZE: u64 = 0x1000;
 const STATIC_BASE_ADDRESS: u64 = 0x400000;
@@ -149,7 +149,7 @@ impl PendingSegment<'_> {
             align: PAGE_SIZE,
             type_,
             perms,
-            sections: self.sections,
+            content: SegmentContent::Sections(self.sections),
         });
 
         // Align to the page boundary.
@@ -168,16 +168,22 @@ pub(crate) struct Segment {
     pub(crate) align: u64,
     pub(crate) type_: SegmentType,
     pub(crate) perms: ElfPermissions,
-    pub(crate) sections: Vec<SectionId>,
+    pub(crate) content: SegmentContent,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum SegmentType {
-    ElfHeader,
+    ProgramHeader,
     Interpreter,
     Program,
     Uninitialized,
     Dynamic,
+}
+
+pub(crate) enum SegmentContent {
+    ElfHeader,
+    ProgramHeader,
+    Sections(Vec<SectionId>),
 }
 
 #[derive(Debug, Display, Error)]

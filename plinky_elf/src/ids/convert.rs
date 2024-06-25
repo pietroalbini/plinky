@@ -171,6 +171,7 @@ where
                 content: match segment.content {
                     ElfSegmentContent::Empty => ElfSegmentContent::Empty,
                     ElfSegmentContent::ElfHeader => ElfSegmentContent::ElfHeader,
+                    ElfSegmentContent::ProgramHeader => ElfSegmentContent::ProgramHeader,
                     ElfSegmentContent::Unknown(unknown) => ElfSegmentContent::Unknown(unknown),
                     ElfSegmentContent::Sections(ids) => ElfSegmentContent::Sections(
                         ids.into_iter().map(|id| map.section_id(&id)).collect(),

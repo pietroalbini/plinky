@@ -431,6 +431,7 @@ pub enum ElfSegmentType {
 pub enum ElfSegmentContent<I: ElfIds> {
     Empty,
     ElfHeader,
+    ProgramHeader,
     Sections(Vec<I::SectionId>),
     Unknown(ElfUnknownSegmentContent),
 }

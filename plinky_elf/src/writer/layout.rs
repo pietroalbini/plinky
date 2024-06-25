@@ -47,6 +47,7 @@ impl<I: ElfIds> WriteLayout<I> {
                     Box::new(std::iter::empty()) as Box<dyn Iterator<Item = _>>
                 }
                 ElfSegmentContent::ElfHeader => Box::new(std::iter::empty()),
+                ElfSegmentContent::ProgramHeader => Box::new(std::iter::empty()),
                 ElfSegmentContent::Sections(s) => Box::new(s.iter().map(move |s| (s, idx))),
                 ElfSegmentContent::Unknown(_) => Box::new(std::iter::empty()),
             })
@@ -79,13 +80,16 @@ impl<I: ElfIds> WriteLayout<I> {
             }
         }
 
-        layout.add_part(
-            Part::SectionHeaders,
-            RawSectionHeader::size(layout.class) * object.sections.len(),
-        );
+        // TODO: waste less space, and try to put the program header next to the elf header.
+        layout.align_to_page();
         layout.add_part(
             Part::ProgramHeaders,
             RawProgramHeader::size(layout.class) * object.segments.len(),
+        );
+
+        layout.add_part(
+            Part::SectionHeaders,
+            RawSectionHeader::size(layout.class) * object.sections.len(),
         );
 
 

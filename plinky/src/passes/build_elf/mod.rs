@@ -10,7 +10,7 @@ use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::symbols::{create_symbols, SymbolTableKind};
-use crate::passes::layout::Layout;
+use crate::passes::layout::{Layout, SegmentContent};
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
@@ -139,24 +139,18 @@ impl ElfBuilder {
                 segment.start,
                 ElfSegment {
                     type_: match segment.type_ {
-                        SegmentType::ElfHeader => ElfSegmentType::Load,
-                        SegmentType::Program => ElfSegmentType::Load,
-                        SegmentType::Uninitialized => ElfSegmentType::Load,
                         SegmentType::Dynamic => ElfSegmentType::Dynamic,
                         SegmentType::Interpreter => ElfSegmentType::Interpreter,
+                        SegmentType::Program => ElfSegmentType::Load,
+                        SegmentType::ProgramHeader => ElfSegmentType::ProgramHeaderTable,
+                        SegmentType::Uninitialized => ElfSegmentType::Load,
                     },
                     perms: segment.perms,
-                    content: match segment.type_ {
-                        SegmentType::ElfHeader => {
-                            assert!(segment.sections.is_empty());
-                            ElfSegmentContent::ElfHeader
-                        },
-                        _ => ElfSegmentContent::Sections(
-                            segment
-                                .sections
-                                .iter()
-                                .map(|id| self.sections.new_id_of(*id))
-                                .collect(),
+                    content: match &segment.content {
+                        SegmentContent::ElfHeader => ElfSegmentContent::ElfHeader,
+                        SegmentContent::ProgramHeader => ElfSegmentContent::ProgramHeader,
+                        SegmentContent::Sections(sections) => ElfSegmentContent::Sections(
+                            sections.iter().map(|id| self.sections.new_id_of(*id)).collect(),
                         ),
                     },
                     align: segment.align,

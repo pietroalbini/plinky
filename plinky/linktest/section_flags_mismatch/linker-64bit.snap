@@ -21,7 +21,7 @@ debug print: calculated layout
  │
  │    Segments:
  │  ╭──────────┬────────┬─────────┬─────────────────────┬──────────────╮
- │  │ Start    │ Align  │ Type    │ Permissions         │ Sections     │
+ │  │ Start    │ Align  │ Type    │ Permissions         │ Content      │
  │  ├──────────┼────────┼─────────┼─────────────────────┼──────────────┤
  │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX)  │ .text.foo#4  │
  │  ├──────────┼────────┼─────────┼─────────────────────┼──────────────┤

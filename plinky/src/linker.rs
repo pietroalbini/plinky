@@ -13,6 +13,7 @@ use crate::repr::object::Object;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
+use crate::passes::inject_interpreter::InjectInterpreterError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -21,7 +22,7 @@ pub(crate) fn link_driver(
     let mut ids = SerialIds::new();
 
     let mut object = passes::load_inputs::run(options, &mut ids)?;
-    let interp_section = passes::inject_interpreter::run(&options, &mut ids, &mut object);
+    let interp_section = passes::inject_interpreter::run(&options, &mut ids, &mut object)?;
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {
@@ -69,6 +70,8 @@ pub(crate) enum LinkerError {
     LoadInputsFailed(LoadInputsError),
     #[transparent]
     DeduplicationFailed(DeduplicationError),
+    #[transparent]
+    InjectInterpreterFailed(InjectInterpreterError),
     #[transparent]
     RelocationFailed(RelocationError),
     #[transparent]

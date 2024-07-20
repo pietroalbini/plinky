@@ -1,7 +1,8 @@
 use crate::debug_print::utils::section_name;
 use crate::passes::deduplicate::Deduplication;
-use crate::passes::layout::{Layout, SectionLayout, SegmentContent, SegmentType};
+use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
+use crate::repr::segments::{SegmentContent, SegmentType};
 use plinky_diagnostics::widgets::{Table, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SectionId;
@@ -30,7 +31,7 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
     let mut segments = Table::new();
     segments.set_title("Segments:");
     segments.add_row(["Start", "Align", "Type", "Permissions", "Content"]);
-    for segment in layout.iter_segments() {
+    for segment in object.segments.iter() {
         segments.add_row([
             format!("{:#x}", segment.start),
             format!("{:#x}", segment.align),

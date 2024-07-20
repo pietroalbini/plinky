@@ -34,7 +34,7 @@ pub(crate) fn link_driver(
 
     passes::generate_got::generate_got(&mut ids, &mut object);
 
-    let layout = passes::layout::run(&object, deduplications, interp_section);
+    let layout = passes::layout::run(&mut object, deduplications, interp_section);
     callbacks.on_layout_calculated(&object, &layout);
 
     passes::relocate::run(&mut object, &layout)?;

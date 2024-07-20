@@ -2,6 +2,7 @@ use crate::cli::Mode;
 use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
+use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
@@ -13,7 +14,7 @@ const STATIC_BASE_ADDRESS: u64 = 0x400000;
 const PIE_BASE_ADDRESS: u64 = PAGE_SIZE;
 
 pub(crate) fn run(
-    object: &Object,
+    object: &mut Object,
     deduplications: BTreeMap<SectionId, Deduplication>,
     interp_section: Option<SectionId>,
 ) -> Layout {
@@ -43,7 +44,6 @@ pub(crate) fn run(
             Mode::PositionDependent => STATIC_BASE_ADDRESS,
             Mode::PositionIndependent => PIE_BASE_ADDRESS,
         },
-        segments: Vec::new(),
         sections: BTreeMap::new(),
         deduplications,
     };
@@ -53,7 +53,7 @@ pub(crate) fn run(
             for &(section, len) in &sections {
                 segment.add_section(section, len);
             }
-            segment.finalize(type_, perms);
+            segment.finalize(object, type_, perms);
         } else {
             // Avoid allocating sections that cannot be accessed at runtime.
             for (section, _) in sections {
@@ -67,7 +67,6 @@ pub(crate) fn run(
 
 pub(crate) struct Layout {
     current_address: u64,
-    segments: Vec<Segment>,
     sections: BTreeMap<SectionId, SectionLayout>,
     deduplications: BTreeMap<SectionId, Deduplication>,
 }
@@ -113,14 +112,6 @@ impl Layout {
         self.deduplications.iter().map(|(id, dedup)| (*id, dedup))
     }
 
-    pub(crate) fn iter_segments(&self) -> impl Iterator<Item = &Segment> {
-        self.segments.iter()
-    }
-
-    pub(crate) fn add_segment(&mut self, segment: Segment) {
-        self.segments.push(segment);
-    }
-
     pub(crate) fn prepare_segment(&mut self) -> PendingSegment {
         PendingSegment { start: self.current_address, sections: Vec::new(), layout: self }
     }
@@ -143,8 +134,8 @@ impl PendingSegment<'_> {
         layout
     }
 
-    pub(crate) fn finalize(self, type_: SegmentType, perms: ElfPermissions) {
-        self.layout.segments.push(Segment {
+    pub(crate) fn finalize(self, object: &mut Object, type_: SegmentType, perms: ElfPermissions) {
+        object.segments.insert(Segment {
             start: self.start,
             align: PAGE_SIZE,
             type_,
@@ -161,29 +152,6 @@ impl PendingSegment<'_> {
 pub(crate) enum SectionLayout {
     Allocated { address: Address },
     NotAllocated,
-}
-
-pub(crate) struct Segment {
-    pub(crate) start: u64,
-    pub(crate) align: u64,
-    pub(crate) type_: SegmentType,
-    pub(crate) perms: ElfPermissions,
-    pub(crate) content: SegmentContent,
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum SegmentType {
-    ProgramHeader,
-    Interpreter,
-    Program,
-    Uninitialized,
-    Dynamic,
-}
-
-pub(crate) enum SegmentContent {
-    ElfHeader,
-    ProgramHeader,
-    Sections(Vec<SectionId>),
 }
 
 #[derive(Debug, Display, Error)]

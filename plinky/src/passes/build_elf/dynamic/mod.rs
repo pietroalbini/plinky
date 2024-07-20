@@ -5,7 +5,8 @@ use crate::passes::build_elf::dynamic::sysv_hash::create_sysv_hash;
 use crate::passes::build_elf::relocations::create_rela;
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::ElfBuilder;
-use crate::passes::layout::{SectionLayout, Segment, SegmentContent, SegmentType};
+use crate::passes::layout::SectionLayout;
+use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::{
@@ -107,11 +108,12 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         add_section!(builder, segment, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
 
     segment.finalize(
+        &mut builder.object,
         SegmentType::Program,
         ElfPermissions { read: true, write: false, execute: false },
     );
 
-    builder.layout.add_segment(Segment {
+    builder.object.segments.insert(Segment {
         start: dynamic_addr.extract(),
         align: <u64 as RawTypeAsPointerSize>::size(bits) as _,
         type_: SegmentType::Dynamic,
@@ -119,7 +121,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         content: SegmentContent::Sections(vec![dynamic_old_id]),
     });
     for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
-        builder.layout.add_segment(Segment {
+        builder.object.segments.insert(Segment {
             start: 0,
             align: 0x1000,
             type_,
@@ -127,7 +129,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             content: SegmentContent::ProgramHeader,
         });
     }
-    builder.layout.add_segment(Segment {
+    builder.object.segments.insert(Segment {
         start: 0,
         align: 0x1000,
         type_: SegmentType::Program,

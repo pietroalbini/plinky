@@ -106,7 +106,7 @@ impl ElfBuilder {
                         .create(
                             &section.name.resolve(),
                             ElfSectionContent::Program(ElfProgramSection {
-                                perms: section.perms,
+                                perms: data.perms,
                                 deduplication: data.deduplication,
                                 raw: RawBytes(data.bytes.clone()),
                             }),
@@ -120,7 +120,7 @@ impl ElfBuilder {
                         .create(
                             &section.name.resolve(),
                             ElfSectionContent::Uninitialized(ElfUninitializedSection {
-                                perms: section.perms,
+                                perms: uninit.perms,
                                 len: uninit.len,
                             }),
                         )

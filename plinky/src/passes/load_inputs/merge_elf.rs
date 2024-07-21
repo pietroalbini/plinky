@@ -100,9 +100,11 @@ pub(super) fn merge(
             name: intern(
                 strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
             ),
-            perms: uninit.perms,
             source: source.clone(),
-            content: SectionContent::Uninitialized(UninitializedSection { len: uninit.len }),
+            content: SectionContent::Uninitialized(UninitializedSection {
+                perms: uninit.perms,
+                len: uninit.len,
+            }),
         });
     }
 
@@ -115,9 +117,9 @@ pub(super) fn merge(
             name: intern(
                 strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
             ),
-            perms: program.perms,
             source: source.clone(),
             content: SectionContent::Data(DataSection {
+                perms: program.perms,
                 deduplication: program.deduplication,
                 bytes: program.raw.0,
                 relocations: relocations

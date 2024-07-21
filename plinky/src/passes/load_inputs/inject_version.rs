@@ -9,9 +9,9 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
     object.sections.add(Section {
         id: ids.allocate_section_id(),
         name: intern(".comment"),
-        perms: ElfPermissions { read: false, write: false, execute: false },
         source: ObjectSpan::new_synthetic(),
         content: SectionContent::Data(DataSection {
+            perms: ElfPermissions { read: false, write: false, execute: false },
             deduplication: ElfDeduplication::ZeroTerminatedStrings,
             bytes: b"Linker: plinky\0".into(),
             relocations: Vec::new(),

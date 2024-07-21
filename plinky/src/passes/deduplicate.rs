@@ -34,7 +34,7 @@ pub(crate) fn run(
             });
         }
 
-        groups.entry((section.name, section.perms, split_rule)).or_default().push(section.id);
+        groups.entry((section.name, data.perms, split_rule)).or_default().push(section.id);
     }
 
     let mut deduplications = BTreeMap::new();
@@ -99,9 +99,9 @@ fn deduplicate(
     object.sections.add(Section {
         id: merged_id,
         name,
-        perms,
         source: source.expect("no deduplicated sections"),
         content: SectionContent::Data(DataSection {
+            perms,
             deduplication: match split_rule {
                 SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
                 SplitRule::FixedSizeChunks { size } => ElfDeduplication::FixedSizeChunks { size },

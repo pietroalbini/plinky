@@ -76,7 +76,6 @@ impl Sections {
 pub(crate) struct Section {
     pub(crate) id: SectionId,
     pub(crate) name: Interned<String>,
-    pub(crate) perms: ElfPermissions,
     pub(crate) source: ObjectSpan,
     pub(crate) content: SectionContent,
 }
@@ -89,6 +88,7 @@ pub(crate) enum SectionContent {
 
 #[derive(Debug)]
 pub(crate) struct DataSection {
+    pub(crate) perms: ElfPermissions,
     pub(crate) deduplication: ElfDeduplication,
     pub(crate) bytes: Vec<u8>,
     pub(crate) relocations: Vec<Relocation>,
@@ -96,5 +96,6 @@ pub(crate) struct DataSection {
 
 #[derive(Debug)]
 pub(crate) struct UninitializedSection {
+    pub(crate) perms: ElfPermissions,
     pub(crate) len: u64,
 }

@@ -57,9 +57,9 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
     object.sections.add(Section {
         id,
         name: intern(".got"),
-        perms: ElfPermissions { read: true, write: true, execute: false },
         source: ObjectSpan::new_synthetic(),
         content: SectionContent::Data(DataSection {
+            perms: ElfPermissions { read: true, write: true, execute: false },
             deduplication: ElfDeduplication::Disabled,
             bytes,
             relocations,

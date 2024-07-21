@@ -87,7 +87,7 @@ fn render_data_section(
             .name(format!(
                 "section {} ({}) in {}",
                 section_name(object, section.id),
-                permissions(&section.perms),
+                permissions(&data.perms),
                 section.source
             ))
             .add_iter(deduplication)
@@ -123,7 +123,7 @@ fn render_uninitialized_section(
             .name(format!(
                 "uninitialized section {} ({}) in {}",
                 section_name(object, section.id),
-                permissions(&section.perms),
+                permissions(&uninit.perms),
                 section.source
             ))
             .add(Text::new(format!("length: {:#x}", uninit.len)))

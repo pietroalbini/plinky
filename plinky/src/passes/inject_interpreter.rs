@@ -34,9 +34,9 @@ pub(crate) fn run(
     object.sections.add(Section {
         id,
         name: intern(".interp"),
-        perms: ElfPermissions { read: true, write: false, execute: false },
         source: ObjectSpan::new_synthetic(),
         content: SectionContent::Data(DataSection {
+            perms: ElfPermissions { read: true, write: false, execute: false },
             deduplication: ElfDeduplication::Disabled,
             bytes: interpreter,
             relocations: Vec::new(),

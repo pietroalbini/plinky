@@ -28,12 +28,12 @@ pub(crate) fn run(
                     } else {
                         SegmentType::Program
                     },
-                    section.perms,
+                    data.perms,
                 ))
                 .or_default()
                 .push((section.id, data.bytes.len() as u64)),
             SectionContent::Uninitialized(uninit) => grouped
-                .entry((SegmentType::Uninitialized, section.perms))
+                .entry((SegmentType::Uninitialized, uninit.perms))
                 .or_default()
                 .push((section.id, uninit.len)),
         }

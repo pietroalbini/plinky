@@ -1,10 +1,10 @@
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
+use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolValue;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet};
-use crate::repr::symbols::views::AllSymbols;
 
 pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     let mut visitor = Visitor {
@@ -26,8 +26,12 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     // Mark all sections that will not be allocated in memory to be saved, as checking the
     // relocations from the entry point is not accurate for that.
     for section in object.sections.iter() {
-        if !section.perms.read {
-            visitor.to_save.insert(section.id);
+        match &section.content {
+            SectionContent::Data(data) if data.perms.read => {}
+            SectionContent::Uninitialized(uninit) if uninit.perms.read => {}
+            _ => {
+                visitor.to_save.insert(section.id);
+            }
         }
     }
 

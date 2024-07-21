@@ -1,20 +1,21 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::PendingStringsTable;
-use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
+use crate::repr::symbols::views::SymbolsView;
+use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
-    ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility
+    ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfSymbolVisibility,
 };
 use std::collections::BTreeMap;
 
 pub(super) fn create_symbols<'a>(
-    input_symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
-    null_symbol_id: SymbolId,
+    all_symbols: &Symbols,
+    view: &dyn SymbolsView,
     ids: &mut BuiltElfIds,
     sections: &mut Sections,
-    kind: SymbolTableKind,
 ) -> CreateSymbolsOutput {
     let mut strings = PendingStringsTable::new(ids);
     let mut symbols = BTreeMap::new();
@@ -23,8 +24,8 @@ pub(super) fn create_symbols<'a>(
     let mut null_symbol = None;
     let mut global_symbols = Vec::new();
     let mut local_by_source = BTreeMap::new();
-    for (symbol_id, symbol) in input_symbols {
-        if symbol_id == null_symbol_id {
+    for (symbol_id, symbol) in all_symbols.iter(view) {
+        if symbol_id == all_symbols.null_symbol_id() {
             assert!(null_symbol.is_none());
             null_symbol = Some(symbol);
         } else if let SymbolVisibility::Global { .. } = &symbol.visibility {
@@ -66,21 +67,13 @@ pub(super) fn create_symbols<'a>(
 
     CreateSymbolsOutput {
         symbol_table: ElfSectionContent::SymbolTable(ElfSymbolTable {
-            dynsym: match kind {
-                SymbolTableKind::SymTab => false,
-                SymbolTableKind::DynSym => true,
-            },
+            dynsym: view.is_dynamic(),
             symbols,
         }),
         string_table_id: strings.id,
         string_table: strings.into_elf(),
         conversion,
     }
-}
-
-pub(super) enum SymbolTableKind {
-    SymTab,
-    DynSym,
 }
 
 pub(super) struct CreateSymbolsOutput {

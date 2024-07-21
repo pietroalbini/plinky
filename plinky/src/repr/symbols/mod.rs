@@ -1,12 +1,14 @@
 mod symbol;
+pub(crate) mod views;
 
 use crate::interner::{intern, Interned};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SerialIds, SymbolId};
 use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
-use std::collections::{btree_map, BTreeMap, BTreeSet};
+use std::collections::{btree_map, BTreeMap};
 
+use crate::repr::symbols::views::SymbolsView;
 pub(crate) use symbol::{
     ResolveSymbolError, ResolvedSymbol, Symbol, SymbolType, SymbolValue, SymbolVisibility,
 };
@@ -16,7 +18,6 @@ pub(crate) struct Symbols {
     null_symbol_id: SymbolId,
     symbols: BTreeMap<SymbolId, SymbolOrRedirect>,
     global_symbols: BTreeMap<Interned<String>, SymbolId>,
-    dynamic_symbols: BTreeSet<SymbolId>,
 }
 
 impl Symbols {
@@ -34,14 +35,10 @@ impl Symbols {
                 span: intern(ObjectSpan::new_synthetic()),
                 visibility: SymbolVisibility::Local,
                 value: SymbolValue::Null,
+                needed_by_dynamic: false,
             }),
         );
-        Self {
-            null_symbol_id,
-            symbols,
-            global_symbols: BTreeMap::new(),
-            dynamic_symbols: BTreeSet::new(),
-        }
+        Self { null_symbol_id, symbols, global_symbols: BTreeMap::new() }
     }
 
     pub(crate) fn add_unknown_global(
@@ -58,6 +55,7 @@ impl Symbols {
             span: intern(ObjectSpan::new_synthetic()),
             visibility: SymbolVisibility::Global { weak: false, hidden: false },
             value: SymbolValue::Undefined,
+            needed_by_dynamic: false,
         })?;
         Ok(id)
     }
@@ -132,35 +130,48 @@ impl Symbols {
     }
 
     pub(crate) fn add_symbol_to_dynamic(&mut self, id: SymbolId) {
-        self.dynamic_symbols.insert(id);
+        let id = self.get(id).id; // Resolve redirects.
+        match self.symbols.get_mut(&id).unwrap() {
+            SymbolOrRedirect::Symbol(symbol) => symbol.needed_by_dynamic = true,
+            SymbolOrRedirect::Redirect(_) => unreachable!(),
+        }
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
-        self.symbols.iter().filter_map(|(id, symbol)| match symbol {
-            SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
-            SymbolOrRedirect::Redirect(_) => None,
-        })
+    pub(crate) fn iter<'a>(
+        &'a self,
+        view: &'a dyn SymbolsView,
+    ) -> impl Iterator<Item = (SymbolId, &'a Symbol)> + 'a {
+        self.symbols
+            .iter()
+            .filter_map(|(id, symbol)| match symbol {
+                SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
+                SymbolOrRedirect::Redirect(_) => None,
+            })
+            .filter(move |symbol| symbol.0 == self.null_symbol_id || view.filter(symbol.1))
     }
 
-    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = (SymbolId, &mut Symbol)> {
-        self.symbols.iter_mut().filter_map(|(id, symbol)| match symbol {
-            SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
-            SymbolOrRedirect::Redirect(_) => None,
-        })
+    pub(crate) fn iter_mut<'a>(
+        &'a mut self,
+        view: &'a dyn SymbolsView,
+    ) -> impl Iterator<Item = (SymbolId, &'a mut Symbol)> + 'a {
+        let null_symbol_id = self.null_symbol_id;
+        self.symbols
+            .iter_mut()
+            .filter_map(|(id, symbol)| match symbol {
+                SymbolOrRedirect::Symbol(symbol) => Some((*id, symbol)),
+                SymbolOrRedirect::Redirect(_) => None,
+            })
+            .filter(move |symbol| symbol.0 == null_symbol_id || view.filter(symbol.1))
     }
 
-    pub(crate) fn iters_with_redirects(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
-        self.symbols.keys().map(|&id| (id, self.get(id)))
-    }
-
-    pub(crate) fn iter_dynamic_symbols(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
-        self.iter().filter(|(_, symbol)| {
-            self.dynamic_symbols.contains(&symbol.id) || symbol.id == self.null_symbol_id
-        })
-    }
-
-    pub(crate) fn has_dynamic_symbols(&self) -> bool {
-        self.dynamic_symbols.len() > 0
+    pub(crate) fn iter_with_redirects<'a>(
+        &'a self,
+        view: &'a dyn SymbolsView,
+    ) -> impl Iterator<Item = (SymbolId, &'a Symbol)> + 'a {
+        self.symbols
+            .keys()
+            .map(|&id| (id, self.get(id)))
+            .filter(move |symbol| symbol.0 == self.null_symbol_id || view.filter(symbol.1))
     }
 
     pub(crate) fn null_symbol_id(&self) -> SymbolId {

@@ -3,6 +3,7 @@ use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::SymbolValue;
+use crate::repr::symbols::views::AllSymbols;
 
 pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
     let gnu_stack = intern(".note.GNU-stack");
@@ -27,7 +28,7 @@ pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
     }
 
     let mut symbols_to_remove = Vec::new();
-    for (id, symbol) in object.symbols.iter() {
+    for (id, symbol) in object.symbols.iter(&AllSymbols) {
         // GNU AS generates symbols for each section group, pointing to the SHT_GROUP. This is not
         // really useful, as nothing can refer to that section and the SHT_GROUP wouldn't be loaded
         // in memory anyway. To avoid the linker crashing when it sees a symbol to the section that

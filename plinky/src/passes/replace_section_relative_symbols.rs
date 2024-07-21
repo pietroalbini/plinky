@@ -1,5 +1,6 @@
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
+use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol, SymbolValue};
 use plinky_macros::{Display, Error};
 
@@ -7,7 +8,7 @@ pub(crate) fn replace(
     object: &mut Object,
     layout: &Layout,
 ) -> Result<(), ReplaceSectionRelativeSymbolsError> {
-    for (_, symbol) in object.symbols.iter_mut() {
+    for (_, symbol) in object.symbols.iter_mut(&AllSymbols) {
         let SymbolValue::SectionRelative { .. } = symbol.value else {
             continue;
         };

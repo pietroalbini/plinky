@@ -14,6 +14,7 @@ pub(crate) struct Symbol {
     pub(crate) span: Interned<ObjectSpan>,
     pub(crate) visibility: SymbolVisibility,
     pub(crate) value: SymbolValue,
+    pub(crate) needed_by_dynamic: bool,
 }
 
 impl Symbol {

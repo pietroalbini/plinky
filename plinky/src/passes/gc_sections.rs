@@ -4,12 +4,13 @@ use crate::repr::symbols::SymbolValue;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet};
+use crate::repr::symbols::views::AllSymbols;
 
 pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     let mut visitor = Visitor {
         symbols_to_sections: object
             .symbols
-            .iters_with_redirects()
+            .iter_with_redirects(&AllSymbols)
             .filter_map(|(id, symbol)| match symbol.value {
                 SymbolValue::SectionRelative { section, .. } => Some((id, section)),
                 SymbolValue::SectionVirtualAddress { section, .. } => Some((id, section)),

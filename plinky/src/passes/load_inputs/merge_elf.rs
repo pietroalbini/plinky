@@ -212,6 +212,7 @@ fn merge_symbols(
                     offset: (elf_symbol.value as i64).into(),
                 },
             },
+            needed_by_dynamic: false,
         };
 
         symbols.add_symbol(symbol)?;

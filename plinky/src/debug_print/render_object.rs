@@ -4,10 +4,11 @@ use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
-use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility};
+use crate::repr::symbols::views::{AllSymbols, DynamicSymbols, SymbolsView};
+use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::{SectionId, SymbolId};
+use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfDeduplication;
 
 pub(super) fn render_object(
@@ -27,10 +28,13 @@ pub(super) fn render_object(
                 .filter(|section| filter.section(&section.name.resolve()))
                 .map(|section| render_section(object, layout, section)),
         )
-        .add_iter(filter.symbols.then(|| render_symbols(object, "Symbols:", object.symbols.iter())))
-        .add_iter((filter.dynamic && object.symbols.has_dynamic_symbols()).then(|| {
-            render_symbols(object, "Dynamic symbols:", object.symbols.iter_dynamic_symbols())
-        }))
+        .add_iter(filter.symbols.then(|| render_symbols(object, "Symbols:", &AllSymbols)).flatten())
+        .add_iter(
+            filter
+                .dynamic
+                .then(|| render_symbols(object, "Dynamic symbols:", &DynamicSymbols))
+                .flatten(),
+        )
         .add_iter((filter.dynamic && !object.dynamic_relocations.is_empty()).then(|| {
             render_relocations(object, "Dynamic relocations:", &object.dynamic_relocations)
         }))
@@ -127,12 +131,11 @@ fn render_uninitialized_section(
     )
 }
 
-fn render_symbols<'a>(
-    object: &Object,
-    title: &str,
-    symbols: impl Iterator<Item = (SymbolId, &'a Symbol)>,
-) -> Table {
-    let mut symbols = symbols.collect::<Vec<_>>();
+fn render_symbols<'a>(object: &Object, title: &str, view: &dyn SymbolsView) -> Option<Table> {
+    let mut symbols = object.symbols.iter(view).collect::<Vec<_>>();
+    if symbols.len() <= 1 {
+        return None;
+    }
     symbols.sort_by_key(|(_, symbol)| symbol.name);
 
     let mut table = Table::new();
@@ -171,7 +174,7 @@ fn render_symbols<'a>(
             &value,
         ]);
     }
-    table
+    Some(table)
 }
 
 fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {

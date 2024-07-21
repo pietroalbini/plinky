@@ -5,6 +5,7 @@ use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
+use crate::repr::symbols::views::AllSymbols;
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -38,7 +39,7 @@ impl Sections {
 
         if let Some(symbols) = purge_symbols_from {
             let mut symbols_to_remove = Vec::new();
-            for (symbol_id, symbol) in symbols.iter() {
+            for (symbol_id, symbol) in symbols.iter(&AllSymbols) {
                 let SymbolValue::SectionRelative { section, .. } = &symbol.value else {
                     continue;
                 };

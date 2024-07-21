@@ -8,11 +8,12 @@ use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::build_elf::sections::Sections;
-use crate::passes::build_elf::symbols::{create_symbols, SymbolTableKind};
+use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
+use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::SerialIds;
@@ -53,11 +54,10 @@ impl ElfBuilder {
         }
 
         let symbols = create_symbols(
-            self.object.symbols.iter(),
-            self.object.symbols.null_symbol_id(),
+            &self.object.symbols,
+            &AllSymbols,
             &mut self.ids,
             &mut self.sections,
-            SymbolTableKind::SymTab,
         );
         self.sections.create(".symtab", symbols.symbol_table).add(&mut self.ids);
         self.sections.create(".strtab", symbols.string_table).add_with_id(symbols.string_table_id);

@@ -1,12 +1,12 @@
 mod sysv_hash;
 
-use super::symbols::SymbolTableKind;
 use crate::passes::build_elf::dynamic::sysv_hash::create_sysv_hash;
 use crate::passes::build_elf::relocations::create_rela;
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
+use crate::repr::symbols::views::DynamicSymbols;
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::{
@@ -53,11 +53,10 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     let mut segment = builder.layout.prepare_segment();
 
     let symbols = create_symbols(
-        builder.object.symbols.iter_dynamic_symbols(),
-        builder.object.symbols.null_symbol_id(),
+        &builder.object.symbols,
+        &DynamicSymbols,
         &mut builder.ids,
         &mut builder.sections,
-        SymbolTableKind::DynSym,
     );
 
     let dynstr_len = symbols.string_table.content_size(bits);
@@ -82,7 +81,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         segment,
         ".hash",
         create_sysv_hash(
-            builder.object.symbols.iter_dynamic_symbols().map(|(_id, sym)| sym),
+            builder.object.symbols.iter(&DynamicSymbols).map(|(_id, sym)| sym),
             dynsym,
         )
     );

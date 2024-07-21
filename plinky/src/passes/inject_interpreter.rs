@@ -36,7 +36,7 @@ pub(crate) fn run(
         name: intern(".interp"),
         source: ObjectSpan::new_synthetic(),
         content: SectionContent::Data(DataSection {
-            perms: ElfPermissions { read: true, write: false, execute: false },
+            perms: ElfPermissions::empty().read(),
             deduplication: ElfDeduplication::Disabled,
             bytes: interpreter,
             relocations: Vec::new(),

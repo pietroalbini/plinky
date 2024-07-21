@@ -451,6 +451,27 @@ pub struct ElfPermissions {
     pub execute: bool,
 }
 
+impl ElfPermissions {
+    pub fn empty() -> Self {
+        ElfPermissions { read: false, write: false, execute: false }
+    }
+
+    pub fn read(mut self) -> Self {
+        self.read = true;
+        self
+    }
+
+    pub fn write(mut self) -> Self {
+        self.write = true;
+        self
+    }
+
+    pub fn execute(mut self) -> Self {
+        self.execute = true;
+        self
+    }
+}
+
 impl std::fmt::Debug for ElfPermissions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut content = String::new();

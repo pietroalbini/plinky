@@ -11,7 +11,7 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
         name: intern(".comment"),
         source: ObjectSpan::new_synthetic(),
         content: SectionContent::Data(DataSection {
-            perms: ElfPermissions { read: false, write: false, execute: false },
+            perms: ElfPermissions::empty(),
             deduplication: ElfDeduplication::ZeroTerminatedStrings,
             bytes: b"Linker: plinky\0".into(),
             relocations: Vec::new(),

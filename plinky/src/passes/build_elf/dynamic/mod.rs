@@ -109,14 +109,14 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     segment.finalize(
         &mut builder.object,
         SegmentType::Program,
-        ElfPermissions { read: true, write: false, execute: false },
+        ElfPermissions::empty().read(),
     );
 
     builder.object.segments.insert(Segment {
         start: dynamic_addr.extract(),
         align: <u64 as RawTypeAsPointerSize>::size(bits) as _,
         type_: SegmentType::Dynamic,
-        perms: ElfPermissions { read: true, write: false, execute: false },
+        perms: ElfPermissions::empty().read(),
         content: SegmentContent::Sections(vec![dynamic_old_id]),
     });
     for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
@@ -124,7 +124,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             start: 0,
             align: 0x1000,
             type_,
-            perms: ElfPermissions { read: true, write: false, execute: false },
+            perms: ElfPermissions::empty().read(),
             content: SegmentContent::ProgramHeader,
         });
     }
@@ -132,7 +132,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         start: 0,
         align: 0x1000,
         type_: SegmentType::Program,
-        perms: ElfPermissions { read: true, write: false, execute: false },
+        perms: ElfPermissions::empty().read(),
         content: SegmentContent::ElfHeader,
     });
 }

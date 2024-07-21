@@ -59,7 +59,7 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
         name: intern(".got"),
         source: ObjectSpan::new_synthetic(),
         content: SectionContent::Data(DataSection {
-            perms: ElfPermissions { read: true, write: true, execute: false },
+            perms: ElfPermissions::empty().read().write(),
             deduplication: ElfDeduplication::Disabled,
             bytes,
             relocations,

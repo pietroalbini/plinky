@@ -31,7 +31,8 @@ pub(crate) fn run(
     old_ids: SerialIds,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
-    let builder = ElfBuilder { object, layout, sections: Sections::new(&mut ids), ids, old_ids };
+    let builder =
+        ElfBuilder { layout, sections: Sections::new(&mut ids, &object), ids, old_ids, object };
     builder.build()
 }
 
@@ -53,13 +54,9 @@ impl ElfBuilder {
             Mode::PositionIndependent => dynamic::add(&mut self),
         }
 
-        let symbols = create_symbols(
-            &self.object.symbols,
-            &AllSymbols,
-            &mut self.ids,
-            &mut self.sections,
-        );
-        self.sections.create(".symtab", symbols.symbol_table).add(&mut self.ids);
+        let symbols =
+            create_symbols(&self.object.symbols, &AllSymbols, &mut self.ids, &mut self.sections);
+        self.sections.create(".symtab", symbols.symbol_table).add_with_id(self.ids.allocate_section_id());
         self.sections.create(".strtab", symbols.string_table).add_with_id(symbols.string_table_id);
 
         let segments = self.prepare_segments();
@@ -112,8 +109,7 @@ impl ElfBuilder {
                             }),
                         )
                         .layout(self.layout.of_section(section.id))
-                        .old_id(section.id)
-                        .add(&mut self.ids);
+                        .add_from_existing(section.id);
                 }
                 SectionContent::Uninitialized(uninit) => {
                     self.sections
@@ -125,8 +121,7 @@ impl ElfBuilder {
                             }),
                         )
                         .layout(self.layout.of_section(section.id))
-                        .old_id(section.id)
-                        .add(&mut self.ids);
+                        .add_from_existing(section.id);
                 }
             }
         }

@@ -1,6 +1,7 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use crate::passes::build_elf::PendingStringsTable;
 use crate::passes::layout::SectionLayout;
+use crate::repr::object::Object;
 use crate::utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfSection, ElfSectionContent};
@@ -14,11 +15,17 @@ pub(super) struct Sections {
 }
 
 impl Sections {
-    pub(super) fn new(ids: &mut BuiltElfIds) -> Self {
+    pub(super) fn new(ids: &mut BuiltElfIds, object: &Object) -> Self {
         let zero_id = ids.allocate_section_id();
 
         let names = PendingStringsTable::new(ids);
         let mut sections = BTreeMap::new();
+
+        // Precalculate the new IDs, to avoid circular dependencies.
+        let mut ids_map = BTreeMap::new();
+        for section in object.sections.iter() {
+            ids_map.insert(section.id, ids.allocate_section_id());
+        }
 
         // The first section must always be the null section.
         sections.insert(
@@ -31,7 +38,7 @@ impl Sections {
             },
         );
 
-        Sections { zero_id, sections, ids_map: BTreeMap::new(), names }
+        Sections { zero_id, sections, ids_map, names }
     }
 
     pub(super) fn create<'a>(
@@ -90,10 +97,9 @@ impl SectionBuilder<'_> {
         self
     }
 
-    pub(super) fn add(self, ids: &mut BuiltElfIds) -> BuiltElfSectionId {
-        let id = ids.allocate_section_id();
-        self.add_with_id(id);
-        id
+    pub(super) fn add_from_existing(self, id: SectionId) {
+        let id = self.parent.new_id_of(id);
+        self.add_with_id(id)
     }
 
     pub(super) fn add_with_id(self, id: BuiltElfSectionId) {

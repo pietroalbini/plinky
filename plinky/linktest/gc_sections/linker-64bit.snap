@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -41,6 +40,16 @@ debug print: loaded object
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 41 6c 62 69 6e 69 00 │ Albini. │
  │   │  ╰──────────────────────┴─────────╯
+ │   ┴
+ │
+ │  section .strtab#16 in <plinky>
+ │   │
+ │   │  strings table for symbols | view: all symbols
+ │   ┴
+ │
+ │  section .symtab#17 in <plinky>
+ │   │
+ │   │  symbols table | view: all symbols | strings: .strtab#16
  │   ┴
  │
  │  section .text#1 (perms: rx) in foo.o
@@ -125,7 +134,7 @@ debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#16 (no perms) in mix of foo.o and <plinky>
+ │  section .comment#18 (no perms) in mix of foo.o and <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -144,6 +153,16 @@ debug print: object after relocations are applied
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 50 69 65 74 72 6f 00 │ Pietro. │
  │   │  ╰──────────────────────┴─────────╯
+ │   ┴
+ │
+ │  section .strtab#16 in <plinky>
+ │   │
+ │   │  strings table for symbols | view: all symbols
+ │   ┴
+ │
+ │  section .symtab#17 in <plinky>
+ │   │
+ │   │  symbols table | view: all symbols | strings: .strtab#16
  │   ┴
  │
  │  section .text#1 (perms: rx) in foo.o

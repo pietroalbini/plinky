@@ -27,7 +27,7 @@ pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), Relocation
             SectionContent::Data(data) => {
                 relocator.relocate(section.id, data)?;
             }
-            SectionContent::Uninitialized(_) => {}
+            _ => {}
         }
     }
     Ok(())

@@ -13,10 +13,9 @@ use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
-use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::ints::{Address, ExtractNumber};
-use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -31,8 +30,15 @@ pub(crate) fn run(
     old_ids: SerialIds,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
-    let builder =
-        ElfBuilder { layout, sections: Sections::new(&mut ids, &object), ids, old_ids, object };
+    let builder = ElfBuilder {
+        layout,
+        sections: Sections::new(&mut ids, &object),
+        object,
+        ids,
+        old_ids,
+        pending_symbol_tables: BTreeMap::new(),
+        pending_string_tables: BTreeMap::new(),
+    };
     builder.build()
 }
 
@@ -42,10 +48,32 @@ struct ElfBuilder {
     sections: Sections,
     ids: BuiltElfIds,
     old_ids: SerialIds,
+
+    pending_symbol_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
+    pending_string_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
 }
 
 impl ElfBuilder {
     fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
+        // Symbol and string table sections need to be created together (as the string table
+        // contains the symbol names for the symbol table), which makes it hard to create them
+        // individually as part of prepare_sections(). We thus create them together, and store them
+        // in a pending state.
+        for section in self.object.sections.iter() {
+            let SectionContent::Symbols(symbols_section) = &section.content else { continue };
+
+            let string_table_id = self.sections.new_id_of(symbols_section.strings);
+            let created = create_symbols(
+                &self.object.symbols,
+                &*symbols_section.view,
+                &mut self.ids,
+                &mut self.sections,
+                string_table_id,
+            );
+            self.pending_symbol_tables.insert(section.id, created.symbol_table);
+            self.pending_string_tables.insert(symbols_section.strings, created.string_table);
+        }
+
         let entry = self.prepare_entry_point()?;
         self.prepare_sections();
 
@@ -54,12 +82,10 @@ impl ElfBuilder {
             Mode::PositionIndependent => dynamic::add(&mut self),
         }
 
-        let symbols =
-            create_symbols(&self.object.symbols, &AllSymbols, &mut self.ids, &mut self.sections);
-        self.sections.create(".symtab", symbols.symbol_table).add_with_id(self.ids.allocate_section_id());
-        self.sections.create(".strtab", symbols.string_table).add_with_id(symbols.string_table_id);
-
         let segments = self.prepare_segments();
+
+        assert!(self.pending_symbol_tables.is_empty());
+        assert!(self.pending_string_tables.is_empty());
 
         Ok(ElfObject {
             env: self.object.env,
@@ -123,6 +149,24 @@ impl ElfBuilder {
                         .layout(self.layout.of_section(section.id))
                         .add_from_existing(section.id);
                 }
+                SectionContent::StringsForSymbols(_) => {
+                    let content = self
+                        .pending_string_tables
+                        .remove(&section.id)
+                        .expect("string table should've been prepared");
+                    self.sections
+                        .create(&section.name.resolve(), content)
+                        .add_from_existing(section.id);
+                }
+                SectionContent::Symbols(_) => {
+                    let content = self
+                        .pending_symbol_tables
+                        .remove(&section.id)
+                        .expect("symbol table should've been prepared");
+                    self.sections
+                        .create(&section.name.resolve(), content)
+                        .add_from_existing(section.id);
+                }
             }
         }
     }
@@ -181,8 +225,7 @@ struct PendingStringsTable {
 }
 
 impl PendingStringsTable {
-    fn new(ids: &mut BuiltElfIds) -> Self {
-        let id = ids.allocate_section_id();
+    fn new(id: BuiltElfSectionId) -> Self {
         let mut strings = BTreeMap::new();
         strings.insert(0, String::new()); // First string has to always be empty.
         Self { id, strings, next_offset: 1, zero_id: BuiltElfStringId::new(id, 0) }

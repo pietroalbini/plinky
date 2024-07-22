@@ -17,6 +17,10 @@ debug print: calculated layout
  │  │ .text.foo#13 │ rwx.o         │ 0x401000       │
  │  ├──────────────┼───────────────┼────────────────┤
  │  │ .comment#8   │ <plinky>      │ not allocated  │
+ │  ├──────────────┼───────────────┼────────────────┤
+ │  │ .strtab#17   │ <plinky>      │ not allocated  │
+ │  ├──────────────┼───────────────┼────────────────┤
+ │  │ .symtab#18   │ <plinky>      │ not allocated  │
  │  ╰──────────────┴───────────────┴────────────────╯
  │
  │    Segments:
@@ -28,3 +32,6 @@ debug print: calculated layout
  │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RWX) │ .text.foo#13 │
  │  ╰──────────┴────────┴─────────┴─────────────────────┴──────────────╯
  ┴
+
+
+

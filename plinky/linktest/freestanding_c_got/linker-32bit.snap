@@ -45,7 +45,7 @@ debug print: loaded object
 
 debug print: object after relocations are applied
  │
- │  section .got#24 (perms: rw) in <plinky>
+ │  section .got#26 (perms: rw) in <plinky>
  │   │
  │   │  address: 0x402000
  │   │
@@ -100,3 +100,6 @@ debug print: object after relocations are applied
  │  │ write#10                                │ none     │ syscalls.o │ global          │ .text#17 + 0x0                      │
  │  ╰─────────────────────────────────────────┴──────────┴────────────┴─────────────────┴─────────────────────────────────────╯
  ┴
+
+
+

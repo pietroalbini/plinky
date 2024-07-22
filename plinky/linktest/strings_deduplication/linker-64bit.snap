@@ -12,20 +12,24 @@ debug print: calculated layout
  │  ╭─────────────────────┬────────────────────────┬────────────────╮
  │  │ Section             │ Source object          │ Memory address │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
- │  │ .custom_messages#19 │ mix of foo.o and bar.o │ 0x400000       │
+ │  │ .custom_messages#21 │ mix of foo.o and bar.o │ 0x400000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#1             │ foo.o                  │ 0x401000       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .text#11            │ bar.o                  │ 0x401031       │
  │  ├─────────────────────┼────────────────────────┼────────────────┤
  │  │ .comment#9          │ <plinky>               │ not allocated  │
+ │  ├─────────────────────┼────────────────────────┼────────────────┤
+ │  │ .strtab#19          │ <plinky>               │ not allocated  │
+ │  ├─────────────────────┼────────────────────────┼────────────────┤
+ │  │ .symtab#20          │ <plinky>               │ not allocated  │
  │  ╰─────────────────────┴────────────────────────┴────────────────╯
  │
  │    Segments:
  │  ╭──────────┬────────┬─────────┬────────────────────┬─────────────────────╮
  │  │ Start    │ Align  │ Type    │ Permissions        │ Content             │
  │  ├──────────┼────────┼─────────┼────────────────────┼─────────────────────┤
- │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#19 │
+ │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(R)  │ .custom_messages#21 │
  │  ├──────────┼────────┼─────────┼────────────────────┼─────────────────────┤
  │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1             │
  │  │          │        │         │                    │ .text#11            │
@@ -35,24 +39,24 @@ debug print: calculated layout
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#19 + 0x0 │
+ │  │ 0x0  │ .custom_messages#21 + 0x0 │
  │  ├──────┼───────────────────────────┤
- │  │ 0x6  │ .custom_messages#19 + 0x6 │
+ │  │ 0x6  │ .custom_messages#21 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  │
  │    deduplication facade .custom_messages#15 in bar.o
  │  ╭──────┬───────────────────────────╮
  │  │ From │ To                        │
  │  ├──────┼───────────────────────────┤
- │  │ 0x0  │ .custom_messages#19 + 0xf │
+ │  │ 0x0  │ .custom_messages#21 + 0xf │
  │  ├──────┼───────────────────────────┤
- │  │ 0x8  │ .custom_messages#19 + 0x6 │
+ │  │ 0x8  │ .custom_messages#21 + 0x6 │
  │  ╰──────┴───────────────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
- │  section .custom_messages#19 (perms: r) in mix of foo.o and bar.o
+ │  section .custom_messages#21 (perms: r) in mix of foo.o and bar.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -115,7 +119,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .strtab#6 (address: 0x0)
+ │  section .strtab#5 (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬─────────────╮
@@ -149,7 +153,7 @@ debug print: built elf
  │   │  ╰──────┴─────────────╯
  │   ┴
  │
- │  section .symtab#7 (address: 0x0)
+ │  section .symtab#6 (address: 0x0)
  │   │
  │   │    Symbol table:
  │   │  ╭────────────────┬─────────┬──────┬────────────┬────────────────────┬──────────┬──────╮
@@ -159,21 +163,21 @@ debug print: built elf
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ bar.S#1        │ Local   │ File │ Default    │ Absolute           │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ goodbye#2      │ Local   │ -    │ Default    │ .custom_messages#5 │ 0x40000f │ 0x0  │
+ │   │  │ goodbye#2      │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x40000f │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ goodbye_len#3  │ Local   │ -    │ Default    │ Absolute           │ 0x7      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ bar_end#4      │ Local   │ -    │ Default    │ .custom_messages#5 │ 0x400006 │ 0x0  │
+ │   │  │ bar_end#4      │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x400006 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ bar_end_len#5  │ Local   │ -    │ Default    │ Absolute           │ 0x8      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ foo.S#6        │ Local   │ File │ Default    │ Absolute           │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ hello#7        │ Local   │ -    │ Default    │ .custom_messages#5 │ 0x400000 │ 0x0  │
+ │   │  │ hello#7        │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x400000 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ hello_len#8    │ Local   │ -    │ Default    │ Absolute           │ 0x5      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ foo_end#9      │ Local   │ -    │ Default    │ .custom_messages#5 │ 0x400006 │ 0x0  │
+ │   │  │ foo_end#9      │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x400006 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ foo_end_len#10 │ Local   │ -    │ Default    │ Absolute           │ 0x8      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
@@ -183,3 +187,6 @@ debug print: built elf
  │   │  ╰────────────────┴─────────┴──────┴────────────┴────────────────────┴──────────┴──────╯
  │   ┴
  ┴
+
+
+

@@ -18,7 +18,7 @@ impl Sections {
     pub(super) fn new(ids: &mut BuiltElfIds, object: &Object) -> Self {
         let zero_id = ids.allocate_section_id();
 
-        let names = PendingStringsTable::new(ids);
+        let names = PendingStringsTable::new(ids.allocate_section_id());
         let mut sections = BTreeMap::new();
 
         // Precalculate the new IDs, to avoid circular dependencies.

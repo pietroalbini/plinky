@@ -3,7 +3,10 @@ use crate::debug_print::utils::{permissions, section_name, symbol_name};
 use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
-use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
+use crate::repr::sections::{
+    DataSection, Section, SectionContent, StringsForSymbolsSection, SymbolsSection,
+    UninitializedSection,
+};
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
@@ -57,6 +60,10 @@ fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -
         SectionContent::Uninitialized(uninit) => {
             render_uninitialized_section(object, layout, section, uninit)
         }
+        SectionContent::StringsForSymbols(strings) => {
+            render_strings_for_symbols_section(object, section, strings)
+        }
+        SectionContent::Symbols(symbols) => render_symbols_section(object, section, symbols),
     }
 }
 
@@ -182,4 +189,32 @@ fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
         SectionLayout::Allocated { address } => Text::new(format!("address: {address}")),
         SectionLayout::NotAllocated => Text::new("not allocated in the resulting memory"),
     })
+}
+
+fn render_strings_for_symbols_section(
+    object: &Object,
+    section: &Section,
+    strings: &StringsForSymbolsSection,
+) -> Box<dyn Widget> {
+    Box::new(
+        WidgetGroup::new()
+            .name(format!("section {} in {}", section_name(object, section.id), section.source))
+            .add(Text::new(format!("strings table for symbols | view: {}", strings.view))),
+    )
+}
+
+fn render_symbols_section(
+    object: &Object,
+    section: &Section,
+    symbols: &SymbolsSection,
+) -> Box<dyn Widget> {
+    Box::new(
+        WidgetGroup::new()
+            .name(format!("section {} in {}", section_name(object, section.id), section.source))
+            .add(Text::new(format!(
+                "symbols table | view: {} | strings: {}",
+                symbols.view,
+                section_name(object, symbols.strings)
+            ))),
+    )
 }

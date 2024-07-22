@@ -19,6 +19,7 @@ pub(crate) fn run(
     interp_section: Option<SectionId>,
 ) -> Layout {
     let mut grouped: BTreeMap<_, Vec<_>> = BTreeMap::new();
+    let mut not_allocated = Vec::new();
     for section in object.sections.iter() {
         match &section.content {
             SectionContent::Data(data) => grouped
@@ -36,6 +37,9 @@ pub(crate) fn run(
                 .entry((SegmentType::Uninitialized, uninit.perms))
                 .or_default()
                 .push((section.id, uninit.len)),
+            // Do not include these sections in the layout:
+            SectionContent::StringsForSymbols(_) => not_allocated.push(section.id),
+            SectionContent::Symbols(_) => not_allocated.push(section.id),
         }
     }
 
@@ -60,6 +64,10 @@ pub(crate) fn run(
                 layout.sections.insert(section, SectionLayout::NotAllocated);
             }
         }
+    }
+
+    for id in not_allocated {
+        layout.sections.insert(id, SectionLayout::NotAllocated);
     }
 
     layout

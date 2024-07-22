@@ -52,16 +52,18 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     let bits = builder.object.env.class;
     let mut segment = builder.layout.prepare_segment();
 
+    let string_table_id = builder.ids.allocate_section_id();
     let symbols = create_symbols(
         &builder.object.symbols,
         &DynamicSymbols,
         &mut builder.ids,
         &mut builder.sections,
+        string_table_id,
     );
 
     let dynstr_len = symbols.string_table.content_size(bits);
     let dynstr_addr =
-        add_section!(builder, segment, ".dynstr", symbols.string_table, symbols.string_table_id);
+        add_section!(builder, segment, ".dynstr", symbols.string_table, string_table_id);
 
     let dynsym = builder.ids.allocate_section_id();
     let dynsym_addr = add_section!(builder, segment, ".dynsym", symbols.symbol_table, dynsym);
@@ -89,7 +91,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     let dynamic_id = builder.ids.allocate_section_id();
     let dynamic_old_id = builder.old_ids.allocate_section_id();
     let dynamic = ElfSectionContent::Dynamic(ElfDynamic {
-        string_table: symbols.string_table_id,
+        string_table: string_table_id,
         directives: vec![
             ElfDynamicDirective::Hash { address: hash_addr.extract() },
             ElfDynamicDirective::StringTable { address: dynstr_addr.extract() },
@@ -106,11 +108,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     let dynamic_addr =
         add_section!(builder, segment, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
 
-    segment.finalize(
-        &mut builder.object,
-        SegmentType::Program,
-        ElfPermissions::empty().read(),
-    );
+    segment.finalize(&mut builder.object, SegmentType::Program, ElfPermissions::empty().read());
 
     builder.object.segments.insert(Segment {
         start: dynamic_addr.extract(),

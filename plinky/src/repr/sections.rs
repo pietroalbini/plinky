@@ -5,7 +5,7 @@ use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
-use crate::repr::symbols::views::AllSymbols;
+use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -84,6 +84,8 @@ pub(crate) struct Section {
 pub(crate) enum SectionContent {
     Data(DataSection),
     Uninitialized(UninitializedSection),
+    StringsForSymbols(StringsForSymbolsSection),
+    Symbols(SymbolsSection),
 }
 
 #[derive(Debug)]
@@ -98,4 +100,15 @@ pub(crate) struct DataSection {
 pub(crate) struct UninitializedSection {
     pub(crate) perms: ElfPermissions,
     pub(crate) len: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct StringsForSymbolsSection {
+    pub(crate) view: Box<dyn SymbolsView>,
+}
+
+#[derive(Debug)]
+pub(crate) struct SymbolsSection {
+    pub(crate) strings: SectionId,
+    pub(crate) view: Box<dyn SymbolsView>,
 }

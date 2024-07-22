@@ -1,11 +1,14 @@
 use crate::repr::symbols::Symbol;
+use std::fmt::{Debug, Display};
+use plinky_macros::Display;
 
-pub(crate) trait SymbolsView {
+pub(crate) trait SymbolsView: Debug + Display {
     fn is_dynamic(&self) -> bool;
     fn filter(&self, symbol: &Symbol) -> bool;
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Display)]
+#[display("all symbols")]
 pub(crate) struct AllSymbols;
 
 impl SymbolsView for AllSymbols {
@@ -18,7 +21,8 @@ impl SymbolsView for AllSymbols {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Display)]
+#[display("dynamic symbols")]
 pub(crate) struct DynamicSymbols;
 
 impl SymbolsView for DynamicSymbols {

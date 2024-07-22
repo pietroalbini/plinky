@@ -10,3 +10,4 @@ pub(crate) mod relocate;
 pub(crate) mod remove_section_symbols;
 pub(crate) mod replace_section_relative_symbols;
 pub(crate) mod write_to_disk;
+pub(crate) mod inject_symbol_table;

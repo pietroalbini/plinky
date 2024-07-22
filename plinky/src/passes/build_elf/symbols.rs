@@ -16,8 +16,9 @@ pub(super) fn create_symbols<'a>(
     view: &dyn SymbolsView,
     ids: &mut BuiltElfIds,
     sections: &mut Sections,
+    string_table_id: BuiltElfSectionId,
 ) -> CreateSymbolsOutput {
-    let mut strings = PendingStringsTable::new(ids);
+    let mut strings = PendingStringsTable::new(string_table_id);
     let mut symbols = BTreeMap::new();
     let mut conversion = BTreeMap::new();
 
@@ -70,7 +71,6 @@ pub(super) fn create_symbols<'a>(
             dynsym: view.is_dynamic(),
             symbols,
         }),
-        string_table_id: strings.id,
         string_table: strings.into_elf(),
         conversion,
     }
@@ -79,7 +79,6 @@ pub(super) fn create_symbols<'a>(
 pub(super) struct CreateSymbolsOutput {
     pub(super) symbol_table: ElfSectionContent<BuiltElfIds>,
     pub(super) string_table: ElfSectionContent<BuiltElfIds>,
-    pub(super) string_table_id: BuiltElfSectionId,
     pub(super) conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
 }
 

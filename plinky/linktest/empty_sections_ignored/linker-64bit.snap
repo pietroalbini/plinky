@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -18,6 +17,16 @@ debug print: loaded object
  │   │  ╭──────────────────────────────────────────────┬─────────────────╮
  │   │  │ 4c 69 6e 6b 65 72 3a 20 70 6c 69 6e 6b 79 00 │ Linker: plinky. │
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
+ │   ┴
+ │
+ │  section .strtab#10 in <plinky>
+ │   │
+ │   │  strings table for symbols | view: all symbols
+ │   ┴
+ │
+ │  section .symtab#11 in <plinky>
+ │   │
+ │   │  symbols table | view: all symbols | strings: .strtab#10
  │   ┴
  │
  │  section .text.b#5 (perms: rx) in foo.o

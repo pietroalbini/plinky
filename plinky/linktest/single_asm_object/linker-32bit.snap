@@ -26,6 +26,16 @@ debug print: loaded object
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
+ │  section .strtab#9 in <plinky>
+ │   │
+ │   │  strings table for symbols | view: all symbols
+ │   ┴
+ │
+ │  section .symtab#10 in <plinky>
+ │   │
+ │   │  symbols table | view: all symbols | strings: .strtab#9
+ │   ┴
+ │
  │  section .text#1 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
@@ -68,6 +78,10 @@ debug print: calculated layout
  │  │ .data#3    │ hello.o       │ 0x401000       │
  │  ├────────────┼───────────────┼────────────────┤
  │  │ .comment#8 │ <plinky>      │ not allocated  │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .strtab#9  │ <plinky>      │ not allocated  │
+ │  ├────────────┼───────────────┼────────────────┤
+ │  │ .symtab#10 │ <plinky>      │ not allocated  │
  │  ╰────────────┴───────────────┴────────────────╯
  │
  │    Segments:
@@ -102,6 +116,16 @@ debug print: object after relocations are applied
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
+ │   ┴
+ │
+ │  section .strtab#9 in <plinky>
+ │   │
+ │   │  strings table for symbols | view: all symbols
+ │   ┴
+ │
+ │  section .symtab#10 in <plinky>
+ │   │
+ │   │  symbols table | view: all symbols | strings: .strtab#9
  │   ┴
  │
  │  section .text#1 (perms: rx) in hello.o
@@ -164,9 +188,9 @@ debug print: built elf
  │   │  ├──────┼───────────┤
  │   │  │ 0xd  │ .comment  │
  │   │  ├──────┼───────────┤
- │   │  │ 0x16 │ .symtab   │
+ │   │  │ 0x16 │ .strtab   │
  │   │  ├──────┼───────────┤
- │   │  │ 0x1e │ .strtab   │
+ │   │  │ 0x1e │ .symtab   │
  │   │  ├──────┼───────────┤
  │   │  │ 0x26 │ .shstrtab │
  │   │  ╰──────┴───────────╯
@@ -247,3 +271,6 @@ debug print: built elf
  │  │ GNU stack │ RW    │ 0x1      │ -       │
  │  ╰───────────┴───────┴──────────┴─────────╯
  ┴
+
+
+

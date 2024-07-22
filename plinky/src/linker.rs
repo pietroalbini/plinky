@@ -23,6 +23,7 @@ pub(crate) fn link_driver(
 
     let mut object = passes::load_inputs::run(options, &mut ids)?;
     let interp_section = passes::inject_interpreter::run(&options, &mut ids, &mut object)?;
+    passes::inject_symbol_table::run(&mut object, &mut ids);
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {

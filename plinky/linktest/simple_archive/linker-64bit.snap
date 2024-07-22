@@ -26,6 +26,16 @@ debug print: loaded object
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
+ │  section .strtab#16 in <plinky>
+ │   │
+ │   │  strings table for symbols | view: all symbols
+ │   ┴
+ │
+ │  section .symtab#17 in <plinky>
+ │   │
+ │   │  symbols table | view: all symbols | strings: .strtab#16
+ │   ┴
+ │
  │  section .text#1 (perms: rx) in entry.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
@@ -56,3 +66,6 @@ debug print: loaded object
  │  │ hello_len#6 │ none │ hello.o inside archive archived.a │ global     │ 0xd            │
  │  ╰─────────────┴──────┴───────────────────────────────────┴────────────┴────────────────╯
  ┴
+
+
+

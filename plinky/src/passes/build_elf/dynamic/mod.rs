@@ -15,31 +15,32 @@ use plinky_elf::{
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 
 macro_rules! add_section {
-    ($builder:expr, $segment:expr, $name:expr, $content:expr) => {
+    ($builder:expr, $segment_sections:expr, $name:expr, $content:expr) => {
         add_section!(
             $builder,
-            $segment,
+            $segment_sections,
             $name,
             $content,
             $builder.ids.allocate_section_id(),
             $builder.old_ids.allocate_section_id()
         )
     };
-    ($builder:expr, $segment:expr, $name:expr, $content:expr, $id:expr) => {
+    ($builder:expr, $segment_sections:expr, $name:expr, $content:expr, $id:expr) => {
         add_section!(
             $builder,
-            $segment,
+            $segment_sections,
             $name,
             $content,
             $id,
             $builder.old_ids.allocate_section_id()
         )
     };
-    ($builder:expr, $segment:expr, $name:expr, $content:expr, $id:expr, $old_id:expr) => {{
+    ($builder:expr, $segment_sections:expr, $name:expr, $content:expr, $id:expr, $old_id:expr) => {{
         let content = $content;
         let len = content.content_size($builder.object.env.class);
         let old_id = $old_id;
-        let layout = $segment.add_section(old_id, len as _);
+        let layout = $builder.layout.add_section(old_id, len as _);
+        $segment_sections.push(old_id);
         $builder.sections.create($name, content).layout(&layout).old_id(old_id).add_with_id($id);
         match layout {
             SectionLayout::Allocated { address } => address,
@@ -50,7 +51,7 @@ macro_rules! add_section {
 
 pub(crate) fn add(builder: &mut ElfBuilder) {
     let bits = builder.object.env.class;
-    let mut segment = builder.layout.prepare_segment();
+    let mut segment_sections = Vec::new();
 
     let string_table_id = builder.ids.allocate_section_id();
     let symbols = create_symbols(
@@ -63,10 +64,11 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
 
     let dynstr_len = symbols.string_table.content_size(bits);
     let dynstr_addr =
-        add_section!(builder, segment, ".dynstr", symbols.string_table, string_table_id);
+        add_section!(builder, segment_sections, ".dynstr", symbols.string_table, string_table_id);
 
     let dynsym = builder.ids.allocate_section_id();
-    let dynsym_addr = add_section!(builder, segment, ".dynsym", symbols.symbol_table, dynsym);
+    let dynsym_addr =
+        add_section!(builder, segment_sections, ".dynsym", symbols.symbol_table, dynsym);
 
     let rela = create_rela(
         builder.object.dynamic_relocations.iter(),
@@ -76,11 +78,11 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         &symbols.conversion,
     );
     let rela_len = rela.content_size(bits);
-    let rela_addr = add_section!(builder, segment, ".rela.dyn", rela);
+    let rela_addr = add_section!(builder, segment_sections, ".rela.dyn", rela);
 
     let hash_addr = add_section!(
         builder,
-        segment,
+        segment_sections,
         ".hash",
         create_sysv_hash(
             builder.object.symbols.iter(&DynamicSymbols).map(|(_id, sym)| sym),
@@ -105,9 +107,14 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             ElfDynamicDirective::Null,
         ],
     });
-    add_section!(builder, segment, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
+    add_section!(builder, segment_sections, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
 
-    segment.finalize(&mut builder.object, SegmentType::Program, ElfPermissions::empty().read());
+    builder.object.segments.push(Segment {
+        align: 0x1000,
+        type_: SegmentType::Program,
+        perms: ElfPermissions::empty().read(),
+        content: SegmentContent::Sections(segment_sections),
+    });
 
     builder.object.segments.push(Segment {
         align: <u64 as RawTypeAsPointerSize>::size(bits) as _,

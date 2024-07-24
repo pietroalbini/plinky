@@ -5,9 +5,8 @@ use crate::repr::sections::SectionContent;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
-use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const PAGE_SIZE: u64 = 0x1000;
 const STATIC_BASE_ADDRESS: u64 = 0x400000;
@@ -16,32 +15,9 @@ const PIE_BASE_ADDRESS: u64 = PAGE_SIZE;
 pub(crate) fn run(
     object: &mut Object,
     deduplications: BTreeMap<SectionId, Deduplication>,
-    interp_section: Option<SectionId>,
 ) -> Layout {
-    let mut grouped: BTreeMap<_, Vec<_>> = BTreeMap::new();
     let mut not_allocated = Vec::new();
-    for section in object.sections.iter() {
-        match &section.content {
-            SectionContent::Data(data) => grouped
-                .entry((
-                    if Some(section.id) == interp_section {
-                        SegmentType::Interpreter
-                    } else {
-                        SegmentType::Program
-                    },
-                    data.perms,
-                ))
-                .or_default()
-                .push((section.id, data.bytes.len() as u64)),
-            SectionContent::Uninitialized(uninit) => grouped
-                .entry((SegmentType::Uninitialized, uninit.perms))
-                .or_default()
-                .push((section.id, uninit.len)),
-            // Do not include these sections in the layout:
-            SectionContent::StringsForSymbols(_) => not_allocated.push(section.id),
-            SectionContent::Symbols(_) => not_allocated.push(section.id),
-        }
-    }
+    create_segments(object, &mut not_allocated);
 
     let mut layout = Layout {
         current_address: match object.mode {
@@ -51,19 +27,21 @@ pub(crate) fn run(
         sections: BTreeMap::new(),
         deduplications,
     };
-    for ((type_, perms), sections) in grouped.into_iter() {
-        if perms.read || perms.write || perms.execute {
-            let mut segment = layout.prepare_segment();
-            for &(section, len) in &sections {
-                segment.add_section(section, len);
+    for segment in &object.segments {
+        let SegmentContent::Sections(sections) = &segment.content else { continue };
+        for id in sections {
+            if layout.sections.contains_key(id) {
+                panic!("trying to layout the same section twice");
             }
-            segment.finalize(object, type_, perms);
-        } else {
-            // Avoid allocating sections that cannot be accessed at runtime.
-            for (section, _) in sections {
-                layout.sections.insert(section, SectionLayout::NotAllocated);
-            }
+            let len = match &object.sections.get(*id).unwrap().content {
+                SectionContent::Data(data) => data.bytes.len() as u64,
+                SectionContent::Uninitialized(uninit) => uninit.len,
+                SectionContent::StringsForSymbols(_) => unreachable!(),
+                SectionContent::Symbols(_) => unreachable!(),
+            };
+            layout.add_section(*id, len);
         }
+        layout.page_align();
     }
 
     for id in not_allocated {
@@ -71,6 +49,50 @@ pub(crate) fn run(
     }
 
     layout
+}
+
+fn create_segments(object: &mut Object, not_allocated: &mut Vec<SectionId>) {
+    // Segments can be created before the layout is generated. Ensure we don't put the sections in
+    // them in two different segments.
+    let sections_already_in_segments = object
+        .segments
+        .iter()
+        .filter_map(|segment| match &segment.content {
+            SegmentContent::ProgramHeader => None,
+            SegmentContent::ElfHeader => None,
+            SegmentContent::Sections(sections) => Some(sections),
+        })
+        .flatten()
+        .collect::<BTreeSet<_>>();
+
+    let mut segments = BTreeMap::new();
+    for section in object.sections.iter() {
+        if sections_already_in_segments.contains(&section.id) {
+            continue;
+        }
+        let (type_, perms) = match &section.content {
+            SectionContent::Data(data) => (SegmentType::Program, data.perms),
+            SectionContent::Uninitialized(uninit) => (SegmentType::Uninitialized, uninit.perms),
+            SectionContent::StringsForSymbols(_) | SectionContent::Symbols(_) => {
+                not_allocated.push(section.id);
+                continue;
+            }
+        };
+        if perms.read || perms.write || perms.execute {
+            segments.entry((type_, perms)).or_insert_with(Vec::new).push(section.id);
+        } else {
+            not_allocated.push(section.id);
+        }
+    }
+
+    for ((type_, perms), sections) in segments {
+        object.segments.push(Segment {
+            align: PAGE_SIZE,
+            type_,
+            perms,
+            content: SegmentContent::Sections(sections),
+        });
+    }
 }
 
 pub(crate) struct Layout {
@@ -120,37 +142,17 @@ impl Layout {
         self.deduplications.iter().map(|(id, dedup)| (*id, dedup))
     }
 
-    pub(crate) fn prepare_segment(&mut self) -> PendingSegment {
-        PendingSegment { sections: Vec::new(), layout: self }
-    }
-}
-
-pub(crate) struct PendingSegment<'a> {
-    layout: &'a mut Layout,
-    sections: Vec<SectionId>,
-}
-
-impl PendingSegment<'_> {
     pub(crate) fn add_section(&mut self, id: SectionId, len: u64) -> SectionLayout {
-        let layout = SectionLayout::Allocated { address: self.layout.current_address.into() };
+        let layout = SectionLayout::Allocated { address: self.current_address.into() };
 
-        self.layout.sections.insert(id, layout);
-        self.layout.current_address += len;
-        self.sections.push(id);
+        self.sections.insert(id, layout);
+        self.current_address += len;
 
         layout
     }
 
-    pub(crate) fn finalize(self, object: &mut Object, type_: SegmentType, perms: ElfPermissions) {
-        object.segments.push(Segment {
-            align: PAGE_SIZE,
-            type_,
-            perms,
-            content: SegmentContent::Sections(self.sections),
-        });
-
-        // Align to the page boundary.
-        self.layout.current_address = (self.layout.current_address + PAGE_SIZE) & !(PAGE_SIZE - 1);
+    pub(crate) fn page_align(&mut self) {
+        self.current_address = (self.current_address + PAGE_SIZE) & !(PAGE_SIZE - 1);
     }
 }
 

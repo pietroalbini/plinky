@@ -22,7 +22,7 @@ pub(crate) fn link_driver(
     let mut ids = SerialIds::new();
 
     let mut object = passes::load_inputs::run(options, &mut ids)?;
-    let interp_section = passes::inject_interpreter::run(&options, &mut ids, &mut object)?;
+    passes::inject_interpreter::run(&options, &mut ids, &mut object)?;
     passes::inject_symbol_table::run(&mut object, &mut ids);
     callbacks.on_inputs_loaded(&object);
 
@@ -35,7 +35,7 @@ pub(crate) fn link_driver(
 
     passes::generate_got::generate_got(&mut ids, &mut object);
 
-    let layout = passes::layout::run(&mut object, deduplications, interp_section);
+    let layout = passes::layout::run(&mut object, deduplications);
     callbacks.on_layout_calculated(&object, &layout);
 
     passes::relocate::run(&mut object, &layout)?;

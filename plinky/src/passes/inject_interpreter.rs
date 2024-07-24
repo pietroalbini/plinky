@@ -1,7 +1,8 @@
 use crate::cli::{CliOptions, Mode};
 use crate::repr::object::Object;
 use crate::repr::sections::DataSection;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use crate::repr::segments::{Segment, SegmentContent, SegmentType};
+use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
 
@@ -9,9 +10,9 @@ pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
     object: &mut Object,
-) -> Result<Option<SectionId>, InjectInterpreterError> {
+) -> Result<(), InjectInterpreterError> {
     match object.mode {
-        Mode::PositionDependent => return Ok(None),
+        Mode::PositionDependent => return Ok(()),
         Mode::PositionIndependent => {}
     }
 
@@ -28,12 +29,19 @@ pub(crate) fn run(
     }
     interpreter.push(0);
 
-    Ok(Some(
-        object
-            .sections
-            .builder(".interp", DataSection::new(ElfPermissions::empty().read(), &interpreter))
-            .create(ids),
-    ))
+    let section = object
+        .sections
+        .builder(".interp", DataSection::new(ElfPermissions::empty().read(), &interpreter))
+        .create(ids);
+
+    object.segments.push(Segment {
+        align: 1,
+        type_: SegmentType::Interpreter,
+        perms: ElfPermissions::empty().read(),
+        content: SegmentContent::Sections(vec![section]),
+    });
+
+    Ok(())
 }
 
 #[derive(Debug, Error, Display)]

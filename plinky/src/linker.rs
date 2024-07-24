@@ -35,6 +35,10 @@ pub(crate) fn link_driver(
 
     passes::generate_got::generate_got(&mut ids, &mut object);
 
+    // We cannot change which symbols appear on symbol views from this point onwards, otherwise the
+    // layout will be incorrect (as symbol tables will have a different size).
+    object.symbols.freeze();
+
     let layout = passes::layout::run(&mut object, deduplications);
     callbacks.on_layout_calculated(&object, &layout);
 

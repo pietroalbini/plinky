@@ -18,6 +18,7 @@ pub(crate) struct Symbols {
     null_symbol_id: SymbolId,
     symbols: BTreeMap<SymbolId, SymbolOrRedirect>,
     global_symbols: BTreeMap<Interned<String>, SymbolId>,
+    frozen: bool,
 }
 
 impl Symbols {
@@ -38,7 +39,11 @@ impl Symbols {
                 needed_by_dynamic: false,
             }),
         );
-        Self { null_symbol_id, symbols, global_symbols: BTreeMap::new() }
+        Self { null_symbol_id, symbols, global_symbols: BTreeMap::new(), frozen: false }
+    }
+
+    pub(crate) fn freeze(&mut self) {
+        self.frozen = true;
     }
 
     pub(crate) fn add_unknown_global(
@@ -61,10 +66,16 @@ impl Symbols {
     }
 
     pub(crate) fn add_redirect(&mut self, from: SymbolId, to: SymbolId) {
+        if self.frozen {
+            panic!("trying to add a redirect with frozen symbols");
+        }
         self.symbols.insert(from, SymbolOrRedirect::Redirect(to));
     }
 
     pub(crate) fn add_symbol(&mut self, mut symbol: Symbol) -> Result<(), LoadSymbolsError> {
+        if self.frozen {
+            panic!("trying to add a symbol with frozen symbols");
+        }
         match symbol.visibility {
             SymbolVisibility::Local => {
                 self.symbols.insert(symbol.id, SymbolOrRedirect::Symbol(symbol));

@@ -69,6 +69,7 @@ impl ElfBuilder {
                 &mut self.ids,
                 &mut self.sections,
                 string_table_id,
+                symbols_section.is_dynamic,
             );
             self.pending_symbol_tables.insert(section.id, created.symbol_table);
             self.pending_string_tables.insert(symbols_section.strings, created.string_table);

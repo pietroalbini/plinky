@@ -171,12 +171,17 @@ impl StringsForSymbolsSection {
 #[derive(Debug)]
 pub(crate) struct SymbolsSection {
     pub(crate) strings: SectionId,
+    pub(crate) is_dynamic: bool,
     pub(crate) view: Box<dyn SymbolsView>,
 }
 
 impl SymbolsSection {
-    pub(crate) fn new(strings: SectionId, view: impl SymbolsView + 'static) -> Self {
-        Self { strings, view: Box::new(view) }
+    pub(crate) fn new(
+        strings: SectionId,
+        view: impl SymbolsView + 'static,
+        is_dynamic: bool,
+    ) -> Self {
+        Self { strings, view: Box::new(view), is_dynamic }
     }
 }
 

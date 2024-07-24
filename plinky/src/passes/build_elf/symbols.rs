@@ -17,6 +17,7 @@ pub(super) fn create_symbols<'a>(
     ids: &mut BuiltElfIds,
     sections: &mut Sections,
     string_table_id: BuiltElfSectionId,
+    is_dynamic: bool,
 ) -> CreateSymbolsOutput {
     let mut strings = PendingStringsTable::new(string_table_id);
     let mut symbols = BTreeMap::new();
@@ -68,7 +69,7 @@ pub(super) fn create_symbols<'a>(
 
     CreateSymbolsOutput {
         symbol_table: ElfSectionContent::SymbolTable(ElfSymbolTable {
-            dynsym: view.is_dynamic(),
+            dynsym: is_dynamic,
             symbols,
         }),
         string_table: strings.into_elf(),

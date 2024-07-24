@@ -11,6 +11,6 @@ pub(crate) fn run(object: &mut Object, ids: &mut SerialIds) {
         .create_with_id(string_table_id);
     object
         .sections
-        .builder(".symtab", SymbolsSection::new(string_table_id, AllSymbols))
+        .builder(".symtab", SymbolsSection::new(string_table_id, AllSymbols, false))
         .create(ids);
 }

@@ -60,6 +60,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         &mut builder.ids,
         &mut builder.sections,
         string_table_id,
+        true,
     );
 
     let dynstr_len = symbols.string_table.content_size(bits);

@@ -1,11 +1,11 @@
-use crate::interner::Interned;
+use crate::interner::{intern, Interned};
 use crate::repr::relocations::Relocation;
+use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
-use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -22,11 +22,17 @@ impl Sections {
         self.inner.get(&id)
     }
 
-    pub(crate) fn add(&mut self, section: Section) {
-        // Avoid stale data if the section was removed and then added again.
-        self.names_of_removed_sections.remove(&section.id);
-
-        self.inner.insert(section.id, section);
+    pub(crate) fn builder<'a>(
+        &'a mut self,
+        name: &str,
+        content: impl Into<SectionContent>,
+    ) -> SectionBuilder<'a> {
+        SectionBuilder {
+            parent: self,
+            name: intern(name),
+            content: content.into(),
+            source: ObjectSpan::new_synthetic(),
+        }
     }
 
     pub(crate) fn remove(
@@ -72,12 +78,50 @@ impl Sections {
     }
 }
 
+#[must_use]
+pub(crate) struct SectionBuilder<'a> {
+    parent: &'a mut Sections,
+    name: Interned<String>,
+    content: SectionContent,
+    source: ObjectSpan,
+}
+
+impl SectionBuilder<'_> {
+    pub(crate) fn source(mut self, source: ObjectSpan) -> Self {
+        self.source = source;
+        self
+    }
+
+    pub(crate) fn create(self, ids: &mut SerialIds) -> SectionId {
+        let id = ids.allocate_section_id();
+        self.create_with_id(id);
+        id
+    }
+
+    pub(crate) fn create_with_id(self, id: SectionId) {
+        // Avoid stale data if the section was removed and then added again.
+        self.parent.names_of_removed_sections.remove(&id);
+
+        self.parent.inner.insert(
+            id,
+            Section {
+                id,
+                name: self.name,
+                source: self.source,
+                content: self.content,
+                _prevent_creation: (),
+            },
+        );
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Section {
     pub(crate) id: SectionId,
     pub(crate) name: Interned<String>,
     pub(crate) source: ObjectSpan,
     pub(crate) content: SectionContent,
+    _prevent_creation: (),
 }
 
 #[derive(Debug)]
@@ -96,6 +140,17 @@ pub(crate) struct DataSection {
     pub(crate) relocations: Vec<Relocation>,
 }
 
+impl DataSection {
+    pub(crate) fn new(perms: ElfPermissions, content: &[u8]) -> Self {
+        Self {
+            perms,
+            deduplication: ElfDeduplication::Disabled,
+            bytes: content.into(),
+            relocations: Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct UninitializedSection {
     pub(crate) perms: ElfPermissions,
@@ -107,8 +162,35 @@ pub(crate) struct StringsForSymbolsSection {
     pub(crate) view: Box<dyn SymbolsView>,
 }
 
+impl StringsForSymbolsSection {
+    pub(crate) fn new(view: impl SymbolsView + 'static) -> Self {
+        Self { view: Box::new(view) }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct SymbolsSection {
     pub(crate) strings: SectionId,
     pub(crate) view: Box<dyn SymbolsView>,
 }
+
+impl SymbolsSection {
+    pub(crate) fn new(strings: SectionId, view: impl SymbolsView + 'static) -> Self {
+        Self { strings, view: Box::new(view) }
+    }
+}
+
+macro_rules! from {
+    (impl From<$from:ident> for $enum:ident::$variant:ident) => {
+        impl From<$from> for $enum {
+            fn from(value: $from) -> $enum {
+                $enum::$variant(value)
+            }
+        }
+    };
+}
+
+from!(impl From<DataSection> for SectionContent::Data);
+from!(impl From<UninitializedSection> for SectionContent::Uninitialized);
+from!(impl From<StringsForSymbolsSection> for SectionContent::StringsForSymbols);
+from!(impl From<SymbolsSection> for SectionContent::Symbols);

@@ -1,10 +1,8 @@
 use crate::cli::{CliOptions, Mode};
-use crate::interner::intern;
 use crate::repr::object::Object;
-use crate::repr::sections::{DataSection, Section, SectionContent};
-use plinky_diagnostics::ObjectSpan;
+use crate::repr::sections::DataSection;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::{ElfDeduplication, ElfPermissions};
+use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
 
 pub(crate) fn run(
@@ -30,20 +28,12 @@ pub(crate) fn run(
     }
     interpreter.push(0);
 
-    let id = ids.allocate_section_id();
-    object.sections.add(Section {
-        id,
-        name: intern(".interp"),
-        source: ObjectSpan::new_synthetic(),
-        content: SectionContent::Data(DataSection {
-            perms: ElfPermissions::empty().read(),
-            deduplication: ElfDeduplication::Disabled,
-            bytes: interpreter,
-            relocations: Vec::new(),
-        }),
-    });
-
-    Ok(Some(id))
+    Ok(Some(
+        object
+            .sections
+            .builder(".interp", DataSection::new(ElfPermissions::empty().read(), &interpreter))
+            .create(ids),
+    ))
 }
 
 #[derive(Debug, Error, Display)]

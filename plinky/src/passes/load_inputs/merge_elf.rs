@@ -3,7 +3,7 @@ use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGrou
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::UnsupportedRelocationType;
-use crate::repr::sections::{DataSection, Section, SectionContent, UninitializedSection};
+use crate::repr::sections::{DataSection, UninitializedSection};
 use crate::repr::symbols::{
     LoadSymbolsError, Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols,
 };
@@ -95,41 +95,38 @@ pub(super) fn merge(
         if section_groups.should_skip_section(id) {
             continue;
         }
-        object.sections.add(Section {
-            id,
-            name: intern(
+        object
+            .sections
+            .builder(
                 strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
-            ),
-            source: source.clone(),
-            content: SectionContent::Uninitialized(UninitializedSection {
-                perms: uninit.perms,
-                len: uninit.len,
-            }),
-        });
+                UninitializedSection { perms: uninit.perms, len: uninit.len },
+            )
+            .source(source.clone())
+            .create_with_id(id);
     }
 
     for (id, name, program) in program_sections {
         if section_groups.should_skip_section(id) {
             continue;
         }
-        object.sections.add(Section {
-            id,
-            name: intern(
+        object
+            .sections
+            .builder(
                 strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
-            ),
-            source: source.clone(),
-            content: SectionContent::Data(DataSection {
-                perms: program.perms,
-                deduplication: program.deduplication,
-                bytes: program.raw.0,
-                relocations: relocations
-                    .remove(&id)
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|r| r.try_into())
-                    .collect::<Result<_, _>>()?,
-            }),
-        });
+                DataSection {
+                    perms: program.perms,
+                    deduplication: program.deduplication,
+                    bytes: program.raw.0,
+                    relocations: relocations
+                        .remove(&id)
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|r| r.try_into())
+                        .collect::<Result<_, _>>()?,
+                },
+            )
+            .source(source.clone())
+            .create_with_id(id);
     }
     Ok(())
 }

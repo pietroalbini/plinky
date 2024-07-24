@@ -1,11 +1,9 @@
-use crate::interner::intern;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
-use crate::repr::sections::{DataSection, Section, SectionContent};
+use crate::repr::sections::{DataSection, SectionContent};
 use crate::utils::ints::Offset;
-use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plinky_elf::{ElfDeduplication, ElfPermissions};
+use plinky_elf::ElfPermissions;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
@@ -53,18 +51,10 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
         offsets.insert(symbol, offset);
     }
 
-    let id = ids.allocate_section_id();
-    object.sections.add(Section {
-        id,
-        name: intern(".got"),
-        source: ObjectSpan::new_synthetic(),
-        content: SectionContent::Data(DataSection {
-            perms: ElfPermissions::empty().read().write(),
-            deduplication: ElfDeduplication::Disabled,
-            bytes,
-            relocations,
-        }),
-    });
+    let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
+    data.relocations = relocations;
+    let id = object.sections.builder(".got", data).create(ids);
+
     object.got = Some(GOT { id, offsets });
 }
 

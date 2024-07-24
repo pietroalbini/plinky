@@ -1,6 +1,6 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
-use crate::repr::sections::{DataSection, Section, SectionContent};
+use crate::repr::sections::{DataSection, SectionContent};
 use crate::utils::ints::Offset;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
@@ -96,20 +96,24 @@ fn deduplicate(
         sections_to_remove.push(section_id);
     }
 
-    object.sections.add(Section {
-        id: merged_id,
-        name,
-        source: source.expect("no deduplicated sections"),
-        content: SectionContent::Data(DataSection {
-            perms,
-            deduplication: match split_rule {
-                SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
-                SplitRule::FixedSizeChunks { size } => ElfDeduplication::FixedSizeChunks { size },
+    object
+        .sections
+        .builder(
+            &*name.resolve(),
+            DataSection {
+                perms,
+                deduplication: match split_rule {
+                    SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
+                    SplitRule::FixedSizeChunks { size } => {
+                        ElfDeduplication::FixedSizeChunks { size }
+                    }
+                },
+                bytes: merged,
+                relocations: Vec::new(),
             },
-            bytes: merged,
-            relocations: Vec::new(),
-        }),
-    });
+        )
+        .source(source.expect("no deduplicated sections"))
+        .create_with_id(merged_id);
 
     for id in sections_to_remove {
         object.sections.remove(id, None);

@@ -2,7 +2,7 @@ use crate::debug_print::utils::section_name;
 use crate::passes::deduplicate::Deduplication;
 use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
-use crate::repr::segments::{SegmentContent, SegmentType};
+use crate::repr::segments::{SegmentContent, SegmentStart, SegmentType};
 use plinky_diagnostics::widgets::{Table, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SectionId;
@@ -33,7 +33,10 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
     segments.add_row(["Start", "Align", "Type", "Permissions", "Content"]);
     for segment in object.segments.iter() {
         segments.add_row([
-            format!("{:#x}", segment.start),
+            match segment.start(layout) {
+                SegmentStart::Address(address) => format!("{address}"),
+                SegmentStart::ProgramHeader => format!("<program header>"),
+            },
             format!("{:#x}", segment.align),
             match segment.type_ {
                 SegmentType::ProgramHeader => "program header".into(),

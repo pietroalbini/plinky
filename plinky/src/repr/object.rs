@@ -6,13 +6,12 @@ use crate::repr::segments::Segment;
 use crate::repr::symbols::Symbols;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::ElfEnvironment;
-use std::collections::BTreeSet;
 
 #[derive(Debug)]
 pub(crate) struct Object {
     pub(crate) env: ElfEnvironment,
     pub(crate) sections: Sections,
-    pub(crate) segments: BTreeSet<Segment>,
+    pub(crate) segments: Vec<Segment>,
     pub(crate) symbols: Symbols,
     pub(crate) dynamic_relocations: Vec<Relocation>,
     pub(crate) got: Option<GOT>,

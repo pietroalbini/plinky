@@ -10,7 +10,6 @@ use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
 use plinky_macros::{Display, Error};
-use std::collections::BTreeSet;
 
 mod cleanup;
 mod inject_version;
@@ -44,7 +43,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                 let mut object = Object {
                     env: elf.env,
                     sections: Sections::new(),
-                    segments: BTreeSet::new(),
+                    segments: Vec::new(),
                     symbols,
                     dynamic_relocations: Vec::new(),
                     got: None,

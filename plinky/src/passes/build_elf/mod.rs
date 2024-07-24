@@ -175,7 +175,7 @@ impl ElfBuilder {
         let mut elf_segments = Vec::new();
         for segment in self.object.segments.iter() {
             elf_segments.push((
-                segment.start,
+                segment.start(&self.layout),
                 ElfSegment {
                     type_: match segment.type_ {
                         SegmentType::Dynamic => ElfSegmentType::Dynamic,

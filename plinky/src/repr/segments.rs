@@ -1,28 +1,31 @@
+use crate::passes::layout::{Layout, SectionLayout};
+use crate::utils::ints::Address;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
-use std::cmp::Ordering;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Segment {
-    pub(crate) start: u64,
     pub(crate) align: u64,
     pub(crate) type_: SegmentType,
     pub(crate) perms: ElfPermissions,
     pub(crate) content: SegmentContent,
 }
 
-impl PartialOrd for Segment {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Segment {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.type_
-            .cmp(&other.type_)
-            .then(self.start.cmp(&other.start))
-            .then(self.content.cmp(&other.content))
+impl Segment {
+    pub(crate) fn start(&self, layout: &Layout) -> SegmentStart {
+        match &self.content {
+            SegmentContent::ProgramHeader => SegmentStart::ProgramHeader,
+            SegmentContent::ElfHeader => SegmentStart::Address(0u64.into()),
+            SegmentContent::Sections(ids) => SegmentStart::Address(
+                ids.iter()
+                    .map(|id| match layout.of_section(*id) {
+                        SectionLayout::Allocated { address } => *address,
+                        SectionLayout::NotAllocated => panic!("non-allocated section in layout"),
+                    })
+                    .min()
+                    .expect("empty segment"),
+            ),
+        }
     }
 }
 
@@ -40,4 +43,10 @@ pub(crate) enum SegmentContent {
     ProgramHeader,
     ElfHeader,
     Sections(Vec<SectionId>),
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) enum SegmentStart {
+    ProgramHeader,
+    Address(Address),
 }

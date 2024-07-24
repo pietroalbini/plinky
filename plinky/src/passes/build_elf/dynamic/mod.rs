@@ -105,29 +105,25 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
             ElfDynamicDirective::Null,
         ],
     });
-    let dynamic_addr =
-        add_section!(builder, segment, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
+    add_section!(builder, segment, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
 
     segment.finalize(&mut builder.object, SegmentType::Program, ElfPermissions::empty().read());
 
-    builder.object.segments.insert(Segment {
-        start: dynamic_addr.extract(),
+    builder.object.segments.push(Segment {
         align: <u64 as RawTypeAsPointerSize>::size(bits) as _,
         type_: SegmentType::Dynamic,
         perms: ElfPermissions::empty().read(),
         content: SegmentContent::Sections(vec![dynamic_old_id]),
     });
     for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
-        builder.object.segments.insert(Segment {
-            start: 0,
+        builder.object.segments.push(Segment {
             align: 0x1000,
             type_,
             perms: ElfPermissions::empty().read(),
             content: SegmentContent::ProgramHeader,
         });
     }
-    builder.object.segments.insert(Segment {
-        start: 0,
+    builder.object.segments.push(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),

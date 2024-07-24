@@ -35,6 +35,7 @@ pub(crate) fn link_driver(
 
     passes::generate_got::generate_got(&mut ids, &mut object);
     passes::exclude_section_symbols_from_tables::remove(&mut object);
+    passes::demote_global_hidden_symbols::run(&mut object);
 
     // We cannot change which symbols appear on symbol views from this point onwards, otherwise the
     // layout will be incorrect (as symbol tables will have a different size).
@@ -47,7 +48,6 @@ pub(crate) fn link_driver(
     callbacks.on_relocations_applied(&object, &layout);
 
     passes::replace_section_relative_symbols::replace(&mut object, &layout)?;
-    passes::demote_global_hidden_symbols::run(&mut object);
 
     let elf = passes::build_elf::run(object, layout, ids)?;
     callbacks.on_elf_built(&elf);

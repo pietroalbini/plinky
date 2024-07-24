@@ -7,7 +7,7 @@ use crate::repr::sections::{
     DataSection, Section, SectionContent, StringsForSymbolsSection, SymbolsSection,
     UninitializedSection,
 };
-use crate::repr::symbols::views::{AllSymbols, DynamicSymbols, SymbolsView};
+use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
@@ -35,7 +35,7 @@ pub(super) fn render_object(
         .add_iter(
             filter
                 .dynamic
-                .then(|| render_symbols(object, "Dynamic symbols:", &DynamicSymbols))
+                .then(|| render_symbols(object, "Dynamic symbols:", &DynamicSymbolTable))
                 .flatten(),
         )
         .add_iter((filter.dynamic && !object.dynamic_relocations.is_empty()).then(|| {

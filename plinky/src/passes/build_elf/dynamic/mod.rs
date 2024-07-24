@@ -6,7 +6,7 @@ use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
-use crate::repr::symbols::views::DynamicSymbols;
+use crate::repr::symbols::views::DynamicSymbolTable;
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::{
@@ -56,7 +56,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
     let string_table_id = builder.ids.allocate_section_id();
     let symbols = create_symbols(
         &builder.object.symbols,
-        &DynamicSymbols,
+        &DynamicSymbolTable,
         &mut builder.ids,
         &mut builder.sections,
         string_table_id,
@@ -86,7 +86,7 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         segment_sections,
         ".hash",
         create_sysv_hash(
-            builder.object.symbols.iter(&DynamicSymbols).map(|(_id, sym)| sym),
+            builder.object.symbols.iter(&DynamicSymbolTable).map(|(_id, sym)| sym),
             dynsym,
         )
     );

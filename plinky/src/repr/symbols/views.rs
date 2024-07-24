@@ -17,10 +17,10 @@ impl SymbolsView for AllSymbols {
 }
 
 #[derive(Clone, Copy, Debug, Display)]
-#[display("dynamic symbols")]
-pub(crate) struct DynamicSymbols;
+#[display("dynamic symbol table")]
+pub(crate) struct DynamicSymbolTable;
 
-impl SymbolsView for DynamicSymbols {
+impl SymbolsView for DynamicSymbolTable {
     fn filter(&self, symbol: &Symbol) -> bool {
         symbol.needed_by_dynamic
     }

@@ -7,7 +7,7 @@ pub(crate) mod inject_interpreter;
 pub(crate) mod layout;
 pub(crate) mod load_inputs;
 pub(crate) mod relocate;
-pub(crate) mod remove_section_symbols;
+pub(crate) mod exclude_section_symbols_from_tables;
 pub(crate) mod replace_section_relative_symbols;
 pub(crate) mod write_to_disk;
 pub(crate) mod inject_symbol_table;

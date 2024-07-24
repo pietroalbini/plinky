@@ -37,6 +37,7 @@ impl Symbols {
                 visibility: SymbolVisibility::Local,
                 value: SymbolValue::Null,
                 needed_by_dynamic: false,
+                exclude_from_tables: false,
             }),
         );
         Self { null_symbol_id, symbols, global_symbols: BTreeMap::new(), frozen: false }
@@ -61,6 +62,7 @@ impl Symbols {
             visibility: SymbolVisibility::Global { weak: false, hidden: false },
             value: SymbolValue::Undefined,
             needed_by_dynamic: false,
+            exclude_from_tables: false,
         })?;
         Ok(id)
     }
@@ -117,6 +119,9 @@ impl Symbols {
     }
 
     pub(crate) fn remove(&mut self, id: SymbolId) {
+        if self.frozen {
+            panic!("trying to remove a symbol with frozen symbols");
+        }
         self.symbols.remove(&id);
     }
 
@@ -133,19 +138,19 @@ impl Symbols {
         panic!("too many redirects while resolving symbol {id:?}");
     }
 
+    pub(crate) fn get_mut(&mut self, id: SymbolId) -> &mut Symbol {
+        let id = self.get(id).id; // Resolve redirects.
+        match self.symbols.get_mut(&id).unwrap() {
+            SymbolOrRedirect::Symbol(symbol) => symbol,
+            SymbolOrRedirect::Redirect(_) => unreachable!(),
+        }
+    }
+
     pub(crate) fn get_global(
         &self,
         name: Interned<String>,
     ) -> Result<&Symbol, MissingGlobalSymbol> {
         Ok(self.get(*self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })?))
-    }
-
-    pub(crate) fn add_symbol_to_dynamic(&mut self, id: SymbolId) {
-        let id = self.get(id).id; // Resolve redirects.
-        match self.symbols.get_mut(&id).unwrap() {
-            SymbolOrRedirect::Symbol(symbol) => symbol.needed_by_dynamic = true,
-            SymbolOrRedirect::Redirect(_) => unreachable!(),
-        }
     }
 
     pub(crate) fn iter<'a>(

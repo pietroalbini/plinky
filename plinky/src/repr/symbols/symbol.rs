@@ -15,6 +15,7 @@ pub(crate) struct Symbol {
     pub(crate) visibility: SymbolVisibility,
     pub(crate) value: SymbolValue,
     pub(crate) needed_by_dynamic: bool,
+    pub(crate) exclude_from_tables: bool,
 }
 
 impl Symbol {

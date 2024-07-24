@@ -212,6 +212,7 @@ fn merge_symbols(
                 },
             },
             needed_by_dynamic: false,
+            exclude_from_tables: false,
         };
 
         symbols.add_symbol(symbol)?;

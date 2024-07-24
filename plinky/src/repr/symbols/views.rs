@@ -17,11 +17,21 @@ impl SymbolsView for AllSymbols {
 }
 
 #[derive(Clone, Copy, Debug, Display)]
+#[display("symbol table")]
+pub(crate) struct SymbolTable;
+
+impl SymbolsView for SymbolTable {
+    fn filter(&self, symbol: &Symbol) -> bool {
+        !symbol.exclude_from_tables
+    }
+}
+
+#[derive(Clone, Copy, Debug, Display)]
 #[display("dynamic symbol table")]
 pub(crate) struct DynamicSymbolTable;
 
 impl SymbolsView for DynamicSymbolTable {
     fn filter(&self, symbol: &Symbol) -> bool {
-        symbol.needed_by_dynamic
+        symbol.needed_by_dynamic && !symbol.exclude_from_tables
     }
 }

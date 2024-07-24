@@ -35,12 +35,12 @@ debug print: loaded object
  │
  │  section .strtab#19 in <plinky>
  │   │
- │   │  strings table for symbols | view: all symbols
+ │   │  strings table for symbols | view: symbol table
  │   ┴
  │
  │  section .symtab#20 in <plinky>
  │   │
- │   │  symbols table | view: all symbols | strings: .strtab#19
+ │   │  symbols table | view: symbol table | strings: .strtab#19
  │   ┴
  │
  │  section .text#1 (perms: rx) in goodbye.o
@@ -167,12 +167,12 @@ debug print: object after relocations are applied
  │
  │  section .strtab#19 in <plinky>
  │   │
- │   │  strings table for symbols | view: all symbols
+ │   │  strings table for symbols | view: symbol table
  │   ┴
  │
  │  section .symtab#20 in <plinky>
  │   │
- │   │  symbols table | view: all symbols | strings: .strtab#19
+ │   │  symbols table | view: symbol table | strings: .strtab#19
  │   ┴
  │
  │  section .text#1 (perms: rx) in goodbye.o

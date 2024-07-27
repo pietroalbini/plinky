@@ -51,6 +51,7 @@ pub(crate) fn run(
                     segments: Vec::new(),
                     symbols,
                     dynamic_relocations: Vec::new(),
+                    dynamic_entries: Vec::new(),
                     got: None,
                     entry_point,
                     mode: options.mode,

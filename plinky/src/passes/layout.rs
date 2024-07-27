@@ -5,7 +5,9 @@ use crate::repr::sections::SectionContent;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
+use plinky_elf::raw::RawSymbol;
 use plinky_macros::{Display, Error};
+use plinky_utils::raw_types::RawType;
 use std::collections::{BTreeMap, BTreeSet};
 
 const PAGE_SIZE: u64 = 0x1000;
@@ -33,12 +35,7 @@ pub(crate) fn run(
             if layout.sections.contains_key(id) {
                 panic!("trying to layout the same section twice");
             }
-            let len = match &object.sections.get(*id).unwrap().content {
-                SectionContent::Data(data) => data.bytes.len() as u64,
-                SectionContent::Uninitialized(uninit) => uninit.len,
-                SectionContent::StringsForSymbols(_) => unreachable!(),
-                SectionContent::Symbols(_) => unreachable!(),
-            };
+            let len = section_len(&object, *id);
             layout.add_section(*id, len);
         }
         layout.page_align();
@@ -49,6 +46,24 @@ pub(crate) fn run(
     }
 
     layout
+}
+
+fn section_len(object: &Object, id: SectionId) -> u64 {
+    match &object.sections.get(id).unwrap().content {
+        SectionContent::Data(data) => data.bytes.len() as u64,
+        SectionContent::Uninitialized(uninit) => uninit.len,
+
+        SectionContent::StringsForSymbols(strings) => object
+            .symbols
+            .iter(&*strings.view)
+            .map(|(_, symbol)| symbol.name().resolve().len() + 1 /* null byte */)
+            .chain(std::iter::once(1)) // Null symbol
+            .sum::<usize>() as u64,
+
+        SectionContent::Symbols(symbols) => {
+            (object.symbols.iter(&*symbols.view).count() * RawSymbol::size(object.env.class)) as u64
+        }
+    }
 }
 
 fn create_segments(object: &mut Object, not_allocated: &mut Vec<SectionId>) {

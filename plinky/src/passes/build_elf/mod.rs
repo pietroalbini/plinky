@@ -6,7 +6,10 @@ mod symbols;
 
 use crate::cli::Mode;
 use crate::interner::Interned;
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
+use crate::passes::build_elf::ids::{
+    BuiltElfIds, BuiltElfSectionId, BuiltElfStringId, BuiltElfSymbolId,
+};
+use crate::passes::build_elf::relocations::RelaCreationError;
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::layout::Layout;
@@ -15,7 +18,7 @@ use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::ints::{Address, ExtractNumber};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -23,7 +26,6 @@ use plinky_elf::{
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
-use crate::passes::build_elf::relocations::RelaCreationError;
 
 pub(crate) fn run(
     object: Object,
@@ -39,6 +41,7 @@ pub(crate) fn run(
         old_ids,
         pending_symbol_tables: BTreeMap::new(),
         pending_string_tables: BTreeMap::new(),
+        symbol_conversion: BTreeMap::new(),
     };
     builder.build()
 }
@@ -52,6 +55,7 @@ struct ElfBuilder {
 
     pending_symbol_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
     pending_string_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
+    symbol_conversion: BTreeMap<SectionId, BTreeMap<SymbolId, BuiltElfSymbolId>>,
 }
 
 impl ElfBuilder {
@@ -74,6 +78,7 @@ impl ElfBuilder {
             );
             self.pending_symbol_tables.insert(section.id, created.symbol_table);
             self.pending_string_tables.insert(symbols_section.strings, created.string_table);
+            self.symbol_conversion.insert(section.id, created.conversion);
         }
 
         let entry = self.prepare_entry_point()?;
@@ -158,6 +163,7 @@ impl ElfBuilder {
                         .expect("string table should've been prepared");
                     self.sections
                         .create(&section.name.resolve(), content)
+                        .layout(self.layout.of_section(section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::Symbols(_) => {
@@ -167,6 +173,7 @@ impl ElfBuilder {
                         .expect("symbol table should've been prepared");
                     self.sections
                         .create(&section.name.resolve(), content)
+                        .layout(self.layout.of_section(section.id))
                         .add_from_existing(section.id);
                 }
             }

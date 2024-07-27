@@ -14,6 +14,7 @@ use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use crate::passes::inject_interpreter::InjectInterpreterError;
+use crate::utils::before_freeze::BeforeFreeze;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -21,25 +22,28 @@ pub(crate) fn link_driver(
 ) -> Result<(), LinkerError> {
     let mut ids = SerialIds::new();
 
-    let mut object = passes::load_inputs::run(options, &mut ids)?;
+    // SAFETY: this is the beginning of the linking process.
+    let before_freeze = unsafe { BeforeFreeze::new() };
+
+    let mut object = passes::load_inputs::run(options, &mut ids, &before_freeze)?;
     passes::inject_interpreter::run(&options, &mut ids, &mut object)?;
     passes::inject_symbol_table::run(&mut object, &mut ids);
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {
-        let removed = passes::gc_sections::run(&mut object);
+        let removed = passes::gc_sections::run(&mut object, &before_freeze);
         callbacks.on_sections_removed_by_gc(&object, &removed);
     }
 
-    let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
+    let deduplications = passes::deduplicate::run(&mut object, &mut ids, &before_freeze)?;
 
     passes::generate_got::generate_got(&mut ids, &mut object);
-    passes::exclude_section_symbols_from_tables::remove(&mut object);
+    passes::exclude_section_symbols_from_tables::remove(&mut object, &before_freeze);
     passes::demote_global_hidden_symbols::run(&mut object);
 
     // We cannot change which symbols appear on symbol views from this point onwards, otherwise the
     // layout will be incorrect (as symbol tables will have a different size).
-    object.symbols.freeze();
+    drop(before_freeze);
 
     let layout = passes::layout::run(&mut object, deduplications);
     callbacks.on_layout_calculated(&object, &layout);

@@ -1,6 +1,7 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent};
+use crate::utils::before_freeze::BeforeFreeze;
 use crate::utils::ints::Offset;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
@@ -12,6 +13,7 @@ use std::num::NonZeroU64;
 pub(crate) fn run(
     object: &mut Object,
     ids: &mut SerialIds,
+    before_freeze: &BeforeFreeze,
 ) -> Result<BTreeMap<SectionId, Deduplication>, DeduplicationError> {
     let mut groups: BTreeMap<_, Vec<_>> = BTreeMap::new();
     for section in object.sections.iter() {
@@ -40,7 +42,7 @@ pub(crate) fn run(
     let mut deduplications = BTreeMap::new();
     for ((name, perms, split_rule), section_ids) in groups {
         if section_ids.len() > 1 {
-            deduplicate(ids, &mut deduplications, object, name, perms, split_rule, &section_ids)
+            deduplicate(ids, &mut deduplications, object, name, perms, split_rule, &section_ids, before_freeze)
                 .map_err(|kind| DeduplicationError { section_name: name, kind })?;
         }
     }
@@ -56,6 +58,7 @@ fn deduplicate(
     perms: ElfPermissions,
     split_rule: SplitRule,
     section_ids: &[SectionId],
+    before_freeze: &BeforeFreeze,
 ) -> Result<(), DeduplicationErrorKind> {
     let merged_id = ids.allocate_section_id();
     let mut merged = Vec::new();
@@ -116,7 +119,7 @@ fn deduplicate(
         .create_with_id(merged_id);
 
     for id in sections_to_remove {
-        object.sections.remove(id, None);
+        object.sections.remove(id, None, before_freeze);
     }
 
     Ok(())

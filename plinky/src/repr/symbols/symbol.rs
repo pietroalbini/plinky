@@ -8,6 +8,7 @@ use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
 use plinky_macros::{Display, Error, Getters};
+use crate::utils::before_freeze::BeforeFreeze;
 
 #[derive(Debug, Getters)]
 pub(crate) struct Symbol {
@@ -134,7 +135,7 @@ impl Symbol {
         self.needed_by_dynamic = true;
     }
 
-    pub(crate) fn mark_exclude_from_tables(&mut self) {
+    pub(crate) fn mark_exclude_from_tables(&mut self, _before: &BeforeFreeze) {
         self.exclude_from_tables = true;
     }
 

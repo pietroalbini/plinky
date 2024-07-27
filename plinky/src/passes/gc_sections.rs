@@ -2,11 +2,12 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolValue;
+use crate::utils::before_freeze::BeforeFreeze;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
+pub(crate) fn run(object: &mut Object, before_freeze: &BeforeFreeze) -> Vec<RemovedSection> {
     let mut visitor = Visitor {
         symbols_to_sections: object
             .symbols
@@ -42,7 +43,9 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     let all_sections = object.sections.iter().map(|s| s.id).collect::<Vec<_>>();
     for section_id in all_sections {
         if !visitor.to_save.contains(&section_id) {
-            if let Some(removed) = object.sections.remove(section_id, Some(&mut object.symbols)) {
+            if let Some(removed) =
+                object.sections.remove(section_id, Some(&mut object.symbols), before_freeze)
+            {
                 removed_sections.push(RemovedSection { id: section_id, source: removed.source });
             }
         }

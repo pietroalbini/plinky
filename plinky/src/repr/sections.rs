@@ -6,6 +6,7 @@ use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
+use crate::utils::before_freeze::BeforeFreeze;
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -39,6 +40,7 @@ impl Sections {
         &mut self,
         id: SectionId,
         purge_symbols_from: Option<&mut Symbols>,
+        before_freeze: &BeforeFreeze,
     ) -> Option<Section> {
         let removed_section = self.inner.remove(&id)?;
         self.names_of_removed_sections.insert(id, removed_section.name);
@@ -54,7 +56,7 @@ impl Sections {
                 }
             }
             for symbol_id in symbols_to_remove {
-                symbols.remove(symbol_id);
+                symbols.remove(symbol_id, before_freeze);
             }
         }
 

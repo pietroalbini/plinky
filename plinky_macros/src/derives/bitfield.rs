@@ -12,7 +12,7 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 
     let bitfield_impl = generate_impl_for(
         &Item::Struct(parsed.clone()),
-        "plinky_utils::bitfields::Bitfield",
+        Some("plinky_utils::bitfields::Bitfield"),
         quote! {
             #{ bitfield_type_repr(&parsed)? }
             #{ bitfield_fn_read(&fields) }
@@ -25,7 +25,7 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 
         Some(generate_impl_for(
             &Item::Struct(parsed.clone()),
-            "std::fmt::Display",
+            Some("std::fmt::Display"),
             display_fn_fmt(&fields),
         ))
     } else {

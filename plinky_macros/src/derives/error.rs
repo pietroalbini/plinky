@@ -16,7 +16,7 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 fn generate_error_impl(item: &Item) -> Result<TokenStream, Error> {
     Ok(generate_impl_for(
         item,
-        "std::error::Error",
+        Some("std::error::Error"),
         quote! {
             #{ generate_error_source(item)? }
             #{ generate_error_provide(item)? }
@@ -174,7 +174,7 @@ fn generate_from_impls(item: &Item) -> Result<Vec<TokenStream>, Error> {
         let variable = ident("__value__");
         generate_impl_for(
             item,
-            &format!("From<{}>", ty.0),
+            Some(&format!("From<{}>", ty.0)),
             quote! {
                 fn from(#variable: #ty) -> Self {
                     #{ setter(variable) }

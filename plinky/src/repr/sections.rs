@@ -46,10 +46,10 @@ impl Sections {
         if let Some(symbols) = purge_symbols_from {
             let mut symbols_to_remove = Vec::new();
             for (symbol_id, symbol) in symbols.iter(&AllSymbols) {
-                let SymbolValue::SectionRelative { section, .. } = &symbol.value else {
+                let SymbolValue::SectionRelative { section, .. } = symbol.value() else {
                     continue;
                 };
-                if *section == removed_section.id {
+                if section == removed_section.id {
                     symbols_to_remove.push(symbol_id);
                 }
             }

@@ -109,7 +109,7 @@ impl<'a> Relocator<'a> {
                     }
                 }
                 Mode::PositionIndependent => {
-                    self.symbols.get_mut(relocation.symbol).needed_by_dynamic = true;
+                    self.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
 
                     self.dynamic_relocations.push(Relocation {
                         type_: RelocationType::FillGOTSlot,

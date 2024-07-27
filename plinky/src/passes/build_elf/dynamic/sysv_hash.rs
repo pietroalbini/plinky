@@ -6,7 +6,7 @@ pub(crate) fn create_sysv_hash<'a>(
     symbols: impl Iterator<Item = &'a Symbol>,
     symbol_table: BuiltElfSectionId,
 ) -> ElfSectionContent<BuiltElfIds> {
-    let names = symbols.map(|sym| sym.name).collect::<Vec<_>>();
+    let names = symbols.map(|sym| sym.name()).collect::<Vec<_>>();
 
     let mut buckets = vec![0; num_buckets(names.len())];
     let mut chain = vec![0; names.len()];

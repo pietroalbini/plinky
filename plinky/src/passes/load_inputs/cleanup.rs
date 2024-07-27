@@ -33,8 +33,8 @@ pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
         // really useful, as nothing can refer to that section and the SHT_GROUP wouldn't be loaded
         // in memory anyway. To avoid the linker crashing when it sees a symbol to the section that
         // wasn't loaded, we remove all symbols pointing to a SHT_GROUP.
-        let SymbolValue::SectionRelative { section, .. } = &symbol.value else { continue };
-        if section_groups.is_section_a_group_definition(*section) {
+        let SymbolValue::SectionRelative { section, .. } = symbol.value() else { continue };
+        if section_groups.is_section_a_group_definition(section) {
             symbols_to_remove.push(id);
         }
     }

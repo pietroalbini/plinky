@@ -30,10 +30,10 @@ pub(super) fn create_symbols<'a>(
         if symbol_id == all_symbols.null_symbol_id() {
             assert!(null_symbol.is_none());
             null_symbol = Some(symbol);
-        } else if let SymbolVisibility::Global { .. } = &symbol.visibility {
+        } else if let SymbolVisibility::Global { .. } = symbol.visibility() {
             global_symbols.push(symbol);
         } else {
-            local_by_source.entry(symbol.stt_file).or_insert_with(Vec::new).push(symbol);
+            local_by_source.entry(symbol.stt_file()).or_insert_with(Vec::new).push(symbol);
         }
     }
 
@@ -95,35 +95,35 @@ fn add_symbol(
     symbols.insert(
         id,
         ElfSymbol {
-            name: strings.add(symbol.name.resolve().as_str()),
-            binding: match &symbol.visibility {
+            name: strings.add(symbol.name().resolve().as_str()),
+            binding: match symbol.visibility() {
                 SymbolVisibility::Local => ElfSymbolBinding::Local,
                 SymbolVisibility::Global { weak: true, hidden: _ } => ElfSymbolBinding::Weak,
                 SymbolVisibility::Global { weak: false, hidden: _ } => ElfSymbolBinding::Global,
             },
-            visibility: match &symbol.visibility {
+            visibility: match symbol.visibility() {
                 SymbolVisibility::Local => ElfSymbolVisibility::Default,
                 SymbolVisibility::Global { weak: _, hidden: false } => ElfSymbolVisibility::Default,
                 SymbolVisibility::Global { weak: _, hidden: true } => ElfSymbolVisibility::Hidden,
             },
-            type_: match &symbol.type_ {
+            type_: match symbol.type_() {
                 SymbolType::NoType => ElfSymbolType::NoType,
                 SymbolType::Function => ElfSymbolType::Function,
                 SymbolType::Object => ElfSymbolType::Object,
                 SymbolType::Section => ElfSymbolType::Section,
             },
-            definition: match &symbol.value {
+            definition: match symbol.value() {
                 SymbolValue::Absolute { .. } => ElfSymbolDefinition::Absolute,
                 SymbolValue::SectionRelative { .. } => {
                     panic!("section relative addresses should not reach this stage");
                 }
                 SymbolValue::SectionVirtualAddress { section, .. } => {
-                    ElfSymbolDefinition::Section(sections.new_id_of(*section))
+                    ElfSymbolDefinition::Section(sections.new_id_of(section))
                 }
                 SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
                 SymbolValue::Null => ElfSymbolDefinition::Undefined,
             },
-            value: match &symbol.value {
+            value: match symbol.value() {
                 SymbolValue::Absolute { value } => value.extract(),
                 SymbolValue::SectionRelative { .. } => {
                     panic!("section relative addresses should not reach this stage");
@@ -137,5 +137,5 @@ fn add_symbol(
             size: 0,
         },
     );
-    conversion.insert(symbol.id, id);
+    conversion.insert(symbol.id(), id);
 }

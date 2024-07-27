@@ -12,7 +12,7 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 
     Ok(generate_impl_for(
         &Item::Struct(parsed.clone()),
-        "plinky_utils::raw_types::RawType",
+        Some("plinky_utils::raw_types::RawType"),
         quote! {
             #{ fn_zero(&fields32) }
             #{ fn_size(&fields32) }

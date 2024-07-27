@@ -14,8 +14,14 @@ pub(crate) fn ident(ident: impl AsRef<str>) -> TokenTree {
     TokenTree::Ident(Ident::new(ident.as_ref(), Span::call_site()))
 }
 
-pub(crate) fn generate_impl_for(item: &Item, trait_: &str, body: TokenStream) -> TokenStream {
-    let trait_: TokenStream = trait_.parse().unwrap();
+pub(crate) fn generate_impl_for(item: &Item, trait_: Option<&str>, body: TokenStream) -> TokenStream {
+    let trait_for = match trait_ {
+        Some(trait_) => {
+            let trait_: TokenStream = trait_.parse().unwrap();
+            quote! { #trait_ for }
+        }
+        None => TokenStream::new(),
+    };
     let (name, generics) = match item {
         Item::Struct(s) => (&s.name, &s.generics),
         Item::Enum(e) => (&e.name, &e.generics),
@@ -37,7 +43,7 @@ pub(crate) fn generate_impl_for(item: &Item, trait_: &str, body: TokenStream) ->
     }
 
     quote! {
-        impl<#generics_left> #trait_ for #name<#generics_right> {
+        impl<#generics_left> #trait_for #name<#generics_right> {
             #body
         }
     }

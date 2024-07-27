@@ -108,7 +108,7 @@ impl ElfBuilder {
 
         match resolved {
             ResolvedSymbol::Absolute(_) => {
-                Err(ElfBuilderError::EntryPointNotAnAddress(symbol.name))
+                Err(ElfBuilderError::EntryPointNotAnAddress(symbol.name()))
             }
             ResolvedSymbol::Address { memory_address, .. } => Ok(Some(
                 NonZeroU64::new(
@@ -117,7 +117,7 @@ impl ElfBuilder {
                         .try_into()
                         .map_err(|_| ElfBuilderError::EntrypointIsOutOfBounds(memory_address))?,
                 )
-                .ok_or(ElfBuilderError::EntrypointIsZero(symbol.name))?,
+                .ok_or(ElfBuilderError::EntrypointIsZero(symbol.name()))?,
             )),
         }
     }

@@ -22,7 +22,7 @@ pub(crate) struct SymbolTable;
 
 impl SymbolsView for SymbolTable {
     fn filter(&self, symbol: &Symbol) -> bool {
-        !symbol.exclude_from_tables
+        !symbol.exclude_from_tables()
     }
 }
 
@@ -32,6 +32,6 @@ pub(crate) struct DynamicSymbolTable;
 
 impl SymbolsView for DynamicSymbolTable {
     fn filter(&self, symbol: &Symbol) -> bool {
-        symbol.needed_by_dynamic && !symbol.exclude_from_tables
+        symbol.needed_by_dynamic() && !symbol.exclude_from_tables()
     }
 }

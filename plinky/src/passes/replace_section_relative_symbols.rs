@@ -9,7 +9,7 @@ pub(crate) fn replace(
     layout: &Layout,
 ) -> Result<(), ReplaceSectionRelativeSymbolsError> {
     for (_, symbol) in object.symbols.iter_mut(&AllSymbols) {
-        let SymbolValue::SectionRelative { .. } = symbol.value else {
+        let SymbolValue::SectionRelative { .. } = symbol.value() else {
             continue;
         };
 
@@ -21,7 +21,7 @@ pub(crate) fn replace(
             panic!("section relative address doesn't resolve into an address");
         };
 
-        symbol.value = SymbolValue::SectionVirtualAddress { section, memory_address };
+        symbol.set_value(SymbolValue::SectionVirtualAddress { section, memory_address });
     }
 
     Ok(())

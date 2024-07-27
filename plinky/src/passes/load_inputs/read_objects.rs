@@ -1,5 +1,5 @@
 use crate::interner::intern;
-use crate::repr::symbols::{Symbol, SymbolValue, Symbols};
+use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
@@ -110,14 +110,14 @@ impl PendingArchive {
         let mut pending_members = VecDeque::new();
         let mut pending_members_set = HashSet::new();
         for (symbol_name, member_id) in symbol_table.symbols {
-            if let Ok(Symbol { value: SymbolValue::Undefined, .. }) =
-                symbols.get_global(intern(&symbol_name))
-            {
-                // We want to maintain the ordering of the ArMemberId to ensure determinism in the
-                // linker output (aka we need to store it in a Vec). The HashSet is used as a quick
-                // way to lookup, since it doesn't preserve ordering.
-                if pending_members_set.insert(member_id) {
-                    pending_members.push_back(member_id);
+            if let Ok(symbol) = symbols.get_global(intern(&symbol_name)) {
+                if let SymbolValue::Undefined = symbol.value() {
+                    // We want to maintain the ordering of the ArMemberId to ensure determinism in the
+                    // linker output (aka we need to store it in a Vec). The HashSet is used as a quick
+                    // way to lookup, since it doesn't preserve ordering.
+                    if pending_members_set.insert(member_id) {
+                        pending_members.push_back(member_id);
+                    }
                 }
             }
         }

@@ -143,26 +143,26 @@ fn render_symbols<'a>(object: &Object, title: &str, view: &dyn SymbolsView) -> O
     if symbols.len() <= 1 {
         return None;
     }
-    symbols.sort_by_key(|(_, symbol)| symbol.name);
+    symbols.sort_by_key(|(_, symbol)| symbol.name());
 
     let mut table = Table::new();
     table.set_title(title);
     table.add_row(["Name", "Type", "Source", "Visibility", "Value"]);
     for (id, symbol) in symbols {
-        let type_ = match symbol.type_ {
+        let type_ = match symbol.type_() {
             SymbolType::NoType => "none",
             SymbolType::Function => "function",
             SymbolType::Object => "object",
             SymbolType::Section => "section",
         };
-        let visibility = match symbol.visibility {
+        let visibility = match symbol.visibility() {
             SymbolVisibility::Local => "local",
             SymbolVisibility::Global { weak: true, hidden: true } => "global (weak, hidden)",
             SymbolVisibility::Global { weak: true, hidden: false } => "global (weak)",
             SymbolVisibility::Global { weak: false, hidden: true } => "global (hidden)",
             SymbolVisibility::Global { weak: false, hidden: false } => "global",
         };
-        let value = match symbol.value {
+        let value = match symbol.value() {
             SymbolValue::Absolute { value } => format!("{value}"),
             SymbolValue::SectionRelative { section, offset } => {
                 format!("{} + {offset}", section_name(object, section))
@@ -176,7 +176,7 @@ fn render_symbols<'a>(object: &Object, title: &str, view: &dyn SymbolsView) -> O
         table.add_row([
             symbol_name(object, id).as_str(),
             type_,
-            &symbol.span.to_string(),
+            &symbol.span().to_string(),
             visibility,
             &value,
         ]);

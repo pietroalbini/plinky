@@ -36,7 +36,7 @@ fn generate_impl(item: &Item) -> Result<TokenStream, Error> {
 
     Ok(generate_impl_for(
         item,
-        "std::fmt::Display",
+        Some("std::fmt::Display"),
         quote! {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 #body

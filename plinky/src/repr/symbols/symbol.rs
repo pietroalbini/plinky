@@ -7,19 +7,28 @@ use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
-use plinky_macros::{Display, Error};
+use plinky_macros::{Display, Error, Getters};
 
-#[derive(Debug)]
+#[derive(Debug, Getters)]
 pub(crate) struct Symbol {
-    pub(crate) id: SymbolId,
-    pub(crate) name: Interned<String>,
-    pub(crate) type_: SymbolType,
-    pub(crate) stt_file: Option<Interned<String>>,
-    pub(crate) span: Interned<ObjectSpan>,
-    pub(crate) visibility: SymbolVisibility,
-    pub(crate) value: SymbolValue,
-    pub(crate) needed_by_dynamic: bool,
-    pub(crate) exclude_from_tables: bool,
+    #[get]
+    id: SymbolId,
+    #[get]
+    name: Interned<String>,
+    #[get]
+    type_: SymbolType,
+    #[get]
+    stt_file: Option<Interned<String>>,
+    #[get]
+    span: Interned<ObjectSpan>,
+    #[get]
+    visibility: SymbolVisibility,
+    #[get]
+    value: SymbolValue,
+    #[get]
+    needed_by_dynamic: bool,
+    #[get]
+    exclude_from_tables: bool,
 }
 
 impl Symbol {
@@ -109,6 +118,26 @@ impl Symbol {
         })
     }
 
+    pub(super) fn set_id(&mut self, id: SymbolId) {
+        self.id = id;
+    }
+
+    pub(crate) fn set_value(&mut self, value: SymbolValue) {
+        self.value = value;
+    }
+
+    pub(crate) fn set_visibility(&mut self, visibility: SymbolVisibility) {
+        self.visibility = visibility;
+    }
+
+    pub(crate) fn mark_needed_by_dynamic(&mut self) {
+        self.needed_by_dynamic = true;
+    }
+
+    pub(crate) fn mark_exclude_from_tables(&mut self) {
+        self.exclude_from_tables = true;
+    }
+
     pub(crate) fn resolve(
         &self,
         layout: &Layout,
@@ -148,7 +177,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum SymbolType {
     NoType,
     Function,
@@ -156,13 +185,13 @@ pub(crate) enum SymbolType {
     Section,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum SymbolVisibility {
     Local,
     Global { weak: bool, hidden: bool },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum SymbolValue {
     Absolute { value: Absolute },
     SectionRelative { section: SectionId, offset: Offset },

@@ -35,12 +35,12 @@ pub(super) fn section_name(object: &Object, id: SectionId) -> String {
 
 pub(super) fn symbol_name(object: &Object, id: SymbolId) -> String {
     let symbol = object.symbols.get(id);
-    let name = symbol.name.resolve();
-    match (name.as_str(), &symbol.value) {
+    let name = symbol.name().resolve();
+    match (name.as_str(), symbol.value()) {
         ("", SymbolValue::SectionRelative { section, offset }) if offset.extract() == 0 => {
-            format!("<section {}>", section_name(object, *section))
+            format!("<section {}>", section_name(object, section))
         }
-        ("", _) => format!("<symbol#{}>", symbol.id.repr_id()),
-        (name, _) => format!("{}#{}", name, symbol.id.repr_id()),
+        ("", _) => format!("<symbol#{}>", symbol.id().repr_id()),
+        (name, _) => format!("{}#{}", name, symbol.id().repr_id()),
     }
 }

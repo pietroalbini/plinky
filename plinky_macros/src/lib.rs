@@ -29,3 +29,8 @@ pub fn derive_error(item: TokenStream) -> TokenStream {
 pub fn derive_display(item: TokenStream) -> TokenStream {
     error::emit_compiler_error(derives::display::derive(item))
 }
+
+#[proc_macro_derive(Getters, attributes(get, get_ref))]
+pub fn derive_getters(item: TokenStream) -> TokenStream {
+    error::emit_compiler_error(derives::getters::derive(item))
+}

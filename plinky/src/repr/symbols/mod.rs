@@ -54,20 +54,20 @@ impl Symbols {
         if self.frozen {
             panic!("trying to add a symbol with frozen symbols");
         }
-        match symbol.visibility {
+        match symbol.visibility() {
             SymbolVisibility::Local => {
-                self.symbols.insert(symbol.id, SymbolOrRedirect::Symbol(symbol));
+                self.symbols.insert(symbol.id(), SymbolOrRedirect::Symbol(symbol));
             }
             SymbolVisibility::Global { weak: false, hidden: _ } => {
                 // For global symbols, we generate a new symbol ID for each unique name, and
                 // redirect to it all of the concrete references to that global name.
-                let global_id = *self.global_symbols.entry(symbol.name).or_insert(symbol.id);
-                if symbol.id != global_id {
-                    self.add_redirect(symbol.id, global_id);
+                let global_id = *self.global_symbols.entry(symbol.name()).or_insert(symbol.id());
+                if symbol.id() != global_id {
+                    self.add_redirect(symbol.id(), global_id);
                 }
 
                 // Ensure the ID contained in the symbol is the global ID, not the original ID.
-                symbol.id = global_id;
+                symbol.set_id(global_id);
 
                 match self.symbols.entry(global_id) {
                     btree_map::Entry::Vacant(entry) => {
@@ -77,12 +77,12 @@ impl Symbols {
                         let SymbolOrRedirect::Symbol(existing_symbol) = entry.get() else {
                             panic!("global symbols can't be a redirect");
                         };
-                        if let SymbolValue::Undefined = existing_symbol.value {
+                        if let SymbolValue::Undefined = existing_symbol.value() {
                             entry.insert(SymbolOrRedirect::Symbol(symbol));
-                        } else if let SymbolValue::Undefined = symbol.value {
+                        } else if let SymbolValue::Undefined = symbol.value() {
                             // Nothing.
                         } else {
-                            return Err(LoadSymbolsError::DuplicateGlobalSymbol(symbol.name));
+                            return Err(LoadSymbolsError::DuplicateGlobalSymbol(symbol.name()));
                         }
                     }
                 }
@@ -115,7 +115,7 @@ impl Symbols {
     }
 
     pub(crate) fn get_mut(&mut self, id: SymbolId) -> &mut Symbol {
-        let id = self.get(id).id; // Resolve redirects.
+        let id = self.get(id).id(); // Resolve redirects.
         match self.symbols.get_mut(&id).unwrap() {
             SymbolOrRedirect::Symbol(symbol) => symbol,
             SymbolOrRedirect::Redirect(_) => unreachable!(),

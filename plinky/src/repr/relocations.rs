@@ -1,5 +1,5 @@
 use crate::utils::ints::Offset;
-use plinky_elf::ids::serial::{SerialIds, SymbolId};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 
@@ -43,16 +43,18 @@ impl RelocationType {
 pub(crate) struct Relocation {
     pub(crate) type_: RelocationType,
     pub(crate) symbol: SymbolId,
+    pub(crate) section: SectionId,
     pub(crate) offset: Offset,
     pub(crate) addend: Option<Offset>,
 }
 
-impl TryFrom<ElfRelocation<SerialIds>> for Relocation {
-    type Error = UnsupportedRelocationType;
-
-    fn try_from(value: ElfRelocation<SerialIds>) -> Result<Self, Self::Error> {
+impl Relocation {
+    pub(crate) fn from_elf(
+        section: SectionId,
+        elf: ElfRelocation<SerialIds>,
+    ) -> Result<Self, UnsupportedRelocationType> {
         Ok(Relocation {
-            type_: match value.relocation_type {
+            type_: match elf.relocation_type {
                 ElfRelocationType::X86_32 => RelocationType::Absolute32,
                 ElfRelocationType::X86_PC32 => RelocationType::Relative32,
                 ElfRelocationType::X86_GOTPC => RelocationType::GOTLocationRelative32,
@@ -69,9 +71,10 @@ impl TryFrom<ElfRelocation<SerialIds>> for Relocation {
 
                 elf_type => return Err(UnsupportedRelocationType { elf_type }),
             },
-            symbol: value.symbol,
-            offset: (value.offset as i64).into(),
-            addend: value.addend.map(|a| a.into()),
+            symbol: elf.symbol,
+            section,
+            offset: (elf.offset as i64).into(),
+            addend: elf.addend.map(|a| a.into()),
         })
     }
 }

@@ -28,6 +28,8 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
         return;
     }
 
+    let id = ids.allocate_section_id();
+
     let (placeholder, placeholder_len): (&[u8], i64) = match object.env.class {
         plinky_elf::ElfClass::Elf32 => (&[0; 4], 4),
         plinky_elf::ElfClass::Elf64 => (&[0; 8], 8),
@@ -45,6 +47,7 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
         relocations.push(Relocation {
             type_: RelocationType::FillGOTSlot,
             symbol,
+            section: id,
             offset,
             addend: Some(0.into()),
         });
@@ -53,7 +56,7 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
 
     let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
     data.relocations = relocations;
-    let id = object.sections.builder(".got", data).create(ids);
+    object.sections.builder(".got", data).create_with_id(id);
 
     object.got = Some(GOT { id, offsets });
 }

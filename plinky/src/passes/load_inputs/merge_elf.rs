@@ -2,7 +2,7 @@ use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
-use crate::repr::relocations::UnsupportedRelocationType;
+use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, Symbol, Symbols};
 use crate::utils::before_freeze::BeforeFreeze;
@@ -119,7 +119,7 @@ pub(super) fn merge(
                         .remove(&id)
                         .unwrap_or_default()
                         .into_iter()
-                        .map(|r| r.try_into())
+                        .map(|r| Relocation::from_elf(id, r))
                         .collect::<Result<_, _>>()?,
                 },
             )

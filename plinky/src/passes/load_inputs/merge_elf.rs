@@ -4,14 +4,11 @@ use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::UnsupportedRelocationType;
 use crate::repr::sections::{DataSection, UninitializedSection};
-use crate::repr::symbols::{
-    LoadSymbolsError, Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols,
-};
+use crate::repr::symbols::{LoadSymbolsError, Symbol, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{
-    ElfNote, ElfObject, ElfSectionContent, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfSymbolVisibility,
+    ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -160,62 +157,12 @@ fn merge_symbols(
             }
         }
 
-        let type_ = match elf_symbol.type_ {
-            ElfSymbolType::NoType => SymbolType::NoType,
-            ElfSymbolType::Object => SymbolType::Object,
-            ElfSymbolType::Function => SymbolType::Function,
-            ElfSymbolType::Section => SymbolType::Section,
-            // The file symbol type is not actually used, so we can omit it.
-            ElfSymbolType::File => {
-                stt_file = Some(name);
-                continue;
-            }
-            ElfSymbolType::Unknown(_) => {
-                return Err(LoadSymbolsError::UnsupportedUnknownSymbolType)
-            }
-        };
+        if let ElfSymbolType::File = elf_symbol.type_ {
+            stt_file = Some(name);
+            continue;
+        }
 
-        let hidden = match elf_symbol.visibility {
-            ElfSymbolVisibility::Default => false,
-            ElfSymbolVisibility::Hidden => true,
-            other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
-        };
-
-        let symbol = Symbol {
-            id: symbol_id,
-            name,
-            type_,
-            stt_file,
-            span,
-            visibility: match (elf_symbol.binding, hidden) {
-                (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
-                (ElfSymbolBinding::Local, true) => {
-                    return Err(LoadSymbolsError::LocalHiddenSymbol);
-                }
-                (ElfSymbolBinding::Global, hidden) => {
-                    SymbolVisibility::Global { weak: false, hidden }
-                }
-                (ElfSymbolBinding::Weak, hidden) => SymbolVisibility::Global { weak: true, hidden },
-                (ElfSymbolBinding::Unknown(_), _) => {
-                    return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
-                }
-            },
-            value: match elf_symbol.definition {
-                ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
-                ElfSymbolDefinition::Absolute => {
-                    SymbolValue::Absolute { value: elf_symbol.value.into() }
-                }
-                ElfSymbolDefinition::Common => todo!(),
-                ElfSymbolDefinition::Section(section) => SymbolValue::SectionRelative {
-                    section,
-                    offset: (elf_symbol.value as i64).into(),
-                },
-            },
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        };
-
-        symbols.add_symbol(symbol)?;
+        symbols.add_symbol(Symbol::new_elf(symbol_id, elf_symbol, name, span, stt_file)?)?;
     }
     Ok(())
 }

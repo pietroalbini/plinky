@@ -1,8 +1,7 @@
 mod symbol;
 pub(crate) mod views;
 
-use crate::interner::{intern, Interned};
-use plinky_diagnostics::ObjectSpan;
+use crate::interner::Interned;
 use plinky_elf::ids::serial::{SerialIds, SymbolId};
 use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
@@ -26,20 +25,7 @@ impl Symbols {
         let null_symbol_id = ids.allocate_symbol_id();
 
         let mut symbols = BTreeMap::new();
-        symbols.insert(
-            null_symbol_id,
-            SymbolOrRedirect::Symbol(Symbol {
-                id: null_symbol_id,
-                name: intern(""),
-                type_: SymbolType::NoType,
-                stt_file: None,
-                span: intern(ObjectSpan::new_synthetic()),
-                visibility: SymbolVisibility::Local,
-                value: SymbolValue::Null,
-                needed_by_dynamic: false,
-                exclude_from_tables: false,
-            }),
-        );
+        symbols.insert(null_symbol_id, SymbolOrRedirect::Symbol(Symbol::new_null(null_symbol_id)));
         Self { null_symbol_id, symbols, global_symbols: BTreeMap::new(), frozen: false }
     }
 
@@ -53,17 +39,7 @@ impl Symbols {
         name: &str,
     ) -> Result<SymbolId, LoadSymbolsError> {
         let id = ids.allocate_symbol_id();
-        self.add_symbol(Symbol {
-            id,
-            name: intern(name),
-            type_: SymbolType::NoType,
-            stt_file: None,
-            span: intern(ObjectSpan::new_synthetic()),
-            visibility: SymbolVisibility::Global { weak: false, hidden: false },
-            value: SymbolValue::Undefined,
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        })?;
+        self.add_symbol(Symbol::new_global_unknown(id, name))?;
         Ok(id)
     }
 
@@ -213,6 +189,8 @@ pub(crate) enum LoadSymbolsError {
     UnsupportedUnknownSymbolBinding,
     #[display("unknown symbol types are not supported")]
     UnsupportedUnknownSymbolType,
+    #[display("file symbol types are not supported")]
+    UnsupportedFileSymbolType,
     #[display("unsupported symbol visibility {f0:?}")]
     UnsupportedVisibility(ElfSymbolVisibility),
     #[display("local symbols cannot have hidden visibility")]

@@ -23,6 +23,7 @@ use plinky_elf::{
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
+use crate::passes::build_elf::relocations::RelaCreationError;
 
 pub(crate) fn run(
     object: Object,
@@ -80,7 +81,7 @@ impl ElfBuilder {
 
         match self.object.mode {
             Mode::PositionDependent => {}
-            Mode::PositionIndependent => dynamic::add(&mut self),
+            Mode::PositionIndependent => dynamic::add(&mut self)?,
         }
 
         let segments = self.prepare_segments();
@@ -254,4 +255,6 @@ pub(crate) enum ElfBuilderError {
     EntrypointIsZero(Interned<String>),
     #[display("the entry point address {f0} is out of bounds")]
     EntrypointIsOutOfBounds(Address),
+    #[display("failed to create a relocations section")]
+    RelaCreation(#[from] RelaCreationError),
 }

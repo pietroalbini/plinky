@@ -172,9 +172,9 @@ debug print: object after relocations are applied
  │  ╭─────────────┬─────────┬────────┬────────╮
  │  │ Type        │ Symbol  │ Offset │ Addend │
  │  ├─────────────┼─────────┼────────┼────────┤
- │  │ FillGOTSlot │ write#8 │ 0x4000 │ 0x0    │
+ │  │ FillGOTSlot │ write#8 │ 0x0    │ 0x0    │
  │  ├─────────────┼─────────┼────────┼────────┤
- │  │ FillGOTSlot │ exit#9  │ 0x4008 │ 0x0    │
+ │  │ FillGOTSlot │ exit#9  │ 0x8    │ 0x0    │
  │  ╰─────────────┴─────────┴────────┴────────╯
  ┴
 

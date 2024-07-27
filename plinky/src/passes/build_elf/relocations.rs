@@ -1,10 +1,12 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
+use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
     ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
 };
+use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
 pub(crate) fn create_rela<'a>(
@@ -13,22 +15,23 @@ pub(crate) fn create_rela<'a>(
     applies_to_section: BuiltElfSectionId,
     symbol_table: BuiltElfSectionId,
     symbol_conversion: &BTreeMap<SymbolId, BuiltElfSymbolId>,
-) -> ElfSectionContent<BuiltElfIds> {
+    layout: &Layout,
+) -> Result<ElfSectionContent<BuiltElfIds>, RelaCreationError> {
     let mut elf_relocations = Vec::new();
     for relocation in relocations {
         elf_relocations.push(ElfRelocation {
-            offset: relocation.offset.extract().try_into().unwrap(),
+            offset: layout.address(relocation.section, relocation.offset)?.1.extract(),
             symbol: *symbol_conversion.get(&relocation.symbol).unwrap(),
             relocation_type: convert_relocation_type(class, relocation.type_),
             addend: relocation.addend.map(|off| off.extract()),
         });
     }
 
-    plinky_elf::ElfSectionContent::RelocationsTable(ElfRelocationsTable {
+    Ok(ElfSectionContent::RelocationsTable(ElfRelocationsTable {
         symbol_table,
         applies_to_section,
         relocations: elf_relocations,
-    })
+    }))
 }
 
 fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocationType {
@@ -59,4 +62,10 @@ fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocat
         (ElfClass::Elf64, RelocationType::OffsetFromGOT32) => unsupported!(),
         (ElfClass::Elf64, RelocationType::FillGOTSlot) => ElfRelocationType::X86_64_GlobDat,
     }
+}
+
+#[derive(Debug, Error, Display)]
+pub(crate) enum RelaCreationError {
+    #[display("failed to resolve address of section")]
+    AddressResolution(#[from] AddressResolutionError),
 }

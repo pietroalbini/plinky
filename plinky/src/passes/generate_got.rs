@@ -1,12 +1,14 @@
+use crate::cli::Mode;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
+use crate::utils::before_freeze::BeforeFreeze;
 use crate::utils::ints::Offset;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfPermissions;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
+pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object, before_freeze: &BeforeFreeze) {
     let mut needs_got = false;
     let mut symbols = BTreeSet::new();
     for section in object.sections.iter() {
@@ -55,9 +57,17 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object) {
     }
 
     let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
-    data.relocations = relocations;
-    object.sections.builder(".got", data).create_with_id(id);
+    match object.mode {
+        Mode::PositionDependent => data.relocations = relocations,
+        Mode::PositionIndependent => {
+            for relocation in &relocations {
+                object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic(before_freeze);
+            }
+            object.dynamic_relocations.extend(relocations.into_iter());
+        }
+    }
 
+    object.sections.builder(".got", data).create_with_id(id);
     object.got = Some(GOT { id, offsets });
 }
 

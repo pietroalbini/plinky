@@ -1,6 +1,5 @@
 mod editor;
 
-use crate::cli::Mode;
 use crate::passes::generate_got::GOT;
 use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::passes::relocate::editor::ByteEditor;
@@ -17,10 +16,8 @@ pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), Relocation
     let mut relocator = Relocator {
         layout,
         symbols: &mut object.symbols,
-        dynamic_relocations: &mut object.dynamic_relocations,
         env: &object.env,
         got: object.got.as_ref(),
-        mode: object.mode,
     };
     for section in object.sections.iter_mut() {
         match &mut section.content {
@@ -36,8 +33,6 @@ pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), Relocation
 struct Relocator<'a> {
     env: &'a ElfEnvironment,
     got: Option<&'a GOT>,
-    dynamic_relocations: &'a mut Vec<Relocation>,
-    mode: Mode,
     layout: &'a Layout,
     symbols: &'a mut Symbols,
 }
@@ -50,14 +45,14 @@ impl<'a> Relocator<'a> {
     ) -> Result<(), RelocationError> {
         for relocation in data_section.relocations.drain(..) {
             assert_eq!(relocation.section, section_id);
-            self.relocate_one(&relocation, &mut data_section.bytes).map_err(
-                |inner| RelocationError {
+            self.relocate_one(&relocation, &mut data_section.bytes).map_err(|inner| {
+                RelocationError {
                     section_id,
                     offset: relocation.offset,
                     relocation_type: relocation.type_,
                     inner,
-                },
-            )?;
+                }
+            })?;
         }
         Ok(())
     }
@@ -83,7 +78,8 @@ impl<'a> Relocator<'a> {
             RelocationType::GOTRelative32 => {
                 let got = self.got()?;
                 let slot = got.offset(relocation.symbol);
-                let section_addr = self.layout.address(relocation.section, relocation.offset.into())?.1;
+                let section_addr =
+                    self.layout.address(relocation.section, relocation.offset.into())?.1;
                 let got_addr = self.layout.address(got.id, 0.into())?.1;
                 let addend = editor.addend_32()?;
 
@@ -100,32 +96,13 @@ impl<'a> Relocator<'a> {
                 let addend = editor.addend_32()?;
                 editor.write_u32(slot.add(addend)?)
             }
-            RelocationType::FillGOTSlot => match self.mode {
-                Mode::PositionDependent => {
-                    let symbol = self.symbol_as_absolute(relocation, 0.into())?;
-                    match self.env.class {
-                        ElfClass::Elf32 => editor.write_u32(symbol),
-                        ElfClass::Elf64 => editor.write_u64(symbol),
-                    }
+            RelocationType::FillGOTSlot => {
+                let symbol = self.symbol_as_absolute(relocation, 0.into())?;
+                match self.env.class {
+                    ElfClass::Elf32 => editor.write_u32(symbol),
+                    ElfClass::Elf64 => editor.write_u64(symbol),
                 }
-                Mode::PositionIndependent => {
-                    self.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
-
-                    self.dynamic_relocations.push(Relocation {
-                        type_: RelocationType::FillGOTSlot,
-                        symbol: relocation.symbol,
-                        section: relocation.section,
-                        offset: self
-                            .layout
-                            .address(relocation.section, relocation.offset)?
-                            .1
-                            .as_offset()?,
-                        addend: relocation.addend,
-                    });
-
-                    Ok(())
-                }
-            },
+            }
             RelocationType::GOTLocationRelative32 => {
                 let got_addr = self.layout.address(self.got()?.id, 0.into())?.1;
                 let addend = editor.addend_32()?;

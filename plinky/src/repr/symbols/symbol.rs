@@ -131,7 +131,7 @@ impl Symbol {
         self.visibility = visibility;
     }
 
-    pub(crate) fn mark_needed_by_dynamic(&mut self) {
+    pub(crate) fn mark_needed_by_dynamic(&mut self, _before: &BeforeFreeze) {
         self.needed_by_dynamic = true;
     }
 

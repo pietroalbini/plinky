@@ -1,7 +1,7 @@
 mod sysv_hash;
 
 use crate::passes::build_elf::dynamic::sysv_hash::create_sysv_hash;
-use crate::passes::build_elf::relocations::create_rela;
+use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
@@ -49,7 +49,7 @@ macro_rules! add_section {
     }};
 }
 
-pub(crate) fn add(builder: &mut ElfBuilder) {
+pub(crate) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
     let bits = builder.object.env.class;
     let mut segment_sections = Vec::new();
 
@@ -77,7 +77,8 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         builder.sections.zero_id,
         dynsym,
         &symbols.conversion,
-    );
+        &builder.layout,
+    )?;
     let rela_len = rela.content_size(bits);
     let rela_addr = add_section!(builder, segment_sections, ".rela.dyn", rela);
 
@@ -137,4 +138,6 @@ pub(crate) fn add(builder: &mut ElfBuilder) {
         perms: ElfPermissions::empty().read(),
         content: SegmentContent::ElfHeader,
     });
+
+    Ok(())
 }

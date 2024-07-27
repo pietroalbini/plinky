@@ -19,7 +19,7 @@ impl Segment {
             SegmentContent::Sections(ids) => SegmentStart::Address(
                 ids.iter()
                     .map(|id| match layout.of_section(*id) {
-                        SectionLayout::Allocated { address } => *address,
+                        SectionLayout::Allocated { address, .. } => *address,
                         SectionLayout::NotAllocated => panic!("non-allocated section in layout"),
                     })
                     .min()

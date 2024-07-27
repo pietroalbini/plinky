@@ -43,7 +43,7 @@ macro_rules! add_section {
         $segment_sections.push(old_id);
         $builder.sections.create($name, content).layout(&layout).old_id(old_id).add_with_id($id);
         match layout {
-            SectionLayout::Allocated { address } => address,
+            SectionLayout::Allocated { address, .. } => address,
             SectionLayout::NotAllocated => panic!("section should be allocated"),
         }
     }};

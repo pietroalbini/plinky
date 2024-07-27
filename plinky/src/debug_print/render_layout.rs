@@ -10,7 +10,7 @@ use plinky_elf::ids::serial::SectionId;
 pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
     let mut sections = Table::new();
     sections.set_title("Sections:");
-    sections.add_row(["Section", "Source object", "Memory address"]);
+    sections.add_row(["Section", "Source object", "Memory address", "Length"]);
 
     let mut sections_content = Vec::new();
     for section in object.sections.iter() {
@@ -22,8 +22,12 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
             section_name(object, id),
             source.to_string(),
             match layout.of_section(id) {
-                SectionLayout::Allocated { address } => format!("{address}"),
+                SectionLayout::Allocated { address, .. } => format!("{address}"),
                 SectionLayout::NotAllocated => "not allocated".to_string(),
+            },
+            match layout.of_section(id) {
+                SectionLayout::Allocated { len, .. } => format!("{len:#x}"),
+                SectionLayout::NotAllocated => "-".to_string(),
             },
         ]);
     }

@@ -186,7 +186,7 @@ fn render_symbols<'a>(object: &Object, title: &str, view: &dyn SymbolsView) -> O
 
 fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
     layout.map(|layout| match layout.of_section(id) {
-        SectionLayout::Allocated { address } => Text::new(format!("address: {address}")),
+        SectionLayout::Allocated { address, .. } => Text::new(format!("address: {address}")),
         SectionLayout::NotAllocated => Text::new("not allocated in the resulting memory"),
     })
 }

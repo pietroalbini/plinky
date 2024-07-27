@@ -86,7 +86,7 @@ pub(super) struct SectionBuilder<'a> {
 impl SectionBuilder<'_> {
     pub(super) fn layout(mut self, layout: &SectionLayout) -> Self {
         match layout {
-            SectionLayout::Allocated { address } => self.memory_address = *address,
+            SectionLayout::Allocated { address, .. } => self.memory_address = *address,
             SectionLayout::NotAllocated => {}
         }
         self

@@ -116,7 +116,7 @@ impl Layout {
     ) -> Result<(SectionId, Address), AddressResolutionError> {
         if let Some(deduplication) = self.deduplications.get(&section) {
             let base = match self.of_section(deduplication.target) {
-                SectionLayout::Allocated { address } => *address,
+                SectionLayout::Allocated { address, .. } => *address,
                 SectionLayout::NotAllocated => {
                     return Err(AddressResolutionError::PointsToUnallocatedSection(
                         deduplication.target,
@@ -130,7 +130,7 @@ impl Layout {
             }
         } else {
             match self.of_section(section) {
-                SectionLayout::Allocated { address } => Ok((section, address.offset(offset)?)),
+                SectionLayout::Allocated { address, .. } => Ok((section, address.offset(offset)?)),
                 SectionLayout::NotAllocated => {
                     Err(AddressResolutionError::PointsToUnallocatedSection(section))
                 }
@@ -143,7 +143,7 @@ impl Layout {
     }
 
     pub(crate) fn add_section(&mut self, id: SectionId, len: u64) -> SectionLayout {
-        let layout = SectionLayout::Allocated { address: self.current_address.into() };
+        let layout = SectionLayout::Allocated { address: self.current_address.into(), len };
 
         self.sections.insert(id, layout);
         self.current_address += len;
@@ -158,7 +158,7 @@ impl Layout {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum SectionLayout {
-    Allocated { address: Address },
+    Allocated { address: Address, len: u64 },
     NotAllocated,
 }
 

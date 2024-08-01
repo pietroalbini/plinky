@@ -44,7 +44,7 @@ debug print: calculated layout
  │  ╭─────────────┬─────────────────────────────┬────────────────┬────────╮
  │  │ Section     │ Source object               │ Memory address │ Length │
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
- │  │ .interp#21  │ <plinky>                    │ 0x1000         │ 0x1c   │
+ │  │ .interp#23  │ <plinky>                    │ 0x1000         │ 0x1c   │
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
  │  │ .dynstr#24  │ <plinky>                    │ 0x2000         │ 0xd    │
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
@@ -60,9 +60,9 @@ debug print: calculated layout
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
  │  │ .got#27     │ <plinky>                    │ 0x5000         │ 0x10   │
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
- │  │ .strtab#22  │ <plinky>                    │ not allocated  │ -      │
+ │  │ .strtab#21  │ <plinky>                    │ not allocated  │ -      │
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
- │  │ .symtab#23  │ <plinky>                    │ not allocated  │ -      │
+ │  │ .symtab#22  │ <plinky>                    │ not allocated  │ -      │
  │  ├─────────────┼─────────────────────────────┼────────────────┼────────┤
  │  │ .comment#26 │ mix of hello.o and <plinky> │ not allocated  │ -      │
  │  ╰─────────────┴─────────────────────────────┴────────────────┴────────╯
@@ -71,7 +71,7 @@ debug print: calculated layout
  │  ╭────────┬────────┬─────────────┬────────────────────┬─────────────╮
  │  │ Start  │ Align  │ Type        │ Permissions        │ Content     │
  │  ├────────┼────────┼─────────────┼────────────────────┼─────────────┤
- │  │ 0x1000 │ 0x1    │ interpreter │ ElfPermissions(R)  │ .interp#21  │
+ │  │ 0x1000 │ 0x1    │ interpreter │ ElfPermissions(R)  │ .interp#23  │
  │  ├────────┼────────┼─────────────┼────────────────────┼─────────────┤
  │  │ 0x2000 │ 0x1000 │ program     │ ElfPermissions(R)  │ .dynstr#24  │
  │  │        │        │             │                    │ .dynsym#25  │
@@ -113,7 +113,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .interp#21 (perms: r) in <plinky>
+ │  section .interp#23 (perms: r) in <plinky>
  │   │
  │   │  address: 0x1000
  │   │
@@ -202,7 +202,7 @@ debug print: built elf
  │  │ Entrypoint │ 0x4000        │
  │  ╰────────────┴───────────────╯
  │
- │  section .interp#6 (address: 0x1000)
+ │  section .interp#8 (address: 0x1000)
  │   │
  │   │  program data | permissions: R
  │   │
@@ -303,7 +303,7 @@ debug print: built elf
  │  ├──────────────────────┼───────┼──────────┼─────────────────────────────────────┤
  │  │ Program header table │ R     │ 0x1000   │ program header                      │
  │  ├──────────────────────┼───────┼──────────┼─────────────────────────────────────┤
- │  │ Interpreter          │ R     │ 0x1      │ .interp#6                           │
+ │  │ Interpreter          │ R     │ 0x1      │ .interp#8                           │
  │  ├──────────────────────┼───────┼──────────┼─────────────────────────────────────┤
  │  │ Load                 │ R     │ 0x1000   │ program header                      │
  │  ├──────────────────────┼───────┼──────────┼─────────────────────────────────────┤

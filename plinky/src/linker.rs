@@ -13,8 +13,8 @@ use crate::repr::object::Object;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
-use crate::passes::inject_interpreter::InjectInterpreterError;
 use crate::utils::before_freeze::BeforeFreeze;
+use crate::passes::prepare_dynamic::PrepareDynamicError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -26,9 +26,8 @@ pub(crate) fn link_driver(
     let before_freeze = unsafe { BeforeFreeze::new() };
 
     let mut object = passes::load_inputs::run(options, &mut ids, &before_freeze)?;
-    passes::inject_interpreter::run(&options, &mut ids, &mut object)?;
     passes::inject_symbol_table::run(&mut object, &mut ids);
-    passes::inject_dynamic_sections::run(&mut object, &mut ids);
+    passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {
@@ -81,7 +80,7 @@ pub(crate) enum LinkerError {
     #[transparent]
     DeduplicationFailed(DeduplicationError),
     #[transparent]
-    InjectInterpreterFailed(InjectInterpreterError),
+    Dynamic(PrepareDynamicError),
     #[transparent]
     RelocationFailed(RelocationError),
     #[transparent]

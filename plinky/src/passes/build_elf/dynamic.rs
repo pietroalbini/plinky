@@ -1,12 +1,8 @@
-mod sysv_hash;
-
-use crate::passes::build_elf::dynamic::sysv_hash::create_sysv_hash;
 use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
 use crate::repr::object::DynamicEntry;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
-use crate::repr::symbols::views::DynamicSymbolTable;
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::{
@@ -49,7 +45,7 @@ macro_rules! add_section {
     }};
 }
 
-pub(crate) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
+pub(super) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
     let bits = builder.object.env.class;
     let mut segment_sections = Vec::new();
 
@@ -88,16 +84,6 @@ pub(crate) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
     let rela_len = rela.content_size(bits);
     let rela_addr = add_section!(builder, segment_sections, ".rela.dyn", rela);
 
-    let hash_addr = add_section!(
-        builder,
-        segment_sections,
-        ".hash",
-        create_sysv_hash(
-            builder.object.symbols.iter(&DynamicSymbolTable).map(|(_id, sym)| sym),
-            dynsym_new,
-        )
-    );
-
     let mut directives = Vec::new();
     for entry in &builder.object.dynamic_entries {
         match entry {
@@ -119,19 +105,26 @@ pub(crate) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
                     bytes: RawSymbol::size(bits) as _,
                 });
             }
+            DynamicEntry::Hash(id) => {
+                let SectionLayout::Allocated { address, .. } = builder.layout.of_section(*id)
+                else {
+                    panic!("non-allocated sysv hash table");
+                };
+                directives.push(ElfDynamicDirective::Hash { address: address.extract() });
+            }
         }
     }
     directives.extend(
         [
-            ElfDynamicDirective::Hash { address: hash_addr.extract() },
             ElfDynamicDirective::Rela { address: rela_addr.extract() },
             ElfDynamicDirective::RelaSize { bytes: rela_len as _ },
             ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ },
             ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true }),
-            ElfDynamicDirective::Null,
         ]
         .into_iter(),
     );
+
+    directives.push(ElfDynamicDirective::Null);
 
     let dynamic_id = builder.ids.allocate_section_id();
     let dynamic_old_id = builder.old_ids.allocate_section_id();

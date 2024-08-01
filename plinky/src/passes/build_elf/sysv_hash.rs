@@ -2,7 +2,7 @@ use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use crate::repr::symbols::Symbol;
 use plinky_elf::{ElfHash, ElfSectionContent};
 
-pub(crate) fn create_sysv_hash<'a>(
+pub(super) fn create_sysv_hash<'a>(
     symbols: impl Iterator<Item = &'a Symbol>,
     symbol_table: BuiltElfSectionId,
 ) -> ElfSectionContent<BuiltElfIds> {
@@ -47,7 +47,7 @@ pub(crate) fn create_sysv_hash<'a>(
     ElfSectionContent::Hash(ElfHash { symbol_table, buckets, chain })
 }
 
-fn num_buckets(symbols_count: usize) -> usize {
+pub(crate) fn num_buckets(symbols_count: usize) -> usize {
     // Different linkers have a way to choose the number of buckets:
     //
     // - Gold choses between a predefined set of bucket sizes:

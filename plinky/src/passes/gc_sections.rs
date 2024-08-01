@@ -86,6 +86,7 @@ impl Visitor {
                     SectionContent::Uninitialized(_) => {}
                     SectionContent::StringsForSymbols(_) => {}
                     SectionContent::Symbols(_) => {}
+                    SectionContent::SysvHash(_) => {},
                 }
             }
         }

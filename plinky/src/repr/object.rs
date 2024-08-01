@@ -26,4 +26,5 @@ pub(crate) struct Object {
 pub(crate) enum DynamicEntry {
     StringTable(SectionId),
     SymbolTable(SectionId),
+    Hash(SectionId),
 }

@@ -9,7 +9,7 @@ use plinky_elf::{
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 
-pub(crate) fn create_rela<'a>(
+pub(super) fn create_rela<'a>(
     relocations: impl Iterator<Item = &'a Relocation>,
     class: ElfClass,
     applies_to_section: BuiltElfSectionId,

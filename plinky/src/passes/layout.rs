@@ -1,11 +1,12 @@
 use crate::cli::Mode;
+use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
-use plinky_elf::raw::RawSymbol;
+use plinky_elf::raw::{RawHashHeader, RawSymbol};
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::RawType;
 use std::collections::{BTreeMap, BTreeSet};
@@ -63,6 +64,13 @@ fn section_len(object: &Object, id: SectionId) -> u64 {
         SectionContent::Symbols(symbols) => {
             (object.symbols.iter(&*symbols.view).count() * RawSymbol::size(object.env.class)) as u64
         }
+
+        SectionContent::SysvHash(sysv) => {
+            let symbols_count = object.symbols.iter(&*sysv.view).count();
+            let buckets_len = num_buckets(symbols_count) * u32::size(object.env.class);
+            let chain_len = symbols_count * u32::size(object.env.class);
+            (RawHashHeader::size(object.env.class) + buckets_len + chain_len) as u64
+        }
     }
 }
 
@@ -88,7 +96,10 @@ fn create_segments(object: &mut Object, not_allocated: &mut Vec<SectionId>) {
         let (type_, perms) = match &section.content {
             SectionContent::Data(data) => (SegmentType::Program, data.perms),
             SectionContent::Uninitialized(uninit) => (SegmentType::Uninitialized, uninit.perms),
-            SectionContent::StringsForSymbols(_) | SectionContent::Symbols(_) => {
+
+            SectionContent::StringsForSymbols(_)
+            | SectionContent::Symbols(_)
+            | SectionContent::SysvHash(_) => {
                 not_allocated.push(section.id);
                 continue;
             }

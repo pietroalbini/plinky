@@ -3,6 +3,7 @@ pub(crate) mod ids;
 mod relocations;
 mod sections;
 mod symbols;
+pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;
 use crate::interner::Interned;
@@ -12,6 +13,7 @@ use crate::passes::build_elf::ids::{
 use crate::passes::build_elf::relocations::RelaCreationError;
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::symbols::create_symbols;
+use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
@@ -173,6 +175,18 @@ impl ElfBuilder {
                         .expect("symbol table should've been prepared");
                     self.sections
                         .create(&section.name.resolve(), content)
+                        .layout(self.layout.of_section(section.id))
+                        .add_from_existing(section.id);
+                }
+                SectionContent::SysvHash(sysv) => {
+                    self.sections
+                        .create(
+                            &section.name.resolve(),
+                            create_sysv_hash(
+                                self.object.symbols.iter(&*sysv.view).map(|(_id, sym)| sym),
+                                self.sections.new_id_of(sysv.symbols),
+                            ),
+                        )
                         .layout(self.layout.of_section(section.id))
                         .add_from_existing(section.id);
                 }

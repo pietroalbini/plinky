@@ -5,7 +5,7 @@ use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
     DataSection, Section, SectionContent, StringsForSymbolsSection, SymbolsSection,
-    UninitializedSection,
+    SysvHashSection, UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
@@ -64,6 +64,7 @@ fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -
             render_strings_for_symbols_section(object, section, strings)
         }
         SectionContent::Symbols(symbols) => render_symbols_section(object, section, symbols),
+        SectionContent::SysvHash(sysv) => render_sysv_hash_section(object, section, sysv),
     }
 }
 
@@ -215,6 +216,22 @@ fn render_symbols_section(
                 "symbols table | view: {} | strings: {}",
                 symbols.view,
                 section_name(object, symbols.strings)
+            ))),
+    )
+}
+
+fn render_sysv_hash_section(
+    object: &Object,
+    section: &Section,
+    sysv: &SysvHashSection,
+) -> Box<dyn Widget> {
+    Box::new(
+        WidgetGroup::new()
+            .name(format!("section {} in {}", section_name(object, section.id), section.source))
+            .add(Text::new(format!(
+                "sysv hash table | view: {} | symbols: {}",
+                sysv.view,
+                section_name(object, sysv.symbols)
             ))),
     )
 }

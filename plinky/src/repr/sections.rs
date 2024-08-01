@@ -2,11 +2,11 @@ use crate::interner::{intern, Interned};
 use crate::repr::relocations::Relocation;
 use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolValue, Symbols};
+use crate::utils::before_freeze::BeforeFreeze;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
-use crate::utils::before_freeze::BeforeFreeze;
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -132,6 +132,7 @@ pub(crate) enum SectionContent {
     Uninitialized(UninitializedSection),
     StringsForSymbols(StringsForSymbolsSection),
     Symbols(SymbolsSection),
+    SysvHash(SysvHashSection),
 }
 
 #[derive(Debug)]
@@ -187,6 +188,18 @@ impl SymbolsSection {
     }
 }
 
+#[derive(Debug)]
+pub(crate) struct SysvHashSection {
+    pub(crate) view: Box<dyn SymbolsView>,
+    pub(crate) symbols: SectionId,
+}
+
+impl SysvHashSection {
+    pub(crate) fn new(view: impl SymbolsView + 'static, symbols: SectionId) -> Self {
+        Self { view: Box::new(view), symbols }
+    }
+}
+
 macro_rules! from {
     (impl From<$from:ident> for $enum:ident::$variant:ident) => {
         impl From<$from> for $enum {
@@ -201,3 +214,4 @@ from!(impl From<DataSection> for SectionContent::Data);
 from!(impl From<UninitializedSection> for SectionContent::Uninitialized);
 from!(impl From<StringsForSymbolsSection> for SectionContent::StringsForSymbols);
 from!(impl From<SymbolsSection> for SectionContent::Symbols);
+from!(impl From<SysvHashSection> for SectionContent::SysvHash);

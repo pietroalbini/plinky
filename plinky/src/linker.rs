@@ -27,7 +27,6 @@ pub(crate) fn link_driver(
 
     let mut object = passes::load_inputs::run(options, &mut ids, &before_freeze)?;
     passes::inject_symbol_table::run(&mut object, &mut ids);
-    passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {
@@ -38,6 +37,8 @@ pub(crate) fn link_driver(
     let deduplications = passes::deduplicate::run(&mut object, &mut ids, &before_freeze)?;
 
     passes::generate_got::generate_got(&mut ids, &mut object, &before_freeze);
+    passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
+
     passes::exclude_section_symbols_from_tables::remove(&mut object, &before_freeze);
     passes::demote_global_hidden_symbols::run(&mut object);
 

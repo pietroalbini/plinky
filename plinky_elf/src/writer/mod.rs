@@ -323,7 +323,7 @@ where
                 ElfSegmentContent::ProgramHeader => {
                     let part = self.layout.metadata(&Part::ProgramHeaders);
                     (part.offset, part.len, part.offset, part.len)
-                },
+                }
                 ElfSegmentContent::Unknown(unknown) => (
                     unknown.file_offset,
                     unknown.file_size,

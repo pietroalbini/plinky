@@ -92,7 +92,6 @@ impl<I: ElfIds> WriteLayout<I> {
             RawSectionHeader::size(layout.class) * object.sections.len(),
         );
 
-
         Ok(layout)
     }
 

@@ -2,11 +2,15 @@ use crate::interner::intern;
 use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
-use crate::repr::symbols::SymbolValue;
 use crate::repr::symbols::views::AllSymbols;
+use crate::repr::symbols::SymbolValue;
 use crate::utils::before_freeze::BeforeFreeze;
 
-pub(super) fn run(object: &mut Object, section_groups: &SectionGroups, before_freeze: &BeforeFreeze) {
+pub(super) fn run(
+    object: &mut Object,
+    section_groups: &SectionGroups,
+    before_freeze: &BeforeFreeze,
+) {
     let gnu_stack = intern(".note.GNU-stack");
 
     let mut removed_gnu_stack = false;

@@ -1,6 +1,6 @@
 use crate::repr::symbols::Symbol;
-use std::fmt::{Debug, Display};
 use plinky_macros::Display;
+use std::fmt::{Debug, Display};
 
 pub(crate) trait SymbolsView: Debug + Display {
     fn filter(&self, symbol: &Symbol) -> bool;

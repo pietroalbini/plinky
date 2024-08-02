@@ -6,8 +6,8 @@ use crate::utils::before_freeze::BeforeFreeze;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
-use std::collections::BTreeMap;
 use plinky_macros::Getters;
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub(crate) struct Sections {

@@ -14,7 +14,11 @@ pub(crate) fn ident(ident: impl AsRef<str>) -> TokenTree {
     TokenTree::Ident(Ident::new(ident.as_ref(), Span::call_site()))
 }
 
-pub(crate) fn generate_impl_for(item: &Item, trait_: Option<&str>, body: TokenStream) -> TokenStream {
+pub(crate) fn generate_impl_for(
+    item: &Item,
+    trait_: Option<&str>,
+    body: TokenStream,
+) -> TokenStream {
     let trait_for = match trait_ {
         Some(trait_) => {
             let trait_: TokenStream = trait_.parse().unwrap();

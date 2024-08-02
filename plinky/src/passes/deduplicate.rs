@@ -42,8 +42,17 @@ pub(crate) fn run(
     let mut deduplications = BTreeMap::new();
     for ((name, perms, split_rule), section_ids) in groups {
         if section_ids.len() > 1 {
-            deduplicate(ids, &mut deduplications, object, name, perms, split_rule, &section_ids, before_freeze)
-                .map_err(|kind| DeduplicationError { section_name: name, kind })?;
+            deduplicate(
+                ids,
+                &mut deduplications,
+                object,
+                name,
+                perms,
+                split_rule,
+                &section_ids,
+                before_freeze,
+            )
+            .map_err(|kind| DeduplicationError { section_name: name, kind })?;
         }
     }
 

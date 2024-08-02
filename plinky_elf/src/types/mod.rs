@@ -8,13 +8,13 @@ use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::utils::{render_hex, ReadSeek};
 use crate::writer::Writer;
+use plinky_macros::Bitfield;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use plinky_utils::{Bits, Endian};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::num::NonZeroU64;
 use std::ops::Deref;
-use plinky_macros::Bitfield;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {

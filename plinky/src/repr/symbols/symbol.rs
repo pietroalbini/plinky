@@ -1,6 +1,7 @@
 use crate::interner::{intern, Interned};
 use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::symbols::LoadSymbolsError;
+use crate::utils::before_freeze::BeforeFreeze;
 use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
@@ -8,7 +9,6 @@ use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
 use plinky_macros::{Display, Error, Getters};
-use crate::utils::before_freeze::BeforeFreeze;
 
 #[derive(Debug, Getters)]
 pub(crate) struct Symbol {

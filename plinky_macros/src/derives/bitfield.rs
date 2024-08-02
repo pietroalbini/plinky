@@ -107,7 +107,7 @@ fn display_fn_fmt(fields: &Fields) -> TokenStream {
 
     let mut writes = Vec::new();
     match fields {
-        Fields::None => {},
+        Fields::None => {}
         Fields::TupleLike(fields) => {
             for (idx, bit) in fields.iter().enumerate() {
                 if idx != 0 {
@@ -119,7 +119,7 @@ fn display_fn_fmt(fields: &Fields) -> TokenStream {
                     }
                 });
             }
-        },
+        }
         Fields::StructLike(fields) => {
             for (idx, (name, _)) in fields.iter().enumerate() {
                 if idx != 0 {
@@ -131,7 +131,7 @@ fn display_fn_fmt(fields: &Fields) -> TokenStream {
                     }
                 })
             }
-        },
+        }
     }
 
     quote! {

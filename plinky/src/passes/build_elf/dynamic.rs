@@ -1,4 +1,3 @@
-use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
 use crate::repr::object::DynamicEntry;
@@ -45,7 +44,7 @@ macro_rules! add_section {
     }};
 }
 
-pub(super) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
+pub(super) fn add(builder: &mut ElfBuilder) {
     let bits = builder.object.env.class;
     let mut segment_sections = Vec::new();
 
@@ -60,29 +59,6 @@ pub(super) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
         .next()
         .expect("dynstr not generated");
     let dynstr_new = builder.sections.new_id_of(dynstr);
-
-    let dynsym = builder
-        .object
-        .dynamic_entries
-        .iter()
-        .filter_map(|entry| match entry {
-            DynamicEntry::SymbolTable(id) => Some(*id),
-            _ => None,
-        })
-        .next()
-        .expect("dynsym not generated");
-    let dynsym_new = builder.sections.new_id_of(dynsym);
-
-    let rela = create_rela(
-        builder.object.dynamic_relocations.iter(),
-        builder.object.env.class,
-        builder.sections.zero_id,
-        dynsym_new,
-        &builder.symbol_conversion.get(&dynsym).unwrap(),
-        &builder.layout,
-    )?;
-    let rela_len = rela.content_size(bits);
-    let rela_addr = add_section!(builder, segment_sections, ".rela.dyn", rela);
 
     let mut directives = Vec::new();
     for entry in &builder.object.dynamic_entries {
@@ -112,17 +88,20 @@ pub(super) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
                 };
                 directives.push(ElfDynamicDirective::Hash { address: address.extract() });
             }
+            DynamicEntry::Rela(id) => {
+                let SectionLayout::Allocated { address, len } = builder.layout.of_section(*id)
+                else {
+                    panic!("non-allocated rela section");
+                };
+                directives.push(ElfDynamicDirective::Rela { address: address.extract() });
+                directives.push(ElfDynamicDirective::RelaSize { bytes: *len });
+                directives
+                    .push(ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ });
+            }
         }
     }
-    directives.extend(
-        [
-            ElfDynamicDirective::Rela { address: rela_addr.extract() },
-            ElfDynamicDirective::RelaSize { bytes: rela_len as _ },
-            ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ },
-            ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true }),
-        ]
-        .into_iter(),
-    );
+
+    directives.extend([ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true })].into_iter());
 
     directives.push(ElfDynamicDirective::Null);
 
@@ -158,6 +137,4 @@ pub(super) fn add(builder: &mut ElfBuilder) -> Result<(), RelaCreationError> {
         perms: ElfPermissions::empty().read(),
         content: SegmentContent::ElfHeader,
     });
-
-    Ok(())
 }

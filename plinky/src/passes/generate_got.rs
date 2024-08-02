@@ -1,4 +1,3 @@
-use crate::cli::Mode;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
@@ -8,7 +7,31 @@ use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfPermissions;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object, before_freeze: &BeforeFreeze) {
+pub(crate) fn generate_got_static(ids: &mut SerialIds, object: &mut Object) {
+    generate_got(ids, object, |data, relocations| data.relocations = relocations);
+}
+
+pub(crate) fn generate_got_dynamic(
+    ids: &mut SerialIds,
+    object: &mut Object,
+    before_freeze: &BeforeFreeze,
+) -> Vec<Relocation> {
+    let mut relocations = None;
+    generate_got(ids, object, |_, r| relocations = Some(r));
+    let relocations = relocations.unwrap();
+
+    for relocation in &relocations {
+        object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic(before_freeze);
+    }
+
+    relocations
+}
+
+fn generate_got(
+    ids: &mut SerialIds,
+    object: &mut Object,
+    store_relocations: impl FnOnce(&mut DataSection, Vec<Relocation>),
+) {
     let mut needs_got = false;
     let mut symbols = BTreeSet::new();
     for section in object.sections.iter() {
@@ -57,15 +80,7 @@ pub(crate) fn generate_got(ids: &mut SerialIds, object: &mut Object, before_free
     }
 
     let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
-    match object.mode {
-        Mode::PositionDependent => data.relocations = relocations,
-        Mode::PositionIndependent => {
-            for relocation in &relocations {
-                object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic(before_freeze);
-            }
-            object.dynamic_relocations.extend(relocations.into_iter());
-        }
-    }
+    store_relocations(&mut data, relocations);
 
     object.sections.builder(".got", data).create_with_id(id);
     object.got = Some(GOT { id, offsets });

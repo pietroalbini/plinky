@@ -1,6 +1,5 @@
 use crate::cli::Mode;
 use crate::passes::generate_got::GOT;
-use crate::repr::relocations::Relocation;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segment;
 use crate::repr::symbols::Symbols;
@@ -13,7 +12,6 @@ pub(crate) struct Object {
     pub(crate) sections: Sections,
     pub(crate) segments: Vec<Segment>,
     pub(crate) symbols: Symbols,
-    pub(crate) dynamic_relocations: Vec<Relocation>,
     pub(crate) dynamic_entries: Vec<DynamicEntry>,
     pub(crate) got: Option<GOT>,
     pub(crate) entry_point: SymbolId,
@@ -27,4 +25,5 @@ pub(crate) enum DynamicEntry {
     StringTable(SectionId),
     SymbolTable(SectionId),
     Hash(SectionId),
+    Rela(SectionId),
 }

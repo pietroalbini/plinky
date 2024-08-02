@@ -10,7 +10,7 @@ use crate::interner::Interned;
 use crate::passes::build_elf::ids::{
     BuiltElfIds, BuiltElfSectionId, BuiltElfStringId, BuiltElfSymbolId,
 };
-use crate::passes::build_elf::relocations::RelaCreationError;
+use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
@@ -84,11 +84,11 @@ impl ElfBuilder {
         }
 
         let entry = self.prepare_entry_point()?;
-        self.prepare_sections();
+        self.prepare_sections()?;
 
         match self.object.mode {
             Mode::PositionDependent => {}
-            Mode::PositionIndependent => dynamic::add(&mut self)?,
+            Mode::PositionIndependent => dynamic::add(&mut self),
         }
 
         let segments = self.prepare_segments();
@@ -130,7 +130,7 @@ impl ElfBuilder {
         }
     }
 
-    fn prepare_sections(&mut self) {
+    fn prepare_sections(&mut self) -> Result<(), ElfBuilderError> {
         while let Some(section) = self.object.sections.pop_first() {
             match &section.content {
                 SectionContent::Data(data) => {
@@ -190,8 +190,28 @@ impl ElfBuilder {
                         .layout(self.layout.of_section(section.id))
                         .add_from_existing(section.id);
                 }
+                SectionContent::Relocations(relocations) => {
+                    self.sections
+                        .create(
+                            &section.name.resolve(),
+                            create_rela(
+                                relocations.relocations().into_iter(),
+                                self.object.env.class,
+                                relocations
+                                    .section()
+                                    .map(|s| self.sections.new_id_of(s))
+                                    .unwrap_or(self.sections.zero_id),
+                                self.sections.new_id_of(relocations.symbols_table()),
+                                self.symbol_conversion.get(&relocations.symbols_table()).unwrap(),
+                                &self.layout,
+                            )?,
+                        )
+                        .layout(self.layout.of_section(section.id))
+                        .add_from_existing(section.id);
+                }
             }
         }
+        Ok(())
     }
 
     fn prepare_segments(&self) -> Vec<ElfSegment<BuiltElfIds>> {

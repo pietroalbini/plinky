@@ -6,7 +6,7 @@ use crate::repr::sections::SectionContent;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
-use plinky_elf::raw::{RawHashHeader, RawSymbol};
+use plinky_elf::raw::{RawHashHeader, RawRela, RawSymbol};
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::RawType;
 use std::collections::{BTreeMap, BTreeSet};
@@ -71,6 +71,10 @@ fn section_len(object: &Object, id: SectionId) -> u64 {
             let chain_len = symbols_count * u32::size(object.env.class);
             (RawHashHeader::size(object.env.class) + buckets_len + chain_len) as u64
         }
+
+        SectionContent::Relocations(relocations) => {
+            (RawRela::size(object.env.class) * relocations.relocations().len()) as u64
+        }
     }
 }
 
@@ -99,7 +103,8 @@ fn create_segments(object: &mut Object, not_allocated: &mut Vec<SectionId>) {
 
             SectionContent::StringsForSymbols(_)
             | SectionContent::Symbols(_)
-            | SectionContent::SysvHash(_) => {
+            | SectionContent::SysvHash(_)
+            | SectionContent::Relocations(_) => {
                 not_allocated.push(section.id);
                 continue;
             }

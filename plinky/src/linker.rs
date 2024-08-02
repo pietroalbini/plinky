@@ -1,20 +1,21 @@
-use crate::cli::CliOptions;
+use crate::cli::{CliOptions, Mode};
 use crate::passes;
 use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::deduplicate::DeduplicationError;
 use crate::passes::gc_sections::RemovedSection;
+use crate::passes::generate_got::{generate_got_dynamic, generate_got_static};
 use crate::passes::layout::Layout;
 use crate::passes::load_inputs::LoadInputsError;
+use crate::passes::prepare_dynamic::PrepareDynamicError;
 use crate::passes::relocate::RelocationError;
 use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
 use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
+use crate::utils::before_freeze::BeforeFreeze;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
-use crate::utils::before_freeze::BeforeFreeze;
-use crate::passes::prepare_dynamic::PrepareDynamicError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -36,8 +37,13 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object, &mut ids, &before_freeze)?;
 
-    passes::generate_got::generate_got(&mut ids, &mut object, &before_freeze);
-    passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
+    match object.mode {
+        Mode::PositionDependent => generate_got_static(&mut ids, &mut object),
+        Mode::PositionIndependent => {
+            let got_relocations = generate_got_dynamic(&mut ids, &mut object, &before_freeze);
+            passes::prepare_dynamic::run(&options, &mut object, &mut ids, got_relocations)?;
+        }
+    }
 
     passes::exclude_section_symbols_from_tables::remove(&mut object, &before_freeze);
     passes::demote_global_hidden_symbols::run(&mut object);

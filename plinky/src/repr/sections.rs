@@ -7,6 +7,7 @@ use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use std::collections::BTreeMap;
+use plinky_macros::Getters;
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -133,6 +134,7 @@ pub(crate) enum SectionContent {
     StringsForSymbols(StringsForSymbolsSection),
     Symbols(SymbolsSection),
     SysvHash(SysvHashSection),
+    Relocations(RelocationsSection),
 }
 
 #[derive(Debug)]
@@ -200,6 +202,29 @@ impl SysvHashSection {
     }
 }
 
+#[derive(Debug, Getters)]
+pub(crate) struct RelocationsSection {
+    #[get]
+    section: Option<SectionId>,
+    #[get]
+    symbols_table: SectionId,
+    relocations: Vec<Relocation>,
+}
+
+impl RelocationsSection {
+    pub(crate) fn new(
+        section: Option<SectionId>,
+        symbols_table: SectionId,
+        relocations: Vec<Relocation>,
+    ) -> Self {
+        Self { section, symbols_table, relocations }
+    }
+
+    pub(crate) fn relocations(&self) -> &[Relocation] {
+        &self.relocations
+    }
+}
+
 macro_rules! from {
     (impl From<$from:ident> for $enum:ident::$variant:ident) => {
         impl From<$from> for $enum {
@@ -215,3 +240,4 @@ from!(impl From<UninitializedSection> for SectionContent::Uninitialized);
 from!(impl From<StringsForSymbolsSection> for SectionContent::StringsForSymbols);
 from!(impl From<SymbolsSection> for SectionContent::Symbols);
 from!(impl From<SysvHashSection> for SectionContent::SysvHash);
+from!(impl From<RelocationsSection> for SectionContent::Relocations);

@@ -4,8 +4,8 @@ use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
-    DataSection, Section, SectionContent, StringsForSymbolsSection, SymbolsSection,
-    SysvHashSection, UninitializedSection,
+    DataSection, RelocationsSection, Section, SectionContent, StringsForSymbolsSection,
+    SymbolsSection, SysvHashSection, UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
@@ -38,9 +38,6 @@ pub(super) fn render_object(
                 .then(|| render_symbols(object, "Dynamic symbols:", &DynamicSymbolTable))
                 .flatten(),
         )
-        .add_iter((filter.dynamic && !object.dynamic_relocations.is_empty()).then(|| {
-            render_relocations(object, "Dynamic relocations:", &object.dynamic_relocations)
-        }))
 }
 
 fn render_env(object: &Object) -> Text {
@@ -65,6 +62,9 @@ fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -
         }
         SectionContent::Symbols(symbols) => render_symbols_section(object, section, symbols),
         SectionContent::SysvHash(sysv) => render_sysv_hash_section(object, section, sysv),
+        SectionContent::Relocations(relocations) => {
+            render_relocations_section(object, section, relocations)
+        }
     }
 }
 
@@ -225,6 +225,25 @@ fn render_sysv_hash_section(
         sysv.view,
         section_name(object, sysv.symbols)
     ))))
+}
+
+fn render_relocations_section(
+    object: &Object,
+    section: &Section,
+    relocations: &RelocationsSection,
+) -> Box<dyn Widget> {
+    Box::new(
+        section_widget(object, section, "relocations")
+            .add(Text::new(format!(
+                "applies to section: {}\nsymbol table: {}",
+                relocations
+                    .section()
+                    .map(|s| section_name(object, s))
+                    .unwrap_or_else(|| "all".into()),
+                section_name(object, relocations.symbols_table())
+            )))
+            .add(render_relocations(object, "Relocations:", relocations.relocations())),
+    )
 }
 
 fn section_widget(object: &Object, section: &Section, kind: &str) -> WidgetGroup {

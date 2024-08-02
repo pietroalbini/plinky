@@ -4,8 +4,8 @@ use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
-    DataSection, RelocationsSection, Section, SectionContent, StringsForSymbolsSection,
-    SymbolsSection, SysvHashSection, UninitializedSection,
+    DataSection, DynamicSection, RelocationsSection, Section, SectionContent,
+    StringsForSymbolsSection, SymbolsSection, SysvHashSection, UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
@@ -65,6 +65,7 @@ fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -
         SectionContent::Relocations(relocations) => {
             render_relocations_section(object, section, relocations)
         }
+        SectionContent::Dynamic(dynamic) => render_dynamic_section(object, section, dynamic),
     }
 }
 
@@ -243,6 +244,17 @@ fn render_relocations_section(
                 section_name(object, relocations.symbols_table())
             )))
             .add(render_relocations(object, "Relocations:", relocations.relocations())),
+    )
+}
+
+fn render_dynamic_section(
+    object: &Object,
+    section: &Section,
+    dynamic: &DynamicSection,
+) -> Box<dyn Widget> {
+    Box::new(
+        section_widget(object, section, "dynamic")
+            .add(Text::new(format!("strings table: {}", section_name(object, dynamic.strings())))),
     )
 }
 

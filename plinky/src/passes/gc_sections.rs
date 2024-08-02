@@ -88,6 +88,7 @@ impl Visitor {
                     SectionContent::Symbols(_) => {}
                     SectionContent::SysvHash(_) => {}
                     SectionContent::Relocations(_) => {}
+                    SectionContent::Dynamic(_) => {}
                 }
             }
         }

@@ -7,6 +7,7 @@ pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;
 use crate::interner::Interned;
+use crate::passes::build_elf::dynamic::build_dynamic_section;
 use crate::passes::build_elf::ids::{
     BuiltElfIds, BuiltElfSectionId, BuiltElfStringId, BuiltElfSymbolId,
 };
@@ -20,7 +21,7 @@ use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::ints::{Address, ExtractNumber};
-use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -32,7 +33,6 @@ use std::num::NonZeroU64;
 pub(crate) fn run(
     object: Object,
     layout: Layout,
-    old_ids: SerialIds,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
     let builder = ElfBuilder {
@@ -40,7 +40,6 @@ pub(crate) fn run(
         sections: Sections::new(&mut ids, &object),
         object,
         ids,
-        old_ids,
         pending_symbol_tables: BTreeMap::new(),
         pending_string_tables: BTreeMap::new(),
         symbol_conversion: BTreeMap::new(),
@@ -53,7 +52,6 @@ struct ElfBuilder {
     layout: Layout,
     sections: Sections,
     ids: BuiltElfIds,
-    old_ids: SerialIds,
 
     pending_symbol_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
     pending_string_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
@@ -85,11 +83,6 @@ impl ElfBuilder {
 
         let entry = self.prepare_entry_point()?;
         self.prepare_sections()?;
-
-        match self.object.mode {
-            Mode::PositionDependent => {}
-            Mode::PositionIndependent => dynamic::add(&mut self),
-        }
 
         let segments = self.prepare_segments();
 
@@ -206,6 +199,13 @@ impl ElfBuilder {
                                 &self.layout,
                             )?,
                         )
+                        .layout(self.layout.of_section(section.id))
+                        .add_from_existing(section.id);
+                }
+                SectionContent::Dynamic(dynamic) => {
+                    let content = build_dynamic_section(self, dynamic);
+                    self.sections
+                        .create(&section.name.resolve(), content)
                         .layout(self.layout.of_section(section.id))
                         .add_from_existing(section.id);
                 }

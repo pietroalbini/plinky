@@ -135,6 +135,7 @@ pub(crate) enum SectionContent {
     Symbols(SymbolsSection),
     SysvHash(SysvHashSection),
     Relocations(RelocationsSection),
+    Dynamic(DynamicSection),
 }
 
 #[derive(Debug)]
@@ -225,6 +226,18 @@ impl RelocationsSection {
     }
 }
 
+#[derive(Debug, Getters)]
+pub(crate) struct DynamicSection {
+    #[get]
+    strings: SectionId,
+}
+
+impl DynamicSection {
+    pub(crate) fn new(strings: SectionId) -> Self {
+        Self { strings }
+    }
+}
+
 macro_rules! from {
     (impl From<$from:ident> for $enum:ident::$variant:ident) => {
         impl From<$from> for $enum {
@@ -241,3 +254,4 @@ from!(impl From<StringsForSymbolsSection> for SectionContent::StringsForSymbols)
 from!(impl From<SymbolsSection> for SectionContent::Symbols);
 from!(impl From<SysvHashSection> for SectionContent::SysvHash);
 from!(impl From<RelocationsSection> for SectionContent::Relocations);
+from!(impl From<DynamicSection> for SectionContent::Dynamic);

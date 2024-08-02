@@ -28,3 +28,15 @@ pub(crate) enum DynamicEntry {
     Rela(SectionId),
     PieFlag,
 }
+
+impl DynamicEntry {
+    pub(crate) fn directives_count(&self) -> usize {
+        match self {
+            DynamicEntry::StringTable(_) => 2,
+            DynamicEntry::SymbolTable(_) => 2,
+            DynamicEntry::Hash(_) => 1,
+            DynamicEntry::Rela(_) => 3,
+            DynamicEntry::PieFlag => 1,
+        }
+    }
+}

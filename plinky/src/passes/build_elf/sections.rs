@@ -92,11 +92,6 @@ impl SectionBuilder<'_> {
         self
     }
 
-    pub(super) fn old_id(mut self, id: SectionId) -> Self {
-        self.old_id = Some(id);
-        self
-    }
-
     pub(super) fn add_from_existing(self, id: SectionId) {
         let id = self.parent.new_id_of(id);
         self.add_with_id(id)

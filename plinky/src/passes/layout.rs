@@ -8,7 +8,7 @@ use crate::utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::raw::{RawHashHeader, RawRela, RawSymbol};
 use plinky_macros::{Display, Error};
-use plinky_utils::raw_types::RawType;
+use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::{BTreeMap, BTreeSet};
 
 const PAGE_SIZE: u64 = 0x1000;
@@ -32,6 +32,15 @@ pub(crate) fn run(
     };
     for segment in object.segments.iter() {
         let SegmentContent::Sections(sections) = &segment.content else { continue };
+        match segment.type_ {
+            // Need to be allocated:
+            SegmentType::ProgramHeader => {}
+            SegmentType::Interpreter => {}
+            SegmentType::Program => {}
+            SegmentType::Uninitialized => {}
+            // Should already be allocated separately:
+            SegmentType::Dynamic => continue,
+        }
         for id in sections {
             if layout.sections.contains_key(id) {
                 panic!("trying to layout the same section twice");
@@ -75,6 +84,16 @@ fn section_len(object: &Object, id: SectionId) -> u64 {
         SectionContent::Relocations(relocations) => {
             (RawRela::size(object.env.class) * relocations.relocations().len()) as u64
         }
+
+        SectionContent::Dynamic(_) => {
+            let entry_size = <u64 as RawTypeAsPointerSize>::size(object.env.class) as u64;
+
+            // Increase by 1 to account for the implied null directive.
+            let directives_count =
+                object.dynamic_entries.iter().map(|d| d.directives_count() as u64).sum::<u64>() + 1;
+
+            entry_size * directives_count
+        }
     }
 }
 
@@ -104,7 +123,8 @@ fn create_segments(object: &mut Object, not_allocated: &mut Vec<SectionId>) {
             SectionContent::StringsForSymbols(_)
             | SectionContent::Symbols(_)
             | SectionContent::SysvHash(_)
-            | SectionContent::Relocations(_) => {
+            | SectionContent::Relocations(_)
+            | SectionContent::Dynamic(_) => {
                 not_allocated.push(section.id);
                 continue;
             }

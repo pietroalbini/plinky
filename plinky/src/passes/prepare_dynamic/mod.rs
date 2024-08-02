@@ -1,4 +1,4 @@
-use crate::cli::CliOptions;
+use crate::cli::{CliOptions, Mode};
 use crate::passes::prepare_dynamic::interpreter::InjectInterpreterError;
 use crate::repr::object::{DynamicEntry, Object};
 use crate::repr::relocations::Relocation;
@@ -62,6 +62,11 @@ pub(crate) fn run(
         perms: ElfPermissions::empty().read(),
         content: SegmentContent::Sections(segment_content),
     });
+
+    match object.mode {
+        Mode::PositionDependent => unreachable!(),
+        Mode::PositionIndependent => object.dynamic_entries.push(DynamicEntry::PieFlag),
+    }
 
     Ok(())
 }

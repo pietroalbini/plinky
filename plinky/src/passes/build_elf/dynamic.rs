@@ -98,10 +98,11 @@ pub(super) fn add(builder: &mut ElfBuilder) {
                 directives
                     .push(ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ });
             }
+            DynamicEntry::PieFlag => {
+                directives.push(ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true }));
+            }
         }
     }
-
-    directives.extend([ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true })].into_iter());
 
     directives.push(ElfDynamicDirective::Null);
 

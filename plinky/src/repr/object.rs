@@ -26,4 +26,5 @@ pub(crate) enum DynamicEntry {
     SymbolTable(SectionId),
     Hash(SectionId),
     Rela(SectionId),
+    PieFlag,
 }

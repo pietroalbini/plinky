@@ -5,6 +5,7 @@ use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::passes::load_inputs::strings::Strings;
 use crate::repr::object::Object;
 use crate::repr::sections::Sections;
+use crate::repr::segments::Segments;
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use crate::utils::before_freeze::BeforeFreeze;
 use plinky_diagnostics::ObjectSpan;
@@ -48,7 +49,7 @@ pub(crate) fn run(
                 let mut object = Object {
                     env: elf.env,
                     sections: Sections::new(),
-                    segments: Vec::new(),
+                    segments: Segments::new(),
                     symbols,
                     dynamic_entries: Vec::new(),
                     got: None,

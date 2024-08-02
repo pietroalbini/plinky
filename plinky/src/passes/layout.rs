@@ -30,7 +30,7 @@ pub(crate) fn run(
         sections: BTreeMap::new(),
         deduplications,
     };
-    for segment in &object.segments {
+    for segment in object.segments.iter() {
         let SegmentContent::Sections(sections) = &segment.content else { continue };
         for id in sections {
             if layout.sections.contains_key(id) {
@@ -117,7 +117,7 @@ fn create_segments(object: &mut Object, not_allocated: &mut Vec<SectionId>) {
     }
 
     for ((type_, perms), sections) in segments {
-        object.segments.push(Segment {
+        object.segments.add(Segment {
             align: PAGE_SIZE,
             type_,
             perms,

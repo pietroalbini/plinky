@@ -110,28 +110,28 @@ pub(super) fn add(builder: &mut ElfBuilder) {
     let dynamic = ElfSectionContent::Dynamic(ElfDynamic { string_table: dynstr_new, directives });
     add_section!(builder, segment_sections, ".dynamic", dynamic, dynamic_id, dynamic_old_id);
 
-    builder.object.segments.push(Segment {
+    builder.object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),
         content: SegmentContent::Sections(segment_sections),
     });
 
-    builder.object.segments.push(Segment {
+    builder.object.segments.add(Segment {
         align: <u64 as RawTypeAsPointerSize>::size(bits) as _,
         type_: SegmentType::Dynamic,
         perms: ElfPermissions::empty().read(),
         content: SegmentContent::Sections(vec![dynamic_old_id]),
     });
     for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
-        builder.object.segments.push(Segment {
+        builder.object.segments.add(Segment {
             align: 0x1000,
             type_,
             perms: ElfPermissions::empty().read(),
             content: SegmentContent::ProgramHeader,
         });
     }
-    builder.object.segments.push(Segment {
+    builder.object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),

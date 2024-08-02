@@ -3,6 +3,25 @@ use crate::utils::ints::Address;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
 
+#[derive(Debug)]
+pub(crate) struct Segments {
+    segments: Vec<Segment>,
+}
+
+impl Segments {
+    pub(crate) fn new() -> Self {
+        Self { segments: Vec::new() }
+    }
+
+    pub(crate) fn add(&mut self, segment: Segment) {
+        self.segments.push(segment);
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &Segment> {
+        self.segments.iter()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Segment {
     pub(crate) align: u64,

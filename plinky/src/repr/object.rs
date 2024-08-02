@@ -1,7 +1,7 @@
 use crate::cli::Mode;
 use crate::passes::generate_got::GOT;
 use crate::repr::sections::Sections;
-use crate::repr::segments::Segment;
+use crate::repr::segments::Segments;
 use crate::repr::symbols::Symbols;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::ElfEnvironment;
@@ -10,7 +10,7 @@ use plinky_elf::ElfEnvironment;
 pub(crate) struct Object {
     pub(crate) env: ElfEnvironment,
     pub(crate) sections: Sections,
-    pub(crate) segments: Vec<Segment>,
+    pub(crate) segments: Segments,
     pub(crate) symbols: Symbols,
     pub(crate) dynamic_entries: Vec<DynamicEntry>,
     pub(crate) got: Option<GOT>,

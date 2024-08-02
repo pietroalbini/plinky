@@ -34,7 +34,7 @@ pub(crate) fn run(
         .builder(".interp", DataSection::new(ElfPermissions::empty().read(), &interpreter))
         .create(ids);
 
-    object.segments.push(Segment {
+    object.segments.add(Segment {
         align: 1,
         type_: SegmentType::Interpreter,
         perms: ElfPermissions::empty().read(),

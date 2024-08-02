@@ -56,7 +56,7 @@ pub(crate) fn run(
         );
     }
 
-    object.segments.push(Segment {
+    object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),

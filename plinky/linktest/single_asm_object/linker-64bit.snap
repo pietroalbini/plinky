@@ -26,14 +26,15 @@ debug print: loaded object
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .strtab#9 in <plinky>
+ │  string table (for symbols) section .strtab#9 in <plinky>
  │   │
- │   │  strings table for symbols | view: symbol table
+ │   │  symbols view: symbol table
  │   ┴
  │
- │  section .symtab#10 in <plinky>
+ │  symbols table section .symtab#10 in <plinky>
  │   │
- │   │  symbols table | view: symbol table | strings: .strtab#9
+ │   │  view: symbol table
+ │   │  strings: .strtab#9
  │   ┴
  │
  │  section .text#1 (perms: rx) in hello.o
@@ -118,14 +119,15 @@ debug print: object after relocations are applied
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .strtab#9 in <plinky>
+ │  string table (for symbols) section .strtab#9 in <plinky>
  │   │
- │   │  strings table for symbols | view: symbol table
+ │   │  symbols view: symbol table
  │   ┴
  │
- │  section .symtab#10 in <plinky>
+ │  symbols table section .symtab#10 in <plinky>
  │   │
- │   │  symbols table | view: symbol table | strings: .strtab#9
+ │   │  view: symbol table
+ │   │  strings: .strtab#9
  │   ┴
  │
  │  section .text#1 (perms: rx) in hello.o

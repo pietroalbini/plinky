@@ -42,14 +42,15 @@ debug print: loaded object
  │   │  ╰──────────────────────┴─────────╯
  │   ┴
  │
- │  section .strtab#16 in <plinky>
+ │  string table (for symbols) section .strtab#16 in <plinky>
  │   │
- │   │  strings table for symbols | view: symbol table
+ │   │  symbols view: symbol table
  │   ┴
  │
- │  section .symtab#17 in <plinky>
+ │  symbols table section .symtab#17 in <plinky>
  │   │
- │   │  symbols table | view: symbol table | strings: .strtab#16
+ │   │  view: symbol table
+ │   │  strings: .strtab#16
  │   ┴
  │
  │  section .text#1 (perms: rx) in foo.o
@@ -155,14 +156,15 @@ debug print: object after relocations are applied
  │   │  ╰──────────────────────┴─────────╯
  │   ┴
  │
- │  section .strtab#16 in <plinky>
+ │  string table (for symbols) section .strtab#16 in <plinky>
  │   │
- │   │  strings table for symbols | view: symbol table
+ │   │  symbols view: symbol table
  │   ┴
  │
- │  section .symtab#17 in <plinky>
+ │  symbols table section .symtab#17 in <plinky>
  │   │
- │   │  symbols table | view: symbol table | strings: .strtab#16
+ │   │  view: symbol table
+ │   │  strings: .strtab#16
  │   ┴
  │
  │  section .text#1 (perms: rx) in foo.o

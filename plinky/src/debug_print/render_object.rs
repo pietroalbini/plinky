@@ -198,9 +198,8 @@ fn render_strings_for_symbols_section(
     strings: &StringsForSymbolsSection,
 ) -> Box<dyn Widget> {
     Box::new(
-        WidgetGroup::new()
-            .name(format!("section {} in {}", section_name(object, section.id), section.source))
-            .add(Text::new(format!("strings table for symbols | view: {}", strings.view))),
+        section_widget(object, section, "string table (for symbols)")
+            .add(Text::new(format!("symbols view: {}", strings.view))),
     )
 }
 
@@ -209,15 +208,11 @@ fn render_symbols_section(
     section: &Section,
     symbols: &SymbolsSection,
 ) -> Box<dyn Widget> {
-    Box::new(
-        WidgetGroup::new()
-            .name(format!("section {} in {}", section_name(object, section.id), section.source))
-            .add(Text::new(format!(
-                "symbols table | view: {} | strings: {}",
-                symbols.view,
-                section_name(object, symbols.strings)
-            ))),
-    )
+    Box::new(section_widget(object, section, "symbols table").add(Text::new(format!(
+        "view: {}\nstrings: {}",
+        symbols.view,
+        section_name(object, symbols.strings)
+    ))))
 }
 
 fn render_sysv_hash_section(
@@ -225,13 +220,17 @@ fn render_sysv_hash_section(
     section: &Section,
     sysv: &SysvHashSection,
 ) -> Box<dyn Widget> {
-    Box::new(
-        WidgetGroup::new()
-            .name(format!("section {} in {}", section_name(object, section.id), section.source))
-            .add(Text::new(format!(
-                "sysv hash table | view: {} | symbols: {}",
-                sysv.view,
-                section_name(object, sysv.symbols)
-            ))),
-    )
+    Box::new(section_widget(object, section, "SysV hash").add(Text::new(format!(
+        "view: {}\nsymbols: {}",
+        sysv.view,
+        section_name(object, sysv.symbols)
+    ))))
+}
+
+fn section_widget(object: &Object, section: &Section, kind: &str) -> WidgetGroup {
+    WidgetGroup::new().name(format!(
+        "{kind} section {} in {}",
+        section_name(object, section.id),
+        section.source
+    ))
 }

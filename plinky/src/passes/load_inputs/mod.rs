@@ -3,6 +3,7 @@ use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::passes::load_inputs::strings::Strings;
+use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
@@ -51,7 +52,7 @@ pub(crate) fn run(
                     sections: Sections::new(),
                     segments: Segments::new(),
                     symbols,
-                    dynamic_entries: Vec::new(),
+                    dynamic_entries: DynamicEntries::new(),
                     got: None,
                     entry_point,
                     mode: options.mode,

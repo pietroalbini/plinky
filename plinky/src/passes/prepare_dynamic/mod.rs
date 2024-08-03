@@ -1,6 +1,7 @@
 use crate::cli::{CliOptions, Mode};
 use crate::passes::prepare_dynamic::interpreter::InjectInterpreterError;
-use crate::repr::object::{DynamicEntry, Object};
+use crate::repr::dynamic_entries::DynamicEntry;
+use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
     DynamicSection, RelocationsSection, SectionContent, StringsForSymbolsSection, SymbolsSection,
@@ -30,7 +31,7 @@ pub(crate) fn run(
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
             let id = object.sections.builder(name, content).create(ids);
             segment_content.push(id);
-            object.dynamic_entries.push(entry(id));
+            object.dynamic_entries.add(entry(id), before_freeze);
             id
         };
 
@@ -103,7 +104,7 @@ pub(crate) fn run(
 
     match object.mode {
         Mode::PositionDependent => unreachable!(),
-        Mode::PositionIndependent => object.dynamic_entries.push(DynamicEntry::PieFlag),
+        Mode::PositionIndependent => object.dynamic_entries.add(DynamicEntry::PieFlag, before_freeze),
     }
 
     Ok(())

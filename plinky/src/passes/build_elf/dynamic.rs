@@ -1,7 +1,7 @@
 use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
-use crate::repr::object::DynamicEntry;
+use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::sections::DynamicSection;
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
@@ -15,7 +15,7 @@ pub(super) fn build_dynamic_section(
     let bits = builder.object.env.class;
 
     let mut directives = Vec::new();
-    for entry in &builder.object.dynamic_entries {
+    for entry in builder.object.dynamic_entries.iter() {
         let old_len = directives.len();
         match entry {
             DynamicEntry::StringTable(id) => {

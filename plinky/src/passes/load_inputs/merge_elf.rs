@@ -5,7 +5,6 @@ use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, Symbol, Symbols};
-use crate::utils::before_freeze::BeforeFreeze;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{
@@ -20,7 +19,6 @@ pub(super) fn merge(
     mut section_groups: SectionGroupsForObject<'_>,
     source: ObjectSpan,
     elf: ElfObject<SerialIds>,
-    before_freeze: &BeforeFreeze,
 ) -> Result<(), MergeElfError> {
     let mut symbol_tables = Vec::new();
     let mut program_sections = Vec::new();
@@ -82,11 +80,12 @@ pub(super) fn merge(
     // to resolve the strings as part of symbol loading.
     for (name_id, mut table) in symbol_tables {
         section_groups.filter_symbol_table(&mut table)?;
-        merge_symbols(&mut object.symbols, intern(source.clone()), table, &strings, before_freeze)
-            .map_err(|inner| MergeElfError::SymbolsLoadingFailed {
+        merge_symbols(&mut object.symbols, intern(source.clone()), table, &strings).map_err(
+            |inner| MergeElfError::SymbolsLoadingFailed {
                 section_name: strings.get(name_id).unwrap_or("<unknown>").into(),
                 inner,
-            })?;
+            },
+        )?;
     }
 
     for (id, name, uninit) in uninitialized_sections {
@@ -134,7 +133,6 @@ fn merge_symbols(
     span: Interned<ObjectSpan>,
     table: ElfSymbolTable<SerialIds>,
     strings: &Strings,
-    before_freeze: &BeforeFreeze,
 ) -> Result<(), LoadSymbolsError> {
     let mut stt_file = None;
     let mut is_first = true;
@@ -154,7 +152,7 @@ fn merge_symbols(
                 && matches!(elf_symbol.definition, ElfSymbolDefinition::Undefined)
                 && matches!(elf_symbol.type_, ElfSymbolType::NoType)
             {
-                symbols.add_redirect(symbol_id, symbols.null_symbol_id(), before_freeze);
+                symbols.add_redirect(symbol_id, symbols.null_symbol_id());
                 continue;
             }
         }
@@ -164,10 +162,7 @@ fn merge_symbols(
             continue;
         }
 
-        symbols.add_symbol(
-            Symbol::new_elf(symbol_id, elf_symbol, name, span, stt_file)?,
-            before_freeze,
-        )?;
+        symbols.add_symbol(Symbol::new_elf(symbol_id, elf_symbol, name, span, stt_file)?)?;
     }
     Ok(())
 }

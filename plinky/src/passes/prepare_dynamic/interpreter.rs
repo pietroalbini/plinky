@@ -2,7 +2,6 @@ use crate::cli::{CliOptions, Mode};
 use crate::repr::object::Object;
 use crate::repr::sections::DataSection;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
-use crate::utils::before_freeze::BeforeFreeze;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
@@ -11,7 +10,6 @@ pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
     object: &mut Object,
-    before_freeze: &BeforeFreeze,
 ) -> Result<(), InjectInterpreterError> {
     match object.mode {
         Mode::PositionDependent => return Ok(()),
@@ -36,15 +34,12 @@ pub(crate) fn run(
         .builder(".interp", DataSection::new(ElfPermissions::empty().read(), &interpreter))
         .create(ids);
 
-    object.segments.add(
-        Segment {
-            align: 1,
-            type_: SegmentType::Interpreter,
-            perms: ElfPermissions::empty().read(),
-            content: SegmentContent::Sections(vec![section]),
-        },
-        before_freeze,
-    );
+    object.segments.add(Segment {
+        align: 1,
+        type_: SegmentType::Interpreter,
+        perms: ElfPermissions::empty().read(),
+        content: SegmentContent::Sections(vec![section]),
+    });
 
     Ok(())
 }

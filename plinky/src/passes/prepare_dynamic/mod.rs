@@ -9,7 +9,6 @@ use crate::repr::sections::{
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
-use crate::utils::before_freeze::BeforeFreeze;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
@@ -22,16 +21,15 @@ pub(crate) fn run(
     object: &mut Object,
     ids: &mut SerialIds,
     got_relocations: Vec<Relocation>,
-    before_freeze: &BeforeFreeze,
 ) -> Result<(), PrepareDynamicError> {
-    interpreter::run(options, ids, object, before_freeze)?;
+    interpreter::run(options, ids, object)?;
 
     let mut segment_content = Vec::new();
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
             let id = object.sections.builder(name, content).create(ids);
             segment_content.push(id);
-            object.dynamic_entries.add(entry(id), before_freeze);
+            object.dynamic_entries.add(entry(id));
             id
         };
 
@@ -60,51 +58,39 @@ pub(crate) fn run(
     let dynamic = object.sections.builder(".dynamic", DynamicSection::new(dynstr)).create(ids);
     segment_content.push(dynamic);
 
-    object.segments.add(
-        Segment {
-            align: 0x1000,
-            type_: SegmentType::Program,
-            perms: ElfPermissions::empty().read(),
-            content: SegmentContent::Sections(segment_content),
-        },
-        before_freeze,
-    );
+    object.segments.add(Segment {
+        align: 0x1000,
+        type_: SegmentType::Program,
+        perms: ElfPermissions::empty().read(),
+        content: SegmentContent::Sections(segment_content),
+    });
 
-    object.segments.add(
-        Segment {
-            align: <u64 as RawTypeAsPointerSize>::size(object.env.class) as _,
-            type_: SegmentType::Dynamic,
-            perms: ElfPermissions::empty().read(),
-            content: SegmentContent::Sections(vec![dynamic]),
-        },
-        before_freeze,
-    );
+    object.segments.add(Segment {
+        align: <u64 as RawTypeAsPointerSize>::size(object.env.class) as _,
+        type_: SegmentType::Dynamic,
+        perms: ElfPermissions::empty().read(),
+        content: SegmentContent::Sections(vec![dynamic]),
+    });
 
     for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
-        object.segments.add(
-            Segment {
-                align: 0x1000,
-                type_,
-                perms: ElfPermissions::empty().read(),
-                content: SegmentContent::ProgramHeader,
-            },
-            before_freeze,
-        );
+        object.segments.add(Segment {
+            align: 0x1000,
+            type_,
+            perms: ElfPermissions::empty().read(),
+            content: SegmentContent::ProgramHeader,
+        });
     }
 
-    object.segments.add(
-        Segment {
-            align: 0x1000,
-            type_: SegmentType::Program,
-            perms: ElfPermissions::empty().read(),
-            content: SegmentContent::ElfHeader,
-        },
-        before_freeze,
-    );
+    object.segments.add(Segment {
+        align: 0x1000,
+        type_: SegmentType::Program,
+        perms: ElfPermissions::empty().read(),
+        content: SegmentContent::ElfHeader,
+    });
 
     match object.mode {
         Mode::PositionDependent => unreachable!(),
-        Mode::PositionIndependent => object.dynamic_entries.add(DynamicEntry::PieFlag, before_freeze),
+        Mode::PositionIndependent => object.dynamic_entries.add(DynamicEntry::PieFlag),
     }
 
     Ok(())

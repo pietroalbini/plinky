@@ -1,5 +1,4 @@
 use plinky_elf::ids::serial::SectionId;
-use crate::utils::before_freeze::BeforeFreeze;
 
 #[derive(Debug)]
 pub(crate) struct DynamicEntries {
@@ -11,7 +10,7 @@ impl DynamicEntries {
         Self { entries: Vec::new() }
     }
 
-    pub(crate) fn add(&mut self, entry: DynamicEntry, _before: &BeforeFreeze) {
+    pub(crate) fn add(&mut self, entry: DynamicEntry) {
         self.entries.push(entry);
     }
 

@@ -4,13 +4,8 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolValue;
-use crate::utils::before_freeze::BeforeFreeze;
 
-pub(super) fn run(
-    object: &mut Object,
-    section_groups: &SectionGroups,
-    before_freeze: &BeforeFreeze,
-) {
+pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
     let gnu_stack = intern(".note.GNU-stack");
 
     let mut removed_gnu_stack = false;
@@ -44,11 +39,11 @@ pub(super) fn run(
         }
     }
     for symbol_id in symbols_to_remove {
-        object.symbols.remove(symbol_id, before_freeze);
+        object.symbols.remove(symbol_id);
     }
 
     object.gnu_stack_section_ignored |= removed_gnu_stack;
     for id in sections_to_remove {
-        object.sections.remove(id, Some(&mut object.symbols), before_freeze);
+        object.sections.remove(id, Some(&mut object.symbols));
     }
 }

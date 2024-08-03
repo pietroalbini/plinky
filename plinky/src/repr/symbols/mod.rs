@@ -8,7 +8,6 @@ use plinky_macros::{Display, Error};
 use std::collections::{btree_map, BTreeMap};
 
 use crate::repr::symbols::views::SymbolsView;
-use crate::utils::before_freeze::BeforeFreeze;
 pub(crate) use symbol::{
     ResolveSymbolError, ResolvedSymbol, Symbol, SymbolType, SymbolValue, SymbolVisibility,
 };
@@ -33,22 +32,17 @@ impl Symbols {
         &mut self,
         ids: &mut SerialIds,
         name: &str,
-        before_freeze: &BeforeFreeze,
     ) -> Result<SymbolId, LoadSymbolsError> {
         let id = ids.allocate_symbol_id();
-        self.add_symbol(Symbol::new_global_unknown(id, name), before_freeze)?;
+        self.add_symbol(Symbol::new_global_unknown(id, name))?;
         Ok(id)
     }
 
-    pub(crate) fn add_redirect(&mut self, from: SymbolId, to: SymbolId, _before: &BeforeFreeze) {
+    pub(crate) fn add_redirect(&mut self, from: SymbolId, to: SymbolId) {
         self.symbols.insert(from, SymbolOrRedirect::Redirect(to));
     }
 
-    pub(crate) fn add_symbol(
-        &mut self,
-        mut symbol: Symbol,
-        before_freeze: &BeforeFreeze,
-    ) -> Result<(), LoadSymbolsError> {
+    pub(crate) fn add_symbol(&mut self, mut symbol: Symbol) -> Result<(), LoadSymbolsError> {
         match symbol.visibility() {
             SymbolVisibility::Local => {
                 self.symbols.insert(symbol.id(), SymbolOrRedirect::Symbol(symbol));
@@ -58,7 +52,7 @@ impl Symbols {
                 // redirect to it all of the concrete references to that global name.
                 let global_id = *self.global_symbols.entry(symbol.name()).or_insert(symbol.id());
                 if symbol.id() != global_id {
-                    self.add_redirect(symbol.id(), global_id, before_freeze);
+                    self.add_redirect(symbol.id(), global_id);
                 }
 
                 // Ensure the ID contained in the symbol is the global ID, not the original ID.
@@ -89,7 +83,7 @@ impl Symbols {
         Ok(())
     }
 
-    pub(crate) fn remove(&mut self, id: SymbolId, _before: &BeforeFreeze) {
+    pub(crate) fn remove(&mut self, id: SymbolId) {
         self.symbols.remove(&id);
     }
 

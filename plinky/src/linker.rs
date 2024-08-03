@@ -12,7 +12,6 @@ use crate::passes::relocate::RelocationError;
 use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
 use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
-use crate::utils::before_freeze::BeforeFreeze;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
@@ -23,41 +22,28 @@ pub(crate) fn link_driver(
 ) -> Result<(), LinkerError> {
     let mut ids = SerialIds::new();
 
-    // SAFETY: this is the beginning of the linking process.
-    let before_freeze = unsafe { BeforeFreeze::new() };
-
-    let mut object = passes::load_inputs::run(options, &mut ids, &before_freeze)?;
+    let mut object = passes::load_inputs::run(options, &mut ids)?;
     passes::inject_symbol_table::run(&mut object, &mut ids);
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {
-        let removed = passes::gc_sections::run(&mut object, &before_freeze);
+        let removed = passes::gc_sections::run(&mut object);
         callbacks.on_sections_removed_by_gc(&object, &removed);
     }
 
-    let deduplications = passes::deduplicate::run(&mut object, &mut ids, &before_freeze)?;
+    let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
     match object.mode {
         Mode::PositionDependent => generate_got_static(&mut ids, &mut object),
         Mode::PositionIndependent => {
-            let got_relocations = generate_got_dynamic(&mut ids, &mut object, &before_freeze);
-            passes::prepare_dynamic::run(
-                &options,
-                &mut object,
-                &mut ids,
-                got_relocations,
-                &before_freeze,
-            )?;
+            let got_relocations = generate_got_dynamic(&mut ids, &mut object);
+            passes::prepare_dynamic::run(&options, &mut object, &mut ids, got_relocations)?;
         }
     }
 
-    passes::exclude_section_symbols_from_tables::remove(&mut object, &before_freeze);
+    passes::exclude_section_symbols_from_tables::remove(&mut object);
     passes::demote_global_hidden_symbols::run(&mut object);
-    passes::create_segments::run(&mut object, &before_freeze);
-
-    // We cannot change which symbols appear on symbol views from this point onwards, otherwise the
-    // layout will be incorrect (as symbol tables will have a different size).
-    drop(before_freeze);
+    passes::create_segments::run(&mut object);
 
     let layout = passes::layout::run(&mut object, deduplications);
     callbacks.on_layout_calculated(&object, &layout);

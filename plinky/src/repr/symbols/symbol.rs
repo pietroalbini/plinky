@@ -1,7 +1,6 @@
 use crate::interner::{intern, Interned};
 use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::symbols::LoadSymbolsError;
-use crate::utils::before_freeze::BeforeFreeze;
 use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
@@ -131,11 +130,11 @@ impl Symbol {
         self.visibility = visibility;
     }
 
-    pub(crate) fn mark_needed_by_dynamic(&mut self, _before: &BeforeFreeze) {
+    pub(crate) fn mark_needed_by_dynamic(&mut self) {
         self.needed_by_dynamic = true;
     }
 
-    pub(crate) fn mark_exclude_from_tables(&mut self, _before: &BeforeFreeze) {
+    pub(crate) fn mark_exclude_from_tables(&mut self) {
         self.exclude_from_tables = true;
     }
 

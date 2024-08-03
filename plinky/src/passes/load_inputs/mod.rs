@@ -8,7 +8,6 @@ use crate::repr::object::Object;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
-use crate::utils::before_freeze::BeforeFreeze;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
@@ -21,16 +20,12 @@ mod read_objects;
 mod section_groups;
 mod strings;
 
-pub(crate) fn run(
-    options: &CliOptions,
-    ids: &mut SerialIds,
-    before_freeze: &BeforeFreeze,
-) -> Result<Object, LoadInputsError> {
+pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new(ids);
     let entry_point = empty_symbols
-        .add_unknown_global(ids, &options.entry, before_freeze)
+        .add_unknown_global(ids, &options.entry)
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
     let mut state = State::Empty {
@@ -66,7 +61,6 @@ pub(crate) fn run(
                     section_groups.for_object(),
                     source.clone(),
                     elf,
-                    before_freeze,
                 )
                 .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
                 State::WithContent { object, strings, section_groups, first_span: source }
@@ -86,7 +80,6 @@ pub(crate) fn run(
                     section_groups.for_object(),
                     source.clone(),
                     elf,
-                    before_freeze,
                 )
                 .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
                 State::WithContent { object, strings, section_groups, first_span }
@@ -97,7 +90,7 @@ pub(crate) fn run(
     match state {
         State::Empty { .. } => Err(LoadInputsError::NoInputFiles),
         State::WithContent { mut object, section_groups, .. } => {
-            cleanup::run(&mut object, &section_groups, before_freeze);
+            cleanup::run(&mut object, &section_groups);
             Ok(object)
         }
     }

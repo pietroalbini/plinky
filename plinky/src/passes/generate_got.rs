@@ -1,7 +1,6 @@
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
-use crate::utils::before_freeze::BeforeFreeze;
 use crate::utils::ints::Offset;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfPermissions;
@@ -11,17 +10,13 @@ pub(crate) fn generate_got_static(ids: &mut SerialIds, object: &mut Object) {
     generate_got(ids, object, |data, relocations| data.relocations = relocations);
 }
 
-pub(crate) fn generate_got_dynamic(
-    ids: &mut SerialIds,
-    object: &mut Object,
-    before_freeze: &BeforeFreeze,
-) -> Vec<Relocation> {
+pub(crate) fn generate_got_dynamic(ids: &mut SerialIds, object: &mut Object) -> Vec<Relocation> {
     let mut relocations = None;
     generate_got(ids, object, |_, r| relocations = Some(r));
     let relocations = relocations.unwrap();
 
     for relocation in &relocations {
-        object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic(before_freeze);
+        object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
     }
 
     relocations

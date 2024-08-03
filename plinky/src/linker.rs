@@ -41,12 +41,19 @@ pub(crate) fn link_driver(
         Mode::PositionDependent => generate_got_static(&mut ids, &mut object),
         Mode::PositionIndependent => {
             let got_relocations = generate_got_dynamic(&mut ids, &mut object, &before_freeze);
-            passes::prepare_dynamic::run(&options, &mut object, &mut ids, got_relocations)?;
+            passes::prepare_dynamic::run(
+                &options,
+                &mut object,
+                &mut ids,
+                got_relocations,
+                &before_freeze,
+            )?;
         }
     }
 
     passes::exclude_section_symbols_from_tables::remove(&mut object, &before_freeze);
     passes::demote_global_hidden_symbols::run(&mut object);
+    passes::create_segments::run(&mut object, &before_freeze);
 
     // We cannot change which symbols appear on symbol views from this point onwards, otherwise the
     // layout will be incorrect (as symbol tables will have a different size).

@@ -1,4 +1,5 @@
 pub(crate) mod build_elf;
+pub(crate) mod create_segments;
 pub(crate) mod deduplicate;
 pub(crate) mod demote_global_hidden_symbols;
 pub(crate) mod exclude_section_symbols_from_tables;

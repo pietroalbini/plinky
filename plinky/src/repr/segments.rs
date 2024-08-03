@@ -1,4 +1,5 @@
 use crate::passes::layout::{Layout, SectionLayout};
+use crate::utils::before_freeze::BeforeFreeze;
 use crate::utils::ints::Address;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
@@ -13,7 +14,7 @@ impl Segments {
         Self { segments: Vec::new() }
     }
 
-    pub(crate) fn add(&mut self, segment: Segment) {
+    pub(crate) fn add(&mut self, segment: Segment, _before: &BeforeFreeze) {
         self.segments.push(segment);
     }
 

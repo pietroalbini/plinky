@@ -57,7 +57,7 @@ where
                 Part::Group(id) => self.write_group(id)?,
                 Part::Hash(id) => self.write_hash(id)?,
                 Part::Dynamic(id) => self.write_dynamic(id)?,
-                Part::Padding(_) => self.write_padding(part)?,
+                Part::Padding { .. } => self.write_padding(part)?,
             }
         }
         Ok(())

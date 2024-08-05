@@ -176,7 +176,10 @@ impl<I: ElfIds> WriteLayout<I> {
             return;
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
-        self.add_part(Part::Padding(PaddingId(self.next_padding_id)), bytes_to_pad as _);
+        self.add_part(
+            Part::Padding { id: PaddingId(self.next_padding_id), len: bytes_to_pad as _ },
+            bytes_to_pad as _,
+        );
         self.next_padding_id += 1;
     }
 
@@ -203,7 +206,7 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::ProgramSection(this) => this == id,
                 Part::StringTable(this) => this == id,
                 Part::SymbolTable(this) => this == id,
-                Part::Padding(_) => false,
+                Part::Padding { .. } => false,
                 Part::Group(this) => this == id,
                 Part::Hash(this) => this == id,
                 Part::Dynamic(this) => this == id,
@@ -228,7 +231,7 @@ pub(super) enum Part<SectionId> {
     RelocationsTable { id: SectionId, rela: bool },
     Group(SectionId),
     Dynamic(SectionId),
-    Padding(PaddingId),
+    Padding { id: PaddingId, len: usize },
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]

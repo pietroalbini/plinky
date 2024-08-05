@@ -1,11 +1,12 @@
+mod details_provider;
+
 use crate::ids::ElfIds;
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
     RawSectionHeader, RawSymbol,
 };
-use crate::{
-    ElfClass, ElfObject, ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-};
+use crate::writer::layout::details_provider::LayoutDetailsProvider;
+use crate::{ElfSection, ElfSectionContent, ElfSegmentContent, ElfSegmentType};
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
@@ -19,25 +20,24 @@ pub(super) struct WriteLayout<I: ElfIds> {
     current_offset: u64,
     pub(super) header_size: u64,
     next_padding_id: usize,
-    class: ElfClass,
 }
 
 impl<I: ElfIds> WriteLayout<I> {
-    pub(super) fn new(object: &ElfObject<I>) -> Result<Self, WriteLayoutError> {
+    pub(super) fn new(details: &dyn LayoutDetailsProvider<I>) -> Result<Self, WriteLayoutError> {
         let mut layout = WriteLayout {
             parts: Vec::new(),
             metadata: BTreeMap::new(),
             current_offset: 0,
             header_size: 0,
             next_padding_id: 0,
-            class: object.env.class,
         };
 
-        layout.add_part(Part::Identification, RawIdentification::size(layout.class));
-        layout.add_part(Part::Header, RawHeader::size(layout.class));
+        layout.add_part(details, Part::Identification);
+        layout.add_part(details, Part::Header);
         layout.header_size = layout.current_offset;
 
-        let sections_in_load_segments = object
+        let sections_in_load_segments = details
+            .object()
             .segments
             .iter()
             .enumerate()
@@ -63,7 +63,7 @@ impl<I: ElfIds> WriteLayout<I> {
         // segments while being careful of page-aligning each of them.
         let mut put_in_preamble = Vec::new();
         let mut put_in_segments = BTreeMap::new();
-        for (id, section) in &object.sections {
+        for (id, section) in &details.object().sections {
             if let Some(segment) = sections_in_load_segments.get(&id) {
                 put_in_segments.entry(*segment).or_insert_with(Vec::new).push((id, section));
             } else {
@@ -71,50 +71,44 @@ impl<I: ElfIds> WriteLayout<I> {
             }
         }
         for (id, section) in put_in_preamble {
-            layout.add_section(id, section)?;
+            layout.add_section(details, id, section)?;
         }
         for segment_sections in put_in_segments.values() {
-            layout.align_to_page();
+            layout.align_to_page(details);
             for (id, section) in segment_sections {
-                layout.add_section(id, section)?;
+                layout.add_section(details, id, section)?;
             }
         }
 
         // TODO: waste less space, and try to put the program header next to the elf header.
-        layout.align_to_page();
-        layout.add_part(
-            Part::ProgramHeaders,
-            RawProgramHeader::size(layout.class) * object.segments.len(),
-        );
-
-        layout.add_part(
-            Part::SectionHeaders,
-            RawSectionHeader::size(layout.class) * object.sections.len(),
-        );
+        layout.align_to_page(details);
+        layout.add_part(details, Part::ProgramHeaders);
+        layout.add_part(details, Part::SectionHeaders);
 
         Ok(layout)
     }
 
     fn add_section(
         &mut self,
+        details: &dyn LayoutDetailsProvider<I>,
         id: &I::SectionId,
         section: &ElfSection<I>,
     ) -> Result<(), WriteLayoutError> {
         match &section.content {
             ElfSectionContent::Null => {}
-            ElfSectionContent::Program(program) => {
-                self.add_part(Part::ProgramSection(id.clone()), program.raw.len())
+            ElfSectionContent::Program(_) => {
+                self.add_part(details, Part::ProgramSection(id.clone()));
             }
             ElfSectionContent::Uninitialized(_) => {
                 // Uninitialized sections are not part of the file layout.
             }
-            ElfSectionContent::SymbolTable(table) => self.add_part(
-                Part::SymbolTable(id.clone()),
-                RawSymbol::size(self.class) * table.symbols.len(),
-            ),
-            ElfSectionContent::StringTable(table) => {
-                self.add_part(Part::StringTable(id.clone()), table.len());
+            ElfSectionContent::SymbolTable(_) => {
+                self.add_part(details, Part::SymbolTable(id.clone()));
             }
+            ElfSectionContent::StringTable(_) => {
+                self.add_part(details, Part::StringTable(id.clone()));
+            }
+
             ElfSectionContent::RelocationsTable(table) => {
                 let mut rela = None;
                 for relocation in &table.relocations {
@@ -126,36 +120,15 @@ impl<I: ElfIds> WriteLayout<I> {
                 }
                 let rela = rela.unwrap_or(false);
                 if rela {
-                    self.add_part(
-                        Part::Rela(id.clone()),
-                        (RawRela::size(self.class) * table.relocations.len()) as _,
-                    );
+                    self.add_part(details, Part::Rela(id.clone()));
                 } else {
-                    self.add_part(
-                        Part::Rel(id.clone()),
-                        (RawRel::size(self.class) * table.relocations.len()) as _,
-                    );
+                    self.add_part(details, Part::Rel(id.clone()));
                 }
             }
-            ElfSectionContent::Group(group) => {
-                self.add_part(
-                    Part::Group(id.clone()),
-                    RawGroupFlags::size(self.class) + u32::size(self.class) * group.sections.len(),
-                );
-            }
-            ElfSectionContent::Hash(hash) => {
-                let size = u32::size(self.class);
-                self.add_part(
-                    Part::Hash(id.clone()),
-                    RawHashHeader::size(self.class)
-                        + hash.buckets.len() * size
-                        + hash.chain.len() * size,
-                )
-            }
-            ElfSectionContent::Dynamic(dynamic) => {
-                let size = <u64 as RawTypeAsPointerSize>::size(self.class) * 2;
-                self.add_part(Part::Dynamic(id.clone()), dynamic.directives.len() * size);
-            }
+            ElfSectionContent::Group(_) => self.add_part(details, Part::Group(id.clone())),
+            ElfSectionContent::Hash(_) => self.add_part(details, Part::Hash(id.clone())),
+            ElfSectionContent::Dynamic(_) => self.add_part(details, Part::Dynamic(id.clone())),
+
             ElfSectionContent::Note(_) => {
                 return Err(WriteLayoutError::WritingNotesUnsupported);
             }
@@ -166,22 +139,22 @@ impl<I: ElfIds> WriteLayout<I> {
         Ok(())
     }
 
-    fn add_part(&mut self, part: Part<I::SectionId>, len: usize) {
-        let len = len as u64;
+    fn add_part(&mut self, details: &dyn LayoutDetailsProvider<I>, part: Part<I::SectionId>) {
+        let len = part_len(details, &part) as u64;
         self.parts.push(part.clone());
         self.metadata.insert(part, PartMetadata { len, offset: self.current_offset });
         self.current_offset += len;
     }
 
-    fn align_to_page(&mut self) {
+    fn align_to_page(&mut self, details: &dyn LayoutDetailsProvider<I>) {
         let len = self.len();
         if len % ALIGN == 0 {
             return;
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
         self.add_part(
+            details,
             Part::Padding { id: PaddingId(self.next_padding_id), len: bytes_to_pad as _ },
-            bytes_to_pad as _,
         );
         self.next_padding_id += 1;
     }
@@ -219,6 +192,40 @@ impl<I: ElfIds> WriteLayout<I> {
             .map(|(_, value)| value)
             .next()
             .unwrap()
+    }
+}
+
+fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::SectionId>) -> usize {
+    let class = details.class();
+    match part {
+        Part::Identification => RawIdentification::size(class),
+        Part::Header => RawHeader::size(class),
+
+        Part::SectionHeaders => RawSectionHeader::size(class) * details.sections_count(),
+        Part::ProgramHeaders => RawProgramHeader::size(class) * details.segments_count(),
+
+        Part::ProgramSection(id) => details.program_section_len(id),
+        Part::StringTable(id) => details.string_table_len(id),
+
+        Part::SymbolTable(id) => RawSymbol::size(class) * details.symbols_in_table_count(id),
+        Part::Rel(id) => RawRel::size(class) * details.relocations_in_table_count(id),
+        Part::Rela(id) => RawRela::size(class) * details.relocations_in_table_count(id),
+
+        Part::Hash(id) => {
+            let hash = details.hash_details(id);
+            RawHashHeader::size(class)
+                + hash.buckets * u32::size(class)
+                + hash.chain * u32::size(class)
+        }
+
+        Part::Group(id) => {
+            RawGroupFlags::size(class) + u32::size(class) * details.sections_in_group_count(id)
+        }
+        Part::Dynamic(id) => {
+            <u64 as RawTypeAsPointerSize>::size(class) * 2 * details.dynamic_directives_count(id)
+        }
+
+        Part::Padding { len, .. } => *len,
     }
 }
 

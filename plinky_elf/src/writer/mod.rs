@@ -53,7 +53,8 @@ where
                 Part::ProgramSection(id) => self.write_program_section(id)?,
                 Part::StringTable(id) => self.write_string_table(id)?,
                 Part::SymbolTable(id) => self.write_symbol_table(id)?,
-                Part::RelocationsTable { id, rela } => self.write_relocations_table(id, *rela)?,
+                Part::Rela(id) => self.write_relocations_table(id, true)?,
+                Part::Rel(id) => self.write_relocations_table(id, false)?,
                 Part::Group(id) => self.write_group(id)?,
                 Part::Hash(id) => self.write_hash(id)?,
                 Part::Dynamic(id) => self.write_dynamic(id)?,
@@ -148,12 +149,8 @@ where
                     .parts()
                     .iter()
                     .filter_map(|part| match part {
-                        Part::RelocationsTable { id: part_id, rela } if part_id == id => {
-                            Some(match *rela {
-                                true => 4,
-                                false => 9,
-                            })
-                        }
+                        Part::Rel(part_id) if part_id == id => Some(9),
+                        Part::Rela(part_id) if part_id == id => Some(4),
                         _ => None,
                     })
                     .next()

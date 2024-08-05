@@ -125,14 +125,17 @@ impl<I: ElfIds> WriteLayout<I> {
                     }
                 }
                 let rela = rela.unwrap_or(false);
-                self.add_part(
-                    Part::RelocationsTable { id: id.clone(), rela },
-                    if rela {
-                        (RawRela::size(self.class) * table.relocations.len()) as _
-                    } else {
-                        (RawRel::size(self.class) * table.relocations.len()) as _
-                    },
-                )
+                if rela {
+                    self.add_part(
+                        Part::Rela(id.clone()),
+                        (RawRela::size(self.class) * table.relocations.len()) as _,
+                    );
+                } else {
+                    self.add_part(
+                        Part::Rel(id.clone()),
+                        (RawRel::size(self.class) * table.relocations.len()) as _,
+                    );
+                }
             }
             ElfSectionContent::Group(group) => {
                 self.add_part(
@@ -210,7 +213,8 @@ impl<I: ElfIds> WriteLayout<I> {
                 Part::Group(this) => this == id,
                 Part::Hash(this) => this == id,
                 Part::Dynamic(this) => this == id,
-                Part::RelocationsTable { id: this, .. } => this == id,
+                Part::Rel(this) => this == id,
+                Part::Rela(this) => this == id,
             })
             .map(|(_, value)| value)
             .next()
@@ -228,7 +232,8 @@ pub(super) enum Part<SectionId> {
     StringTable(SectionId),
     SymbolTable(SectionId),
     Hash(SectionId),
-    RelocationsTable { id: SectionId, rela: bool },
+    Rel(SectionId),
+    Rela(SectionId),
     Group(SectionId),
     Dynamic(SectionId),
     Padding { id: PaddingId, len: usize },

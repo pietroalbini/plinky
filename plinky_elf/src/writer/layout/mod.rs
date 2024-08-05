@@ -17,14 +17,13 @@ const ALIGN: u64 = 0x1000;
 pub(super) struct WriteLayout<I: ElfIds> {
     parts: Vec<Part<I::SectionId>>,
     metadata: BTreeMap<Part<I::SectionId>, PartMetadata>,
-    pub(super) header_size: u64,
 }
 
 impl<I: ElfIds> WriteLayout<I> {
     pub(super) fn new(details: &dyn LayoutDetailsProvider<I>) -> Result<Self, WriteLayoutError> {
         let builder = LayoutBuilder {
             details,
-            layout: WriteLayout { parts: Vec::new(), metadata: BTreeMap::new(), header_size: 0 },
+            layout: WriteLayout { parts: Vec::new(), metadata: BTreeMap::new() },
             current_offset: 0,
             next_padding_id: 0,
         };
@@ -43,7 +42,6 @@ impl<I: ElfIds> WriteLayout<I> {
         self.metadata
             .iter()
             .filter(|(key, _)| match key {
-                Part::Identification => false,
                 Part::Header => false,
                 Part::SectionHeaders => false,
                 Part::ProgramHeaders => false,
@@ -72,9 +70,7 @@ struct LayoutBuilder<'a, I: ElfIds> {
 
 impl<I: ElfIds> LayoutBuilder<'_, I> {
     fn build(mut self) -> Result<WriteLayout<I>, WriteLayoutError> {
-        self.add_part(Part::Identification);
         self.add_part(Part::Header);
-        self.layout.header_size = self.current_offset;
 
         let sections_in_load_segments = self
             .details
@@ -207,8 +203,7 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
 fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::SectionId>) -> usize {
     let class = details.class();
     match part {
-        Part::Identification => RawIdentification::size(class),
-        Part::Header => RawHeader::size(class),
+        Part::Header => RawIdentification::size(class) + RawHeader::size(class),
 
         Part::SectionHeaders => RawSectionHeader::size(class) * details.sections_count(),
         Part::ProgramHeaders => RawProgramHeader::size(class) * details.segments_count(),
@@ -240,7 +235,6 @@ fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::Se
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(super) enum Part<SectionId> {
-    Identification,
     Header,
     SectionHeaders,
     ProgramHeaders,

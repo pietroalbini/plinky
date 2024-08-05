@@ -46,8 +46,10 @@ where
         let parts = self.layout.parts().to_vec();
         for part in &parts {
             match part {
-                Part::Identification => self.write_identification()?,
-                Part::Header => self.write_header()?,
+                Part::Header => {
+                    self.write_identification()?;
+                    self.write_header()?;
+                }
                 Part::SectionHeaders => self.write_section_headers()?,
                 Part::ProgramHeaders => self.write_program_headers()?,
                 Part::ProgramSection(id) => self.write_program_section(id)?,
@@ -315,7 +317,8 @@ where
                     (file_offset, file_size, first_section.memory_address, memory_size)
                 }
                 ElfSegmentContent::ElfHeader => {
-                    (0, self.layout.header_size, 0, self.layout.header_size)
+                    let part = self.layout.metadata(&Part::Header);
+                    (part.offset, part.len, part.offset, part.len)
                 }
                 ElfSegmentContent::ProgramHeader => {
                     let part = self.layout.metadata(&Part::ProgramHeaders);

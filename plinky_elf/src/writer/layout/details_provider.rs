@@ -1,4 +1,6 @@
 use crate::ids::ElfIds;
+use crate::writer::layout::Part;
+use crate::writer::WriteLayoutError;
 use crate::{ElfClass, ElfObject, ElfSectionContent};
 
 pub trait LayoutDetailsProvider<I: ElfIds> {
@@ -14,6 +16,10 @@ pub trait LayoutDetailsProvider<I: ElfIds> {
     fn dynamic_directives_count(&self, id: &I::SectionId) -> usize;
     fn relocations_in_table_count(&self, id: &I::SectionId) -> usize;
     fn hash_details(&self, id: &I::SectionId) -> LayoutHashDetails;
+
+    fn parts_for_sections(
+        &self,
+    ) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, WriteLayoutError>;
 
     fn object(&self) -> &ElfObject<I>;
 }
@@ -73,6 +79,59 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
     fn hash_details(&self, id: &I::SectionId) -> LayoutHashDetails {
         let hash = cast_section!(self, id, Hash);
         LayoutHashDetails { buckets: hash.buckets.len(), chain: hash.chain.len() }
+    }
+
+    fn parts_for_sections(
+        &self,
+    ) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, WriteLayoutError> {
+        let mut result = Vec::new();
+        for (id, section) in &self.sections {
+            let part = match &section.content {
+                ElfSectionContent::Null => continue,
+                ElfSectionContent::Program(_) => {
+                    Part::ProgramSection(id.clone())
+                }
+                ElfSectionContent::Uninitialized(_) => {
+                    // Uninitialized sections are not part of the file layout.
+                    continue;
+                }
+                ElfSectionContent::SymbolTable(_) => {
+                    Part::SymbolTable(id.clone())
+                }
+                ElfSectionContent::StringTable(_) => {
+                    Part::StringTable(id.clone())
+                }
+
+                ElfSectionContent::RelocationsTable(table) => {
+                    let mut rela = None;
+                    for relocation in &table.relocations {
+                        match rela {
+                            Some(rela) if rela == relocation.addend.is_some() => {}
+                            Some(_) => return Err(WriteLayoutError::MixedRelRela),
+                            None => rela = Some(relocation.addend.is_some()),
+                        }
+                    }
+                    let rela = rela.unwrap_or(false);
+                    if rela {
+                        Part::Rela(id.clone())
+                    } else {
+                        Part::Rel(id.clone())
+                    }
+                }
+                ElfSectionContent::Group(_) => Part::Group(id.clone()),
+                ElfSectionContent::Hash(_) => Part::Hash(id.clone()),
+                ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),
+
+                ElfSectionContent::Note(_) => {
+                    return Err(WriteLayoutError::WritingNotesUnsupported);
+                }
+                ElfSectionContent::Unknown(_) => {
+                    return Err(WriteLayoutError::UnknownSection);
+                }
+            };
+            result.push((id.clone(), part));
+        }
+        Ok(result)
     }
 
     fn object(&self) -> &ElfObject<I> {

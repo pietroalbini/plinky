@@ -9,35 +9,35 @@ use crate::writer::layout::details_provider::LayoutDetailsProvider;
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 const ALIGN: u64 = 0x1000;
 
 #[derive(Debug)]
-pub(super) struct WriteLayout<I: ElfIds> {
+pub struct Layout<I: ElfIds> {
     parts: Vec<Part<I::SectionId>>,
     metadata: BTreeMap<Part<I::SectionId>, PartMetadata>,
 }
 
-impl<I: ElfIds> WriteLayout<I> {
-    pub(super) fn new(details: &dyn LayoutDetailsProvider<I>) -> Result<Self, WriteLayoutError> {
+impl<I: ElfIds> Layout<I> {
+    pub fn new(details: &dyn LayoutDetailsProvider<I>) -> Result<Self, LayoutError> {
         let builder = LayoutBuilder {
             details,
-            layout: WriteLayout { parts: Vec::new(), metadata: BTreeMap::new() },
+            layout: Layout { parts: Vec::new(), metadata: BTreeMap::new() },
             current_offset: 0,
-            next_padding_id: 0,
         };
         builder.build()
     }
 
-    pub(super) fn parts(&self) -> &[Part<I::SectionId>] {
+    pub fn parts(&self) -> &[Part<I::SectionId>] {
         &self.parts
     }
 
-    pub(super) fn metadata(&self, part: &Part<I::SectionId>) -> &PartMetadata {
+    pub fn metadata(&self, part: &Part<I::SectionId>) -> &PartMetadata {
         self.metadata.get(part).unwrap()
     }
 
-    pub(super) fn metadata_of_section(&self, id: &I::SectionId) -> &PartMetadata {
+    pub fn metadata_of_section(&self, id: &I::SectionId) -> &PartMetadata {
         self.metadata
             .iter()
             .filter(|(key, _)| match key {
@@ -62,13 +62,12 @@ impl<I: ElfIds> WriteLayout<I> {
 
 struct LayoutBuilder<'a, I: ElfIds> {
     details: &'a dyn LayoutDetailsProvider<I>,
-    layout: WriteLayout<I>,
+    layout: Layout<I>,
     current_offset: u64,
-    next_padding_id: usize,
 }
 
 impl<I: ElfIds> LayoutBuilder<'_, I> {
-    fn build(mut self) -> Result<WriteLayout<I>, WriteLayoutError> {
+    fn build(mut self) -> Result<Layout<I>, LayoutError> {
         self.add_part(Part::Header);
 
         let sections_in_load_segments = self
@@ -130,10 +129,9 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
         self.add_part(Part::Padding {
-            id: PaddingId(self.next_padding_id),
+            id: PaddingId::next(),
             len: bytes_to_pad as _,
         });
-        self.next_padding_id += 1;
     }
 
     fn len(&self) -> u64 {
@@ -175,7 +173,7 @@ fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::Se
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub(super) enum Part<SectionId> {
+pub enum Part<SectionId> {
     Header,
     SectionHeaders,
     ProgramHeaders,
@@ -191,16 +189,23 @@ pub(super) enum Part<SectionId> {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub(super) struct PaddingId(usize);
+pub struct PaddingId(u64);
+
+impl PaddingId {
+    pub fn next() -> Self {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        PaddingId(COUNTER.fetch_add(1, Ordering::Relaxed))
+    }
+}
 
 #[derive(Debug)]
-pub(super) struct PartMetadata {
-    pub(super) len: u64,
-    pub(super) offset: u64,
+pub struct PartMetadata {
+    pub len: u64,
+    pub offset: u64,
 }
 
 #[derive(Debug, Error, Display)]
-pub enum WriteLayoutError {
+pub enum LayoutError {
     #[display("relocation section mixing rel and rela")]
     MixedRelRela,
     #[display("writing notes is not supported yet")]

@@ -7,6 +7,6 @@ mod reader;
 pub mod render_elf;
 mod types;
 mod utils;
-mod writer;
+pub mod writer;
 
 pub use self::types::*;

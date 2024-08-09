@@ -1,5 +1,6 @@
 use anyhow::{bail, Error};
 use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
 use plinky_test_harness::prerequisites::{Arch, Prerequisites};
 use plinky_test_harness::utils::record_snapshot;
@@ -80,8 +81,9 @@ impl TestExecution {
         std::fs::create_dir_all(dest.parent().unwrap())?;
 
         let mut ids = SerialIds::new();
-        ElfObject::load(&mut BufReader::new(File::open(self.dest_dir.join(file))?), &mut ids)?
-            .write(&mut BufWriter::new(File::create_new(&dest)?))?;
+        let object =
+            ElfObject::load(&mut BufReader::new(File::open(self.dest_dir.join(file))?), &mut ids)?;
+        Writer::new(&mut BufWriter::new(File::create_new(&dest)?), &object)?.write()?;
 
         Ok(dest)
     }

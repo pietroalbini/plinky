@@ -1,5 +1,6 @@
 use crate::passes::build_elf::ids::BuiltElfIds;
 use plinky_elf::errors::WriteError;
+use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
 use plinky_macros::Error;
 use std::fs::{File, Permissions};
@@ -12,7 +13,9 @@ pub(crate) fn run(object: ElfObject<BuiltElfIds>, dest: &Path) -> Result<(), Wri
         File::create(dest).map_err(|e| WriteToDiskError::FileCreation(dest.into(), e))?,
     );
 
-    object.write(&mut file).map_err(|e| WriteToDiskError::WriteFailed(dest.into(), e))?;
+    Writer::new(&mut file, &object)
+        .and_then(|w| w.write())
+        .map_err(|e| WriteToDiskError::WriteFailed(dest.into(), e))?;
 
     std::fs::set_permissions(dest, Permissions::from_mode(0o755))
         .map_err(|e| WriteToDiskError::PermissionSetFailed(dest.into(), e))?;

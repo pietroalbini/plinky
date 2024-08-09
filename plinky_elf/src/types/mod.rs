@@ -2,17 +2,15 @@ mod string_table;
 
 pub use self::string_table::ElfStringTable;
 
-use crate::errors::{LoadError, WriteError};
-use crate::ids::{convert, ConvertibleElfIds, ElfIds, StringIdGetters};
+use crate::errors::LoadError;
+use crate::ids::{convert, ConvertibleElfIds, ElfIds};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use crate::reader::{read_object, PendingIds, ReadCursor};
 use crate::utils::{render_hex, ReadSeek};
-use crate::writer::Writer;
 use plinky_macros::Bitfield;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use plinky_utils::{Bits, Endian};
 use std::collections::BTreeMap;
-use std::io::Write;
 use std::num::NonZeroU64;
 use std::ops::Deref;
 
@@ -34,14 +32,6 @@ impl<I: ElfIds> ElfObject<I> {
         let mut cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
         let object = read_object(&mut cursor)?;
         Ok(convert(ids, object))
-    }
-
-    pub fn write(&self, write_to: &mut dyn Write) -> Result<(), WriteError<I>>
-    where
-        I::StringId: StringIdGetters<I>,
-    {
-        let writer = Writer::new(write_to, self)?;
-        writer.write()
     }
 }
 

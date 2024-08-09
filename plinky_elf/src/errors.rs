@@ -1,5 +1,5 @@
 use crate::ids::ElfIds;
-use crate::writer::WriteLayoutError;
+use crate::writer::LayoutError;
 use crate::ElfABI;
 use plinky_macros::{Display, Error};
 use plinky_utils::bitfields::BitfieldReadError;
@@ -95,5 +95,5 @@ pub enum WriteError<I: ElfIds> {
     #[display("value {value} in the dynamic table does not fit")]
     DynamicValueDoesNotFit { value: u64 },
     #[display("failed to calculate the resulting ELF layout")]
-    LayoutError(#[from] WriteLayoutError),
+    LayoutError(#[from] LayoutError),
 }

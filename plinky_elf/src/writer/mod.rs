@@ -1,6 +1,6 @@
-mod layout;
+pub mod layout;
 
-pub(crate) use self::layout::WriteLayoutError;
+pub(crate) use self::layout::LayoutError;
 
 use crate::errors::WriteError;
 use crate::ids::{ElfIds, StringIdGetters};
@@ -8,7 +8,7 @@ use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader,
     RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
 };
-use crate::writer::layout::{Part, WriteLayout};
+use crate::writer::layout::{Layout, Part};
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfObject,
     ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent,
@@ -20,13 +20,13 @@ use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
 
-pub(crate) struct Writer<'a, I>
+pub struct Writer<'a, I>
 where
     I: ElfIds,
     I::StringId: StringIdGetters<I>,
 {
     writer: &'a mut dyn Write,
-    layout: WriteLayout<I>,
+    layout: Layout<I>,
     object: &'a ElfObject<I>,
 }
 
@@ -35,14 +35,11 @@ where
     I: ElfIds,
     I::StringId: StringIdGetters<I>,
 {
-    pub(crate) fn new(
-        writer: &'a mut dyn Write,
-        object: &'a ElfObject<I>,
-    ) -> Result<Self, WriteError<I>> {
-        Ok(Self { writer, layout: WriteLayout::new(object)?, object })
+    pub fn new(writer: &'a mut dyn Write, object: &'a ElfObject<I>) -> Result<Self, WriteError<I>> {
+        Ok(Self { writer, layout: Layout::new(object)?, object })
     }
 
-    pub(crate) fn write(mut self) -> Result<(), WriteError<I>> {
+    pub fn write(mut self) -> Result<(), WriteError<I>> {
         let parts = self.layout.parts().to_vec();
         for part in &parts {
             match part {

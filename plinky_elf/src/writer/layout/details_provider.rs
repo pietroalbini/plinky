@@ -1,9 +1,7 @@
 use crate::ids::ElfIds;
 use crate::writer::layout::Part;
-use crate::writer::WriteLayoutError;
-use crate::{
-    ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
-};
+use crate::writer::LayoutError;
+use crate::{ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent, ElfSegmentType};
 
 pub trait LayoutDetailsProvider<I: ElfIds> {
     fn class(&self) -> ElfClass;
@@ -19,9 +17,7 @@ pub trait LayoutDetailsProvider<I: ElfIds> {
     fn relocations_in_table_count(&self, id: &I::SectionId) -> usize;
     fn hash_details(&self, id: &I::SectionId) -> LayoutDetailsHash;
 
-    fn parts_for_sections(
-        &self,
-    ) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, WriteLayoutError>;
+    fn parts_for_sections(&self) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, LayoutError>;
 
     fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<I>>;
 }
@@ -87,9 +83,7 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
         LayoutDetailsHash { buckets: hash.buckets.len(), chain: hash.chain.len() }
     }
 
-    fn parts_for_sections(
-        &self,
-    ) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, WriteLayoutError> {
+    fn parts_for_sections(&self) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, LayoutError> {
         let mut result = Vec::new();
         for (id, section) in &self.sections {
             let part = match &section.content {
@@ -107,7 +101,7 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
                     for relocation in &table.relocations {
                         match rela {
                             Some(rela) if rela == relocation.addend.is_some() => {}
-                            Some(_) => return Err(WriteLayoutError::MixedRelRela),
+                            Some(_) => return Err(LayoutError::MixedRelRela),
                             None => rela = Some(relocation.addend.is_some()),
                         }
                     }
@@ -123,10 +117,10 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
                 ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),
 
                 ElfSectionContent::Note(_) => {
-                    return Err(WriteLayoutError::WritingNotesUnsupported);
+                    return Err(LayoutError::WritingNotesUnsupported);
                 }
                 ElfSectionContent::Unknown(_) => {
-                    return Err(WriteLayoutError::UnknownSection);
+                    return Err(LayoutError::UnknownSection);
                 }
             };
             result.push((id.clone(), part));

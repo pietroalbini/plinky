@@ -1,13 +1,11 @@
 use crate::cli::Mode;
 use crate::passes::build_elf::sysv_hash::num_buckets;
-use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
-use crate::utils::ints::{Address, Offset, OutOfBoundsError};
+use crate::utils::ints::Address;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::raw::{RawHashHeader, RawRela, RawSymbol};
-use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -15,17 +13,13 @@ const PAGE_SIZE: u64 = 0x1000;
 const STATIC_BASE_ADDRESS: u64 = 0x400000;
 const PIE_BASE_ADDRESS: u64 = PAGE_SIZE;
 
-pub(crate) fn run(
-    object: &mut Object,
-    deduplications: BTreeMap<SectionId, Deduplication>,
-) -> Layout {
+pub(crate) fn run(object: &mut Object) -> Layout {
     let mut layout = Layout {
         current_address: match object.mode {
             Mode::PositionDependent => STATIC_BASE_ADDRESS,
             Mode::PositionIndependent => PIE_BASE_ADDRESS,
         },
         sections: BTreeMap::new(),
-        deduplications,
     };
 
     let mut not_allocated = object.sections.iter().map(|s| s.id).collect::<BTreeSet<_>>();
@@ -101,7 +95,6 @@ fn section_len(object: &Object, id: SectionId) -> u64 {
 pub(crate) struct Layout {
     current_address: u64,
     sections: BTreeMap<SectionId, SectionLayout>,
-    deduplications: BTreeMap<SectionId, Deduplication>,
 }
 
 impl Layout {
@@ -110,39 +103,6 @@ impl Layout {
             Some(layout) => layout,
             None => panic!("section {id:?} doesn't have a layout"),
         }
-    }
-
-    pub(crate) fn address(
-        &self,
-        section: SectionId,
-        offset: Offset,
-    ) -> Result<(SectionId, Address), AddressResolutionError> {
-        if let Some(deduplication) = self.deduplications.get(&section) {
-            let base = match self.of_section(deduplication.target) {
-                SectionLayout::Allocated { address, .. } => *address,
-                SectionLayout::NotAllocated => {
-                    return Err(AddressResolutionError::PointsToUnallocatedSection(
-                        deduplication.target,
-                    ))
-                }
-            };
-
-            match deduplication.map.get(&offset) {
-                Some(&mapped) => Ok((deduplication.target, base.offset(mapped)?)),
-                None => Err(AddressResolutionError::UnalignedReferenceToDeduplication),
-            }
-        } else {
-            match self.of_section(section) {
-                SectionLayout::Allocated { address, .. } => Ok((section, address.offset(offset)?)),
-                SectionLayout::NotAllocated => {
-                    Err(AddressResolutionError::PointsToUnallocatedSection(section))
-                }
-            }
-        }
-    }
-
-    pub(crate) fn iter_deduplications(&self) -> impl Iterator<Item = (SectionId, &Deduplication)> {
-        self.deduplications.iter().map(|(id, dedup)| (*id, dedup))
     }
 
     pub(crate) fn add_section(&mut self, id: SectionId, len: u64) -> SectionLayout {
@@ -163,14 +123,4 @@ impl Layout {
 pub(crate) enum SectionLayout {
     Allocated { address: Address, len: u64 },
     NotAllocated,
-}
-
-#[derive(Debug, Display, Error)]
-pub(crate) enum AddressResolutionError {
-    #[display("address points to section {f0:?}, which is not going to be allocated in memory")]
-    PointsToUnallocatedSection(SectionId),
-    #[display("referenced an offset not aligned to the deduplication boundaries")]
-    UnalignedReferenceToDeduplication,
-    #[transparent]
-    OutOfBounds(OutOfBoundsError),
 }

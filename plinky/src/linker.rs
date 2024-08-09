@@ -2,7 +2,7 @@ use crate::cli::{CliOptions, Mode};
 use crate::passes;
 use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilderError;
-use crate::passes::deduplicate::DeduplicationError;
+use crate::passes::deduplicate::{Deduplication, DeduplicationError};
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::generate_got::{generate_got_dynamic, generate_got_static};
 use crate::passes::layout::Layout;
@@ -12,9 +12,11 @@ use crate::passes::relocate::RelocationError;
 use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
 use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
-use plinky_elf::ids::serial::SerialIds;
+use crate::utils::address_resolver::AddressResolver;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
+use std::collections::BTreeMap;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -45,15 +47,17 @@ pub(crate) fn link_driver(
     passes::demote_global_hidden_symbols::run(&mut object);
     passes::create_segments::run(&mut object);
 
-    let layout = passes::layout::run(&mut object, deduplications);
-    callbacks.on_layout_calculated(&object, &layout);
+    let layout = passes::layout::run(&mut object);
+    callbacks.on_layout_calculated(&object, &layout, &deduplications);
 
-    passes::relocate::run(&mut object, &layout)?;
+    let resolver = AddressResolver::new(&layout, &deduplications);
+
+    passes::relocate::run(&mut object, &resolver)?;
     callbacks.on_relocations_applied(&object, &layout);
 
-    passes::replace_section_relative_symbols::replace(&mut object, &layout)?;
+    passes::replace_section_relative_symbols::replace(&mut object, &resolver)?;
 
-    let elf = passes::build_elf::run(object, layout)?;
+    let elf = passes::build_elf::run(object, &layout, &resolver)?;
     callbacks.on_elf_built(&elf);
 
     passes::write_to_disk::run(elf, &options.output)?;
@@ -66,7 +70,13 @@ pub(crate) trait LinkerCallbacks {
 
     fn on_sections_removed_by_gc(&self, _object: &Object, _removed: &[RemovedSection]) {}
 
-    fn on_layout_calculated(&self, _object: &Object, _layout: &Layout) {}
+    fn on_layout_calculated(
+        &self,
+        _object: &Object,
+        _layout: &Layout,
+        _deduplications: &BTreeMap<SectionId, Deduplication>,
+    ) {
+    }
 
     fn on_relocations_applied(&self, _object: &Object, _layout: &Layout) {}
 

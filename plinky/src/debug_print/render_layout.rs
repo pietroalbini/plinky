@@ -6,8 +6,13 @@ use crate::repr::segments::{SegmentContent, SegmentStart, SegmentType};
 use plinky_diagnostics::widgets::{Table, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::SectionId;
+use std::collections::BTreeMap;
 
-pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
+pub(super) fn render_layout(
+    object: &Object,
+    layout: &Layout,
+    deduplications: &BTreeMap<SectionId, Deduplication>,
+) -> Diagnostic {
     let mut sections = Table::new();
     sections.set_title("Sections:");
     sections.add_row(["Section", "Source object", "Memory address", "Length"]);
@@ -66,9 +71,9 @@ pub(super) fn render_layout(object: &Object, layout: &Layout) -> Diagnostic {
         .add(sections)
         .add(segments)
         .add_iter(
-            layout
-                .iter_deduplications()
-                .map(|(id, deduplication)| render_deduplication(object, id, deduplication)),
+            deduplications
+                .iter()
+                .map(|(id, deduplication)| render_deduplication(object, *id, deduplication)),
         )
 }
 

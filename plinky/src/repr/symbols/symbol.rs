@@ -1,6 +1,6 @@
 use crate::interner::{intern, Interned};
-use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::symbols::LoadSymbolsError;
+use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
@@ -140,12 +140,12 @@ impl Symbol {
 
     pub(crate) fn resolve(
         &self,
-        layout: &Layout,
+        resolver: &AddressResolver<'_>,
         offset: Offset,
     ) -> Result<ResolvedSymbol, ResolveSymbolError> {
         fn resolve_inner(
             symbol: &Symbol,
-            layout: &Layout,
+            resolver: &AddressResolver<'_>,
             offset: Offset,
         ) -> Result<ResolvedSymbol, ResolveSymbolErrorKind> {
             match &symbol.value {
@@ -155,7 +155,7 @@ impl Symbol {
                     Ok(ResolvedSymbol::Absolute(*value))
                 }
                 SymbolValue::SectionRelative { section, offset: section_offset } => {
-                    match layout.address(*section, section_offset.add(offset)?) {
+                    match resolver.address(*section, section_offset.add(offset)?) {
                         Ok((section, memory_address)) => {
                             Ok(ResolvedSymbol::Address { section, memory_address })
                         }
@@ -172,7 +172,7 @@ impl Symbol {
             }
         }
 
-        resolve_inner(self, layout, offset)
+        resolve_inner(self, resolver, offset)
             .map_err(|inner| ResolveSymbolError { symbol: self.name, inner })
     }
 }

@@ -20,6 +20,7 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
+use crate::utils::address_resolver::AddressResolver;
 use crate::utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::{
@@ -32,11 +33,13 @@ use std::num::NonZeroU64;
 
 pub(crate) fn run(
     object: Object,
-    layout: Layout,
+    layout: &Layout,
+    resolver: &AddressResolver<'_>,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
     let builder = ElfBuilder {
         layout,
+        resolver,
         sections: Sections::new(&mut ids, &object),
         object,
         ids,
@@ -47,9 +50,10 @@ pub(crate) fn run(
     builder.build()
 }
 
-struct ElfBuilder {
+struct ElfBuilder<'a> {
     object: Object,
-    layout: Layout,
+    layout: &'a Layout,
+    resolver: &'a AddressResolver<'a>,
     sections: Sections,
     ids: BuiltElfIds,
 
@@ -58,7 +62,7 @@ struct ElfBuilder {
     symbol_conversion: BTreeMap<SectionId, BTreeMap<SymbolId, BuiltElfSymbolId>>,
 }
 
-impl ElfBuilder {
+impl<'a> ElfBuilder<'a> {
     fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
         // Symbol and string table sections need to be created together (as the string table
         // contains the symbol names for the symbol table), which makes it hard to create them
@@ -104,7 +108,7 @@ impl ElfBuilder {
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
         let symbol = self.object.symbols.get(self.object.entry_point);
         let resolved = symbol
-            .resolve(&self.layout, 0.into())
+            .resolve(&self.resolver, 0.into())
             .map_err(ElfBuilderError::EntryPointResolution)?;
 
         match resolved {
@@ -196,7 +200,7 @@ impl ElfBuilder {
                                     .unwrap_or(self.sections.zero_id),
                                 self.sections.new_id_of(relocations.symbols_table()),
                                 self.symbol_conversion.get(&relocations.symbols_table()).unwrap(),
-                                &self.layout,
+                                &self.resolver,
                             )?,
                         )
                         .layout(self.layout.of_section(section.id))

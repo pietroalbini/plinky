@@ -1,19 +1,19 @@
-use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol, SymbolValue};
+use crate::utils::address_resolver::AddressResolver;
 use plinky_macros::{Display, Error};
 
 pub(crate) fn replace(
     object: &mut Object,
-    layout: &Layout,
+    resolver: &AddressResolver<'_>,
 ) -> Result<(), ReplaceSectionRelativeSymbolsError> {
     for (_, symbol) in object.symbols.iter_mut(&AllSymbols) {
         let SymbolValue::SectionRelative { .. } = symbol.value() else {
             continue;
         };
 
-        let resolved = symbol.resolve(layout, 0.into())?;
+        let resolved = symbol.resolve(resolver, 0.into())?;
         // Note that the section returned by symbol resolution might be different than the section
         // of the symbol itself. This could happen due to deduplication, as the section the
         // original symbol points to might be a deduplication facade.

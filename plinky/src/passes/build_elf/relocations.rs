@@ -1,6 +1,6 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
-use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::repr::relocations::{Relocation, RelocationType};
+use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use crate::utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
@@ -15,12 +15,12 @@ pub(super) fn create_rela<'a>(
     applies_to_section: BuiltElfSectionId,
     symbol_table: BuiltElfSectionId,
     symbol_conversion: &BTreeMap<SymbolId, BuiltElfSymbolId>,
-    layout: &Layout,
+    resolver: &AddressResolver<'_>,
 ) -> Result<ElfSectionContent<BuiltElfIds>, RelaCreationError> {
     let mut elf_relocations = Vec::new();
     for relocation in relocations {
         elf_relocations.push(ElfRelocation {
-            offset: layout.address(relocation.section, relocation.offset)?.1.extract(),
+            offset: resolver.address(relocation.section, relocation.offset)?.1.extract(),
             symbol: *symbol_conversion.get(&relocation.symbol).unwrap(),
             relocation_type: convert_relocation_type(class, relocation.type_),
             addend: relocation.addend.map(|off| off.extract()),

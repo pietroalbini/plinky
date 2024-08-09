@@ -1,23 +1,26 @@
 mod editor;
 
 use crate::passes::generate_got::GOT;
-use crate::passes::layout::{AddressResolutionError, Layout};
 use crate::passes::relocate::editor::ByteEditor;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, ResolvedSymbol, Symbols};
+use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfClass, ElfEnvironment};
 use plinky_macros::{Display, Error};
 
-pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), RelocationError> {
+pub(crate) fn run(
+    object: &mut Object,
+    resolver: &AddressResolver<'_>,
+) -> Result<(), RelocationError> {
     let mut relocator = Relocator {
-        layout,
         symbols: &mut object.symbols,
         env: &object.env,
         got: object.got.as_ref(),
+        resolver,
     };
     for section in object.sections.iter_mut() {
         match &mut section.content {
@@ -33,8 +36,8 @@ pub(crate) fn run(object: &mut Object, layout: &Layout) -> Result<(), Relocation
 struct Relocator<'a> {
     env: &'a ElfEnvironment,
     got: Option<&'a GOT>,
-    layout: &'a Layout,
     symbols: &'a mut Symbols,
+    resolver: &'a AddressResolver<'a>,
 }
 
 impl<'a> Relocator<'a> {
@@ -72,15 +75,15 @@ impl<'a> Relocator<'a> {
             }
             RelocationType::Relative32 | RelocationType::PLT32 => {
                 let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
-                let offset = self.layout.address(relocation.section, relocation.offset.into())?.1;
+                let offset = self.resolver.address(relocation.section, relocation.offset.into())?.1;
                 editor.write_i32(symbol.as_offset()?.add(offset.as_offset()?.neg())?)
             }
             RelocationType::GOTRelative32 => {
                 let got = self.got()?;
                 let slot = got.offset(relocation.symbol);
                 let section_addr =
-                    self.layout.address(relocation.section, relocation.offset.into())?.1;
-                let got_addr = self.layout.address(got.id, 0.into())?.1;
+                    self.resolver.address(relocation.section, relocation.offset.into())?.1;
+                let got_addr = self.resolver.address(got.id, 0.into())?.1;
                 let addend = editor.addend_32()?;
 
                 editor.write_i32(
@@ -104,14 +107,14 @@ impl<'a> Relocator<'a> {
                 }
             }
             RelocationType::GOTLocationRelative32 => {
-                let got_addr = self.layout.address(self.got()?.id, 0.into())?.1;
+                let got_addr = self.resolver.address(self.got()?.id, 0.into())?.1;
                 let addend = editor.addend_32()?;
-                let offset = self.layout.address(relocation.section, relocation.offset.into())?.1;
+                let offset = self.resolver.address(relocation.section, relocation.offset.into())?.1;
                 editor.write_i32(got_addr.as_offset()?.add(addend)?.add(offset.as_offset()?.neg())?)
             }
             RelocationType::OffsetFromGOT32 => {
                 let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
-                let got = self.layout.address(self.got()?.id, 0.into())?.1;
+                let got = self.resolver.address(self.got()?.id, 0.into())?.1;
                 editor.write_i32(symbol.as_offset()?.add(got.as_offset()?.neg())?)
             }
         }
@@ -126,7 +129,7 @@ impl<'a> Relocator<'a> {
         rel: &Relocation,
         offset: Offset,
     ) -> Result<ResolvedSymbol, RelocationErrorInner> {
-        Ok(self.symbols.get(rel.symbol).resolve(self.layout, offset)?)
+        Ok(self.symbols.get(rel.symbol).resolve(self.resolver, offset)?)
     }
 
     fn symbol_as_absolute(

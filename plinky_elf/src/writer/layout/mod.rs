@@ -6,7 +6,6 @@ use crate::raw::{
     RawSectionHeader, RawSymbol,
 };
 use crate::writer::layout::details_provider::LayoutDetailsProvider;
-use crate::{ElfSegmentContent, ElfSegmentType};
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
@@ -74,19 +73,11 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
 
         let sections_in_load_segments = self
             .details
-            .object()
-            .segments
-            .iter()
+            .loadable_segments()
+            .into_iter()
             .enumerate()
-            .filter(|(_idx, s)| matches!(s.type_, ElfSegmentType::Load))
-            .flat_map(|(idx, s)| match &s.content {
-                ElfSegmentContent::Empty => {
-                    Box::new(std::iter::empty()) as Box<dyn Iterator<Item = _>>
-                }
-                ElfSegmentContent::ElfHeader => Box::new(std::iter::empty()),
-                ElfSegmentContent::ProgramHeader => Box::new(std::iter::empty()),
-                ElfSegmentContent::Sections(s) => Box::new(s.iter().map(move |s| (s, idx))),
-                ElfSegmentContent::Unknown(_) => Box::new(std::iter::empty()),
+            .flat_map(|(idx, segment)| {
+                segment.sections.into_iter().map(move |section| (section, idx))
             })
             .collect::<BTreeMap<_, _>>();
 

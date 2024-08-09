@@ -1,7 +1,9 @@
 use crate::ids::ElfIds;
 use crate::writer::layout::Part;
 use crate::writer::WriteLayoutError;
-use crate::{ElfClass, ElfObject, ElfSectionContent};
+use crate::{
+    ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent, ElfSegmentType,
+};
 
 pub trait LayoutDetailsProvider<I: ElfIds> {
     fn class(&self) -> ElfClass;
@@ -15,18 +17,22 @@ pub trait LayoutDetailsProvider<I: ElfIds> {
     fn sections_in_group_count(&self, id: &I::SectionId) -> usize;
     fn dynamic_directives_count(&self, id: &I::SectionId) -> usize;
     fn relocations_in_table_count(&self, id: &I::SectionId) -> usize;
-    fn hash_details(&self, id: &I::SectionId) -> LayoutHashDetails;
+    fn hash_details(&self, id: &I::SectionId) -> LayoutDetailsHash;
 
     fn parts_for_sections(
         &self,
     ) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, WriteLayoutError>;
 
-    fn object(&self) -> &ElfObject<I>;
+    fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<I>>;
 }
 
-pub struct LayoutHashDetails {
+pub struct LayoutDetailsHash {
     pub buckets: usize,
     pub chain: usize,
+}
+
+pub struct LayoutDetailsSegment<I: ElfIds> {
+    pub sections: Vec<I::SectionId>,
 }
 
 macro_rules! cast_section {
@@ -76,9 +82,9 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
         cast_section!(self, id, RelocationsTable).relocations.len()
     }
 
-    fn hash_details(&self, id: &I::SectionId) -> LayoutHashDetails {
+    fn hash_details(&self, id: &I::SectionId) -> LayoutDetailsHash {
         let hash = cast_section!(self, id, Hash);
-        LayoutHashDetails { buckets: hash.buckets.len(), chain: hash.chain.len() }
+        LayoutDetailsHash { buckets: hash.buckets.len(), chain: hash.chain.len() }
     }
 
     fn parts_for_sections(
@@ -88,19 +94,13 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
         for (id, section) in &self.sections {
             let part = match &section.content {
                 ElfSectionContent::Null => continue,
-                ElfSectionContent::Program(_) => {
-                    Part::ProgramSection(id.clone())
-                }
+                ElfSectionContent::Program(_) => Part::ProgramSection(id.clone()),
                 ElfSectionContent::Uninitialized(_) => {
                     // Uninitialized sections are not part of the file layout.
                     continue;
                 }
-                ElfSectionContent::SymbolTable(_) => {
-                    Part::SymbolTable(id.clone())
-                }
-                ElfSectionContent::StringTable(_) => {
-                    Part::StringTable(id.clone())
-                }
+                ElfSectionContent::SymbolTable(_) => Part::SymbolTable(id.clone()),
+                ElfSectionContent::StringTable(_) => Part::StringTable(id.clone()),
 
                 ElfSectionContent::RelocationsTable(table) => {
                     let mut rela = None;
@@ -134,7 +134,19 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
         Ok(result)
     }
 
-    fn object(&self) -> &ElfObject<I> {
-        self
+    fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<I>> {
+        self.segments
+            .iter()
+            .filter(|s| matches!(s.type_, ElfSegmentType::Load))
+            .filter_map(|s| match &s.content {
+                ElfSegmentContent::Empty => None,
+                ElfSegmentContent::ElfHeader => None,
+                ElfSegmentContent::ProgramHeader => None,
+                ElfSegmentContent::Sections(sections) => {
+                    Some(LayoutDetailsSegment { sections: sections.clone() })
+                }
+                ElfSegmentContent::Unknown(_) => None,
+            })
+            .collect()
     }
 }

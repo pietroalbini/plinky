@@ -118,7 +118,10 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
     fn add_part(&mut self, part: Part<I::SectionId>) {
         let len = part_len(self.details, &part) as u64;
         self.layout.parts.push(part.clone());
-        self.layout.metadata.insert(part, PartMetadata { len, offset: self.current_offset });
+        self.layout.metadata.insert(
+            part,
+            PartMetadata { file: Some(PartFile { len, offset: self.current_offset }), memory: None },
+        );
         self.current_offset += len;
     }
 
@@ -128,10 +131,7 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
             return;
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
-        self.add_part(Part::Padding {
-            id: PaddingId::next(),
-            len: bytes_to_pad as _,
-        });
+        self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ });
     }
 
     fn len(&self) -> u64 {
@@ -200,6 +200,28 @@ impl PaddingId {
 
 #[derive(Debug)]
 pub struct PartMetadata {
+    pub file: Option<PartFile>,
+    pub memory: Option<()>,
+}
+
+impl PartMetadata {
+    pub(super) fn segment_bounds(&self) -> (u64, u64, u64, u64) {
+        let (file_offset, file_len) = match &self.file {
+            Some(file) => (file.offset, file.len),
+            None => (0, 0),
+        };
+
+        let (memory_offset, memory_len) = match self.memory {
+            Some(()) => (self.file.as_ref().unwrap().offset, self.file.as_ref().unwrap().len),
+            None => (0, 0),
+        };
+
+        (file_offset, file_len, memory_offset, memory_len)
+    }
+}
+
+#[derive(Debug)]
+pub struct PartFile {
     pub len: u64,
     pub offset: u64,
 }

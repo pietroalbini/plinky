@@ -98,8 +98,20 @@ where
             },
             version: 1,
             entry: self.object.entry.map(|n| n.get()).unwrap_or(0),
-            program_headers_offset: self.layout.metadata(&Part::ProgramHeaders).offset,
-            section_headers_offset: self.layout.metadata(&Part::SectionHeaders).offset,
+            program_headers_offset: self
+                .layout
+                .metadata(&Part::ProgramHeaders)
+                .file
+                .as_ref()
+                .unwrap()
+                .offset,
+            section_headers_offset: self
+                .layout
+                .metadata(&Part::SectionHeaders)
+                .file
+                .as_ref()
+                .unwrap()
+                .offset,
             flags: RawHeaderFlags::zero(),
             elf_header_size: self.raw_type_size::<RawIdentification>()
                 + self.raw_type_size::<RawHeader>(),
@@ -181,7 +193,7 @@ where
                 flags.group = true;
             }
 
-            let metadata = self.layout.metadata_of_section(id);
+            let metadata = self.layout.metadata_of_section(id).file.as_ref().unwrap();
             self.write_raw(RawSectionHeader {
                 name_offset: section.name.offset(),
                 type_,
@@ -281,7 +293,7 @@ where
                     {
                         ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len),
                         content => {
-                            let metadata = self.layout.metadata_of_section(first_section_id);
+                            let metadata = self.layout.metadata_of_section(first_section_id).file.as_ref().unwrap();
                             (
                                 metadata.offset,
                                 metadata.len,
@@ -301,7 +313,7 @@ where
                                 memory_size += uninit.len;
                             }
                             content => {
-                                let metadata = self.layout.metadata_of_section(section_id);
+                                let metadata = self.layout.metadata_of_section(section_id).file.as_ref().unwrap();
                                 if metadata.offset != expected_next_file_offset {
                                     panic!("sections in segment are not adjacent");
                                 }
@@ -314,12 +326,10 @@ where
                     (file_offset, file_size, first_section.memory_address, memory_size)
                 }
                 ElfSegmentContent::ElfHeader => {
-                    let part = self.layout.metadata(&Part::Header);
-                    (part.offset, part.len, part.offset, part.len)
+                    self.layout.metadata(&Part::Header).segment_bounds()
                 }
                 ElfSegmentContent::ProgramHeader => {
-                    let part = self.layout.metadata(&Part::ProgramHeaders);
-                    (part.offset, part.len, part.offset, part.len)
+                    self.layout.metadata(&Part::ProgramHeaders).segment_bounds()
                 }
                 ElfSegmentContent::Unknown(unknown) => (
                     unknown.file_offset,
@@ -639,7 +649,8 @@ where
 
     fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError<I>> {
         let metadata = self.layout.metadata(part);
-        let padding = vec![0; metadata.len as usize];
+        let len = metadata.file.as_ref().expect("padding must be present in the file").len as usize;
+        let padding = vec![0; len];
         self.writer.write_all(&padding)?;
         Ok(())
     }

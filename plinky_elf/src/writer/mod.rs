@@ -50,6 +50,7 @@ where
                 Part::SectionHeaders => self.write_section_headers()?,
                 Part::ProgramHeaders => self.write_program_headers()?,
                 Part::ProgramSection(id) => self.write_program_section(id)?,
+                Part::UninitializedSection(_) => {}
                 Part::StringTable(id) => self.write_string_table(id)?,
                 Part::SymbolTable(id) => self.write_symbol_table(id)?,
                 Part::Rela(id) => self.write_relocations_table(id, true)?,

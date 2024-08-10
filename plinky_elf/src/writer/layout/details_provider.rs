@@ -10,6 +10,7 @@ pub trait LayoutDetailsProvider<I: ElfIds> {
     fn segments_count(&self) -> usize;
 
     fn program_section_len(&self, id: &I::SectionId) -> usize;
+    fn uninitialized_section_len(&self, id: &I::SectionId) -> usize;
     fn string_table_len(&self, id: &I::SectionId) -> usize;
     fn symbols_in_table_count(&self, id: &I::SectionId) -> usize;
     fn sections_in_group_count(&self, id: &I::SectionId) -> usize;
@@ -58,6 +59,10 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
         cast_section!(self, id, Program).raw.len()
     }
 
+    fn uninitialized_section_len(&self, id: &I::SectionId) -> usize {
+        cast_section!(self, id, Uninitialized).len as _
+    }
+
     fn string_table_len(&self, id: &I::SectionId) -> usize {
         cast_section!(self, id, StringTable).len()
     }
@@ -89,10 +94,7 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
             let part = match &section.content {
                 ElfSectionContent::Null => continue,
                 ElfSectionContent::Program(_) => Part::ProgramSection(id.clone()),
-                ElfSectionContent::Uninitialized(_) => {
-                    // Uninitialized sections are not part of the file layout.
-                    continue;
-                }
+                ElfSectionContent::Uninitialized(_) => Part::UninitializedSection(id.clone()),
                 ElfSectionContent::SymbolTable(_) => Part::SymbolTable(id.clone()),
                 ElfSectionContent::StringTable(_) => Part::StringTable(id.clone()),
 

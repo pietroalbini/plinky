@@ -45,6 +45,7 @@ impl<I: ElfIds> Layout<I> {
                 Part::SectionHeaders => false,
                 Part::ProgramHeaders => false,
                 Part::ProgramSection(this) => this == id,
+                Part::UninitializedSection(this) => this == id,
                 Part::StringTable(this) => this == id,
                 Part::SymbolTable(this) => this == id,
                 Part::Padding { .. } => false,
@@ -118,11 +119,18 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
     fn add_part(&mut self, part: Part<I::SectionId>) {
         let len = part_len(self.details, &part) as u64;
         self.layout.parts.push(part.clone());
-        self.layout.metadata.insert(
-            part,
-            PartMetadata { file: Some(PartFile { len, offset: self.current_offset }), memory: None },
-        );
-        self.current_offset += len;
+
+        let memory = None;
+
+        if part.present_in_file() {
+            self.layout.metadata.insert(
+                part,
+                PartMetadata { file: Some(PartFile { len, offset: self.current_offset }), memory },
+            );
+            self.current_offset += len;
+        } else {
+            self.layout.metadata.insert(part, PartMetadata { file: None, memory });
+        }
     }
 
     fn align_to_page(&mut self) {
@@ -148,6 +156,7 @@ fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::Se
         Part::ProgramHeaders => RawProgramHeader::size(class) * details.segments_count(),
 
         Part::ProgramSection(id) => details.program_section_len(id),
+        Part::UninitializedSection(id) => details.uninitialized_section_len(id),
         Part::StringTable(id) => details.string_table_len(id),
 
         Part::SymbolTable(id) => RawSymbol::size(class) * details.symbols_in_table_count(id),
@@ -178,6 +187,7 @@ pub enum Part<SectionId> {
     SectionHeaders,
     ProgramHeaders,
     ProgramSection(SectionId),
+    UninitializedSection(SectionId),
     StringTable(SectionId),
     SymbolTable(SectionId),
     Hash(SectionId),
@@ -186,6 +196,15 @@ pub enum Part<SectionId> {
     Group(SectionId),
     Dynamic(SectionId),
     Padding { id: PaddingId, len: usize },
+}
+
+impl<S> Part<S> {
+    fn present_in_file(&self) -> bool {
+        match self {
+            Part::UninitializedSection(_) => false,
+            _ => true,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]

@@ -1,11 +1,9 @@
-use plinky_macros::{Display, Error};
-
 macro_rules! int {
     ($vis:vis struct $name:ident($inner:ty)) => {
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
         $vis struct $name($inner);
 
-        impl crate::utils::ints::ExtractNumber for $name {
+        impl $crate::ints::ExtractNumber for $name {
             type Type = $inner;
 
             fn extract(&self) -> $inner {
@@ -33,12 +31,12 @@ macro_rules! int {
     }
 }
 
-int!(pub(crate) struct Absolute(u64));
+int!(pub struct Absolute(u64));
 
-int!(pub(crate) struct Address(u64));
+int!(pub struct Address(u64));
 
 impl Address {
-    pub(crate) fn offset(&self, offset: Offset) -> Result<Address, OutOfBoundsError> {
+    pub fn offset(&self, offset: Offset) -> Result<Address, OutOfBoundsError> {
         Ok(Address(
             i128::from(self.0)
                 .checked_add(i128::from(offset.0))
@@ -48,37 +46,44 @@ impl Address {
         ))
     }
 
-    pub(crate) fn as_offset(&self) -> Result<Offset, OutOfBoundsError> {
+    pub fn as_offset(&self) -> Result<Offset, OutOfBoundsError> {
         Ok(i64::try_from(self.0).map_err(|_| OutOfBoundsError)?.into())
     }
 
-    pub(crate) fn as_absolute(&self) -> Absolute {
+    pub fn as_absolute(&self) -> Absolute {
         Absolute(self.0)
     }
 }
 
-int!(pub(crate) struct Offset(i64));
+int!(pub struct Offset(i64));
 
 impl Offset {
-    pub(crate) fn len(len: usize) -> Offset {
+    pub fn len(len: usize) -> Offset {
         Offset(len as _)
     }
 
-    pub(crate) fn add(&self, other: Offset) -> Result<Offset, OutOfBoundsError> {
+    pub fn add(&self, other: Offset) -> Result<Offset, OutOfBoundsError> {
         Ok(Offset(self.0.checked_add(other.0).ok_or(OutOfBoundsError)?))
     }
 
-    pub(crate) fn neg(&self) -> Offset {
+    pub fn neg(&self) -> Offset {
         Offset(-self.0)
     }
 }
 
-pub(crate) trait ExtractNumber {
+pub trait ExtractNumber {
     type Type;
 
     fn extract(&self) -> Self::Type;
 }
 
-#[derive(Debug, Error, Display)]
-#[display("out of bounds math")]
-pub(crate) struct OutOfBoundsError;
+#[derive(Debug)]
+pub struct OutOfBoundsError;
+
+impl std::error::Error for OutOfBoundsError {}
+
+impl std::fmt::Display for OutOfBoundsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("out of bounds math")
+    }
+}

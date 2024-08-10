@@ -3,7 +3,7 @@ use crate::passes::build_elf::ElfBuilder;
 use crate::passes::layout::SectionLayout;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::sections::DynamicSection;
-use crate::utils::ints::ExtractNumber;
+use plinky_utils::ints::ExtractNumber;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfSectionContent};
 use plinky_utils::raw_types::RawType;

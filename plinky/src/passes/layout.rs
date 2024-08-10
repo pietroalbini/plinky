@@ -3,7 +3,7 @@ use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
-use crate::utils::ints::Address;
+use plinky_utils::ints::Address;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{
     Layout as ElfLayout, LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment,

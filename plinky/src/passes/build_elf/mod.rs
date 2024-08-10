@@ -21,7 +21,7 @@ use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
-use crate::utils::ints::{Address, ExtractNumber};
+use plinky_utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,

@@ -1,5 +1,5 @@
 use crate::passes::layout::{Layout, SectionLayout};
-use crate::utils::ints::Address;
+use plinky_utils::ints::Address;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfPermissions;
 

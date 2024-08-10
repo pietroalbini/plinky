@@ -7,7 +7,7 @@ use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
 use crate::repr::symbols::{MissingGlobalSymbol, ResolveSymbolError, ResolvedSymbol, Symbols};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
+use plinky_utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfClass, ElfEnvironment};
 use plinky_macros::{Display, Error};

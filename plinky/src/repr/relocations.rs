@@ -1,4 +1,4 @@
-use crate::utils::ints::Offset;
+use plinky_utils::ints::Offset;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};

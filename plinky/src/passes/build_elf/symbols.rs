@@ -3,7 +3,7 @@ use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::PendingStringsTable;
 use crate::repr::symbols::views::SymbolsView;
 use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
-use crate::utils::ints::ExtractNumber;
+use plinky_utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,

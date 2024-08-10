@@ -1,7 +1,7 @@
 use crate::interner::{intern, Interned};
 use crate::repr::symbols::LoadSymbolsError;
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use crate::utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
+use plinky_utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{

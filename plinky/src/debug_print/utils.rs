@@ -1,6 +1,6 @@
 use crate::repr::object::Object;
 use crate::repr::symbols::SymbolValue;
-use crate::utils::ints::ExtractNumber;
+use plinky_utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::ids::ReprIdGetters;
 use plinky_elf::ElfPermissions;

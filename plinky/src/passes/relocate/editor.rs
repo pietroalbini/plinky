@@ -1,6 +1,6 @@
 use crate::passes::relocate::RelocationErrorInner;
 use crate::repr::relocations::Relocation;
-use crate::utils::ints::{ExtractNumber, Offset, OutOfBoundsError};
+use plinky_utils::ints::{ExtractNumber, Offset, OutOfBoundsError};
 
 pub(super) struct ByteEditor<'a> {
     pub(super) relocation: &'a Relocation,

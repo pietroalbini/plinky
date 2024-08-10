@@ -1,7 +1,7 @@
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::{DataSection, SectionContent};
-use crate::utils::ints::Offset;
+use plinky_utils::ints::Offset;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfPermissions;
 use std::collections::{BTreeMap, BTreeSet};

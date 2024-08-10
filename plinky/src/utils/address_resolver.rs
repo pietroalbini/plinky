@@ -1,6 +1,6 @@
 use crate::passes::deduplicate::Deduplication;
 use crate::passes::layout::{Layout, SectionLayout};
-use crate::utils::ints::{Address, Offset, OutOfBoundsError};
+use plinky_utils::ints::{Address, Offset, OutOfBoundsError};
 use plinky_elf::ids::serial::SectionId;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;

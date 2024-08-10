@@ -2,7 +2,7 @@ use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use crate::passes::build_elf::PendingStringsTable;
 use crate::passes::layout::SectionLayout;
 use crate::repr::object::Object;
-use crate::utils::ints::{Address, ExtractNumber};
+use plinky_utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfSection, ElfSectionContent};
 use std::collections::BTreeMap;

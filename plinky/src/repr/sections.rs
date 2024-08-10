@@ -77,6 +77,10 @@ impl Sections {
     pub(crate) fn name_of_removed_section(&self, id: SectionId) -> Option<Interned<String>> {
         self.names_of_removed_sections.get(&id).copied()
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.inner.len()
+    }
 }
 
 #[must_use]

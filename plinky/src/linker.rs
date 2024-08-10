@@ -17,6 +17,7 @@ use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
+use plinky_elf::writer::layout::LayoutError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -47,7 +48,7 @@ pub(crate) fn link_driver(
     passes::demote_global_hidden_symbols::run(&mut object);
     passes::create_segments::run(&mut object);
 
-    let layout = passes::layout::run(&mut object);
+    let layout = passes::layout::run(&object)?;
     callbacks.on_layout_calculated(&object, &layout, &deduplications);
 
     let resolver = AddressResolver::new(&layout, &deduplications);
@@ -93,6 +94,8 @@ pub(crate) enum LinkerError {
     Dynamic(PrepareDynamicError),
     #[transparent]
     RelocationFailed(RelocationError),
+    #[transparent]
+    LayoutError(LayoutError),
     #[transparent]
     ElfBuildFailed(ElfBuilderError),
     #[transparent]

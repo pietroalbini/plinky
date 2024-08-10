@@ -1,11 +1,12 @@
 mod details_provider;
 
+pub use details_provider::{LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment};
+
 use crate::ids::ElfIds;
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
     RawSectionHeader, RawSymbol,
 };
-use crate::writer::layout::details_provider::LayoutDetailsProvider;
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
@@ -20,11 +21,15 @@ pub struct Layout<I: ElfIds> {
 }
 
 impl<I: ElfIds> Layout<I> {
-    pub fn new(details: &dyn LayoutDetailsProvider<I>) -> Result<Self, LayoutError> {
+    pub fn new(
+        details: &dyn LayoutDetailsProvider<I>,
+        base_memory_address: Option<u64>,
+    ) -> Result<Self, LayoutError> {
         let builder = LayoutBuilder {
             details,
             layout: Layout { parts: Vec::new(), metadata: BTreeMap::new() },
             current_offset: 0,
+            current_memory_address: base_memory_address,
         };
         builder.build()
     }
@@ -40,21 +45,7 @@ impl<I: ElfIds> Layout<I> {
     pub fn metadata_of_section(&self, id: &I::SectionId) -> &PartMetadata {
         self.metadata
             .iter()
-            .filter(|(key, _)| match key {
-                Part::Header => false,
-                Part::SectionHeaders => false,
-                Part::ProgramHeaders => false,
-                Part::ProgramSection(this) => this == id,
-                Part::UninitializedSection(this) => this == id,
-                Part::StringTable(this) => this == id,
-                Part::SymbolTable(this) => this == id,
-                Part::Padding { .. } => false,
-                Part::Group(this) => this == id,
-                Part::Hash(this) => this == id,
-                Part::Dynamic(this) => this == id,
-                Part::Rel(this) => this == id,
-                Part::Rela(this) => this == id,
-            })
+            .filter(|(key, _)| key.section_id() == Some(id))
             .map(|(_, value)| value)
             .next()
             .unwrap()
@@ -65,6 +56,7 @@ struct LayoutBuilder<'a, I: ElfIds> {
     details: &'a dyn LayoutDetailsProvider<I>,
     layout: Layout<I>,
     current_offset: u64,
+    current_memory_address: Option<u64>,
 }
 
 impl<I: ElfIds> LayoutBuilder<'_, I> {
@@ -104,7 +96,7 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         for segment_sections in put_in_segments.into_values() {
             self.align_to_page();
             for part in segment_sections {
-                self.add_part(part);
+                self.add_part_in_memory(part);
             }
         }
 
@@ -117,10 +109,28 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
     }
 
     fn add_part(&mut self, part: Part<I::SectionId>) {
+        self.add_part_inner(part, false);
+    }
+
+    fn add_part_in_memory(&mut self, part: Part<I::SectionId>) {
+        self.add_part_inner(part, true)
+    }
+
+    fn add_part_inner(&mut self, part: Part<I::SectionId>, add_in_memory: bool) {
         let len = part_len(self.details, &part) as u64;
         self.layout.parts.push(part.clone());
 
-        let memory = None;
+        let memory = if add_in_memory {
+            match self.current_memory_address {
+                Some(address) => {
+                    self.current_memory_address = Some(address + len);
+                    Some(PartMemory { len, address })
+                }
+                None => None,
+            }
+        } else {
+            None
+        };
 
         if part.present_in_file() {
             self.layout.metadata.insert(
@@ -134,16 +144,23 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
     }
 
     fn align_to_page(&mut self) {
-        let len = self.len();
+        // Align memory address.
+        match &mut self.current_memory_address {
+            Some(address) => {
+                if (*address % ALIGN) != 0 {
+                    *address = (*address + ALIGN) & !(ALIGN - 1);
+                }
+            }
+            None => {}
+        }
+
+        // Align file offset.
+        let len = self.current_offset;
         if len % ALIGN == 0 {
             return;
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
         self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ });
-    }
-
-    fn len(&self) -> u64 {
-        self.current_offset
     }
 }
 
@@ -199,6 +216,24 @@ pub enum Part<SectionId> {
 }
 
 impl<S> Part<S> {
+    pub fn section_id(&self) -> Option<&S> {
+        match self {
+            Part::Header => None,
+            Part::SectionHeaders => None,
+            Part::ProgramHeaders => None,
+            Part::ProgramSection(id) => Some(id),
+            Part::UninitializedSection(id) => Some(id),
+            Part::StringTable(id) => Some(id),
+            Part::SymbolTable(id) => Some(id),
+            Part::Hash(id) => Some(id),
+            Part::Rel(id) => Some(id),
+            Part::Rela(id) => Some(id),
+            Part::Group(id) => Some(id),
+            Part::Dynamic(id) => Some(id),
+            Part::Padding { .. } => None,
+        }
+    }
+
     fn present_in_file(&self) -> bool {
         match self {
             Part::UninitializedSection(_) => false,
@@ -220,7 +255,7 @@ impl PaddingId {
 #[derive(Debug)]
 pub struct PartMetadata {
     pub file: Option<PartFile>,
-    pub memory: Option<()>,
+    pub memory: Option<PartMemory>,
 }
 
 impl PartMetadata {
@@ -230,12 +265,12 @@ impl PartMetadata {
             None => (0, 0),
         };
 
-        let (memory_offset, memory_len) = match self.memory {
-            Some(()) => (self.file.as_ref().unwrap().offset, self.file.as_ref().unwrap().len),
+        let (memory_address, memory_len) = match &self.memory {
+            Some(memory) => (memory.address, memory.len),
             None => (0, 0),
         };
 
-        (file_offset, file_len, memory_offset, memory_len)
+        (file_offset, file_len, memory_address, memory_len)
     }
 }
 
@@ -243,6 +278,12 @@ impl PartMetadata {
 pub struct PartFile {
     pub len: u64,
     pub offset: u64,
+}
+
+#[derive(Debug)]
+pub struct PartMemory {
+    pub len: u64,
+    pub address: u64,
 }
 
 #[derive(Debug, Error, Display)]

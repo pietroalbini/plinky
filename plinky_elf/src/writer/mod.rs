@@ -36,7 +36,7 @@ where
     I::StringId: StringIdGetters<I>,
 {
     pub fn new(writer: &'a mut dyn Write, object: &'a ElfObject<I>) -> Result<Self, WriteError<I>> {
-        Ok(Self { writer, layout: Layout::new(object)?, object })
+        Ok(Self { writer, layout: Layout::new(object, None)?, object })
     }
 
     pub fn write(mut self) -> Result<(), WriteError<I>> {

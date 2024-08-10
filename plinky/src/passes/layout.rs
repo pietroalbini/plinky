@@ -4,118 +4,152 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::utils::ints::Address;
-use plinky_elf::ids::serial::SectionId;
-use plinky_elf::raw::{RawHashHeader, RawRela, RawSymbol};
-use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
-use std::collections::{BTreeMap, BTreeSet};
+use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::writer::layout::{
+    Layout as ElfLayout, LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment,
+    LayoutError, Part,
+};
+use plinky_elf::ElfClass;
+use std::collections::BTreeMap;
 
-const PAGE_SIZE: u64 = 0x1000;
-const STATIC_BASE_ADDRESS: u64 = 0x400000;
-const PIE_BASE_ADDRESS: u64 = PAGE_SIZE;
-
-pub(crate) fn run(object: &mut Object) -> Layout {
-    let mut layout = Layout {
-        current_address: match object.mode {
-            Mode::PositionDependent => STATIC_BASE_ADDRESS,
-            Mode::PositionIndependent => PIE_BASE_ADDRESS,
-        },
-        sections: BTreeMap::new(),
+pub(crate) fn run(object: &Object) -> Result<Layout, LayoutError> {
+    let base_address = match object.mode {
+        Mode::PositionDependent => 0x400000,
+        Mode::PositionIndependent => 0x1000,
     };
 
-    let mut not_allocated = object.sections.iter().map(|s| s.id).collect::<BTreeSet<_>>();
-    for segment in object.segments.iter() {
-        let SegmentContent::Sections(sections) = &segment.content else { continue };
-        match segment.type_ {
-            // Need to be allocated:
-            SegmentType::ProgramHeader => {}
-            SegmentType::Interpreter => {}
-            SegmentType::Program => {}
-            SegmentType::Uninitialized => {}
-            // Should already be allocated separately:
-            SegmentType::Dynamic => continue,
-        }
-        for id in sections {
-            if layout.sections.contains_key(id) {
-                panic!("trying to layout the same section twice");
+    let elf_layout = ElfLayout::new(object, Some(base_address))?;
+
+    let mut layout = Layout { repr: BTreeMap::new() };
+    for part in elf_layout.parts() {
+        let Some(id) = part.section_id() else { continue };
+        let metadata = elf_layout.metadata(part);
+        match &metadata.memory {
+            Some(memory) => {
+                layout.repr.insert(
+                    *id,
+                    SectionLayout::Allocated { address: memory.address.into(), len: memory.len },
+                );
             }
-            let len = section_len(&object, *id);
-            layout.add_section(*id, len);
-
-            not_allocated.remove(&id);
-        }
-        layout.page_align();
+            None => {
+                layout.repr.insert(*id, SectionLayout::NotAllocated);
+            }
+        };
     }
-
-    for id in not_allocated {
-        layout.sections.insert(id, SectionLayout::NotAllocated);
-    }
-
-    layout
+    Ok(layout)
 }
 
-fn section_len(object: &Object, id: SectionId) -> u64 {
-    match &object.sections.get(id).unwrap().content {
-        SectionContent::Data(data) => data.bytes.len() as u64,
-        SectionContent::Uninitialized(uninit) => uninit.len,
+macro_rules! cast_section {
+    ($self:expr, $id:expr, $variant:ident) => {
+        match $self.sections.get(*$id).map(|s| &s.content) {
+            Some(SectionContent::$variant(inner)) => inner,
+            Some(_) => panic!("section {:?} is of the wrong type", $id),
+            None => panic!("section {:?} is missing", $id),
+        }
+    };
+}
 
-        SectionContent::StringsForSymbols(strings) => object
-            .symbols
+impl LayoutDetailsProvider<SerialIds> for Object {
+    fn class(&self) -> ElfClass {
+        self.env.class
+    }
+
+    fn sections_count(&self) -> usize {
+        self.sections.len()
+    }
+
+    fn segments_count(&self) -> usize {
+        self.segments.len()
+    }
+
+    fn program_section_len(&self, id: &SectionId) -> usize {
+        cast_section!(self, id, Data).bytes.len()
+    }
+
+    fn uninitialized_section_len(&self, id: &SectionId) -> usize {
+        cast_section!(self, id, Uninitialized).len as _
+    }
+
+    fn string_table_len(&self, id: &SectionId) -> usize {
+        let strings = cast_section!(self, id, StringsForSymbols);
+        self.symbols
             .iter(&*strings.view)
             .map(|(_, symbol)| symbol.name().resolve().len() + 1 /* null byte */)
             .chain(std::iter::once(1)) // Null symbol
-            .sum::<usize>() as u64,
+            .sum::<usize>()
+    }
 
-        SectionContent::Symbols(symbols) => {
-            (object.symbols.iter(&*symbols.view).count() * RawSymbol::size(object.env.class)) as u64
+    fn symbols_in_table_count(&self, id: &SectionId) -> usize {
+        let symbols = cast_section!(self, id, Symbols);
+        self.symbols.iter(&*symbols.view).count()
+    }
+
+    fn sections_in_group_count(&self, _id: &SectionId) -> usize {
+        unimplemented!();
+    }
+
+    fn dynamic_directives_count(&self, _id: &SectionId) -> usize {
+        self.dynamic_entries.iter().map(|d| d.directives_count()).sum::<usize>() + 1
+    }
+
+    fn relocations_in_table_count(&self, id: &SectionId) -> usize {
+        cast_section!(self, id, Relocations).relocations().len()
+    }
+
+    fn hash_details(&self, id: &SectionId) -> LayoutDetailsHash {
+        let hash = cast_section!(self, id, SysvHash);
+        let symbols_count = self.symbols.iter(&*hash.view).count();
+        LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }
+    }
+
+    fn parts_for_sections(&self) -> Result<Vec<(SectionId, Part<SectionId>)>, LayoutError> {
+        let mut result = Vec::new();
+        for section in self.sections.iter() {
+            result.push((
+                section.id,
+                match &section.content {
+                    SectionContent::Data(_) => Part::ProgramSection(section.id),
+                    SectionContent::Uninitialized(_) => Part::UninitializedSection(section.id),
+                    SectionContent::StringsForSymbols(_) => Part::StringTable(section.id),
+                    SectionContent::Symbols(_) => Part::SymbolTable(section.id),
+                    SectionContent::SysvHash(_) => Part::Hash(section.id),
+                    SectionContent::Relocations(_) => Part::Rela(section.id),
+                    SectionContent::Dynamic(_) => Part::Dynamic(section.id),
+                },
+            ));
         }
+        Ok(result)
+    }
 
-        SectionContent::SysvHash(sysv) => {
-            let symbols_count = object.symbols.iter(&*sysv.view).count();
-            let buckets_len = num_buckets(symbols_count) * u32::size(object.env.class);
-            let chain_len = symbols_count * u32::size(object.env.class);
-            (RawHashHeader::size(object.env.class) + buckets_len + chain_len) as u64
+    fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<SerialIds>> {
+        let mut result = Vec::new();
+        for segment in self.segments.iter() {
+            match &segment.type_ {
+                SegmentType::ProgramHeader => continue,
+                SegmentType::Interpreter => {},
+                SegmentType::Program => {}
+                SegmentType::Uninitialized => {}
+                SegmentType::Dynamic => continue,
+            }
+            match &segment.content {
+                SegmentContent::ProgramHeader => continue,
+                SegmentContent::ElfHeader => continue,
+                SegmentContent::Sections(sections) => {
+                    result.push(LayoutDetailsSegment { sections: sections.clone() });
+                }
+            }
         }
-
-        SectionContent::Relocations(relocations) => {
-            (RawRela::size(object.env.class) * relocations.relocations().len()) as u64
-        }
-
-        SectionContent::Dynamic(_) => {
-            let entry_size = <u64 as RawTypeAsPointerSize>::size(object.env.class) as u64;
-
-            // Increase by 1 to account for the implied null directive.
-            let directives_count =
-                object.dynamic_entries.iter().map(|d| d.directives_count() as u64).sum::<u64>() + 1;
-
-            entry_size * directives_count
-        }
+        result
     }
 }
 
 pub(crate) struct Layout {
-    current_address: u64,
-    sections: BTreeMap<SectionId, SectionLayout>,
+    repr: BTreeMap<SectionId, SectionLayout>,
 }
 
 impl Layout {
     pub(crate) fn of_section(&self, id: SectionId) -> &SectionLayout {
-        match self.sections.get(&id) {
-            Some(layout) => layout,
-            None => panic!("section {id:?} doesn't have a layout"),
-        }
-    }
-
-    pub(crate) fn add_section(&mut self, id: SectionId, len: u64) -> SectionLayout {
-        let layout = SectionLayout::Allocated { address: self.current_address.into(), len };
-
-        self.sections.insert(id, layout);
-        self.current_address += len;
-
-        layout
-    }
-
-    pub(crate) fn page_align(&mut self) {
-        self.current_address = (self.current_address + PAGE_SIZE) & !(PAGE_SIZE - 1);
+        self.repr.get(&id).unwrap()
     }
 }
 

@@ -20,6 +20,10 @@ impl Segments {
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Segment> {
         self.segments.iter()
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.segments.len()
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -39,7 +43,7 @@ impl Segment {
                 ids.iter()
                     .map(|id| match layout.of_section(*id) {
                         SectionLayout::Allocated { address, .. } => *address,
-                        SectionLayout::NotAllocated => panic!("non-allocated section in layout"),
+                        SectionLayout::NotAllocated => panic!("non-allocated section {id:?} in layout"),
                     })
                     .min()
                     .expect("empty segment"),

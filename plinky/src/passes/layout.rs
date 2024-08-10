@@ -7,7 +7,7 @@ use crate::utils::ints::Address;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{
     Layout as ElfLayout, LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment,
-    LayoutError, Part,
+    LayoutError, Part, PartMetadata,
 };
 use plinky_elf::ElfClass;
 use std::collections::BTreeMap;
@@ -20,23 +20,23 @@ pub(crate) fn run(object: &Object) -> Result<Layout, LayoutError> {
 
     let elf_layout = ElfLayout::new(object, Some(base_address))?;
 
-    let mut layout = Layout { repr: BTreeMap::new() };
+    let mut repr = BTreeMap::new();
     for part in elf_layout.parts() {
         let Some(id) = part.section_id() else { continue };
         let metadata = elf_layout.metadata(part);
         match &metadata.memory {
             Some(memory) => {
-                layout.repr.insert(
+                repr.insert(
                     *id,
                     SectionLayout::Allocated { address: memory.address.into(), len: memory.len },
                 );
             }
             None => {
-                layout.repr.insert(*id, SectionLayout::NotAllocated);
+                repr.insert(*id, SectionLayout::NotAllocated);
             }
         };
     }
-    Ok(layout)
+    Ok(Layout { repr, elf: elf_layout })
 }
 
 macro_rules! cast_section {
@@ -126,7 +126,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
         for segment in self.segments.iter() {
             match &segment.type_ {
                 SegmentType::ProgramHeader => continue,
-                SegmentType::Interpreter => {},
+                SegmentType::Interpreter => {}
                 SegmentType::Program => {}
                 SegmentType::Uninitialized => {}
                 SegmentType::Dynamic => continue,
@@ -145,9 +145,18 @@ impl LayoutDetailsProvider<SerialIds> for Object {
 
 pub(crate) struct Layout {
     repr: BTreeMap<SectionId, SectionLayout>,
+    elf: ElfLayout<SerialIds>,
 }
 
 impl Layout {
+    pub(crate) fn parts(&self) -> &[Part<SectionId>] {
+        self.elf.parts()
+    }
+
+    pub(crate) fn metadata(&self, part: &Part<SectionId>) -> &PartMetadata {
+        self.elf.metadata(part)
+    }
+
     pub(crate) fn of_section(&self, id: SectionId) -> &SectionLayout {
         self.repr.get(&id).unwrap()
     }

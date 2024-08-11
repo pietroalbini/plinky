@@ -38,7 +38,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
     }
 
     fn sections_count(&self) -> usize {
-        self.sections.len()
+        self.sections.len() + 1 /* null section */
     }
 
     fn segments_count(&self) -> usize {

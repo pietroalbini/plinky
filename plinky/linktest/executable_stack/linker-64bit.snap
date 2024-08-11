@@ -1,5 +1,5 @@
 ---
-source: plinky/linktest/harness/tests.rs
+source: plinky_test_harness/src/utils.rs
 ---
 linking exited with exit status: 0
 
@@ -12,9 +12,9 @@ debug print: built elf
  │  ╭───────────┬───────┬──────────┬───────────────────────╮
  │  │ Type      │ Perms │ Aligment │ Content               │
  │  ├───────────┼───────┼──────────┼───────────────────────┤
- │  │ Load      │ R     │ 0x1000   │ .payload#3, .rodata#4 │
+ │  │ Load      │ R     │ 0x1000   │ .payload#2, .rodata#3 │
  │  ├───────────┼───────┼──────────┼───────────────────────┤
- │  │ Load      │ R X   │ 0x1000   │ .text#2               │
+ │  │ Load      │ R X   │ 0x1000   │ .text#1               │
  │  ├───────────┼───────┼──────────┼───────────────────────┤
  │  │ GNU stack │ RWX   │ 0x1      │ -                     │
  │  ╰───────────┴───────┴──────────┴───────────────────────╯

@@ -53,7 +53,7 @@ debug print: calculated layout
 
 debug print: built elf
  │
- │  section .bss#3 (address: 0x401000)
+ │  section .bss#2 (address: 0x401000)
  │   │
  │   │  uninitialized | len: 0x6 | permissions: RW 
  │   ┴
@@ -62,9 +62,9 @@ debug print: built elf
  │  ╭───────────┬───────┬──────────┬─────────╮
  │  │ Type      │ Perms │ Aligment │ Content │
  │  ├───────────┼───────┼──────────┼─────────┤
- │  │ Load      │ R X   │ 0x1000   │ .text#2 │
+ │  │ Load      │ R X   │ 0x1000   │ .text#1 │
  │  ├───────────┼───────┼──────────┼─────────┤
- │  │ Load      │ RW    │ 0x1000   │ .bss#3  │
+ │  │ Load      │ RW    │ 0x1000   │ .bss#2  │
  │  ├───────────┼───────┼──────────┼─────────┤
  │  │ GNU stack │ RW    │ 0x1      │ -       │
  │  ╰───────────┴───────┴──────────┴─────────╯

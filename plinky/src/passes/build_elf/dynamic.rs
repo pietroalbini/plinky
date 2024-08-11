@@ -2,12 +2,12 @@ use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilder;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::sections::DynamicSection;
-use plinky_elf::raw::{RawRela, RawSymbol};
-use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfSectionContent};
-use plinky_utils::raw_types::RawType;
 use plinky_elf::ids::serial::SectionId;
+use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
+use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfSectionContent};
 use plinky_utils::ints::ExtractNumber;
+use plinky_utils::raw_types::RawType;
 
 pub(super) fn build_dynamic_section(
     builder: &mut ElfBuilder,
@@ -21,12 +21,14 @@ pub(super) fn build_dynamic_section(
         match entry {
             DynamicEntry::StringTable(id) => {
                 let mem = layout(builder, id, "dynamic string table");
-                directives.push(ElfDynamicDirective::StringTable { address: mem.address.extract() });
+                directives
+                    .push(ElfDynamicDirective::StringTable { address: mem.address.extract() });
                 directives.push(ElfDynamicDirective::StringTableSize { bytes: mem.len.extract() });
             }
             DynamicEntry::SymbolTable(id) => {
                 let mem = layout(builder, id, "dynamic symbol table");
-                directives.push(ElfDynamicDirective::SymbolTable { address: mem.address.extract() });
+                directives
+                    .push(ElfDynamicDirective::SymbolTable { address: mem.address.extract() });
                 directives.push(ElfDynamicDirective::SymbolTableEntrySize {
                     bytes: RawSymbol::size(bits) as _,
                 });
@@ -55,7 +57,7 @@ pub(super) fn build_dynamic_section(
     directives.push(ElfDynamicDirective::Null);
 
     ElfSectionContent::Dynamic(ElfDynamic {
-        string_table: builder.sections.new_id_of(dynamic.strings()),
+        string_table: *builder.section_ids.get(&dynamic.strings()).unwrap(),
         directives,
     })
 }

@@ -1,7 +1,6 @@
 mod dynamic;
 pub(crate) mod ids;
 mod relocations;
-mod sections;
 mod symbols;
 pub(crate) mod sysv_hash;
 
@@ -12,24 +11,23 @@ use crate::passes::build_elf::ids::{
     BuiltElfIds, BuiltElfSectionId, BuiltElfStringId, BuiltElfSymbolId,
 };
 use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
-use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::repr::object::Object;
-use crate::repr::sections::SectionContent;
+use crate::repr::sections::{Section, SectionContent};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
-use plinky_utils::ints::{Address, ExtractNumber};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
-    ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
-    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfObject, ElfPermissions, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
+    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plinky_macros::{Display, Error};
+use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
-use plinky_elf::writer::layout::Layout;
 
 pub(crate) fn run(
     object: Object,
@@ -38,9 +36,11 @@ pub(crate) fn run(
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
     let builder = ElfBuilder {
+        section_zero_id: ids.allocate_section_id(),
+        section_ids: BTreeMap::new(),
+
         layout,
         resolver,
-        sections: Sections::new(&mut ids, &object),
         object,
         ids,
         pending_symbol_tables: BTreeMap::new(),
@@ -54,8 +54,10 @@ struct ElfBuilder<'a> {
     object: Object,
     layout: &'a Layout<SerialIds>,
     resolver: &'a AddressResolver<'a>,
-    sections: Sections,
     ids: BuiltElfIds,
+
+    section_zero_id: BuiltElfSectionId,
+    section_ids: BTreeMap<SectionId, BuiltElfSectionId>,
 
     pending_symbol_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
     pending_string_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
@@ -64,6 +66,11 @@ struct ElfBuilder<'a> {
 
 impl<'a> ElfBuilder<'a> {
     fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
+        // Precalculate section IDs, to avoid circular dependencies.
+        for section in self.object.sections.iter() {
+            self.section_ids.insert(section.id, self.ids.allocate_section_id());
+        }
+
         // Symbol and string table sections need to be created together (as the string table
         // contains the symbol names for the symbol table), which makes it hard to create them
         // individually as part of prepare_sections(). We thus create them together, and store them
@@ -71,12 +78,12 @@ impl<'a> ElfBuilder<'a> {
         for section in self.object.sections.iter() {
             let SectionContent::Symbols(symbols_section) = &section.content else { continue };
 
-            let string_table_id = self.sections.new_id_of(symbols_section.strings);
+            let string_table_id = *self.section_ids.get(&symbols_section.strings).unwrap();
             let created = create_symbols(
                 &self.object.symbols,
                 &*symbols_section.view,
                 &mut self.ids,
-                &mut self.sections,
+                &mut self.section_ids,
                 string_table_id,
                 symbols_section.is_dynamic,
             );
@@ -86,7 +93,7 @@ impl<'a> ElfBuilder<'a> {
         }
 
         let entry = self.prepare_entry_point()?;
-        self.prepare_sections()?;
+        let sections = self.prepare_sections()?;
 
         let segments = self.prepare_segments();
 
@@ -100,7 +107,7 @@ impl<'a> ElfBuilder<'a> {
                 Mode::PositionIndependent => ElfType::SharedObject,
             },
             entry,
-            sections: self.sections.finalize(),
+            sections,
             segments,
         })
     }
@@ -127,95 +134,103 @@ impl<'a> ElfBuilder<'a> {
         }
     }
 
-    fn prepare_sections(&mut self) -> Result<(), ElfBuilderError> {
-        while let Some(section) = self.object.sections.pop_first() {
-            match &section.content {
-                SectionContent::Data(data) => {
-                    self.sections
-                        .create(
-                            &section.name.resolve(),
-                            ElfSectionContent::Program(ElfProgramSection {
-                                perms: data.perms,
-                                deduplication: data.deduplication,
-                                raw: RawBytes(data.bytes.clone()),
-                            }),
-                        )
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-                SectionContent::Uninitialized(uninit) => {
-                    self.sections
-                        .create(
-                            &section.name.resolve(),
-                            ElfSectionContent::Uninitialized(ElfUninitializedSection {
-                                perms: uninit.perms,
-                                len: uninit.len.extract(),
-                            }),
-                        )
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-                SectionContent::StringsForSymbols(_) => {
-                    let content = self
-                        .pending_string_tables
-                        .remove(&section.id)
-                        .expect("string table should've been prepared");
-                    self.sections
-                        .create(&section.name.resolve(), content)
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-                SectionContent::Symbols(_) => {
-                    let content = self
-                        .pending_symbol_tables
-                        .remove(&section.id)
-                        .expect("symbol table should've been prepared");
-                    self.sections
-                        .create(&section.name.resolve(), content)
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-                SectionContent::SysvHash(sysv) => {
-                    self.sections
-                        .create(
-                            &section.name.resolve(),
-                            create_sysv_hash(
-                                self.object.symbols.iter(&*sysv.view).map(|(_id, sym)| sym),
-                                self.sections.new_id_of(sysv.symbols),
-                            ),
-                        )
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-                SectionContent::Relocations(relocations) => {
-                    self.sections
-                        .create(
-                            &section.name.resolve(),
-                            create_rela(
-                                relocations.relocations().into_iter(),
-                                self.object.env.class,
-                                relocations
-                                    .section()
-                                    .map(|s| self.sections.new_id_of(s))
-                                    .unwrap_or(self.sections.zero_id),
-                                self.sections.new_id_of(relocations.symbols_table()),
-                                self.symbol_conversion.get(&relocations.symbols_table()).unwrap(),
-                                &self.resolver,
-                            )?,
-                        )
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-                SectionContent::Dynamic(dynamic) => {
-                    let content = build_dynamic_section(self, dynamic);
-                    self.sections
-                        .create(&section.name.resolve(), content)
-                        .layout(self.layout.metadata_of_section(&section.id))
-                        .add_from_existing(section.id);
-                }
-            }
+    fn prepare_sections(
+        &mut self,
+    ) -> Result<BTreeMap<BuiltElfSectionId, ElfSection<BuiltElfIds>>, ElfBuilderError> {
+        // Prepare section names ahead of time.
+        let mut section_names = PendingStringsTable::new(self.ids.allocate_section_id());
+        let mut section_names_map = BTreeMap::new();
+        for section in self.object.sections.iter() {
+            section_names_map
+                .insert(section.id, section_names.add(section.name.resolve().as_str()));
         }
-        Ok(())
+        let shstrtab_name = section_names.add(".shstrtab");
+
+        let mut sections = BTreeMap::new();
+
+        sections.insert(
+            self.section_zero_id,
+            ElfSection {
+                name: section_names.zero_id,
+                memory_address: 0,
+                part_of_group: false,
+                content: ElfSectionContent::Null,
+            },
+        );
+
+        while let Some(section) = self.object.sections.pop_first() {
+            let content = match &section.content {
+                SectionContent::Data(data) => ElfSectionContent::Program(ElfProgramSection {
+                    perms: data.perms,
+                    deduplication: data.deduplication,
+                    raw: RawBytes(data.bytes.clone()),
+                }),
+
+                SectionContent::Uninitialized(uninit) => {
+                    ElfSectionContent::Uninitialized(ElfUninitializedSection {
+                        perms: uninit.perms,
+                        len: uninit.len.extract(),
+                    })
+                }
+
+                SectionContent::StringsForSymbols(_) => self
+                    .pending_string_tables
+                    .remove(&section.id)
+                    .expect("string table should've been prepared"),
+
+                SectionContent::Symbols(_) => self
+                    .pending_symbol_tables
+                    .remove(&section.id)
+                    .expect("symbol table should've been prepared"),
+
+                SectionContent::SysvHash(sysv) => create_sysv_hash(
+                    self.object.symbols.iter(&*sysv.view).map(|(_id, sym)| sym),
+                    *self.section_ids.get(&sysv.symbols).unwrap(),
+                ),
+
+                SectionContent::Relocations(relocations) => create_rela(
+                    relocations.relocations().into_iter(),
+                    self.object.env.class,
+                    relocations
+                        .section()
+                        .map(|s| *self.section_ids.get(&s).unwrap())
+                        .unwrap_or(self.section_zero_id),
+                    *self.section_ids.get(&relocations.symbols_table()).unwrap(),
+                    self.symbol_conversion.get(&relocations.symbols_table()).unwrap(),
+                    &self.resolver,
+                )?,
+
+                SectionContent::Dynamic(dynamic) => build_dynamic_section(self, dynamic),
+            };
+
+            sections.insert(
+                *self.section_ids.get(&section.id).unwrap(),
+                ElfSection {
+                    name: *section_names_map.get(&section.id).unwrap(),
+                    memory_address: self
+                        .layout
+                        .metadata_of_section(&section.id)
+                        .memory
+                        .as_ref()
+                        .map(|m| m.address.extract())
+                        .unwrap_or(0),
+                    part_of_group: false,
+                    content,
+                },
+            );
+        }
+
+        sections.insert(
+            section_names.id,
+            ElfSection {
+                name: shstrtab_name,
+                memory_address: 0,
+                part_of_group: false,
+                content: section_names.into_elf(),
+            },
+        );
+
+        Ok(sections)
     }
 
     fn prepare_segments(&self) -> Vec<ElfSegment<BuiltElfIds>> {
@@ -236,7 +251,7 @@ impl<'a> ElfBuilder<'a> {
                         SegmentContent::ElfHeader => ElfSegmentContent::ElfHeader,
                         SegmentContent::ProgramHeader => ElfSegmentContent::ProgramHeader,
                         SegmentContent::Sections(sections) => ElfSegmentContent::Sections(
-                            sections.iter().map(|id| self.sections.new_id_of(*id)).collect(),
+                            sections.iter().map(|id| *self.section_ids.get(id).unwrap()).collect(),
                         ),
                     },
                     align: segment.align,

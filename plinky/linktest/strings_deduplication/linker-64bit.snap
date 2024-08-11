@@ -107,7 +107,7 @@ debug print: object after relocations are applied
 
 debug print: built elf
  │
- │  section .text#2 (address: 0x401000)
+ │  section .text#1 (address: 0x401000)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -119,7 +119,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#4 (address: 0x401031)
+ │  section .text#3 (address: 0x401031)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -131,7 +131,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .strtab#5 (address: 0x0)
+ │  section .strtab#4 (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬─────────────╮
@@ -165,7 +165,7 @@ debug print: built elf
  │   │  ╰──────┴─────────────╯
  │   ┴
  │
- │  section .symtab#6 (address: 0x0)
+ │  section .symtab#5 (address: 0x0)
  │   │
  │   │    Symbol table:
  │   │  ╭────────────────┬─────────┬──────┬────────────┬────────────────────┬──────────┬──────╮
@@ -175,27 +175,27 @@ debug print: built elf
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ bar.S#1        │ Local   │ File │ Default    │ Absolute           │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ goodbye#2      │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x40000f │ 0x0  │
+ │   │  │ goodbye#2      │ Local   │ -    │ Default    │ .custom_messages#6 │ 0x40000f │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ goodbye_len#3  │ Local   │ -    │ Default    │ Absolute           │ 0x7      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ bar_end#4      │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x400006 │ 0x0  │
+ │   │  │ bar_end#4      │ Local   │ -    │ Default    │ .custom_messages#6 │ 0x400006 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ bar_end_len#5  │ Local   │ -    │ Default    │ Absolute           │ 0x8      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ foo.S#6        │ Local   │ File │ Default    │ Absolute           │ 0x0      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ hello#7        │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x400000 │ 0x0  │
+ │   │  │ hello#7        │ Local   │ -    │ Default    │ .custom_messages#6 │ 0x400000 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ hello_len#8    │ Local   │ -    │ Default    │ Absolute           │ 0x5      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ foo_end#9      │ Local   │ -    │ Default    │ .custom_messages#7 │ 0x400006 │ 0x0  │
+ │   │  │ foo_end#9      │ Local   │ -    │ Default    │ .custom_messages#6 │ 0x400006 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
  │   │  │ foo_end_len#10 │ Local   │ -    │ Default    │ Absolute           │ 0x8      │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ _start#11      │ Global  │ -    │ Default    │ .text#2            │ 0x401000 │ 0x0  │
+ │   │  │ _start#11      │ Global  │ -    │ Default    │ .text#1            │ 0x401000 │ 0x0  │
  │   │  ├────────────────┼─────────┼──────┼────────────┼────────────────────┼──────────┼──────┤
- │   │  │ bar#12         │ Global  │ -    │ Default    │ .text#4            │ 0x401031 │ 0x0  │
+ │   │  │ bar#12         │ Global  │ -    │ Default    │ .text#3            │ 0x401031 │ 0x0  │
  │   │  ╰────────────────┴─────────┴──────┴────────────┴────────────────────┴──────────┴──────╯
  │   ┴
  ┴

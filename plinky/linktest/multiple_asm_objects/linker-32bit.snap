@@ -255,31 +255,7 @@ debug print: built elf
  │   │  empty section
  │   ┴
  │
- │  section .shstrtab#1 (address: 0x0)
- │   │
- │   │    Strings table:
- │   │  ╭──────┬───────────╮
- │   │  │ 0x0  │           │
- │   │  ├──────┼───────────┤
- │   │  │ 0x1  │ .text     │
- │   │  ├──────┼───────────┤
- │   │  │ 0x7  │ .rodata   │
- │   │  ├──────┼───────────┤
- │   │  │ 0xf  │ .comment  │
- │   │  ├──────┼───────────┤
- │   │  │ 0x18 │ .text     │
- │   │  ├──────┼───────────┤
- │   │  │ 0x1e │ .rodata   │
- │   │  ├──────┼───────────┤
- │   │  │ 0x26 │ .strtab   │
- │   │  ├──────┼───────────┤
- │   │  │ 0x2e │ .symtab   │
- │   │  ├──────┼───────────┤
- │   │  │ 0x36 │ .shstrtab │
- │   │  ╰──────┴───────────╯
- │   ┴
- │
- │  section .text#2 (address: 0x401000)
+ │  section .text#1 (address: 0x401000)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -289,7 +265,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata#3 (address: 0x400000)
+ │  section .rodata#2 (address: 0x400000)
  │   │
  │   │  program data | permissions: R
  │   │
@@ -298,7 +274,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .comment#4 (address: 0x0)
+ │  section .comment#3 (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │
@@ -307,7 +283,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .text#5 (address: 0x40101f)
+ │  section .text#4 (address: 0x40101f)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -317,7 +293,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata#6 (address: 0x40000f)
+ │  section .rodata#5 (address: 0x40000f)
  │   │
  │   │  program data | permissions: R
  │   │
@@ -326,7 +302,7 @@ debug print: built elf
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .strtab#7 (address: 0x0)
+ │  section .strtab#6 (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬───────────╮
@@ -352,7 +328,7 @@ debug print: built elf
  │   │  ╰──────┴───────────╯
  │   ┴
  │
- │  section .symtab#8 (address: 0x0)
+ │  section .symtab#7 (address: 0x0)
  │   │
  │   │    Symbol table:
  │   │  ╭─────────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
@@ -362,29 +338,53 @@ debug print: built elf
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ goodbye.S#1 │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#2       │ Local   │ -    │ Default    │ .rodata#3  │ 0x400000 │ 0x0  │
+ │   │  │ msg#2       │ Local   │ -    │ Default    │ .rodata#2  │ 0x400000 │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ len#3       │ Local   │ -    │ Default    │ Absolute   │ 0xf      │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ hello.S#4   │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#5       │ Local   │ -    │ Default    │ .rodata#6  │ 0x40000f │ 0x0  │
+ │   │  │ msg#5       │ Local   │ -    │ Default    │ .rodata#5  │ 0x40000f │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ len#6       │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ _start#7    │ Global  │ -    │ Default    │ .text#5    │ 0x40101f │ 0x0  │
+ │   │  │ _start#7    │ Global  │ -    │ Default    │ .text#4    │ 0x40101f │ 0x0  │
  │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ goodbye#8   │ Global  │ -    │ Default    │ .text#2    │ 0x401000 │ 0x0  │
+ │   │  │ goodbye#8   │ Global  │ -    │ Default    │ .text#1    │ 0x401000 │ 0x0  │
  │   │  ╰─────────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
+ │   ┴
+ │
+ │  section .shstrtab#8 (address: 0x0)
+ │   │
+ │   │    Strings table:
+ │   │  ╭──────┬───────────╮
+ │   │  │ 0x0  │           │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1  │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x7  │ .rodata   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0xf  │ .comment  │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x18 │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1e │ .rodata   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x26 │ .strtab   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x2e │ .symtab   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x36 │ .shstrtab │
+ │   │  ╰──────┴───────────╯
  │   ┴
  │
  │    Segments:
  │  ╭───────────┬───────┬──────────┬──────────────────────╮
  │  │ Type      │ Perms │ Aligment │ Content              │
  │  ├───────────┼───────┼──────────┼──────────────────────┤
- │  │ Load      │ R     │ 0x1000   │ .rodata#3, .rodata#6 │
+ │  │ Load      │ R     │ 0x1000   │ .rodata#2, .rodata#5 │
  │  ├───────────┼───────┼──────────┼──────────────────────┤
- │  │ Load      │ R X   │ 0x1000   │ .text#2, .text#5     │
+ │  │ Load      │ R X   │ 0x1000   │ .text#1, .text#4     │
  │  ├───────────┼───────┼──────────┼──────────────────────┤
  │  │ GNU stack │ RW    │ 0x1      │ -                    │
  │  ╰───────────┴───────┴──────────┴──────────────────────╯

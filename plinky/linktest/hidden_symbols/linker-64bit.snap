@@ -1,6 +1,5 @@
 ---
 source: plinky_test_harness/src/utils.rs
-assertion_line: 52
 ---
 linking exited with exit status: 0
 
@@ -23,7 +22,7 @@ debug print: loaded object
 
 debug print: built elf
  │
- │  section .symtab#5 (address: 0x0)
+ │  section .symtab#4 (address: 0x0)
  │   │
  │   │    Symbol table:
  │   │  ╭──────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
@@ -33,9 +32,9 @@ debug print: built elf
  │   │  ├──────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ foo.S#1  │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
  │   │  ├──────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ foo#2    │ Local   │ -    │ Default    │ .text#2    │ 0x400000 │ 0x0  │
+ │   │  │ foo#2    │ Local   │ -    │ Default    │ .text#1    │ 0x400000 │ 0x0  │
  │   │  ├──────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ _start#3 │ Global  │ -    │ Default    │ .text#2    │ 0x400001 │ 0x0  │
+ │   │  │ _start#3 │ Global  │ -    │ Default    │ .text#1    │ 0x400001 │ 0x0  │
  │   │  ╰──────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
  │   ┴
  ┴

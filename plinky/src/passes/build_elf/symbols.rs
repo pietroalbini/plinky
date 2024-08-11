@@ -1,21 +1,20 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
-use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::PendingStringsTable;
 use crate::repr::symbols::views::SymbolsView;
 use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
-use plinky_utils::ints::ExtractNumber;
-use plinky_elf::ids::serial::SymbolId;
+use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,
 };
+use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
 pub(super) fn create_symbols<'a>(
     all_symbols: &Symbols,
     view: &dyn SymbolsView,
     ids: &mut BuiltElfIds,
-    sections: &mut Sections,
+    section_ids: &BTreeMap<SectionId, BuiltElfSectionId>,
     string_table_id: BuiltElfSectionId,
     is_dynamic: bool,
 ) -> CreateSymbolsOutput {
@@ -39,7 +38,7 @@ pub(super) fn create_symbols<'a>(
 
     add_symbol(
         ids,
-        sections,
+        section_ids,
         &mut symbols,
         &mut strings,
         &mut conversion,
@@ -60,11 +59,11 @@ pub(super) fn create_symbols<'a>(
             },
         );
         for symbol in symbols_in_file {
-            add_symbol(ids, sections, &mut symbols, &mut strings, &mut conversion, symbol);
+            add_symbol(ids, section_ids, &mut symbols, &mut strings, &mut conversion, symbol);
         }
     }
     for symbol in global_symbols {
-        add_symbol(ids, sections, &mut symbols, &mut strings, &mut conversion, symbol);
+        add_symbol(ids, section_ids, &mut symbols, &mut strings, &mut conversion, symbol);
     }
 
     CreateSymbolsOutput {
@@ -85,7 +84,7 @@ pub(super) struct CreateSymbolsOutput {
 
 fn add_symbol(
     ids: &mut BuiltElfIds,
-    sections: &mut Sections,
+    section_ids: &BTreeMap<SectionId, BuiltElfSectionId>,
     symbols: &mut BTreeMap<BuiltElfSymbolId, ElfSymbol<BuiltElfIds>>,
     strings: &mut PendingStringsTable,
     conversion: &mut BTreeMap<SymbolId, BuiltElfSymbolId>,
@@ -118,7 +117,7 @@ fn add_symbol(
                     panic!("section relative addresses should not reach this stage");
                 }
                 SymbolValue::SectionVirtualAddress { section, .. } => {
-                    ElfSymbolDefinition::Section(sections.new_id_of(section))
+                    ElfSymbolDefinition::Section(*section_ids.get(&section).unwrap())
                 }
                 SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
                 SymbolValue::Null => ElfSymbolDefinition::Undefined,

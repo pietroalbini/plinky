@@ -1,4 +1,5 @@
 pub mod layout;
+mod write_counter;
 
 pub(crate) use self::layout::LayoutError;
 
@@ -9,6 +10,7 @@ use crate::raw::{
     RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
 };
 use crate::writer::layout::{Layout, Part};
+use crate::writer::write_counter::WriteCounter;
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfObject,
     ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent,
@@ -26,7 +28,7 @@ where
     I: ElfIds,
     I::StringId: StringIdGetters<I>,
 {
-    writer: &'a mut dyn Write,
+    writer: WriteCounter<'a>,
     layout: Layout<I>,
     object: &'a ElfObject<I>,
 }
@@ -37,12 +39,21 @@ where
     I::StringId: StringIdGetters<I>,
 {
     pub fn new(writer: &'a mut dyn Write, object: &'a ElfObject<I>) -> Result<Self, WriteError<I>> {
-        Ok(Self { writer, layout: Layout::new(object, None)?, object })
+        Ok(Self { writer: WriteCounter::new(writer), layout: Layout::new(object, None)?, object })
     }
 
     pub fn write(mut self) -> Result<(), WriteError<I>> {
         let parts = self.layout.parts().to_vec();
         for part in &parts {
+            let expected_len = self
+                .layout
+                .metadata(part)
+                .file
+                .as_ref()
+                .map(|f| f.len.extract() as usize)
+                .unwrap_or(0);
+            self.writer.counter = 0;
+
             match part {
                 Part::Header => {
                     self.write_identification()?;
@@ -61,6 +72,11 @@ where
                 Part::Dynamic(id) => self.write_dynamic(id)?,
                 Part::Padding { .. } => self.write_padding(part)?,
             }
+
+            assert_eq!(
+                expected_len, self.writer.counter,
+                "amount of data written for {part:?} doesn't match the layout"
+            );
         }
         Ok(())
     }
@@ -712,7 +728,7 @@ where
     }
 
     fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError<I>> {
-        value.write(self.object.env.class, self.object.env.endian, self.writer)?;
+        value.write(self.object.env.class, self.object.env.endian, &mut self.writer)?;
         Ok(())
     }
 }

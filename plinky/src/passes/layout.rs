@@ -4,12 +4,14 @@ use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
+use crate::repr::symbols::SymbolVisibility;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{
     Layout, LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment, LayoutError, Part,
 };
 use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
+use std::collections::BTreeSet;
 
 pub(crate) fn run(object: &Object) -> Result<Layout<SerialIds>, LayoutError> {
     let base_address: Address = match object.mode {
@@ -55,7 +57,20 @@ impl LayoutDetailsProvider<SerialIds> for Object {
         let strings: Box<dyn Iterator<Item = Interned<String>>> =
             match self.sections.get(*id).map(|s| &s.content) {
                 Some(SectionContent::StringsForSymbols(symbols)) => {
-                    Box::new(self.symbols.iter(&*symbols.view).map(|(_, s)| s.name()))
+                    // Local symbols also have a STT_FILE entry for every file.
+                    let file_names = self
+                        .symbols
+                        .iter(&*symbols.view)
+                        .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
+                        .filter_map(|(_, s)| s.stt_file())
+                        .collect::<BTreeSet<_>>();
+
+                    Box::new(
+                        self.symbols
+                            .iter(&*symbols.view)
+                            .map(|(_, s)| s.name())
+                            .chain(file_names.into_iter()),
+                    )
                 }
                 Some(SectionContent::SectionNames) => {
                     Box::new(self.sections.iter().map(|s| s.name))

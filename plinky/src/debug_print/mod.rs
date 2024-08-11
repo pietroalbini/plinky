@@ -12,12 +12,12 @@ use crate::linker::LinkerCallbacks;
 use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::deduplicate::Deduplication;
 use crate::passes::gc_sections::RemovedSection;
-use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfObject;
 use std::collections::{BTreeMap, BTreeSet};
+use plinky_elf::writer::layout::Layout;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: BTreeSet<DebugPrint>,
@@ -41,7 +41,7 @@ impl LinkerCallbacks for DebugCallbacks {
     fn on_layout_calculated(
         &self,
         object: &Object,
-        layout: &Layout,
+        layout: &Layout<SerialIds>,
         deduplications: &BTreeMap<SectionId, Deduplication>,
     ) {
         if self.print.contains(&DebugPrint::Layout) {
@@ -49,7 +49,7 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_relocations_applied(&self, object: &Object, layout: &Layout) {
+    fn on_relocations_applied(&self, object: &Object, layout: &Layout<SerialIds>) {
         for print in &self.print {
             if let DebugPrint::RelocatedObject(filters) = print {
                 render(render_object(

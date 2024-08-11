@@ -1,6 +1,5 @@
 use crate::debug_print::filters::ObjectsFilter;
 use crate::debug_print::utils::{permissions, section_name, symbol_name};
-use crate::passes::layout::{Layout, SectionLayout};
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
@@ -11,14 +10,15 @@ use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfDeduplication;
+use plinky_elf::writer::layout::Layout;
 
 pub(super) fn render_object(
     message: &str,
     filter: &ObjectsFilter,
     object: &Object,
-    layout: Option<&Layout>,
+    layout: Option<&Layout<SerialIds>>,
 ) -> Diagnostic {
     let mut sorted_sections = object.sections.iter().collect::<Vec<_>>();
     sorted_sections.sort_by_key(|section| (section.name, section.id));
@@ -51,7 +51,7 @@ fn render_env(object: &Object) -> Text {
     Text::new(content)
 }
 
-fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -> Box<dyn Widget> {
+fn render_section(object: &Object, layout: Option<&Layout<SerialIds>>, section: &Section) -> Box<dyn Widget> {
     match &section.content {
         SectionContent::Data(data) => render_data_section(object, layout, section, data),
         SectionContent::Uninitialized(uninit) => {
@@ -71,7 +71,7 @@ fn render_section(object: &Object, layout: Option<&Layout>, section: &Section) -
 
 fn render_data_section(
     object: &Object,
-    layout: Option<&Layout>,
+    layout: Option<&Layout<SerialIds>>,
     section: &Section,
     data: &DataSection,
 ) -> Box<dyn Widget> {
@@ -123,7 +123,7 @@ fn render_relocations(object: &Object, title: &str, relocations: &[Relocation]) 
 
 fn render_uninitialized_section(
     object: &Object,
-    layout: Option<&Layout>,
+    layout: Option<&Layout<SerialIds>>,
     section: &Section,
     uninit: &UninitializedSection,
 ) -> Box<dyn Widget> {
@@ -186,10 +186,10 @@ fn render_symbols<'a>(object: &Object, title: &str, view: &dyn SymbolsView) -> O
     Some(table)
 }
 
-fn render_layout(layout: Option<&Layout>, id: SectionId) -> Option<Text> {
-    layout.map(|layout| match layout.of_section(id) {
-        SectionLayout::Allocated { address, .. } => Text::new(format!("address: {address}")),
-        SectionLayout::NotAllocated => Text::new("not allocated in the resulting memory"),
+fn render_layout(layout: Option<&Layout<SerialIds>>, id: SectionId) -> Option<Text> {
+    layout.map(|layout| match &layout.metadata_of_section(&id).memory {
+        Some(mem) => Text::new(format!("address: {}", mem.address)),
+        None => Text::new("not allocated in the resulting memory"),
     })
 }
 

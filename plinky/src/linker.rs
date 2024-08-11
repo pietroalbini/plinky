@@ -5,7 +5,6 @@ use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::deduplicate::{Deduplication, DeduplicationError};
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::generate_got::{generate_got_dynamic, generate_got_static};
-use crate::passes::layout::Layout;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::prepare_dynamic::PrepareDynamicError;
 use crate::passes::relocate::RelocationError;
@@ -17,7 +16,7 @@ use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
-use plinky_elf::writer::layout::LayoutError;
+use plinky_elf::writer::layout::{Layout, LayoutError};
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -74,12 +73,12 @@ pub(crate) trait LinkerCallbacks {
     fn on_layout_calculated(
         &self,
         _object: &Object,
-        _layout: &Layout,
+        _layout: &Layout<SerialIds>,
         _deduplications: &BTreeMap<SectionId, Deduplication>,
     ) {
     }
 
-    fn on_relocations_applied(&self, _object: &Object, _layout: &Layout) {}
+    fn on_relocations_applied(&self, _object: &Object, _layout: &Layout<SerialIds>) {}
 
     fn on_elf_built(&self, _elf: &ElfObject<BuiltElfIds>) {}
 }

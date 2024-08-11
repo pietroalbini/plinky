@@ -1,7 +1,7 @@
-use crate::passes::layout::{Layout, SectionLayout};
 use plinky_utils::ints::Address;
-use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
+use plinky_elf::writer::layout::Layout;
 
 #[derive(Debug)]
 pub(crate) struct Segments {
@@ -35,15 +35,15 @@ pub(crate) struct Segment {
 }
 
 impl Segment {
-    pub(crate) fn start(&self, layout: &Layout) -> SegmentStart {
+    pub(crate) fn start(&self, layout: &Layout<SerialIds>) -> SegmentStart {
         match &self.content {
             SegmentContent::ProgramHeader => SegmentStart::ProgramHeader,
             SegmentContent::ElfHeader => SegmentStart::Address(0u64.into()),
             SegmentContent::Sections(ids) => SegmentStart::Address(
                 ids.iter()
-                    .map(|id| match layout.of_section(*id) {
-                        SectionLayout::Allocated { address, .. } => *address,
-                        SectionLayout::NotAllocated => panic!("non-allocated section {id:?} in layout"),
+                    .map(|id| match &layout.metadata_of_section(id).memory {
+                        Some(mem) => mem.address,
+                        None => panic!("non-allocated section {id:?} in layout"),
                     })
                     .min()
                     .expect("empty segment"),

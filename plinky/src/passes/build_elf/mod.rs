@@ -15,14 +15,13 @@ use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::sections::Sections;
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
-use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
 use plinky_utils::ints::{Address, ExtractNumber};
-use plinky_elf::ids::serial::{SectionId, SymbolId};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{
     ElfObject, ElfPermissions, ElfProgramSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
     ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
@@ -30,10 +29,11 @@ use plinky_elf::{
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
+use plinky_elf::writer::layout::Layout;
 
 pub(crate) fn run(
     object: Object,
-    layout: &Layout,
+    layout: &Layout<SerialIds>,
     resolver: &AddressResolver<'_>,
 ) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
@@ -52,7 +52,7 @@ pub(crate) fn run(
 
 struct ElfBuilder<'a> {
     object: Object,
-    layout: &'a Layout,
+    layout: &'a Layout<SerialIds>,
     resolver: &'a AddressResolver<'a>,
     sections: Sections,
     ids: BuiltElfIds,
@@ -140,7 +140,7 @@ impl<'a> ElfBuilder<'a> {
                                 raw: RawBytes(data.bytes.clone()),
                             }),
                         )
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::Uninitialized(uninit) => {
@@ -152,7 +152,7 @@ impl<'a> ElfBuilder<'a> {
                                 len: uninit.len.extract(),
                             }),
                         )
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::StringsForSymbols(_) => {
@@ -162,7 +162,7 @@ impl<'a> ElfBuilder<'a> {
                         .expect("string table should've been prepared");
                     self.sections
                         .create(&section.name.resolve(), content)
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::Symbols(_) => {
@@ -172,7 +172,7 @@ impl<'a> ElfBuilder<'a> {
                         .expect("symbol table should've been prepared");
                     self.sections
                         .create(&section.name.resolve(), content)
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::SysvHash(sysv) => {
@@ -184,7 +184,7 @@ impl<'a> ElfBuilder<'a> {
                                 self.sections.new_id_of(sysv.symbols),
                             ),
                         )
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::Relocations(relocations) => {
@@ -203,14 +203,14 @@ impl<'a> ElfBuilder<'a> {
                                 &self.resolver,
                             )?,
                         )
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
                 SectionContent::Dynamic(dynamic) => {
                     let content = build_dynamic_section(self, dynamic);
                     self.sections
                         .create(&section.name.resolve(), content)
-                        .layout(self.layout.of_section(section.id))
+                        .layout(self.layout.metadata_of_section(&section.id))
                         .add_from_existing(section.id);
                 }
             }

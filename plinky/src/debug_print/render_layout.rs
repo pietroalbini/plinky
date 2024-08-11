@@ -1,17 +1,16 @@
 use crate::debug_print::utils::section_name;
 use crate::passes::deduplicate::Deduplication;
-use crate::passes::layout::Layout;
 use crate::repr::object::Object;
 use crate::repr::segments::{SegmentContent, SegmentStart, SegmentType};
 use plinky_diagnostics::widgets::{Table, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::SectionId;
-use plinky_elf::writer::layout::Part;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::writer::layout::{Layout, Part};
 use std::collections::BTreeMap;
 
 pub(super) fn render_layout(
     object: &Object,
-    layout: &Layout,
+    layout: &Layout<SerialIds>,
     deduplications: &BTreeMap<SectionId, Deduplication>,
 ) -> Diagnostic {
     let mut table = Table::new();

@@ -1,18 +1,18 @@
 use crate::passes::deduplicate::Deduplication;
-use crate::passes::layout::{Layout, SectionLayout};
-use plinky_utils::ints::{Address, Offset, OutOfBoundsError};
-use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::writer::layout::Layout;
 use plinky_macros::{Display, Error};
+use plinky_utils::ints::{Address, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 
 pub(crate) struct AddressResolver<'a> {
-    layout: &'a Layout,
+    layout: &'a Layout<SerialIds>,
     deduplications: &'a BTreeMap<SectionId, Deduplication>,
 }
 
 impl<'a> AddressResolver<'a> {
     pub(crate) fn new(
-        layout: &'a Layout,
+        layout: &'a Layout<SerialIds>,
         deduplications: &'a BTreeMap<SectionId, Deduplication>,
     ) -> Self {
         Self { layout, deduplications }
@@ -24,9 +24,9 @@ impl<'a> AddressResolver<'a> {
         offset: Offset,
     ) -> Result<(SectionId, Address), AddressResolutionError> {
         if let Some(deduplication) = self.deduplications.get(&section) {
-            let base = match self.layout.of_section(deduplication.target) {
-                SectionLayout::Allocated { address, .. } => *address,
-                SectionLayout::NotAllocated => {
+            let base = match &self.layout.metadata_of_section(&deduplication.target).memory {
+                Some(mem) => mem.address,
+                None => {
                     return Err(AddressResolutionError::PointsToUnallocatedSection(
                         deduplication.target,
                     ))
@@ -38,11 +38,9 @@ impl<'a> AddressResolver<'a> {
                 None => Err(AddressResolutionError::UnalignedReferenceToDeduplication),
             }
         } else {
-            match self.layout.of_section(section) {
-                SectionLayout::Allocated { address, .. } => Ok((section, address.offset(offset)?)),
-                SectionLayout::NotAllocated => {
-                    Err(AddressResolutionError::PointsToUnallocatedSection(section))
-                }
+            match &self.layout.metadata_of_section(&section).memory {
+                Some(mem) => Ok((section, mem.address.offset(offset)?)),
+                None => Err(AddressResolutionError::PointsToUnallocatedSection(section)),
             }
         }
     }

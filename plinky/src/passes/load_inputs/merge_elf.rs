@@ -96,7 +96,7 @@ pub(super) fn merge(
             .sections
             .builder(
                 strings.get(name).map_err(|err| MergeElfError::MissingSectionName { id, err })?,
-                UninitializedSection { perms: uninit.perms, len: uninit.len },
+                UninitializedSection { perms: uninit.perms, len: uninit.len.into() },
             )
             .source(source.clone())
             .create_with_id(id);

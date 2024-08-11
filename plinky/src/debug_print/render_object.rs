@@ -135,7 +135,7 @@ fn render_uninitialized_section(
                 permissions(&uninit.perms),
                 section.source
             ))
-            .add(Text::new(format!("length: {:#x}", uninit.len)))
+            .add(Text::new(format!("length: {}", uninit.len)))
             .add_iter(render_layout(layout, section.id)),
     )
 }

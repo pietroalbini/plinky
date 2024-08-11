@@ -24,7 +24,7 @@ pub(super) fn build_dynamic_section(
                     panic!("non-allocated dynamic string table");
                 };
                 directives.push(ElfDynamicDirective::StringTable { address: address.extract() });
-                directives.push(ElfDynamicDirective::StringTableSize { bytes: *len });
+                directives.push(ElfDynamicDirective::StringTableSize { bytes: len.extract() });
             }
             DynamicEntry::SymbolTable(id) => {
                 let SectionLayout::Allocated { address, .. } = builder.layout.of_section(*id)
@@ -49,7 +49,7 @@ pub(super) fn build_dynamic_section(
                     panic!("non-allocated rela section");
                 };
                 directives.push(ElfDynamicDirective::Rela { address: address.extract() });
-                directives.push(ElfDynamicDirective::RelaSize { bytes: *len });
+                directives.push(ElfDynamicDirective::RelaSize { bytes: len.extract() });
                 directives
                     .push(ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ });
             }

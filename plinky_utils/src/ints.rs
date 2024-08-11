@@ -1,5 +1,5 @@
 macro_rules! int {
-    ($vis:vis struct $name:ident($inner:ty)) => {
+    ($vis:vis struct $name:ident($inner:ty) from $($from:ty),*) => {
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
         $vis struct $name($inner);
 
@@ -23,17 +23,25 @@ macro_rules! int {
             }
         }
 
-        impl<T: Into<$inner>> From<T> for $name {
-            fn from(value: T) -> Self {
-                Self(value.into())
+        impl From<$inner> for $name {
+            fn from(value: $inner) -> Self {
+                Self(value)
             }
         }
+
+        $(
+            impl From<$from> for $name {
+                fn from(value: $from) -> Self {
+                    Self(value.into())
+                }
+            }
+        )*
     }
 }
 
-int!(pub struct Absolute(u64));
+int!(pub struct Absolute(u64) from u8, u16, u32);
 
-int!(pub struct Address(u64));
+int!(pub struct Address(u64) from u8, u16, u32);
 
 impl Address {
     pub fn offset(&self, offset: Offset) -> Result<Address, OutOfBoundsError> {
@@ -55,13 +63,9 @@ impl Address {
     }
 }
 
-int!(pub struct Offset(i64));
+int!(pub struct Offset(i64) from u8, i8, u16, i16, u32, i32);
 
 impl Offset {
-    pub fn len(len: usize) -> Offset {
-        Offset(len as _)
-    }
-
     pub fn add(&self, other: Offset) -> Result<Offset, OutOfBoundsError> {
         Ok(Offset(self.0.checked_add(other.0).ok_or(OutOfBoundsError)?))
     }
@@ -71,13 +75,27 @@ impl Offset {
     }
 }
 
+int!(pub struct Length(u64) from u8, u16, u32);
+
+impl Length {
+    pub fn as_offset(&self) -> Result<Offset, OutOfBoundsError> {
+        Ok(i64::try_from(self.0).map_err(|_| OutOfBoundsError)?.into())
+    }
+}
+
+impl From<usize> for Length {
+    fn from(value: usize) -> Self {
+        Self(value as u64)
+    }
+}
+
 pub trait ExtractNumber {
     type Type;
 
     fn extract(&self) -> Self::Type;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OutOfBoundsError;
 
 impl std::error::Error for OutOfBoundsError {}

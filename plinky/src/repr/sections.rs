@@ -7,6 +7,7 @@ use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::Getters;
 use std::collections::BTreeMap;
+use plinky_utils::ints::Length;
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -162,7 +163,7 @@ impl DataSection {
 #[derive(Debug)]
 pub(crate) struct UninitializedSection {
     pub(crate) perms: ElfPermissions,
-    pub(crate) len: u64,
+    pub(crate) len: Length,
 }
 
 #[derive(Debug)]

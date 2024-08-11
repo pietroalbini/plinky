@@ -1,11 +1,11 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent};
-use plinky_utils::ints::Offset;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
+use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -82,13 +82,16 @@ fn deduplicate(
             let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
                 Some(idx) => {
-                    deduplication.map.insert(Offset::len(chunk_start), *idx);
+                    deduplication.map.insert(Length::from(chunk_start).as_offset()?, *idx);
                 }
                 None => {
                     let idx = merged.len();
                     merged.extend_from_slice(chunk);
-                    seen.insert(chunk, Offset::len(idx));
-                    deduplication.map.insert(Offset::len(chunk_start), Offset::len(idx));
+                    seen.insert(chunk, Length::from(idx).as_offset()?);
+                    deduplication.map.insert(
+                        Length::from(chunk_start).as_offset()?,
+                        Length::from(idx).as_offset()?,
+                    );
                 }
             }
         }
@@ -189,6 +192,8 @@ pub(crate) enum DeduplicationErrorKind {
     UnevenChunkSize { len: u64, chunks: u64 },
     #[display("there is a non-zero-terminated string in the content")]
     NonZeroTerminatedString,
+    #[display("the amount of data overflows the internal representation")]
+    OutOfBounds(#[from] OutOfBoundsError),
 }
 
 #[cfg(test)]

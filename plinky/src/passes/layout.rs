@@ -3,13 +3,13 @@ use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
-use plinky_utils::ints::Address;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{
     Layout as ElfLayout, LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment,
     LayoutError, Part, PartMetadata,
 };
 use plinky_elf::ElfClass;
+use plinky_utils::ints::{Address, ExtractNumber, Length};
 use std::collections::BTreeMap;
 
 pub(crate) fn run(object: &Object) -> Result<Layout, LayoutError> {
@@ -28,7 +28,10 @@ pub(crate) fn run(object: &Object) -> Result<Layout, LayoutError> {
             Some(memory) => {
                 repr.insert(
                     *id,
-                    SectionLayout::Allocated { address: memory.address.into(), len: memory.len },
+                    SectionLayout::Allocated {
+                        address: memory.address.into(),
+                        len: memory.len.into(),
+                    },
                 );
             }
             None => {
@@ -67,7 +70,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
     }
 
     fn uninitialized_section_len(&self, id: &SectionId) -> usize {
-        cast_section!(self, id, Uninitialized).len as _
+        cast_section!(self, id, Uninitialized).len.extract() as _
     }
 
     fn string_table_len(&self, id: &SectionId) -> usize {
@@ -164,6 +167,6 @@ impl Layout {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum SectionLayout {
-    Allocated { address: Address, len: u64 },
+    Allocated { address: Address, len: Length },
     NotAllocated,
 }

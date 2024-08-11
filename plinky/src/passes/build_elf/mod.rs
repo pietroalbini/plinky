@@ -149,7 +149,7 @@ impl<'a> ElfBuilder<'a> {
                             &section.name.resolve(),
                             ElfSectionContent::Uninitialized(ElfUninitializedSection {
                                 perms: uninit.perms,
-                                len: uninit.len,
+                                len: uninit.len.extract(),
                             }),
                         )
                         .layout(self.layout.of_section(section.id))

@@ -4,6 +4,7 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolValue;
+use plinky_utils::ints::ExtractNumber;
 
 pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
     let gnu_stack = intern(".note.GNU-stack");
@@ -21,7 +22,7 @@ pub(super) fn run(object: &mut Object, section_groups: &SectionGroups) {
             }
         }
         if let SectionContent::Uninitialized(uninit) = &section.content {
-            if uninit.len == 0 {
+            if uninit.len.extract() == 0 {
                 sections_to_remove.push(section.id);
             }
         }

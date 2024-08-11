@@ -36,10 +36,10 @@ pub(super) fn render_layout(
                 | Part::Group(id)
                 | Part::Dynamic(id) => section_name(object, *id),
             },
-            meta.file.as_ref().map(|m| format!("{:#x}", m.offset)).unwrap_or_else(|| "-".into()),
-            meta.file.as_ref().map(|m| format!("{:#x}", m.len)).unwrap_or_else(|| "-".into()),
-            meta.memory.as_ref().map(|m| format!("{:#x}", m.address)).unwrap_or_else(|| "-".into()),
-            meta.memory.as_ref().map(|m| format!("{:#x}", m.len)).unwrap_or_else(|| "-".into()),
+            meta.file.as_ref().map(|m| m.offset.to_string()).unwrap_or_else(|| "-".into()),
+            meta.file.as_ref().map(|m| m.len.to_string()).unwrap_or_else(|| "-".into()),
+            meta.memory.as_ref().map(|m| m.address.to_string()).unwrap_or_else(|| "-".into()),
+            meta.memory.as_ref().map(|m| m.len.to_string()).unwrap_or_else(|| "-".into()),
         ]);
     }
 

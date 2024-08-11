@@ -10,6 +10,11 @@ use crate::raw::{
     RawSectionHeader, RawSymbol,
 };
 use plinky_macros::{Display, Error};
+use plinky_utils::ints::Address;
+use plinky_utils::ints::ExtractNumber;
+use plinky_utils::ints::Length;
+use plinky_utils::ints::Offset;
+use plinky_utils::ints::OutOfBoundsError;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
 
@@ -24,12 +29,12 @@ pub struct Layout<I: ElfIds> {
 impl<I: ElfIds> Layout<I> {
     pub fn new(
         details: &dyn LayoutDetailsProvider<I>,
-        base_memory_address: Option<u64>,
+        base_memory_address: Option<Address>,
     ) -> Result<Self, LayoutError> {
         let builder = LayoutBuilder {
             details,
             layout: Layout { parts: Vec::new(), metadata: BTreeMap::new() },
-            current_offset: 0,
+            current_offset: 0.into(),
             current_memory_address: base_memory_address,
         };
         builder.build()
@@ -56,13 +61,13 @@ impl<I: ElfIds> Layout<I> {
 struct LayoutBuilder<'a, I: ElfIds> {
     details: &'a dyn LayoutDetailsProvider<I>,
     layout: Layout<I>,
-    current_offset: u64,
-    current_memory_address: Option<u64>,
+    current_offset: Offset,
+    current_memory_address: Option<Address>,
 }
 
 impl<I: ElfIds> LayoutBuilder<'_, I> {
     fn build(mut self) -> Result<Layout<I>, LayoutError> {
-        self.add_part(Part::Header);
+        self.add_part(Part::Header)?;
 
         let sections_in_load_segments = self
             .details
@@ -92,39 +97,43 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
             }
         }
         for part in put_in_preamble {
-            self.add_part(part);
+            self.add_part(part)?;
         }
         for segment_sections in put_in_segments.into_values() {
-            self.align_to_page();
+            self.align_to_page()?;
             for part in segment_sections {
-                self.add_part_in_memory(part);
+                self.add_part_in_memory(part)?;
             }
         }
 
         // TODO: waste less space, and try to put the program header next to the elf header.
-        self.align_to_page();
-        self.add_part(Part::ProgramHeaders);
-        self.add_part(Part::SectionHeaders);
+        self.align_to_page()?;
+        self.add_part(Part::ProgramHeaders)?;
+        self.add_part(Part::SectionHeaders)?;
 
         Ok(self.layout)
     }
 
-    fn add_part(&mut self, part: Part<I::SectionId>) {
-        self.add_part_inner(part, false);
+    fn add_part(&mut self, part: Part<I::SectionId>) -> Result<(), LayoutError> {
+        self.add_part_inner(part, false)
     }
 
-    fn add_part_in_memory(&mut self, part: Part<I::SectionId>) {
+    fn add_part_in_memory(&mut self, part: Part<I::SectionId>) -> Result<(), LayoutError> {
         self.add_part_inner(part, true)
     }
 
-    fn add_part_inner(&mut self, part: Part<I::SectionId>, add_in_memory: bool) {
-        let len = part_len(self.details, &part) as u64;
+    fn add_part_inner(
+        &mut self,
+        part: Part<I::SectionId>,
+        add_in_memory: bool,
+    ) -> Result<(), LayoutError> {
+        let len = part_len(self.details, &part);
         self.layout.parts.push(part.clone());
 
         let memory = if add_in_memory {
             match self.current_memory_address {
                 Some(address) => {
-                    self.current_memory_address = Some(address + len);
+                    self.current_memory_address = Some(address.offset(len.as_offset()?)?);
                     Some(PartMemory { len, address })
                 }
                 None => None,
@@ -138,34 +147,37 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
                 part,
                 PartMetadata { file: Some(PartFile { len, offset: self.current_offset }), memory },
             );
-            self.current_offset += len;
+            self.current_offset = self.current_offset.add(len.as_offset()?)?;
         } else {
             self.layout.metadata.insert(part, PartMetadata { file: None, memory });
         }
+
+        Ok(())
     }
 
-    fn align_to_page(&mut self) {
+    fn align_to_page(&mut self) -> Result<(), LayoutError> {
         // Align memory address.
         match &mut self.current_memory_address {
-            Some(address) => {
-                if (*address % ALIGN) != 0 {
-                    *address = (*address + ALIGN) & !(ALIGN - 1);
-                }
-            }
+            Some(address) => *address = address.align(ALIGN)?,
             None => {}
         }
 
         // Align file offset.
-        let len = self.current_offset;
+        let len = self.current_offset.extract() as u64;
         if len % ALIGN == 0 {
-            return;
+            return Ok(());
         }
         let bytes_to_pad = ALIGN - len % ALIGN;
-        self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ });
+        self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ })?;
+
+        Ok(())
     }
 }
 
-fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::SectionId>) -> usize {
+fn part_len<I: ElfIds>(
+    details: &dyn LayoutDetailsProvider<I>,
+    part: &Part<I::SectionId>,
+) -> Length {
     let class = details.class();
     match part {
         Part::Header => RawIdentification::size(class) + RawHeader::size(class),
@@ -197,6 +209,7 @@ fn part_len<I: ElfIds>(details: &dyn LayoutDetailsProvider<I>, part: &Part<I::Se
 
         Part::Padding { len, .. } => *len,
     }
+    .into()
 }
 
 #[derive(Debug, Error, Display)]
@@ -207,4 +220,6 @@ pub enum LayoutError {
     WritingNotesUnsupported,
     #[display("unkown section encountered while calculating the layout")]
     UnknownSection,
+    #[display("the linker output is too large")]
+    OutOFBounds(#[from] OutOfBoundsError),
 }

@@ -13,9 +13,9 @@ use plinky_utils::ints::{Address, ExtractNumber, Length};
 use std::collections::BTreeMap;
 
 pub(crate) fn run(object: &Object) -> Result<Layout, LayoutError> {
-    let base_address = match object.mode {
-        Mode::PositionDependent => 0x400000,
-        Mode::PositionIndependent => 0x1000,
+    let base_address: Address = match object.mode {
+        Mode::PositionDependent => 0x400000u64.into(),
+        Mode::PositionIndependent => 0x1000u64.into(),
     };
 
     let elf_layout = ElfLayout::new(object, Some(base_address))?;

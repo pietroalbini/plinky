@@ -1,3 +1,4 @@
+use plinky_utils::ints::{Address, ExtractNumber, Length, Offset};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -63,12 +64,12 @@ pub struct PartMetadata {
 impl PartMetadata {
     pub(crate) fn segment_bounds(&self) -> (u64, u64, u64, u64) {
         let (file_offset, file_len) = match &self.file {
-            Some(file) => (file.offset, file.len),
+            Some(file) => (file.offset.extract() as _, file.len.extract()),
             None => (0, 0),
         };
 
         let (memory_address, memory_len) = match &self.memory {
-            Some(memory) => (memory.address, memory.len),
+            Some(memory) => (memory.address.extract(), memory.len.extract()),
             None => (0, 0),
         };
 
@@ -78,13 +79,12 @@ impl PartMetadata {
 
 #[derive(Debug)]
 pub struct PartFile {
-    pub len: u64,
-    pub offset: u64,
+    pub len: Length,
+    pub offset: Offset,
 }
 
 #[derive(Debug)]
 pub struct PartMemory {
-    pub len: u64,
-    pub address: u64,
+    pub len: Length,
+    pub address: Address,
 }
-

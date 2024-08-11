@@ -44,6 +44,21 @@ int!(pub struct Absolute(u64) from u8, u16, u32);
 int!(pub struct Address(u64) from u8, u16, u32);
 
 impl Address {
+    pub fn align(&self, align: u64) -> Result<Address, OutOfBoundsError> {
+        let delta = self.0 % align;
+        if delta == 0 {
+            Ok(*self)
+        } else {
+            Ok(Address(
+                self.0
+                    .checked_add(align)
+                    .ok_or(OutOfBoundsError)?
+                    .checked_sub(delta)
+                    .ok_or(OutOfBoundsError)?,
+            ))
+        }
+    }
+
     pub fn offset(&self, offset: Offset) -> Result<Address, OutOfBoundsError> {
         Ok(Address(
             i128::from(self.0)
@@ -103,5 +118,18 @@ impl std::error::Error for OutOfBoundsError {}
 impl std::fmt::Display for OutOfBoundsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("out of bounds math")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_address_align() {
+        let a = |n| Address::from(n as u64);
+        assert_eq!(a(0x1000), a(0x1000).align(0x1000).unwrap());
+        assert_eq!(a(0x2000), a(0x1001).align(0x1000).unwrap());
+        assert_eq!(a(9), a(8).align(3).unwrap());
     }
 }

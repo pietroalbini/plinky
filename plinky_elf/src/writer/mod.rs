@@ -16,6 +16,7 @@ use crate::{
     ElfSymbolType, ElfSymbolVisibility, ElfType,
 };
 use plinky_utils::bitfields::Bitfield;
+use plinky_utils::ints::ExtractNumber;
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -105,14 +106,16 @@ where
                 .file
                 .as_ref()
                 .unwrap()
-                .offset,
+                .offset
+                .extract() as _,
             section_headers_offset: self
                 .layout
                 .metadata(&Part::SectionHeaders)
                 .file
                 .as_ref()
                 .unwrap()
-                .offset,
+                .offset
+                .extract() as _,
             flags: RawHeaderFlags::zero(),
             elf_header_size: self.raw_type_size::<RawIdentification>()
                 + self.raw_type_size::<RawHeader>(),
@@ -200,8 +203,8 @@ where
                 type_,
                 flags,
                 memory_address: section.memory_address,
-                offset: metadata.offset,
-                size: metadata.len,
+                offset: metadata.offset.extract() as _,
+                size: metadata.len.extract(),
                 link: match &section.content {
                     ElfSectionContent::SymbolTable(table) => {
                         let mut strings = None;
@@ -294,10 +297,15 @@ where
                     {
                         ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len),
                         content => {
-                            let metadata = self.layout.metadata_of_section(first_section_id).file.as_ref().unwrap();
+                            let metadata = self
+                                .layout
+                                .metadata_of_section(first_section_id)
+                                .file
+                                .as_ref()
+                                .unwrap();
                             (
-                                metadata.offset,
-                                metadata.len,
+                                metadata.offset.extract() as u64,
+                                metadata.len.extract(),
                                 content.content_size(self.object.env.class) as u64,
                             )
                         }
@@ -314,12 +322,17 @@ where
                                 memory_size += uninit.len;
                             }
                             content => {
-                                let metadata = self.layout.metadata_of_section(section_id).file.as_ref().unwrap();
-                                if metadata.offset != expected_next_file_offset {
+                                let metadata = self
+                                    .layout
+                                    .metadata_of_section(section_id)
+                                    .file
+                                    .as_ref()
+                                    .unwrap();
+                                if metadata.offset.extract() as u64 != expected_next_file_offset {
                                     panic!("sections in segment are not adjacent");
                                 }
-                                expected_next_file_offset += metadata.len;
-                                file_size += metadata.len;
+                                expected_next_file_offset += metadata.len.extract();
+                                file_size += metadata.len.extract();
                                 memory_size += content.content_size(self.object.env.class) as u64;
                             }
                         }
@@ -650,7 +663,8 @@ where
 
     fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError<I>> {
         let metadata = self.layout.metadata(part);
-        let len = metadata.file.as_ref().expect("padding must be present in the file").len as usize;
+        let len = metadata.file.as_ref().expect("padding must be present in the file").len.extract()
+            as usize;
         let padding = vec![0; len];
         self.writer.write_all(&padding)?;
         Ok(())

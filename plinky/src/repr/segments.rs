@@ -1,7 +1,7 @@
-use plinky_utils::ints::Address;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::ElfPermissions;
 use plinky_elf::writer::layout::Layout;
+use plinky_elf::ElfPermissions;
+use plinky_utils::ints::Address;
 
 #[derive(Debug)]
 pub(crate) struct Segments {
@@ -48,6 +48,7 @@ impl Segment {
                     .min()
                     .expect("empty segment"),
             ),
+            SegmentContent::Empty => SegmentStart::None,
         }
     }
 }
@@ -59,6 +60,7 @@ pub(crate) enum SegmentType {
     Program,
     Uninitialized,
     Dynamic,
+    GnuStack,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -66,10 +68,12 @@ pub(crate) enum SegmentContent {
     ProgramHeader,
     ElfHeader,
     Sections(Vec<SectionId>),
+    Empty,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) enum SegmentStart {
     ProgramHeader,
     Address(Address),
+    None,
 }

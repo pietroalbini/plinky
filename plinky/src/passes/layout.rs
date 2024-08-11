@@ -148,8 +148,10 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                 SegmentType::Program => {}
                 SegmentType::Uninitialized => {}
                 SegmentType::Dynamic => continue,
+                SegmentType::GnuStack => continue,
             }
             match &segment.content {
+                SegmentContent::Empty => continue,
                 SegmentContent::ProgramHeader => continue,
                 SegmentContent::ElfHeader => continue,
                 SegmentContent::Sections(sections) => {

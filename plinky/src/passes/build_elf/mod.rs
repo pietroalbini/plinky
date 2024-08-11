@@ -21,8 +21,8 @@ use crate::utils::address_resolver::AddressResolver;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
-    ElfObject, ElfPermissions, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
-    ElfSegmentContent, ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
+    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -255,9 +255,11 @@ impl<'a> ElfBuilder<'a> {
                         SegmentType::Program => ElfSegmentType::Load,
                         SegmentType::ProgramHeader => ElfSegmentType::ProgramHeaderTable,
                         SegmentType::Uninitialized => ElfSegmentType::Load,
+                        SegmentType::GnuStack => ElfSegmentType::GnuStack,
                     },
                     perms: segment.perms,
                     content: match &segment.content {
+                        SegmentContent::Empty => ElfSegmentContent::Empty,
                         SegmentContent::ElfHeader => ElfSegmentContent::ElfHeader,
                         SegmentContent::ProgramHeader => ElfSegmentContent::ProgramHeader,
                         SegmentContent::Sections(sections) => ElfSegmentContent::Sections(
@@ -271,21 +273,7 @@ impl<'a> ElfBuilder<'a> {
 
         // Segments have to be in order in memory, otherwise they will not be loaded.
         elf_segments.sort_by_key(|(addr, segment)| (segment.type_, *addr));
-        let mut elf_segments = elf_segments.into_iter().map(|(_a, s)| s).collect::<Vec<_>>();
-
-        // Finally add whether the stack should be executable.
-        elf_segments.push(ElfSegment {
-            type_: ElfSegmentType::GnuStack,
-            perms: ElfPermissions {
-                read: true,
-                write: true,
-                execute: self.object.executable_stack,
-            },
-            content: ElfSegmentContent::Empty,
-            align: 1,
-        });
-
-        elf_segments
+        elf_segments.into_iter().map(|(_a, s)| s).collect()
     }
 }
 

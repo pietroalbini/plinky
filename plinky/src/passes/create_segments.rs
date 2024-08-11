@@ -12,6 +12,7 @@ pub(crate) fn run(object: &mut Object) {
         .segments
         .iter()
         .filter_map(|segment| match &segment.content {
+            SegmentContent::Empty => None,
             SegmentContent::ProgramHeader => None,
             SegmentContent::ElfHeader => None,
             SegmentContent::Sections(sections) => Some(sections),

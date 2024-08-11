@@ -26,6 +26,7 @@ pub(crate) fn link_driver(
 
     let mut object = passes::load_inputs::run(options, &mut ids)?;
     passes::inject_symbol_table::run(&mut object, &mut ids);
+    passes::inject_gnu_stack::run(&mut object);
     callbacks.on_inputs_loaded(&object);
 
     if options.gc_sections {

@@ -50,6 +50,7 @@ pub(super) fn render_layout(
             match segment.start(layout) {
                 SegmentStart::Address(address) => format!("{address}"),
                 SegmentStart::ProgramHeader => format!("<program header>"),
+                SegmentStart::None => "-".into(),
             },
             format!("{:#x}", segment.align),
             match segment.type_ {
@@ -58,9 +59,11 @@ pub(super) fn render_layout(
                 SegmentType::Uninitialized => "uninit".into(),
                 SegmentType::Dynamic => "dynamic".into(),
                 SegmentType::Interpreter => "interpreter".into(),
+                SegmentType::GnuStack => "GNU stack".into(),
             },
             format!("{:?}", segment.perms),
             match &segment.content {
+                SegmentContent::Empty => "-".into(),
                 SegmentContent::ElfHeader => "elf header".into(),
                 SegmentContent::ProgramHeader => "program header".into(),
                 SegmentContent::Sections(sections) => sections

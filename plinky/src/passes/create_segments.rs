@@ -32,7 +32,8 @@ pub(crate) fn run(object: &mut Object) {
             | SectionContent::Symbols(_)
             | SectionContent::SysvHash(_)
             | SectionContent::Relocations(_)
-            | SectionContent::Dynamic(_) => continue,
+            | SectionContent::Dynamic(_)
+            | SectionContent::SectionNames => continue,
         };
         if perms.read || perms.write || perms.execute {
             segments.entry((type_, perms)).or_insert_with(Vec::new).push(section.id);

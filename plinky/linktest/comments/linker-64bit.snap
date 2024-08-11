@@ -8,7 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  section .comment#4 (no perms) in test.o
+ │  section .comment#5 (no perms) in test.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -17,7 +17,7 @@ debug print: loaded object
  │   │  ╰─────────────────────────────────────┴──────────────╯
  │   ┴
  │
- │  section .comment#8 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -35,48 +35,50 @@ debug print: calculated layout
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <elf header>     │ 0x0         │ 0x40        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .strtab#9        │ 0x40        │ 0x9         │ -              │ -             │
+ │  │ .shstrtab#0      │ 0x40        │ 0x2a        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .symtab#10       │ 0x49        │ 0x30        │ -              │ -             │
+ │  │ .strtab#10       │ 0x6a        │ 0x9         │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .comment#11      │ 0x79        │ 0x1b        │ -              │ -             │
+ │  │ .symtab#11       │ 0x73        │ 0x30        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ <padding>        │ 0x94        │ 0xf6c       │ -              │ -             │
+ │  │ .comment#12      │ 0xa3        │ 0x1b        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .text#1          │ 0x1000      │ 0x1         │ 0x400000       │ 0x1           │
+ │  │ <padding>        │ 0xbe        │ 0xf42       │ -              │ -             │
+ │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
+ │  │ .text#2          │ 0x1000      │ 0x1         │ 0x400000       │ 0x1           │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <padding>        │ 0x1001      │ 0xfff       │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <program header> │ 0x2000      │ 0x38        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ <section header> │ 0x2038      │ 0x100       │ -              │ -             │
+ │  │ <section header> │ 0x2038      │ 0x140       │ -              │ -             │
  │  ╰──────────────────┴─────────────┴─────────────┴────────────────┴───────────────╯
  │
  │    Segments:
  │  ╭──────────┬────────┬─────────┬────────────────────┬─────────╮
  │  │ Start    │ Align  │ Type    │ Permissions        │ Content │
  │  ├──────────┼────────┼─────────┼────────────────────┼─────────┤
- │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1 │
+ │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2 │
  │  ╰──────────┴────────┴─────────┴────────────────────┴─────────╯
  │
- │    deduplication facade .comment#4 in test.o
+ │    deduplication facade .comment#5 in test.o
  │  ╭──────┬───────────────────╮
  │  │ From │ To                │
  │  ├──────┼───────────────────┤
- │  │ 0x0  │ .comment#11 + 0x0 │
+ │  │ 0x0  │ .comment#12 + 0x0 │
  │  ╰──────┴───────────────────╯
  │
- │    deduplication facade .comment#8 in <plinky>
+ │    deduplication facade .comment#9 in <plinky>
  │  ╭──────┬───────────────────╮
  │  │ From │ To                │
  │  ├──────┼───────────────────┤
- │  │ 0x0  │ .comment#11 + 0xc │
+ │  │ 0x0  │ .comment#12 + 0xc │
  │  ╰──────┴───────────────────╯
  ┴
 
 debug print: built elf
  │
- │  section .comment#4 (address: 0x0)
+ │  section .comment#5 (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │

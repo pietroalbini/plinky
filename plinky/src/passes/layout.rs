@@ -1,4 +1,5 @@
 use crate::cli::Mode;
+use crate::interner::Interned;
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
@@ -51,10 +52,20 @@ impl LayoutDetailsProvider<SerialIds> for Object {
     }
 
     fn string_table_len(&self, id: &SectionId) -> usize {
-        let strings = cast_section!(self, id, StringsForSymbols);
-        self.symbols
-            .iter(&*strings.view)
-            .map(|(_, symbol)| symbol.name().resolve().len() + 1 /* null byte */)
+        let strings: Box<dyn Iterator<Item = Interned<String>>> =
+            match self.sections.get(*id).map(|s| &s.content) {
+                Some(SectionContent::StringsForSymbols(symbols)) => {
+                    Box::new(self.symbols.iter(&*symbols.view).map(|(_, s)| s.name()))
+                }
+                Some(SectionContent::SectionNames) => {
+                    Box::new(self.sections.iter().map(|s| s.name))
+                }
+                Some(_) => panic!("section {id:?} is of the wrong type"),
+                None => panic!("section {id:?} is missing"),
+            };
+
+        strings
+            .map(|s| s.resolve().len() + 1 /* null byte */)
             .chain(std::iter::once(1)) // Null symbol
             .sum::<usize>()
     }
@@ -95,6 +106,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                     SectionContent::SysvHash(_) => Part::Hash(section.id),
                     SectionContent::Relocations(_) => Part::Rela(section.id),
                     SectionContent::Dynamic(_) => Part::Dynamic(section.id),
+                    SectionContent::SectionNames => Part::StringTable(section.id),
                 },
             ));
         }

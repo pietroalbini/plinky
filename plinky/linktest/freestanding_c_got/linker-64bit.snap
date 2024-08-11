@@ -8,7 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  section .text#1 (perms: rx) in hello.o
+ │  section .text#2 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 55 48 89 e5 ba 0c 00 00 00 48 8d 05 00 00 00 00 │ UH.......H...... │
@@ -20,7 +20,7 @@ debug print: loaded object
  │   │  ╭───────────────┬─────────────────────┬────────┬────────────────────╮
  │   │  │ Type          │ Symbol              │ Offset │ Addend             │
  │   │  ├───────────────┼─────────────────────┼────────┼────────────────────┤
- │   │  │ Relative32    │ <section .rodata#5> │ 0xc    │ 0xfffffffffffffffc │
+ │   │  │ Relative32    │ <section .rodata#6> │ 0xc    │ 0xfffffffffffffffc │
  │   │  ├───────────────┼─────────────────────┼────────┼────────────────────┤
  │   │  │ GOTRelative32 │ write#8             │ 0x1a   │ 0xfffffffffffffffc │
  │   │  ├───────────────┼─────────────────────┼────────┼────────────────────┤
@@ -28,7 +28,7 @@ debug print: loaded object
  │   │  ╰───────────────┴─────────────────────┴────────┴────────────────────╯
  │   ┴
  │
- │  section .text#15 (perms: rx) in syscalls.o
+ │  section .text#16 (perms: rx) in syscalls.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 50 53 51 48 c7 c0 04 00 00 00 48 89 fb 48 89 f1 │ PSQH......H..H.. │
@@ -40,7 +40,7 @@ debug print: loaded object
 
 debug print: object after relocations are applied
  │
- │  section .got#24 (perms: rw) in <plinky>
+ │  section .got#25 (perms: rw) in <plinky>
  │   │
  │   │  address: 0x402000
  │   │
@@ -49,7 +49,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#1 (perms: rx) in hello.o
+ │  section .text#2 (perms: rx) in hello.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -60,7 +60,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#15 (perms: rx) in syscalls.o
+ │  section .text#16 (perms: rx) in syscalls.o
  │   │
  │   │  address: 0x401029
  │   │
@@ -77,17 +77,17 @@ debug print: object after relocations are applied
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
  │  │ <symbol#0>              │ none     │ <plinky>   │ local      │ <null>          │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ <section .text#1>       │ section  │ hello.o    │ local      │ .text#1 + 0x0   │
+ │  │ <section .text#2>       │ section  │ hello.o    │ local      │ .text#2 + 0x0   │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ <section .rodata#5>     │ section  │ hello.o    │ local      │ .rodata#5 + 0x0 │
+ │  │ <section .rodata#6>     │ section  │ hello.o    │ local      │ .rodata#6 + 0x0 │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
  │  │ _GLOBAL_OFFSET_TABLE_#7 │ none     │ hello.o    │ global     │ <undefined>     │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ _start#1                │ function │ hello.o    │ global     │ .text#1 + 0x0   │
+ │  │ _start#1                │ function │ hello.o    │ global     │ .text#2 + 0x0   │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ exit#9                  │ none     │ syscalls.o │ global     │ .text#15 + 0x16 │
+ │  │ exit#9                  │ none     │ syscalls.o │ global     │ .text#16 + 0x16 │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ write#8                 │ none     │ syscalls.o │ global     │ .text#15 + 0x0  │
+ │  │ write#8                 │ none     │ syscalls.o │ global     │ .text#16 + 0x0  │
  │  ╰─────────────────────────┴──────────┴────────────┴────────────┴─────────────────╯
  ┴
 

@@ -5,7 +5,7 @@ use crate::passes::load_inputs::section_groups::SectionGroups;
 use crate::passes::load_inputs::strings::Strings;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;
-use crate::repr::sections::Sections;
+use crate::repr::sections::{SectionContent, Sections};
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{LoadSymbolsError, Symbols};
 use plinky_diagnostics::ObjectSpan;
@@ -21,6 +21,8 @@ mod section_groups;
 mod strings;
 
 pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
+    let shstrtab_id = ids.allocate_section_id();
+
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new(ids);
@@ -54,7 +56,13 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     executable_stack: options.executable_stack,
                     gnu_stack_section_ignored: false,
                 };
+
                 inject_version::run(ids, &mut object);
+                object
+                    .sections
+                    .builder(".shstrtab", SectionContent::SectionNames)
+                    .create_with_id(shstrtab_id);
+
                 merge_elf::merge(
                     &mut object,
                     &mut strings,

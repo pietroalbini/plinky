@@ -139,6 +139,7 @@ pub(crate) enum SectionContent {
     SysvHash(SysvHashSection),
     Relocations(RelocationsSection),
     Dynamic(DynamicSection),
+    SectionNames,
 }
 
 #[derive(Debug)]

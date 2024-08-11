@@ -8,7 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  section .text#2 (perms: rx) in hello.o
+ │  section .text#3 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 55 89 e5 53 83 ec 04 e8 fc ff ff ff 81 c3 02 00 │ U..S............ │
@@ -25,7 +25,7 @@ debug print: loaded object
  │   │  ├───────────────────────┼─────────────────────────┼────────┼────────┤
  │   │  │ GOTLocationRelative32 │ _GLOBAL_OFFSET_TABLE_#9 │ 0xe    │        │
  │   │  ├───────────────────────┼─────────────────────────┼────────┼────────┤
- │   │  │ OffsetFromGOT32       │ <section .rodata#6>     │ 0x19   │        │
+ │   │  │ OffsetFromGOT32       │ <section .rodata#7>     │ 0x19   │        │
  │   │  ├───────────────────────┼─────────────────────────┼────────┼────────┤
  │   │  │ GOTIndex32            │ write#10                │ 0x22   │        │
  │   │  ├───────────────────────┼─────────────────────────┼────────┼────────┤
@@ -33,7 +33,7 @@ debug print: loaded object
  │   │  ╰───────────────────────┴─────────────────────────┴────────┴────────╯
  │   ┴
  │
- │  section .text#17 (perms: rx) in syscalls.o
+ │  section .text#18 (perms: rx) in syscalls.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 50 53 51 b8 04 00 00 00 8b 5c 24 10 8b 4c 24 14 │ PSQ......\$..L$. │
@@ -45,7 +45,7 @@ debug print: loaded object
 
 debug print: object after relocations are applied
  │
- │  section .got#26 (perms: rw) in <plinky>
+ │  section .got#27 (perms: rw) in <plinky>
  │   │
  │   │  address: 0x402000
  │   │
@@ -54,7 +54,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────┴──────────╯
  │   ┴
  │
- │  section .text#2 (perms: rx) in hello.o
+ │  section .text#3 (perms: rx) in hello.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -66,7 +66,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#17 (perms: rx) in syscalls.o
+ │  section .text#18 (perms: rx) in syscalls.o
  │   │
  │   │  address: 0x401038
  │   │
@@ -83,21 +83,21 @@ debug print: object after relocations are applied
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
  │  │ <symbol#0>                              │ none     │ <plinky>   │ local      │ <null>                              │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ <section .text#2>                       │ section  │ hello.o    │ local      │ .text#2 + 0x0                       │
+ │  │ <section .text#3>                       │ section  │ hello.o    │ local      │ .text#3 + 0x0                       │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ <section .rodata#6>                     │ section  │ hello.o    │ local      │ .rodata#6 + 0x0                     │
+ │  │ <section .rodata#7>                     │ section  │ hello.o    │ local      │ .rodata#7 + 0x0                     │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ <section .text.__x86.get_pc_thunk.bx#7> │ section  │ hello.o    │ local      │ .text.__x86.get_pc_thunk.bx#7 + 0x0 │
+ │  │ <section .text.__x86.get_pc_thunk.bx#8> │ section  │ hello.o    │ local      │ .text.__x86.get_pc_thunk.bx#8 + 0x0 │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
  │  │ _GLOBAL_OFFSET_TABLE_#9                 │ none     │ hello.o    │ global     │ <undefined>                         │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ __x86.get_pc_thunk.bx#8                 │ function │ hello.o    │ local      │ .text.__x86.get_pc_thunk.bx#7 + 0x0 │
+ │  │ __x86.get_pc_thunk.bx#8                 │ function │ hello.o    │ local      │ .text.__x86.get_pc_thunk.bx#8 + 0x0 │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ _start#1                                │ function │ hello.o    │ global     │ .text#2 + 0x0                       │
+ │  │ _start#1                                │ function │ hello.o    │ global     │ .text#3 + 0x0                       │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ exit#11                                 │ none     │ syscalls.o │ global     │ .text#17 + 0x1a                     │
+ │  │ exit#11                                 │ none     │ syscalls.o │ global     │ .text#18 + 0x1a                     │
  │  ├─────────────────────────────────────────┼──────────┼────────────┼────────────┼─────────────────────────────────────┤
- │  │ write#10                                │ none     │ syscalls.o │ global     │ .text#17 + 0x0                      │
+ │  │ write#10                                │ none     │ syscalls.o │ global     │ .text#18 + 0x0                      │
  │  ╰─────────────────────────────────────────┴──────────┴────────────┴────────────┴─────────────────────────────────────╯
  ┴
 

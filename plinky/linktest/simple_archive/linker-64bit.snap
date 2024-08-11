@@ -10,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#8 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -19,25 +19,30 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .data#11 (perms: rw) in hello.o inside archive archived.a
+ │  section .data#12 (perms: rw) in hello.o inside archive archived.a
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  string table (for symbols) section .strtab#16 in <plinky>
+ │  section names section .shstrtab#0 in <plinky>
+ │   │
+ │   │  section names
+ │   ┴
+ │
+ │  string table (for symbols) section .strtab#17 in <plinky>
  │   │
  │   │  symbols view: symbol table
  │   ┴
  │
- │  symbols table section .symtab#17 in <plinky>
+ │  symbols table section .symtab#18 in <plinky>
  │   │
  │   │  view: symbol table
- │   │  strings: .strtab#16
+ │   │  strings: .strtab#17
  │   ┴
  │
- │  section .text#1 (perms: rx) in entry.o
+ │  section .text#2 (perms: rx) in entry.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -60,9 +65,9 @@ debug print: loaded object
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
  │  │ <symbol#0>  │ none │ <plinky>                          │ local      │ <null>         │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
- │  │ _start#1    │ none │ entry.o                           │ global     │ .text#1 + 0x0  │
+ │  │ _start#1    │ none │ entry.o                           │ global     │ .text#2 + 0x0  │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
- │  │ hello#5     │ none │ hello.o inside archive archived.a │ global     │ .data#11 + 0x0 │
+ │  │ hello#5     │ none │ hello.o inside archive archived.a │ global     │ .data#12 + 0x0 │
  │  ├─────────────┼──────┼───────────────────────────────────┼────────────┼────────────────┤
  │  │ hello_len#6 │ none │ hello.o inside archive archived.a │ global     │ 0xd            │
  │  ╰─────────────┴──────┴───────────────────────────────────┴────────────┴────────────────╯

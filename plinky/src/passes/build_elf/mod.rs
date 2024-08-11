@@ -14,7 +14,7 @@ use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::repr::object::Object;
-use crate::repr::sections::{Section, SectionContent};
+use crate::repr::sections::SectionContent;
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
@@ -138,20 +138,35 @@ impl<'a> ElfBuilder<'a> {
         &mut self,
     ) -> Result<BTreeMap<BuiltElfSectionId, ElfSection<BuiltElfIds>>, ElfBuilderError> {
         // Prepare section names ahead of time.
-        let mut section_names = PendingStringsTable::new(self.ids.allocate_section_id());
+        let mut section_names = PendingStringsTable::new(
+            *self
+                .section_ids
+                .get(
+                    &self
+                        .object
+                        .sections
+                        .iter()
+                        .filter(|s| matches!(s.content, SectionContent::SectionNames))
+                        .map(|s| s.id)
+                        .next()
+                        .ok_or(ElfBuilderError::NoSectionNamesSection)?,
+                )
+                .unwrap(),
+        );
         let mut section_names_map = BTreeMap::new();
         for section in self.object.sections.iter() {
             section_names_map
                 .insert(section.id, section_names.add(section.name.resolve().as_str()));
         }
-        let shstrtab_name = section_names.add(".shstrtab");
+        let zero_section_name = section_names.zero_id;
+        let mut section_names = Some(section_names);
 
         let mut sections = BTreeMap::new();
 
         sections.insert(
             self.section_zero_id,
             ElfSection {
-                name: section_names.zero_id,
+                name: zero_section_name,
                 memory_address: 0,
                 part_of_group: false,
                 content: ElfSectionContent::Null,
@@ -201,6 +216,11 @@ impl<'a> ElfBuilder<'a> {
                 )?,
 
                 SectionContent::Dynamic(dynamic) => build_dynamic_section(self, dynamic),
+
+                SectionContent::SectionNames => section_names
+                    .take()
+                    .ok_or(ElfBuilderError::MoreThanOneSectionNamesSection)?
+                    .into_elf(),
             };
 
             sections.insert(
@@ -219,16 +239,6 @@ impl<'a> ElfBuilder<'a> {
                 },
             );
         }
-
-        sections.insert(
-            section_names.id,
-            ElfSection {
-                name: shstrtab_name,
-                memory_address: 0,
-                part_of_group: false,
-                content: section_names.into_elf(),
-            },
-        );
 
         Ok(sections)
     }
@@ -315,6 +325,10 @@ pub(crate) enum ElfBuilderError {
     EntrypointIsZero(Interned<String>),
     #[display("the entry point address {f0} is out of bounds")]
     EntrypointIsOutOfBounds(Address),
+    #[display("no section names sections are present")]
+    NoSectionNamesSection,
+    #[display("more than one section names section is present")]
+    MoreThanOneSectionNamesSection,
     #[display("failed to create a relocations section")]
     RelaCreation(#[from] RelaCreationError),
 }

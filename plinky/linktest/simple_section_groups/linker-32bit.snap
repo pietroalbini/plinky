@@ -10,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf32, endian: Little, abi: SystemV, machine: X86
  │
- │  section .comment#9 (no perms) in <plinky>
+ │  section .comment#10 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -19,25 +19,30 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  string table (for symbols) section .strtab#19 in <plinky>
+ │  section names section .shstrtab#0 in <plinky>
+ │   │
+ │   │  section names
+ │   ┴
+ │
+ │  string table (for symbols) section .strtab#20 in <plinky>
  │   │
  │   │  symbols view: symbol table
  │   ┴
  │
- │  symbols table section .symtab#20 in <plinky>
+ │  symbols table section .symtab#21 in <plinky>
  │   │
  │   │  view: symbol table
- │   │  strings: .strtab#19
+ │   │  strings: .strtab#20
  │   ┴
  │
- │  section .text#2 (perms: rx) in foo.o
+ │  section .text#3 (perms: rx) in foo.o
  │   │
  │   │  ╭────┬───╮
  │   │  │ 90 │ . │
  │   │  ╰────┴───╯
  │   ┴
  │
- │  section .text.sample_group#5 (perms: rx) in foo.o
+ │  section .text.sample_group#6 (perms: rx) in foo.o
  │   │
  │   │  ╭──────────┬─────╮
  │   │  │ 90 90 90 │ ... │
@@ -50,9 +55,9 @@ debug print: loaded object
  │  ├─────────────────┼──────┼──────────┼─────────────────┼────────────────────────────┤
  │  │ <symbol#0>      │ none │ <plinky> │ local           │ <null>                     │
  │  ├─────────────────┼──────┼──────────┼─────────────────┼────────────────────────────┤
- │  │ _start#1        │ none │ foo.o    │ global          │ .text#2 + 0x0              │
+ │  │ _start#1        │ none │ foo.o    │ global          │ .text#3 + 0x0              │
  │  ├─────────────────┼──────┼──────────┼─────────────────┼────────────────────────────┤
- │  │ sample_symbol#6 │ none │ foo.o    │ global (hidden) │ .text.sample_group#5 + 0x0 │
+ │  │ sample_symbol#6 │ none │ foo.o    │ global (hidden) │ .text.sample_group#6 + 0x0 │
  │  ╰─────────────────┴──────┴──────────┴─────────────────┴────────────────────────────╯
  ┴
 

@@ -11,8 +11,8 @@ use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::ElfDeduplication;
 use plinky_elf::writer::layout::Layout;
+use plinky_elf::ElfDeduplication;
 
 pub(super) fn render_object(
     message: &str,
@@ -51,7 +51,11 @@ fn render_env(object: &Object) -> Text {
     Text::new(content)
 }
 
-fn render_section(object: &Object, layout: Option<&Layout<SerialIds>>, section: &Section) -> Box<dyn Widget> {
+fn render_section(
+    object: &Object,
+    layout: Option<&Layout<SerialIds>>,
+    section: &Section,
+) -> Box<dyn Widget> {
     match &section.content {
         SectionContent::Data(data) => render_data_section(object, layout, section, data),
         SectionContent::Uninitialized(uninit) => {
@@ -66,6 +70,7 @@ fn render_section(object: &Object, layout: Option<&Layout<SerialIds>>, section: 
             render_relocations_section(object, section, relocations)
         }
         SectionContent::Dynamic(dynamic) => render_dynamic_section(object, section, dynamic),
+        SectionContent::SectionNames => render_section_names_section(object, section),
     }
 }
 
@@ -256,6 +261,10 @@ fn render_dynamic_section(
         section_widget(object, section, "dynamic")
             .add(Text::new(format!("strings table: {}", section_name(object, dynamic.strings())))),
     )
+}
+
+fn render_section_names_section(object: &Object, section: &Section) -> Box<dyn Widget> {
+    Box::new(section_widget(object, section, "section names").add(Text::new("section names")))
 }
 
 fn section_widget(object: &Object, section: &Section, kind: &str) -> WidgetGroup {

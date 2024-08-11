@@ -10,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#8 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -19,25 +19,30 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .data#3 (perms: rw) in hello.o
+ │  section .data#4 (perms: rw) in hello.o
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  string table (for symbols) section .strtab#9 in <plinky>
+ │  section names section .shstrtab#0 in <plinky>
+ │   │
+ │   │  section names
+ │   ┴
+ │
+ │  string table (for symbols) section .strtab#10 in <plinky>
  │   │
  │   │  symbols view: symbol table
  │   ┴
  │
- │  symbols table section .symtab#10 in <plinky>
+ │  symbols table section .symtab#11 in <plinky>
  │   │
  │   │  view: symbol table
- │   │  strings: .strtab#9
+ │   │  strings: .strtab#10
  │   ┴
  │
- │  section .text#1 (perms: rx) in hello.o
+ │  section .text#2 (perms: rx) in hello.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -48,7 +53,7 @@ debug print: loaded object
  │   │  ╭────────────┬───────────────────┬────────┬────────╮
  │   │  │ Type       │ Symbol            │ Offset │ Addend │
  │   │  ├────────────┼───────────────────┼────────┼────────┤
- │   │  │ Absolute32 │ <section .data#3> │ 0xb    │ 0x0    │
+ │   │  │ Absolute32 │ <section .data#4> │ 0xb    │ 0x0    │
  │   │  ╰────────────┴───────────────────┴────────┴────────╯
  │   ┴
  │
@@ -58,13 +63,13 @@ debug print: loaded object
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ <symbol#0>        │ none    │ <plinky> │ local      │ <null>        │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ <section .data#3> │ section │ hello.o  │ local      │ .data#3 + 0x0 │
+ │  │ <section .data#4> │ section │ hello.o  │ local      │ .data#4 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ _start#1          │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
+ │  │ _start#1          │ none    │ hello.o  │ global     │ .text#2 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ len#6             │ none    │ hello.o  │ local      │ 0xd           │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ msg#5             │ none    │ hello.o  │ local      │ .data#3 + 0x0 │
+ │  │ msg#5             │ none    │ hello.o  │ local      │ .data#4 + 0x0 │
  │  ╰───────────────────┴─────────┴──────────┴────────────┴───────────────╯
  ┴
 
@@ -76,34 +81,36 @@ debug print: calculated layout
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <elf header>     │ 0x0         │ 0x40        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .comment#8       │ 0x40        │ 0xf         │ -              │ -             │
+ │  │ .shstrtab#0      │ 0x40        │ 0x30        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .strtab#9        │ 0x4f        │ 0x11        │ -              │ -             │
+ │  │ .comment#9       │ 0x70        │ 0xf         │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .symtab#10       │ 0x60        │ 0x60        │ -              │ -             │
+ │  │ .strtab#10       │ 0x7f        │ 0x11        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ <padding>        │ 0xc0        │ 0xf40       │ -              │ -             │
+ │  │ .symtab#11       │ 0x90        │ 0x60        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .text#1          │ 0x1000      │ 0x1f        │ 0x400000       │ 0x1f          │
+ │  │ <padding>        │ 0xf0        │ 0xf10       │ -              │ -             │
+ │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
+ │  │ .text#2          │ 0x1000      │ 0x1f        │ 0x400000       │ 0x1f          │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <padding>        │ 0x101f      │ 0xfe1       │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .data#3          │ 0x2000      │ 0xd         │ 0x401000       │ 0xd           │
+ │  │ .data#4          │ 0x2000      │ 0xd         │ 0x401000       │ 0xd           │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <padding>        │ 0x200d      │ 0xff3       │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <program header> │ 0x3000      │ 0x70        │ -              │ -             │
  │  ├──────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ <section header> │ 0x3070      │ 0x140       │ -              │ -             │
+ │  │ <section header> │ 0x3070      │ 0x180       │ -              │ -             │
  │  ╰──────────────────┴─────────────┴─────────────┴────────────────┴───────────────╯
  │
  │    Segments:
  │  ╭──────────┬────────┬─────────┬────────────────────┬─────────╮
  │  │ Start    │ Align  │ Type    │ Permissions        │ Content │
  │  ├──────────┼────────┼─────────┼────────────────────┼─────────┤
- │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#1 │
+ │  │ 0x400000 │ 0x1000 │ program │ ElfPermissions(RX) │ .text#2 │
  │  ├──────────┼────────┼─────────┼────────────────────┼─────────┤
- │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RW) │ .data#3 │
+ │  │ 0x401000 │ 0x1000 │ program │ ElfPermissions(RW) │ .data#4 │
  │  ╰──────────┴────────┴─────────┴────────────────────┴─────────╯
  ┴
 
@@ -111,7 +118,7 @@ debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#8 (no perms) in <plinky>
+ │  section .comment#9 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -122,7 +129,7 @@ debug print: object after relocations are applied
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .data#3 (perms: rw) in hello.o
+ │  section .data#4 (perms: rw) in hello.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -131,18 +138,23 @@ debug print: object after relocations are applied
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  string table (for symbols) section .strtab#9 in <plinky>
+ │  section names section .shstrtab#0 in <plinky>
+ │   │
+ │   │  section names
+ │   ┴
+ │
+ │  string table (for symbols) section .strtab#10 in <plinky>
  │   │
  │   │  symbols view: symbol table
  │   ┴
  │
- │  symbols table section .symtab#10 in <plinky>
+ │  symbols table section .symtab#11 in <plinky>
  │   │
  │   │  view: symbol table
- │   │  strings: .strtab#9
+ │   │  strings: .strtab#10
  │   ┴
  │
- │  section .text#1 (perms: rx) in hello.o
+ │  section .text#2 (perms: rx) in hello.o
  │   │
  │   │  address: 0x400000
  │   │
@@ -158,13 +170,13 @@ debug print: object after relocations are applied
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ <symbol#0>        │ none    │ <plinky> │ local      │ <null>        │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ <section .data#3> │ section │ hello.o  │ local      │ .data#3 + 0x0 │
+ │  │ <section .data#4> │ section │ hello.o  │ local      │ .data#4 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ _start#1          │ none    │ hello.o  │ global     │ .text#1 + 0x0 │
+ │  │ _start#1          │ none    │ hello.o  │ global     │ .text#2 + 0x0 │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
  │  │ len#6             │ none    │ hello.o  │ local      │ 0xd           │
  │  ├───────────────────┼─────────┼──────────┼────────────┼───────────────┤
- │  │ msg#5             │ none    │ hello.o  │ local      │ .data#3 + 0x0 │
+ │  │ msg#5             │ none    │ hello.o  │ local      │ .data#4 + 0x0 │
  │  ╰───────────────────┴─────────┴──────────┴────────────┴───────────────╯
  ┴
 
@@ -190,7 +202,27 @@ debug print: built elf
  │   │  empty section
  │   ┴
  │
- │  section .text#1 (address: 0x400000)
+ │  section .shstrtab#1 (address: 0x0)
+ │   │
+ │   │    Strings table:
+ │   │  ╭──────┬───────────╮
+ │   │  │ 0x0  │           │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x1  │ .shstrtab │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0xb  │ .text     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x11 │ .data     │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x17 │ .comment  │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x20 │ .strtab   │
+ │   │  ├──────┼───────────┤
+ │   │  │ 0x28 │ .symtab   │
+ │   │  ╰──────┴───────────╯
+ │   ┴
+ │
+ │  section .text#2 (address: 0x400000)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -200,7 +232,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .data#2 (address: 0x401000)
+ │  section .data#3 (address: 0x401000)
  │   │
  │   │  program data | permissions: RW
  │   │
@@ -209,7 +241,7 @@ debug print: built elf
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .comment#3 (address: 0x0)
+ │  section .comment#4 (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │
@@ -218,7 +250,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .strtab#4 (address: 0x0)
+ │  section .strtab#5 (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬─────────╮
@@ -236,7 +268,7 @@ debug print: built elf
  │   │  ╰──────┴─────────╯
  │   ┴
  │
- │  section .symtab#5 (address: 0x0)
+ │  section .symtab#6 (address: 0x0)
  │   │
  │   │    Symbol table:
  │   │  ╭───────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
@@ -246,41 +278,21 @@ debug print: built elf
  │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ hello.S#1 │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
  │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#2     │ Local   │ -    │ Default    │ .data#2    │ 0x401000 │ 0x0  │
+ │   │  │ msg#2     │ Local   │ -    │ Default    │ .data#3    │ 0x401000 │ 0x0  │
  │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
  │   │  │ len#3     │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
  │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ _start#4  │ Global  │ -    │ Default    │ .text#1    │ 0x400000 │ 0x0  │
+ │   │  │ _start#4  │ Global  │ -    │ Default    │ .text#2    │ 0x400000 │ 0x0  │
  │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
- │   ┴
- │
- │  section .shstrtab#6 (address: 0x0)
- │   │
- │   │    Strings table:
- │   │  ╭──────┬───────────╮
- │   │  │ 0x0  │           │
- │   │  ├──────┼───────────┤
- │   │  │ 0x1  │ .text     │
- │   │  ├──────┼───────────┤
- │   │  │ 0x7  │ .data     │
- │   │  ├──────┼───────────┤
- │   │  │ 0xd  │ .comment  │
- │   │  ├──────┼───────────┤
- │   │  │ 0x16 │ .strtab   │
- │   │  ├──────┼───────────┤
- │   │  │ 0x1e │ .symtab   │
- │   │  ├──────┼───────────┤
- │   │  │ 0x26 │ .shstrtab │
- │   │  ╰──────┴───────────╯
  │   ┴
  │
  │    Segments:
  │  ╭───────────┬───────┬──────────┬─────────╮
  │  │ Type      │ Perms │ Aligment │ Content │
  │  ├───────────┼───────┼──────────┼─────────┤
- │  │ Load      │ R X   │ 0x1000   │ .text#1 │
+ │  │ Load      │ R X   │ 0x1000   │ .text#2 │
  │  ├───────────┼───────┼──────────┼─────────┤
- │  │ Load      │ RW    │ 0x1000   │ .data#2 │
+ │  │ Load      │ RW    │ 0x1000   │ .data#3 │
  │  ├───────────┼───────┼──────────┼─────────┤
  │  │ GNU stack │ RW    │ 0x1      │ -       │
  │  ╰───────────┴───────┴──────────┴─────────╯

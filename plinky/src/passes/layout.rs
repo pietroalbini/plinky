@@ -87,7 +87,18 @@ impl LayoutDetailsProvider<SerialIds> for Object {
 
     fn symbols_in_table_count(&self, id: &SectionId) -> usize {
         let symbols = cast_section!(self, id, Symbols);
-        self.symbols.iter(&*symbols.view).count()
+        let symbols_count = self.symbols.iter(&*symbols.view).count();
+
+        // Local symbols also have a STT_FILE entry for every file.
+        let files_count = self
+            .symbols
+            .iter(&*symbols.view)
+            .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
+            .filter_map(|(_, s)| s.stt_file())
+            .collect::<BTreeSet<_>>()
+            .len();
+
+        symbols_count + files_count
     }
 
     fn sections_in_group_count(&self, _id: &SectionId) -> usize {

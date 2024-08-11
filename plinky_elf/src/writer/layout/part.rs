@@ -1,4 +1,5 @@
 use plinky_utils::ints::{Address, ExtractNumber, Length, Offset};
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -34,6 +35,29 @@ impl<S> Part<S> {
             Part::Group(id) => Some(id),
             Part::Dynamic(id) => Some(id),
             Part::Padding { .. } => None,
+        }
+    }
+
+    pub fn convert_ids<T>(self, map: &BTreeMap<S, T>) -> Part<T>
+    where
+        S: Ord + Eq,
+        T: Clone,
+    {
+        let c = |id| map.get(&id).unwrap().clone();
+        match self {
+            Part::Header => Part::Header,
+            Part::SectionHeaders => Part::SectionHeaders,
+            Part::ProgramHeaders => Part::ProgramHeaders,
+            Part::ProgramSection(id) => Part::ProgramSection(c(id)),
+            Part::UninitializedSection(id) => Part::UninitializedSection(c(id)),
+            Part::StringTable(id) => Part::StringTable(c(id)),
+            Part::SymbolTable(id) => Part::SymbolTable(c(id)),
+            Part::Hash(id) => Part::Hash(c(id)),
+            Part::Rel(id) => Part::Rel(c(id)),
+            Part::Rela(id) => Part::Rela(c(id)),
+            Part::Group(id) => Part::Group(c(id)),
+            Part::Dynamic(id) => Part::Dynamic(c(id)),
+            Part::Padding { id, len } => Part::Padding { id, len },
         }
     }
 

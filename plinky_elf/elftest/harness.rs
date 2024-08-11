@@ -1,5 +1,6 @@
 use anyhow::{bail, Error};
 use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
 use plinky_test_harness::prerequisites::{Arch, Prerequisites};
@@ -83,7 +84,12 @@ impl TestExecution {
         let mut ids = SerialIds::new();
         let object =
             ElfObject::load(&mut BufReader::new(File::open(self.dest_dir.join(file))?), &mut ids)?;
-        Writer::new(&mut BufWriter::new(File::create_new(&dest)?), &object)?.write()?;
+        Writer::new(
+            &mut BufWriter::new(File::create_new(&dest)?),
+            &object,
+            Layout::new(&object, None)?,
+        )?
+        .write()?;
 
         Ok(dest)
     }

@@ -58,10 +58,11 @@ pub(crate) fn link_driver(
 
     passes::replace_section_relative_symbols::replace(&mut object, &resolver)?;
 
-    let elf = passes::build_elf::run(object, &layout, &resolver)?;
+    let (elf, conversion_map) = passes::build_elf::run(object, &layout, &resolver)?;
     callbacks.on_elf_built(&elf);
 
-    passes::write_to_disk::run(elf, &options.output)?;
+    let layout = layout.convert_ids(&conversion_map);
+    passes::write_to_disk::run(elf, layout, &options.output)?;
 
     Ok(())
 }

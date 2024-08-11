@@ -38,8 +38,12 @@ where
     I: ElfIds,
     I::StringId: StringIdGetters<I>,
 {
-    pub fn new(writer: &'a mut dyn Write, object: &'a ElfObject<I>) -> Result<Self, WriteError<I>> {
-        Ok(Self { writer: WriteCounter::new(writer), layout: Layout::new(object, None)?, object })
+    pub fn new(
+        writer: &'a mut dyn Write,
+        object: &'a ElfObject<I>,
+        layout: Layout<I>,
+    ) -> Result<Self, WriteError<I>> {
+        Ok(Self { writer: WriteCounter::new(writer), layout, object })
     }
 
     pub fn write(mut self) -> Result<(), WriteError<I>> {

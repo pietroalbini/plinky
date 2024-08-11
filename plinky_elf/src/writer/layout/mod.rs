@@ -56,6 +56,13 @@ impl<I: ElfIds> Layout<I> {
             .next()
             .unwrap()
     }
+
+    pub fn convert_ids<T: ElfIds>(self, map: &BTreeMap<I::SectionId, T::SectionId>) -> Layout<T> {
+        Layout {
+            parts: self.parts.into_iter().map(|p| p.convert_ids(map)).collect(),
+            metadata: self.metadata.into_iter().map(|(k, v)| (k.convert_ids(map), v)).collect(),
+        }
+    }
 }
 
 struct LayoutBuilder<'a, I: ElfIds> {

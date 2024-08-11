@@ -29,11 +29,13 @@ use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
+type SectionConversion = BTreeMap<SectionId, BuiltElfSectionId>;
+
 pub(crate) fn run(
     object: Object,
     layout: &Layout<SerialIds>,
     resolver: &AddressResolver<'_>,
-) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
+) -> Result<(ElfObject<BuiltElfIds>, SectionConversion), ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
     let builder = ElfBuilder {
         section_zero_id: ids.allocate_section_id(),
@@ -65,7 +67,7 @@ struct ElfBuilder<'a> {
 }
 
 impl<'a> ElfBuilder<'a> {
-    fn build(mut self) -> Result<ElfObject<BuiltElfIds>, ElfBuilderError> {
+    fn build(mut self) -> Result<(ElfObject<BuiltElfIds>, SectionConversion), ElfBuilderError> {
         // Precalculate section IDs, to avoid circular dependencies.
         for section in self.object.sections.iter() {
             self.section_ids.insert(section.id, self.ids.allocate_section_id());
@@ -100,16 +102,19 @@ impl<'a> ElfBuilder<'a> {
         assert!(self.pending_symbol_tables.is_empty());
         assert!(self.pending_string_tables.is_empty());
 
-        Ok(ElfObject {
-            env: self.object.env,
-            type_: match self.object.mode {
-                Mode::PositionDependent => ElfType::Executable,
-                Mode::PositionIndependent => ElfType::SharedObject,
+        Ok((
+            ElfObject {
+                env: self.object.env,
+                type_: match self.object.mode {
+                    Mode::PositionDependent => ElfType::Executable,
+                    Mode::PositionIndependent => ElfType::SharedObject,
+                },
+                entry,
+                sections,
+                segments,
             },
-            entry,
-            sections,
-            segments,
-        })
+            self.section_ids,
+        ))
     }
 
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {

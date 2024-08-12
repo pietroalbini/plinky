@@ -1,10 +1,9 @@
 use crate::errors::LoadError;
 use crate::raw::{RawHeader, RawIdentification};
-use crate::reader::program_header::{read_program_header, SegmentContentMapping};
+use crate::reader::program_header::read_program_header;
 use crate::reader::sections::read_sections;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfObject, ElfType};
-use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<PendingIds>, LoadError> {
@@ -51,11 +50,8 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
         other => return Err(LoadError::BadMachine(other)),
     };
 
-    let mut segment_content_map: SegmentContentMapping = BTreeMap::new();
-
     let sections = read_sections(
         cursor,
-        &mut segment_content_map,
         header.section_headers_offset,
         header.section_header_count,
         header.section_header_size,
@@ -68,7 +64,7 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
             cursor.seek_to(
                 header.program_headers_offset + (header.program_header_size as u64 * idx as u64),
             )?;
-            segments.push(read_program_header(cursor, &segment_content_map)?);
+            segments.push(read_program_header(cursor)?);
         }
     }
 

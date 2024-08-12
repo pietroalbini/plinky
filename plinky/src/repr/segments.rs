@@ -1,7 +1,6 @@
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::writer::layout::Layout;
+use plinky_elf::writer::layout::{Layout, Part, PartMetadata};
 use plinky_elf::ElfPermissions;
-use plinky_utils::ints::Address;
 
 #[derive(Debug)]
 pub(crate) struct Segments {
@@ -35,20 +34,25 @@ pub(crate) struct Segment {
 }
 
 impl Segment {
-    pub(crate) fn start(&self, layout: &Layout<SerialIds>) -> SegmentStart {
+    pub(crate) fn layout(&self, layout: &Layout<SerialIds>) -> PartMetadata {
         match &self.content {
-            SegmentContent::ProgramHeader => SegmentStart::ProgramHeader,
-            SegmentContent::ElfHeader => SegmentStart::Address(0u64.into()),
-            SegmentContent::Sections(ids) => SegmentStart::Address(
-                ids.iter()
-                    .map(|id| match &layout.metadata_of_section(id).memory {
-                        Some(mem) => mem.address,
-                        None => panic!("non-allocated section {id:?} in layout"),
-                    })
-                    .min()
-                    .expect("empty segment"),
-            ),
-            SegmentContent::Empty => SegmentStart::None,
+            SegmentContent::ProgramHeader => layout.metadata(&Part::ProgramHeaders).clone(),
+            SegmentContent::ElfHeader => layout.metadata(&Part::Header).clone(),
+            SegmentContent::Sections(sections) => {
+                let mut sections_iter = sections.iter();
+                let mut metadata = layout
+                    .metadata_of_section(
+                        sections_iter.next().expect("at least one section must be present"),
+                    )
+                    .clone();
+                for section in sections_iter {
+                    metadata = metadata
+                        .add(layout.metadata_of_section(section))
+                        .expect("sections are not positioned in the layout correctly");
+                }
+                metadata
+            }
+            SegmentContent::Empty => PartMetadata::EMPTY,
         }
     }
 }
@@ -69,11 +73,4 @@ pub(crate) enum SegmentContent {
     ElfHeader,
     Sections(Vec<SectionId>),
     Empty,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub(crate) enum SegmentStart {
-    ProgramHeader,
-    Address(Address),
-    None,
 }

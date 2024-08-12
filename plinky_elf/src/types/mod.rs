@@ -20,7 +20,7 @@ pub struct ElfObject<I: ElfIds> {
     pub type_: ElfType,
     pub entry: Option<NonZeroU64>,
     pub sections: BTreeMap<I::SectionId, ElfSection<I>>,
-    pub segments: Vec<ElfSegment<I>>,
+    pub segments: Vec<ElfSegment>,
 }
 
 impl<I: ElfIds> ElfObject<I> {
@@ -397,11 +397,14 @@ pub enum ElfPLTRelocationsMode {
 }
 
 #[derive(Debug)]
-pub struct ElfSegment<I: ElfIds> {
+pub struct ElfSegment {
     pub type_: ElfSegmentType,
     pub perms: ElfPermissions,
-    pub content: ElfSegmentContent<I>,
     pub align: u64,
+    pub file_offset: u64,
+    pub file_size: u64,
+    pub virtual_address: u64,
+    pub memory_size: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
@@ -415,23 +418,6 @@ pub enum ElfSegmentType {
     GnuRelRO,
     Null,
     Unknown(u32),
-}
-
-#[derive(Debug, Clone)]
-pub enum ElfSegmentContent<I: ElfIds> {
-    Empty,
-    ElfHeader,
-    ProgramHeader,
-    Sections(Vec<I::SectionId>),
-    Unknown(ElfUnknownSegmentContent),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ElfUnknownSegmentContent {
-    pub file_offset: u64,
-    pub virtual_address: u64,
-    pub file_size: u64,
-    pub memory_size: u64,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

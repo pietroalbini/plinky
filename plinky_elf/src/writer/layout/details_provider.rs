@@ -1,7 +1,7 @@
 use crate::ids::ElfIds;
 use crate::writer::layout::Part;
 use crate::writer::LayoutError;
-use crate::{ElfClass, ElfObject, ElfSectionContent, ElfSegmentContent, ElfSegmentType};
+use crate::{ElfClass, ElfObject, ElfSection, ElfSectionContent, ElfSegmentType};
 
 pub trait LayoutDetailsProvider<I: ElfIds> {
     fn class(&self) -> ElfClass;
@@ -18,9 +18,8 @@ pub trait LayoutDetailsProvider<I: ElfIds> {
     fn relocations_in_table_count(&self, id: &I::SectionId) -> usize;
     fn hash_details(&self, id: &I::SectionId) -> LayoutDetailsHash;
 
-    fn parts_for_sections(&self) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, LayoutError>;
-
-    fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<I>>;
+    fn parts_for_sections(&self) -> Result<Vec<Part<I::SectionId>>, LayoutError>;
+    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<I>>, LayoutError>;
 }
 
 pub struct LayoutDetailsHash {
@@ -28,8 +27,9 @@ pub struct LayoutDetailsHash {
     pub chain: usize,
 }
 
-pub struct LayoutDetailsSegment<I: ElfIds> {
-    pub sections: Vec<I::SectionId>,
+pub struct LayoutPartsGroup<I: ElfIds> {
+    pub align: u64,
+    pub parts: Vec<Part<I::SectionId>>,
 }
 
 macro_rules! cast_section {
@@ -88,61 +88,83 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
         LayoutDetailsHash { buckets: hash.buckets.len(), chain: hash.chain.len() }
     }
 
-    fn parts_for_sections(&self) -> Result<Vec<(I::SectionId, Part<I::SectionId>)>, LayoutError> {
+    fn parts_for_sections(&self) -> Result<Vec<Part<I::SectionId>>, LayoutError> {
         let mut result = Vec::new();
         for (id, section) in &self.sections {
-            let part = match &section.content {
-                ElfSectionContent::Null => continue,
-                ElfSectionContent::Program(_) => Part::ProgramSection(id.clone()),
-                ElfSectionContent::Uninitialized(_) => Part::UninitializedSection(id.clone()),
-                ElfSectionContent::SymbolTable(_) => Part::SymbolTable(id.clone()),
-                ElfSectionContent::StringTable(_) => Part::StringTable(id.clone()),
-
-                ElfSectionContent::RelocationsTable(table) => {
-                    let mut rela = None;
-                    for relocation in &table.relocations {
-                        match rela {
-                            Some(rela) if rela == relocation.addend.is_some() => {}
-                            Some(_) => return Err(LayoutError::MixedRelRela),
-                            None => rela = Some(relocation.addend.is_some()),
-                        }
-                    }
-                    let rela = rela.unwrap_or(false);
-                    if rela {
-                        Part::Rela(id.clone())
-                    } else {
-                        Part::Rel(id.clone())
-                    }
-                }
-                ElfSectionContent::Group(_) => Part::Group(id.clone()),
-                ElfSectionContent::Hash(_) => Part::Hash(id.clone()),
-                ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),
-
-                ElfSectionContent::Note(_) => {
-                    return Err(LayoutError::WritingNotesUnsupported);
-                }
-                ElfSectionContent::Unknown(_) => {
-                    return Err(LayoutError::UnknownSection);
-                }
-            };
-            result.push((id.clone(), part));
+            let Some(part) = part_for_section(id, section)? else { continue };
+            result.push(part);
         }
         Ok(result)
     }
 
-    fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<I>> {
-        self.segments
-            .iter()
-            .filter(|s| matches!(s.type_, ElfSegmentType::Load))
-            .filter_map(|s| match &s.content {
-                ElfSegmentContent::Empty => None,
-                ElfSegmentContent::ElfHeader => None,
-                ElfSegmentContent::ProgramHeader => None,
-                ElfSegmentContent::Sections(sections) => {
-                    Some(LayoutDetailsSegment { sections: sections.clone() })
+    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<I>>, LayoutError> {
+        let mut groups = Vec::new();
+        for segment in &self.segments {
+            match &segment.type_ {
+                ElfSegmentType::ProgramHeaderTable => continue,
+                ElfSegmentType::Interpreter => {}
+                ElfSegmentType::Load => {}
+                ElfSegmentType::Dynamic => continue,
+                ElfSegmentType::Note => continue,
+                ElfSegmentType::GnuStack => continue,
+                ElfSegmentType::GnuRelRO => continue,
+                ElfSegmentType::Null => continue,
+                ElfSegmentType::Unknown(_) => continue,
+            };
+
+            let mut group = LayoutPartsGroup { align: segment.align, parts: Vec::new() };
+            let range = segment.virtual_address..=(segment.virtual_address + segment.memory_size);
+            for (id, section) in &self.sections {
+                if section.memory_address == 0 || !range.contains(&section.memory_address) {
+                    continue;
                 }
-                ElfSegmentContent::Unknown(_) => None,
-            })
-            .collect()
+                let Some(part) = part_for_section(id, section)? else { continue };
+                group.parts.push(part);
+            }
+            if !group.parts.is_empty() {
+                groups.push(group);
+            }
+        }
+        Ok(groups)
     }
+}
+
+fn part_for_section<I: ElfIds>(
+    id: &I::SectionId,
+    section: &ElfSection<I>,
+) -> Result<Option<Part<I::SectionId>>, LayoutError> {
+    Ok(Some(match &section.content {
+        ElfSectionContent::Null => return Ok(None),
+        ElfSectionContent::Program(_) => Part::ProgramSection(id.clone()),
+        ElfSectionContent::Uninitialized(_) => Part::UninitializedSection(id.clone()),
+        ElfSectionContent::SymbolTable(_) => Part::SymbolTable(id.clone()),
+        ElfSectionContent::StringTable(_) => Part::StringTable(id.clone()),
+
+        ElfSectionContent::RelocationsTable(table) => {
+            let mut rela = None;
+            for relocation in &table.relocations {
+                match rela {
+                    Some(rela) if rela == relocation.addend.is_some() => {}
+                    Some(_) => return Err(LayoutError::MixedRelRela),
+                    None => rela = Some(relocation.addend.is_some()),
+                }
+            }
+            let rela = rela.unwrap_or(false);
+            if rela {
+                Part::Rela(id.clone())
+            } else {
+                Part::Rel(id.clone())
+            }
+        }
+        ElfSectionContent::Group(_) => Part::Group(id.clone()),
+        ElfSectionContent::Hash(_) => Part::Hash(id.clone()),
+        ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),
+
+        ElfSectionContent::Note(_) => {
+            return Err(LayoutError::WritingNotesUnsupported);
+        }
+        ElfSectionContent::Unknown(_) => {
+            return Err(LayoutError::UnknownSection);
+        }
+    }))
 }

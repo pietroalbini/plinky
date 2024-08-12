@@ -2,7 +2,6 @@ use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSectionHeader, RawSymbol};
 use crate::reader::notes::read_notes;
-use crate::reader::program_header::SegmentContentMapping;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
     ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfGroup,
@@ -17,7 +16,6 @@ use std::num::NonZeroU64;
 
 pub(super) fn read_sections(
     cursor: &mut ReadCursor<'_>,
-    segment_content_map: &mut SegmentContentMapping,
     offset: u64,
     count: u16,
     size: u16,
@@ -34,7 +32,6 @@ pub(super) fn read_sections(
             PendingSectionId(idx as _),
             read_section(
                 cursor,
-                segment_content_map,
                 section_names_table,
                 PendingSectionId(idx as _),
             )
@@ -47,7 +44,6 @@ pub(super) fn read_sections(
 
 fn read_section(
     cursor: &mut ReadCursor<'_>,
-    segment_content_map: &mut SegmentContentMapping,
     section_names_table: PendingSectionId,
     current_section: PendingSectionId,
 ) -> Result<ElfSection<PendingIds>, LoadError> {
@@ -171,8 +167,6 @@ fn read_section(
     if deduplication.is_some() {
         return Err(LoadError::MergeFlagOnUnsupportedSection { section_idx: current_section.0 });
     }
-
-    segment_content_map.insert((header.offset, header.size), current_section);
 
     Ok(ElfSection {
         name: PendingStringId(section_names_table, header.name_offset),

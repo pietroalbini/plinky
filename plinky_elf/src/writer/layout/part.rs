@@ -1,4 +1,5 @@
-use plinky_utils::ints::{Address, ExtractNumber, Length, Offset};
+use plinky_macros::{Display, Error};
+use plinky_utils::ints::{Address, Length, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -79,36 +80,64 @@ impl PaddingId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PartMetadata {
     pub file: Option<PartFile>,
     pub memory: Option<PartMemory>,
 }
 
 impl PartMetadata {
-    pub(crate) fn segment_bounds(&self) -> (u64, u64, u64, u64) {
-        let (file_offset, file_len) = match &self.file {
-            Some(file) => (file.offset.extract() as _, file.len.extract()),
-            None => (0, 0),
+    pub const EMPTY: Self = Self { file: None, memory: None };
+
+    pub fn add(&self, other: &PartMetadata) -> Result<PartMetadata, MergePartMetadataError> {
+        let file = match (&self.file, &other.file) {
+            (None, None) => None,
+            (Some(a), Some(b)) => {
+                if a.offset.add(a.len.as_offset()?)? != b.offset {
+                    return Err(MergePartMetadataError::NotAdjacent);
+                }
+                Some(PartFile { len: a.len.add(b.len)?, offset: a.offset })
+            }
+            (None, Some(_)) | (Some(_), None) => return Err(MergePartMetadataError::MixingInFile),
         };
 
-        let (memory_address, memory_len) = match &self.memory {
-            Some(memory) => (memory.address.extract(), memory.len.extract()),
-            None => (0, 0),
+        let memory = match (&self.memory, &other.memory) {
+            (None, None) => None,
+            (Some(a), Some(b)) => {
+                if a.address.offset(a.len.as_offset()?)? != b.address {
+                    return Err(MergePartMetadataError::NotAdjacent);
+                }
+                Some(PartMemory { len: a.len.add(b.len)?, address: a.address })
+            }
+            (None, Some(_)) | (Some(_), None) => {
+                return Err(MergePartMetadataError::MixingInMemory)
+            }
         };
 
-        (file_offset, file_len, memory_address, memory_len)
+        Ok(PartMetadata { file, memory })
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PartFile {
     pub len: Length,
     pub offset: Offset,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PartMemory {
     pub len: Length,
     pub address: Address,
+}
+
+#[derive(Debug, Error, Display)]
+pub enum MergePartMetadataError {
+    #[display("the two parts are not adjacent")]
+    NotAdjacent,
+    #[display("cannot mix parts present and missing in the file")]
+    MixingInFile,
+    #[display("cannot mix parts present and missing in the memory")]
+    MixingInMemory,
+    #[transparent]
+    OutOfBounds(OutOfBoundsError),
 }

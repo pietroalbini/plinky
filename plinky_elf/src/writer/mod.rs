@@ -14,8 +14,8 @@ use crate::writer::write_counter::WriteCounter;
 use crate::{
     ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfObject,
     ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent,
-    ElfSegmentContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfSymbolVisibility, ElfType,
+    ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfSymbolVisibility, ElfType,
 };
 use plinky_utils::bitfields::Bitfield;
 use plinky_utils::ints::ExtractNumber;
@@ -307,73 +307,6 @@ where
 
     fn write_program_headers(&mut self) -> Result<(), WriteError<I>> {
         for segment in &self.object.segments {
-            let (file_offset, file_size, virtual_address, memory_size) = match &segment.content {
-                ElfSegmentContent::Sections(section_ids) => {
-                    let mut section_ids = section_ids.iter();
-                    let first_section_id = section_ids.next().unwrap();
-                    let first_section = self.object.sections.get(first_section_id).unwrap();
-
-                    let (file_offset, mut file_size, mut memory_size) = match &first_section.content
-                    {
-                        ElfSectionContent::Uninitialized(uninit) => (0, 0, uninit.len),
-                        content => {
-                            let metadata = self
-                                .layout
-                                .metadata_of_section(first_section_id)
-                                .file
-                                .as_ref()
-                                .unwrap();
-                            (
-                                metadata.offset.extract() as u64,
-                                metadata.len.extract(),
-                                content.content_size(self.object.env.class) as u64,
-                            )
-                        }
-                    };
-
-                    let mut expected_next_file_offset = file_offset + file_size;
-                    for section_id in section_ids {
-                        let section = self.object.sections.get(section_id).unwrap();
-                        match &section.content {
-                            ElfSectionContent::Uninitialized(uninit) => {
-                                if expected_next_file_offset != 0 {
-                                    panic!("mixed uninitialized section with program sections in segment");
-                                }
-                                memory_size += uninit.len;
-                            }
-                            content => {
-                                let metadata = self
-                                    .layout
-                                    .metadata_of_section(section_id)
-                                    .file
-                                    .as_ref()
-                                    .unwrap();
-                                if metadata.offset.extract() as u64 != expected_next_file_offset {
-                                    panic!("sections in segment are not adjacent");
-                                }
-                                expected_next_file_offset += metadata.len.extract();
-                                file_size += metadata.len.extract();
-                                memory_size += content.content_size(self.object.env.class) as u64;
-                            }
-                        }
-                    }
-                    (file_offset, file_size, first_section.memory_address, memory_size)
-                }
-                ElfSegmentContent::ElfHeader => {
-                    self.layout.metadata(&Part::Header).segment_bounds()
-                }
-                ElfSegmentContent::ProgramHeader => {
-                    self.layout.metadata(&Part::ProgramHeaders).segment_bounds()
-                }
-                ElfSegmentContent::Unknown(unknown) => (
-                    unknown.file_offset,
-                    unknown.file_size,
-                    unknown.virtual_address,
-                    unknown.memory_size,
-                ),
-                ElfSegmentContent::Empty => (0, 0, 0, 0),
-            };
-
             self.write_raw(RawProgramHeader {
                 type_: match segment.type_ {
                     ElfSegmentType::Null => 0,
@@ -386,11 +319,11 @@ where
                     ElfSegmentType::GnuRelRO => 0x6474e552,
                     ElfSegmentType::Unknown(_) => panic!("unknown segment"),
                 },
-                file_offset,
-                virtual_address,
+                file_offset: segment.file_offset,
+                virtual_address: segment.virtual_address,
                 reserved: 0,
-                file_size,
-                memory_size,
+                file_size: segment.file_size,
+                memory_size: segment.memory_size,
                 flags: RawProgramHeaderFlags {
                     execute: segment.perms.execute,
                     write: segment.perms.write,

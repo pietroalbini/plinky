@@ -1,6 +1,6 @@
 use crate::ids::ElfIds;
-use crate::render_elf::utils::{render_perms, section_name};
-use crate::{ElfObject, ElfSegmentContent, ElfSegmentType};
+use crate::render_elf::utils::render_perms;
+use crate::{ElfObject, ElfSegmentType};
 use plinky_diagnostics::widgets::{Table, Text, Widget};
 
 pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widget> {
@@ -10,7 +10,15 @@ pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widge
 
     let mut table = Table::new();
     table.set_title("Segments:");
-    table.add_row(["Type", "Perms", "Aligment", "Content"]);
+    table.add_row([
+        "Type",
+        "Perms",
+        "Aligment",
+        "File offset",
+        "File len",
+        "Memory address",
+        "Memory len",
+    ]);
     for segment in &object.segments {
         table.add_row([
             match segment.type_ {
@@ -26,23 +34,10 @@ pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widge
             },
             render_perms(&segment.perms),
             format!("{:#x}", segment.align),
-            match &segment.content {
-                ElfSegmentContent::Empty => "-".into(),
-                ElfSegmentContent::ElfHeader => "elf header".into(),
-                ElfSegmentContent::ProgramHeader => "program header".into(),
-                ElfSegmentContent::Sections(sections) => sections
-                    .iter()
-                    .map(|id| section_name(object, id))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                ElfSegmentContent::Unknown(unknown) => format!(
-                    "file: {:#x} (len: {:#x}), memory: {:#x} (len: {:#x})",
-                    unknown.file_offset,
-                    unknown.file_size,
-                    unknown.virtual_address,
-                    unknown.memory_size
-                ),
-            },
+            format!("{:#x}", segment.file_offset),
+            format!("{:#x}", segment.file_size),
+            format!("{:#x}", segment.virtual_address),
+            format!("{:#x}", segment.memory_size),
         ]);
     }
     Box::new(table)

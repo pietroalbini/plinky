@@ -2,12 +2,12 @@ use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
-use crate::repr::sections::SectionContent;
+use crate::repr::sections::{Section, SectionContent};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::SymbolVisibility;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{
-    Layout, LayoutDetailsHash, LayoutDetailsProvider, LayoutDetailsSegment, LayoutError, Part,
+    Layout, LayoutDetailsHash, LayoutDetailsProvider, LayoutError, LayoutPartsGroup, Part,
 };
 use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -119,27 +119,15 @@ impl LayoutDetailsProvider<SerialIds> for Object {
         LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }
     }
 
-    fn parts_for_sections(&self) -> Result<Vec<(SectionId, Part<SectionId>)>, LayoutError> {
+    fn parts_for_sections(&self) -> Result<Vec<Part<SectionId>>, LayoutError> {
         let mut result = Vec::new();
         for section in self.sections.iter() {
-            result.push((
-                section.id,
-                match &section.content {
-                    SectionContent::Data(_) => Part::ProgramSection(section.id),
-                    SectionContent::Uninitialized(_) => Part::UninitializedSection(section.id),
-                    SectionContent::StringsForSymbols(_) => Part::StringTable(section.id),
-                    SectionContent::Symbols(_) => Part::SymbolTable(section.id),
-                    SectionContent::SysvHash(_) => Part::Hash(section.id),
-                    SectionContent::Relocations(_) => Part::Rela(section.id),
-                    SectionContent::Dynamic(_) => Part::Dynamic(section.id),
-                    SectionContent::SectionNames => Part::StringTable(section.id),
-                },
-            ));
+            result.push(part_for_section(section));
         }
         Ok(result)
     }
 
-    fn loadable_segments(&self) -> Vec<LayoutDetailsSegment<SerialIds>> {
+    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<SerialIds>>, LayoutError> {
         let mut result = Vec::new();
         for segment in self.segments.iter() {
             match &segment.type_ {
@@ -155,10 +143,29 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                 SegmentContent::ProgramHeader => continue,
                 SegmentContent::ElfHeader => continue,
                 SegmentContent::Sections(sections) => {
-                    result.push(LayoutDetailsSegment { sections: sections.clone() });
+                    result.push(LayoutPartsGroup {
+                        align: segment.align,
+                        parts: sections
+                            .iter()
+                            .map(|id| part_for_section(self.sections.get(*id).unwrap()))
+                            .collect(),
+                    });
                 }
             }
         }
-        result
+        Ok(result)
+    }
+}
+
+fn part_for_section(section: &Section) -> Part<SectionId> {
+    match &section.content {
+        SectionContent::Data(_) => Part::ProgramSection(section.id),
+        SectionContent::Uninitialized(_) => Part::UninitializedSection(section.id),
+        SectionContent::StringsForSymbols(_) => Part::StringTable(section.id),
+        SectionContent::Symbols(_) => Part::SymbolTable(section.id),
+        SectionContent::SysvHash(_) => Part::Hash(section.id),
+        SectionContent::Relocations(_) => Part::Rela(section.id),
+        SectionContent::Dynamic(_) => Part::Dynamic(section.id),
+        SectionContent::SectionNames => Part::StringTable(section.id),
     }
 }

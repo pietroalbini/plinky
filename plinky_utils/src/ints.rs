@@ -93,6 +93,10 @@ impl Offset {
 int!(pub struct Length(u64) from u8, u16, u32);
 
 impl Length {
+    pub fn add(&self, other: Length) -> Result<Length, OutOfBoundsError> {
+        Ok(Length(self.0.checked_add(other.0).ok_or(OutOfBoundsError)?))
+    }
+
     pub fn as_offset(&self) -> Result<Offset, OutOfBoundsError> {
         Ok(i64::try_from(self.0).map_err(|_| OutOfBoundsError)?.into())
     }

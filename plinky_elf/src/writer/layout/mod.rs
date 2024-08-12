@@ -18,8 +18,6 @@ use plinky_utils::ints::OutOfBoundsError;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
 
-const ALIGN: u64 = 0x1000;
-
 #[derive(Debug)]
 pub struct Layout<I: ElfIds> {
     parts: Vec<Part<I::SectionId>>,
@@ -75,15 +73,14 @@ struct LayoutBuilder<'a, I: ElfIds> {
 impl<I: ElfIds> LayoutBuilder<'_, I> {
     fn build(mut self) -> Result<Layout<I>, LayoutError> {
         self.add_part(Part::Header)?;
+        self.add_part(Part::ProgramHeaders)?;
+        self.add_part(Part::SectionHeaders)?;
 
-        let sections_in_load_segments = self
-            .details
-            .loadable_segments()
-            .into_iter()
+        let groups = self.details.parts_groups()?;
+        let part_to_group = groups
+            .iter()
             .enumerate()
-            .flat_map(|(idx, segment)| {
-                segment.sections.into_iter().map(move |section| (section, idx))
-            })
+            .flat_map(|(idx, group)| group.parts.iter().map(move |part| (part, idx)))
             .collect::<BTreeMap<_, _>>();
 
         // We need to be careful in how sections are written in the resulting ELF file: each LOAD
@@ -95,10 +92,10 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         // We then proceed to write all the preamble sections, and after that write all the
         // segments while being careful of page-aligning each of them.
         let mut put_in_preamble = Vec::new();
-        let mut put_in_segments = BTreeMap::new();
-        for (id, part) in self.details.parts_for_sections()? {
-            if let Some(segment) = sections_in_load_segments.get(&id) {
-                put_in_segments.entry(*segment).or_insert_with(Vec::new).push(part);
+        let mut put_in_groups = BTreeMap::new();
+        for part in self.details.parts_for_sections()? {
+            if let Some(group) = part_to_group.get(&part) {
+                put_in_groups.entry(*group).or_insert_with(Vec::new).push(part);
             } else {
                 put_in_preamble.push(part);
             }
@@ -106,17 +103,12 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         for part in put_in_preamble {
             self.add_part(part)?;
         }
-        for segment_sections in put_in_segments.into_values() {
-            self.align_to_page()?;
-            for part in segment_sections {
+        for (group_idx, parts) in put_in_groups {
+            self.align(groups[group_idx].align)?;
+            for part in parts {
                 self.add_part_in_memory(part)?;
             }
         }
-
-        // TODO: waste less space, and try to put the program header next to the elf header.
-        self.align_to_page()?;
-        self.add_part(Part::ProgramHeaders)?;
-        self.add_part(Part::SectionHeaders)?;
 
         Ok(self.layout)
     }
@@ -162,19 +154,19 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         Ok(())
     }
 
-    fn align_to_page(&mut self) -> Result<(), LayoutError> {
+    fn align(&mut self, align: u64) -> Result<(), LayoutError> {
         // Align memory address.
         match &mut self.current_memory_address {
-            Some(address) => *address = address.align(ALIGN)?,
+            Some(address) => *address = address.align(align)?,
             None => {}
         }
 
         // Align file offset.
         let len = self.current_offset.extract() as u64;
-        if len % ALIGN == 0 {
+        if len % align == 0 {
             return Ok(());
         }
-        let bytes_to_pad = ALIGN - len % ALIGN;
+        let bytes_to_pad = align - len % align;
         self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ })?;
 
         Ok(())

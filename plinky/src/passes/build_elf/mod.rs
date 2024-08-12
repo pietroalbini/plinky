@@ -15,14 +15,14 @@ use crate::passes::build_elf::symbols::create_symbols;
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
-use crate::repr::segments::{SegmentContent, SegmentType};
+use crate::repr::segments::SegmentType;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
-    ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentContent,
-    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
+    ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
 };
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -248,37 +248,31 @@ impl<'a> ElfBuilder<'a> {
         Ok(sections)
     }
 
-    fn prepare_segments(&self) -> Vec<ElfSegment<BuiltElfIds>> {
+    fn prepare_segments(&self) -> Vec<ElfSegment> {
         let mut elf_segments = Vec::new();
         for segment in self.object.segments.iter() {
-            elf_segments.push((
-                segment.start(&self.layout),
-                ElfSegment {
-                    type_: match segment.type_ {
-                        SegmentType::Dynamic => ElfSegmentType::Dynamic,
-                        SegmentType::Interpreter => ElfSegmentType::Interpreter,
-                        SegmentType::Program => ElfSegmentType::Load,
-                        SegmentType::ProgramHeader => ElfSegmentType::ProgramHeaderTable,
-                        SegmentType::Uninitialized => ElfSegmentType::Load,
-                        SegmentType::GnuStack => ElfSegmentType::GnuStack,
-                    },
-                    perms: segment.perms,
-                    content: match &segment.content {
-                        SegmentContent::Empty => ElfSegmentContent::Empty,
-                        SegmentContent::ElfHeader => ElfSegmentContent::ElfHeader,
-                        SegmentContent::ProgramHeader => ElfSegmentContent::ProgramHeader,
-                        SegmentContent::Sections(sections) => ElfSegmentContent::Sections(
-                            sections.iter().map(|id| *self.section_ids.get(id).unwrap()).collect(),
-                        ),
-                    },
-                    align: segment.align,
+            let layout = segment.layout(self.layout);
+            elf_segments.push(ElfSegment {
+                type_: match segment.type_ {
+                    SegmentType::Dynamic => ElfSegmentType::Dynamic,
+                    SegmentType::Interpreter => ElfSegmentType::Interpreter,
+                    SegmentType::Program => ElfSegmentType::Load,
+                    SegmentType::ProgramHeader => ElfSegmentType::ProgramHeaderTable,
+                    SegmentType::Uninitialized => ElfSegmentType::Load,
+                    SegmentType::GnuStack => ElfSegmentType::GnuStack,
                 },
-            ));
+                perms: segment.perms,
+                align: segment.align,
+                file_offset: layout.file.as_ref().map(|f| f.offset.extract() as u64).unwrap_or(0),
+                file_size: layout.file.as_ref().map(|f| f.len.extract()).unwrap_or(0),
+                virtual_address: layout.memory.as_ref().map(|m| m.address.extract()).unwrap_or(0),
+                memory_size: layout.memory.as_ref().map(|m| m.len.extract()).unwrap_or(0),
+            });
         }
 
         // Segments have to be in order in memory, otherwise they will not be loaded.
-        elf_segments.sort_by_key(|(addr, segment)| (segment.type_, *addr));
-        elf_segments.into_iter().map(|(_a, s)| s).collect()
+        elf_segments.sort_by_key(|segment| (segment.type_, segment.virtual_address));
+        elf_segments
     }
 }
 

@@ -10,11 +10,11 @@ write:
     push rbx
     push rcx
 
-    mov rax, 4   /* Syscall number (4 = write) */
+    mov rax, 1   /* Syscall number (1 = write) */
     mov rbx, rdi /* First argument (fd) */
     mov rcx, rsi /* Second argument (string pointer) */
  /* mov rdx, rdx    Third argument (len) */
-    int 0x80
+    syscall
 
     pop rcx
     pop rbx
@@ -22,6 +22,6 @@ write:
     ret
 
 exit:
-    mov rax, 1   /* Syscall number (1 = exit) */
+    mov rax, 60  /* Syscall number (60 = exit) */
     mov rbx, rdi /* First argument (code) */
-    int 0x80
+    syscall

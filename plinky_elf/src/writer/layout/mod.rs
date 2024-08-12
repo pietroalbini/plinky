@@ -72,12 +72,8 @@ struct LayoutBuilder<'a, I: ElfIds> {
 
 impl<I: ElfIds> LayoutBuilder<'_, I> {
     fn build(mut self) -> Result<Layout<I>, LayoutError> {
-        self.add_part(Part::Header)?;
-        self.add_part(Part::ProgramHeaders)?;
-        self.add_part(Part::SectionHeaders)?;
-
-        let groups = self.details.parts_groups()?;
-        let part_to_group = groups
+        let provided_groups = self.details.parts_groups()?;
+        let part_to_provided_group = provided_groups
             .iter()
             .enumerate()
             .flat_map(|(idx, group)| group.parts.iter().map(move |part| (part, idx)))
@@ -94,34 +90,41 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         let mut put_in_preamble = Vec::new();
         let mut put_in_groups = BTreeMap::new();
         for part in self.details.parts_for_sections()? {
-            if let Some(group) = part_to_group.get(&part) {
-                put_in_groups.entry(*group).or_insert_with(Vec::new).push(part);
+            if let Some(group) = part_to_provided_group.get(&part) {
+                put_in_groups
+                    .entry(*group)
+                    .or_insert_with(|| (Vec::new(), provided_groups[*group].align, true))
+                    .0
+                    .push(part);
             } else {
                 put_in_preamble.push(part);
             }
         }
-        for part in put_in_preamble {
-            self.add_part(part)?;
-        }
-        for (group_idx, parts) in put_in_groups {
-            self.align(groups[group_idx].align)?;
+
+        let mut groups = Vec::new();
+
+        groups.extend(
+            put_in_groups
+                .iter()
+                .filter(|(_, (parts, _, _))| parts.contains(&Part::Header))
+                .map(|(idx, _)| *idx)
+                .next()
+                .and_then(|idx| put_in_groups.remove(&idx)),
+        );
+        groups.push((put_in_preamble, 1, false));
+        groups.extend(put_in_groups.into_values());
+
+        for (parts, align, add_in_memory) in groups {
+            self.align(align)?;
             for part in parts {
-                self.add_part_in_memory(part)?;
+                self.add_part(part, add_in_memory)?;
             }
         }
 
         Ok(self.layout)
     }
 
-    fn add_part(&mut self, part: Part<I::SectionId>) -> Result<(), LayoutError> {
-        self.add_part_inner(part, false)
-    }
-
-    fn add_part_in_memory(&mut self, part: Part<I::SectionId>) -> Result<(), LayoutError> {
-        self.add_part_inner(part, true)
-    }
-
-    fn add_part_inner(
+    fn add_part(
         &mut self,
         part: Part<I::SectionId>,
         add_in_memory: bool,
@@ -167,7 +170,7 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
             return Ok(());
         }
         let bytes_to_pad = align - len % align;
-        self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ })?;
+        self.add_part(Part::Padding { id: PaddingId::next(), len: bytes_to_pad as _ }, false)?;
 
         Ok(())
     }

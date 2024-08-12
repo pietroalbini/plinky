@@ -16,7 +16,7 @@ use std::collections::BTreeSet;
 pub(crate) fn run(object: &Object) -> Result<Layout<SerialIds>, LayoutError> {
     let base_address: Address = match object.mode {
         Mode::PositionDependent => 0x400000u64.into(),
-        Mode::PositionIndependent => 0x1000u64.into(),
+        Mode::PositionIndependent => 0u64.into(),
     };
 
     Layout::new(object, Some(base_address))
@@ -121,6 +121,11 @@ impl LayoutDetailsProvider<SerialIds> for Object {
 
     fn parts_for_sections(&self) -> Result<Vec<Part<SectionId>>, LayoutError> {
         let mut result = Vec::new();
+
+        result.push(Part::Header);
+        result.push(Part::ProgramHeaders);
+        result.push(Part::SectionHeaders);
+
         for section in self.sections.iter() {
             result.push(part_for_section(section));
         }

@@ -90,6 +90,11 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
 
     fn parts_for_sections(&self) -> Result<Vec<Part<I::SectionId>>, LayoutError> {
         let mut result = Vec::new();
+
+        result.push(Part::Header);
+        result.push(Part::ProgramHeaders);
+        result.push(Part::SectionHeaders);
+
         for (id, section) in &self.sections {
             let Some(part) = part_for_section(id, section)? else { continue };
             result.push(part);

@@ -25,6 +25,10 @@ pub(crate) fn run(
     interpreter::run(options, ids, object)?;
 
     let mut segment_content = Vec::new();
+
+    segment_content.push(SegmentContent::ElfHeader);
+    segment_content.push(SegmentContent::ProgramHeader);
+
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
             let id = object.sections.builder(name, content).create(ids);
@@ -72,20 +76,11 @@ pub(crate) fn run(
         content: vec![SegmentContent::Section(dynamic)],
     });
 
-    for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
-        object.segments.add(Segment {
-            align: 0x1000,
-            type_,
-            perms: ElfPermissions::empty().read(),
-            content: vec![SegmentContent::ProgramHeader],
-        });
-    }
-
     object.segments.add(Segment {
         align: 0x1000,
-        type_: SegmentType::Program,
+        type_: SegmentType::ProgramHeader,
         perms: ElfPermissions::empty().read(),
-        content: vec![SegmentContent::ElfHeader],
+        content: vec![SegmentContent::ProgramHeader],
     });
 
     match object.mode {

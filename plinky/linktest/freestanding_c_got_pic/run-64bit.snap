@@ -1,9 +1,9 @@
 ---
 source: plinky_test_harness/src/utils.rs
 ---
-running exited with exit status: 127
+running exited with exit status: 0
 
 no stdout present
 
-=== stderr ===
-Inconsistency detected by ld.so: rtld.c: 1280: rtld_setup_main_map: Assertion `GL(dl_rtld_map).l_libname' failed!
+no stderr present
+

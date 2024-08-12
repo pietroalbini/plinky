@@ -1,5 +1,5 @@
 use crate::repr::object::Object;
-use crate::repr::segments::{Segment, SegmentContent, SegmentType};
+use crate::repr::segments::{Segment, SegmentType};
 use plinky_elf::ElfPermissions;
 
 pub(crate) fn run(object: &mut Object) {
@@ -11,6 +11,6 @@ pub(crate) fn run(object: &mut Object) {
             write: true,
             execute: object.executable_stack,
         },
-        content: SegmentContent::Empty,
+        content: Vec::new(),
     });
 }

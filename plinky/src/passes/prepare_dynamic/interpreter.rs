@@ -38,7 +38,7 @@ pub(crate) fn run(
         align: 1,
         type_: SegmentType::Interpreter,
         perms: ElfPermissions::empty().read(),
-        content: SegmentContent::Sections(vec![section]),
+        content: vec![SegmentContent::Section(section)],
     });
 
     Ok(())

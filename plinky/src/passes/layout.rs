@@ -138,19 +138,23 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                 SegmentType::Dynamic => continue,
                 SegmentType::GnuStack => continue,
             }
-            match &segment.content {
-                SegmentContent::Empty => continue,
-                SegmentContent::ProgramHeader => continue,
-                SegmentContent::ElfHeader => continue,
-                SegmentContent::Sections(sections) => {
-                    result.push(LayoutPartsGroup {
-                        align: segment.align,
-                        parts: sections
-                            .iter()
-                            .map(|id| part_for_section(self.sections.get(*id).unwrap()))
-                            .collect(),
-                    });
-                }
+
+            let group = LayoutPartsGroup {
+                align: segment.align,
+                parts: segment
+                    .content
+                    .iter()
+                    .map(|c| match c {
+                        SegmentContent::ProgramHeader => Part::ProgramHeaders,
+                        SegmentContent::ElfHeader => Part::Header,
+                        SegmentContent::Section(id) => {
+                            part_for_section(self.sections.get(*id).unwrap())
+                        }
+                    })
+                    .collect(),
+            };
+            if !group.parts.is_empty() {
+                result.push(group);
             }
         }
         Ok(result)

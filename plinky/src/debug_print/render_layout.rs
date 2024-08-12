@@ -44,7 +44,7 @@ pub(super) fn render_layout(
 
     let mut segments = Table::new();
     segments.set_title("Segments:");
-    segments.add_row(["Start", "Align", "Type", "Permissions", "Content"]);
+    segments.add_row(["Start", "Align", "Type", "Perms", "Content"]);
     for segment in object.segments.iter() {
         segments.add_row([
             segment
@@ -62,17 +62,17 @@ pub(super) fn render_layout(
                 SegmentType::Interpreter => "interpreter".into(),
                 SegmentType::GnuStack => "GNU stack".into(),
             },
-            format!("{:?}", segment.perms),
-            match &segment.content {
-                SegmentContent::Empty => "-".into(),
-                SegmentContent::ElfHeader => "elf header".into(),
-                SegmentContent::ProgramHeader => "program header".into(),
-                SegmentContent::Sections(sections) => sections
-                    .iter()
-                    .map(|id| section_name(object, *id))
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            },
+            segment.perms.to_string(),
+            segment
+                .content
+                .iter()
+                .map(|c| match c {
+                    SegmentContent::ProgramHeader => "<program header>".into(),
+                    SegmentContent::ElfHeader => "<elf header>".into(),
+                    SegmentContent::Section(id) => section_name(object, *id),
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
         ]);
     }
 

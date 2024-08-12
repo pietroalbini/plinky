@@ -450,6 +450,12 @@ impl ElfPermissions {
 
 impl std::fmt::Debug for ElfPermissions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ElfPermissions({self})")
+    }
+}
+
+impl std::fmt::Display for ElfPermissions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut content = String::new();
         if self.read {
             content.push('R');
@@ -460,7 +466,7 @@ impl std::fmt::Debug for ElfPermissions {
         if self.execute {
             content.push('X');
         }
-        write!(f, "ElfPermissions({content})")
+        f.write_str(&content)
     }
 }
 

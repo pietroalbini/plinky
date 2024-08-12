@@ -11,13 +11,13 @@ pub(crate) fn run(object: &mut Object) {
     let sections_already_in_segments = object
         .segments
         .iter()
-        .filter_map(|segment| match &segment.content {
-            SegmentContent::Empty => None,
-            SegmentContent::ProgramHeader => None,
-            SegmentContent::ElfHeader => None,
-            SegmentContent::Sections(sections) => Some(sections),
-        })
-        .flatten()
+        .flat_map(|segment| segment.content.iter().filter_map(|c| {
+            match c {
+                SegmentContent::ProgramHeader => None,
+                SegmentContent::ElfHeader => None,
+                SegmentContent::Section(id) => Some(*id),
+            }
+        }))
         .collect::<BTreeSet<_>>();
 
     let mut segments = BTreeMap::new();
@@ -37,16 +37,19 @@ pub(crate) fn run(object: &mut Object) {
             | SectionContent::SectionNames => continue,
         };
         if perms.read || perms.write || perms.execute {
-            segments.entry((type_, perms)).or_insert_with(Vec::new).push(section.id);
+            segments
+                .entry((type_, perms))
+                .or_insert_with(Vec::new)
+                .push(SegmentContent::Section(section.id));
         }
     }
 
-    for ((type_, perms), sections) in segments {
+    for ((type_, perms), content) in segments {
         object.segments.add(Segment {
             align: PAGE_SIZE,
             type_,
             perms,
-            content: SegmentContent::Sections(sections),
+            content,
         });
     }
 }

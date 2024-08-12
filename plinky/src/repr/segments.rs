@@ -30,30 +30,22 @@ pub(crate) struct Segment {
     pub(crate) align: u64,
     pub(crate) type_: SegmentType,
     pub(crate) perms: ElfPermissions,
-    pub(crate) content: SegmentContent,
+    pub(crate) content: Vec<SegmentContent>,
 }
 
 impl Segment {
     pub(crate) fn layout(&self, layout: &Layout<SerialIds>) -> PartMetadata {
-        match &self.content {
-            SegmentContent::ProgramHeader => layout.metadata(&Part::ProgramHeaders).clone(),
-            SegmentContent::ElfHeader => layout.metadata(&Part::Header).clone(),
-            SegmentContent::Sections(sections) => {
-                let mut sections_iter = sections.iter();
-                let mut metadata = layout
-                    .metadata_of_section(
-                        sections_iter.next().expect("at least one section must be present"),
-                    )
-                    .clone();
-                for section in sections_iter {
-                    metadata = metadata
-                        .add(layout.metadata_of_section(section))
-                        .expect("sections are not positioned in the layout correctly");
-                }
-                metadata
-            }
-            SegmentContent::Empty => PartMetadata::EMPTY,
+        let mut content = self.content.iter();
+        let Some(first) = content.next() else { return PartMetadata::EMPTY };
+
+        let mut metadata = first.layout(layout);
+        for part in content {
+            metadata = metadata
+                .add(&part.layout(layout))
+                .expect("the content of the section is not positioned correctly");
         }
+
+        metadata
     }
 }
 
@@ -71,6 +63,15 @@ pub(crate) enum SegmentType {
 pub(crate) enum SegmentContent {
     ProgramHeader,
     ElfHeader,
-    Sections(Vec<SectionId>),
-    Empty,
+    Section(SectionId),
+}
+
+impl SegmentContent {
+    fn layout(&self, layout: &Layout<SerialIds>) -> PartMetadata {
+        match self {
+            SegmentContent::ProgramHeader => layout.metadata(&Part::ProgramHeaders).clone(),
+            SegmentContent::ElfHeader => layout.metadata(&Part::Header).clone(),
+            SegmentContent::Section(section) => layout.metadata_of_section(&section).clone(),
+        }
+    }
 }

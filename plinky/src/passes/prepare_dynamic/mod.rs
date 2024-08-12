@@ -28,7 +28,7 @@ pub(crate) fn run(
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
             let id = object.sections.builder(name, content).create(ids);
-            segment_content.push(id);
+            segment_content.push(SegmentContent::Section(id));
             object.dynamic_entries.add(entry(id));
             id
         };
@@ -56,20 +56,20 @@ pub(crate) fn run(
     }
 
     let dynamic = object.sections.builder(".dynamic", DynamicSection::new(dynstr)).create(ids);
-    segment_content.push(dynamic);
+    segment_content.push(SegmentContent::Section(dynamic));
 
     object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),
-        content: SegmentContent::Sections(segment_content),
+        content: segment_content,
     });
 
     object.segments.add(Segment {
         align: <u64 as RawTypeAsPointerSize>::size(object.env.class) as _,
         type_: SegmentType::Dynamic,
         perms: ElfPermissions::empty().read(),
-        content: SegmentContent::Sections(vec![dynamic]),
+        content: vec![SegmentContent::Section(dynamic)],
     });
 
     for type_ in [SegmentType::Program, SegmentType::ProgramHeader] {
@@ -77,7 +77,7 @@ pub(crate) fn run(
             align: 0x1000,
             type_,
             perms: ElfPermissions::empty().read(),
-            content: SegmentContent::ProgramHeader,
+            content: vec![SegmentContent::ProgramHeader],
         });
     }
 
@@ -85,7 +85,7 @@ pub(crate) fn run(
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),
-        content: SegmentContent::ElfHeader,
+        content: vec![SegmentContent::ElfHeader],
     });
 
     match object.mode {

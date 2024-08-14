@@ -46,18 +46,20 @@ pub(super) fn create_symbols<'a>(
     );
 
     for (file, symbols_in_file) in local_by_source {
-        symbols.insert(
-            ids.allocate_symbol_id(),
-            ElfSymbol {
-                name: strings.add(file.expect("symbol without a STT_FILE").resolve().as_str()),
-                binding: ElfSymbolBinding::Local,
-                type_: ElfSymbolType::File,
-                visibility: ElfSymbolVisibility::Default,
-                definition: ElfSymbolDefinition::Absolute,
-                value: 0,
-                size: 0,
-            },
-        );
+        if let Some(file) = file {
+            symbols.insert(
+                ids.allocate_symbol_id(),
+                ElfSymbol {
+                    name: strings.add(file.resolve().as_str()),
+                    binding: ElfSymbolBinding::Local,
+                    type_: ElfSymbolType::File,
+                    visibility: ElfSymbolVisibility::Default,
+                    definition: ElfSymbolDefinition::Absolute,
+                    value: 0,
+                    size: 0,
+                },
+            );
+        }
         for symbol in symbols_in_file {
             add_symbol(ids, section_ids, &mut symbols, &mut strings, &mut conversion, symbol);
         }

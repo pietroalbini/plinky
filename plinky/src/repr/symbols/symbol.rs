@@ -1,13 +1,13 @@
 use crate::interner::{intern, Interned};
 use crate::repr::symbols::LoadSymbolsError;
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use plinky_utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
 use plinky_macros::{Display, Error, Getters};
+use plinky_utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
 
 #[derive(Debug, Getters)]
 pub(crate) struct Symbol {
@@ -116,6 +116,24 @@ impl Symbol {
             needed_by_dynamic: false,
             exclude_from_tables: false,
         })
+    }
+
+    pub(crate) fn new_global_hidden(
+        id: SymbolId,
+        name: Interned<String>,
+        value: SymbolValue,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            type_: SymbolType::NoType,
+            stt_file: None,
+            span: intern(ObjectSpan::new_synthetic()),
+            visibility: SymbolVisibility::Global { weak: false, hidden: true },
+            value,
+            needed_by_dynamic: false,
+            exclude_from_tables: false,
+        }
     }
 
     pub(super) fn set_id(&mut self, id: SymbolId) {

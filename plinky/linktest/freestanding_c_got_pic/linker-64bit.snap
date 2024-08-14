@@ -186,7 +186,7 @@ debug print: object after relocations are applied
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
  │  │ <section .rodata#6>     │ section  │ hello.o    │ local      │ .rodata#6 + 0x0 │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
- │  │ _GLOBAL_OFFSET_TABLE_#7 │ none     │ hello.o    │ global     │ <undefined>     │
+ │  │ _GLOBAL_OFFSET_TABLE_#7 │ none     │ <plinky>   │ local      │ .got#25 + 0x0   │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤
  │  │ _start#1                │ function │ hello.o    │ global     │ .text#2 + 0x0   │
  │  ├─────────────────────────┼──────────┼────────────┼────────────┼─────────────────┤

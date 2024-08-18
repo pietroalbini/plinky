@@ -11,6 +11,7 @@ pub(crate) fn run(object: &mut Object) {
     let sections_already_in_segments = object
         .segments
         .iter()
+        .filter(|segment| segment.type_ == SegmentType::Program)
         .flat_map(|segment| segment.content.iter().filter_map(|c| {
             match c {
                 SegmentContent::ProgramHeader => None,

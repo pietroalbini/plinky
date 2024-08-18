@@ -1,8 +1,8 @@
-use crate::cli::{CliOptions, Mode};
+use crate::cli::CliOptions;
 use crate::repr::object::Object;
 use crate::repr::sections::DataSection;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
-use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error};
 
@@ -10,12 +10,7 @@ pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
     object: &mut Object,
-) -> Result<(), InjectInterpreterError> {
-    match object.mode {
-        Mode::PositionDependent => return Ok(()),
-        Mode::PositionIndependent => {}
-    }
-
+) -> Result<SectionId, InjectInterpreterError> {
     let mut interpreter: Vec<u8> = match (&options.dynamic_linker, object.env.class) {
         (Some(linker), _) => linker.as_bytes().into(),
         (None, plinky_elf::ElfClass::Elf32) => b"/lib/ld-linux.so.2".into(),
@@ -41,7 +36,7 @@ pub(crate) fn run(
         content: vec![SegmentContent::Section(section)],
     });
 
-    Ok(())
+    Ok(section)
 }
 
 #[derive(Debug, Error, Display)]

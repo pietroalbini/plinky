@@ -15,7 +15,7 @@ pub(super) fn read_program_header(cursor: &mut ReadCursor<'_>) -> Result<ElfSegm
             4 => ElfSegmentType::Note,
             6 => ElfSegmentType::ProgramHeaderTable,
             0x6474e551 => ElfSegmentType::GnuStack,
-            0x6474e552 => ElfSegmentType::GnuRelRO,
+            0x6474e552 => ElfSegmentType::GnuRelro,
             other => ElfSegmentType::Unknown(other),
         },
         perms: ElfPermissions {

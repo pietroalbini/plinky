@@ -17,6 +17,7 @@ pub(crate) struct CliOptions {
     pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
+    pub(crate) read_only_after_relocations: bool,
     pub(crate) dynamic_linker: Option<String>,
     pub(crate) mode: Mode,
 }
@@ -46,6 +47,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut output = None;
     let mut entry = None;
     let mut executable_stack = None;
+    let mut read_only_after_relocations = None;
     let mut gc_sections = None;
     let mut mode = None;
     let mut dynamic_linker = None;
@@ -85,6 +87,16 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 "noexecstack" => reject_duplicate(
                     "-z execstack or -z noexecstack",
                     &mut executable_stack,
+                    || Ok(false),
+                )?,
+                "relro" => reject_duplicate(
+                    "-z relro or -z norelro",
+                    &mut read_only_after_relocations,
+                    || Ok(true),
+                )?,
+                "norelro" => reject_duplicate(
+                    "-z relro or -z norelro",
+                    &mut read_only_after_relocations,
                     || Ok(false),
                 )?,
                 other => return Err(CliError::UnsupportedFlag(format!("-z {other}"))),
@@ -135,16 +147,23 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         previous_token = Some(token);
     }
 
-    Ok(CliOptions {
+    let options = CliOptions {
         inputs,
         output: output.unwrap_or("a.out").into(),
         entry: entry.unwrap_or("_start").into(),
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
+        read_only_after_relocations: read_only_after_relocations.unwrap_or(false),
         dynamic_linker: dynamic_linker.map(|s| s.into()),
         mode: mode.unwrap_or(Mode::PositionDependent),
-    })
+    };
+
+    if options.read_only_after_relocations && !matches!(options.mode, Mode::PositionIndependent) {
+        return Err(CliError::RelroOnlyForPie);
+    }
+
+    Ok(options)
 }
 
 fn reject_duplicate<T, F: FnOnce() -> Result<T, CliError>>(
@@ -191,6 +210,8 @@ pub(crate) enum CliError {
     FlagDoesNotAcceptValues(String),
     #[display("missing value for flag {f0}")]
     MissingValueForFlag(String),
+    #[display("-z relro is only supported in PIE mode")]
+    RelroOnlyForPie,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -599,6 +620,52 @@ mod tests {
     }
 
     #[test]
+    fn test_relro() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                mode: Mode::PositionIndependent,
+                read_only_after_relocations: true,
+                ..default_options()
+            }),
+            parse(["foo", "-pie", "-z", "relro"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_norelro() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                mode: Mode::PositionIndependent,
+                read_only_after_relocations: false,
+                ..default_options()
+            }),
+            parse(["foo", "-pie", "-z", "norelro"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_relro_without_pie() {
+        assert_eq!(Err(CliError::RelroOnlyForPie), parse(["foo", "-zrelro"].into_iter()));
+    }
+
+    #[test]
+    fn test_multiple_relro_flags() {
+        let cases = [
+            ["input_file", "-zrelro", "-zrelro"],
+            ["input_file", "-znorelro", "-znorelro"],
+            ["input_file", "-zrelro", "-znorelro"],
+        ];
+        for case in cases {
+            assert_eq!(
+                Err(CliError::DuplicateFlag("-z relro or -z norelro".into())),
+                parse(case.into_iter())
+            );
+        }
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -614,6 +681,7 @@ mod tests {
             gc_sections: false,
             debug_print: BTreeSet::new(),
             executable_stack: false,
+            read_only_after_relocations: false,
             dynamic_linker: None,
             mode: Mode::PositionDependent,
         }

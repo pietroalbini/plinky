@@ -120,6 +120,7 @@ pub(super) fn merge(
                         .into_iter()
                         .map(|r| Relocation::from_elf(id, r))
                         .collect::<Result<_, _>>()?,
+                    inside_relro: false,
                 },
             )
             .source(source.clone())

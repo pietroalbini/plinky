@@ -61,6 +61,7 @@ pub(super) fn render_layout(
                 SegmentType::Dynamic => "dynamic".into(),
                 SegmentType::Interpreter => "interpreter".into(),
                 SegmentType::GnuStack => "GNU stack".into(),
+                SegmentType::GnuRelro => "GNU relro".into(),
             },
             segment.perms.to_string(),
             segment

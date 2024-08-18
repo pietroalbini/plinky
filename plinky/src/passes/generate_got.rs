@@ -84,6 +84,7 @@ fn generate_got(
     }
 
     let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
+    data.inside_relro = true;
     store_relocations(&mut data, relocations);
 
     object.sections.builder(".got", data).create_with_id(id);

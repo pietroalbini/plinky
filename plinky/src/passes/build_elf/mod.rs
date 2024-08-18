@@ -260,6 +260,7 @@ impl<'a> ElfBuilder<'a> {
                     SegmentType::ProgramHeader => ElfSegmentType::ProgramHeaderTable,
                     SegmentType::Uninitialized => ElfSegmentType::Load,
                     SegmentType::GnuStack => ElfSegmentType::GnuStack,
+                    SegmentType::GnuRelro => ElfSegmentType::GnuRelro,
                 },
                 perms: segment.perms,
                 align: segment.align,

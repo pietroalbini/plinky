@@ -29,7 +29,7 @@ pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widge
                 ElfSegmentType::Note => "Note".into(),
                 ElfSegmentType::ProgramHeaderTable => "Program header table".into(),
                 ElfSegmentType::GnuStack => "GNU stack".into(),
-                ElfSegmentType::GnuRelRO => "GNU relocations read-only".into(),
+                ElfSegmentType::GnuRelro => "GNU relocations read-only".into(),
                 ElfSegmentType::Unknown(id) => format!("<unknown: {id:#x}>"),
             },
             render_perms(&segment.perms),

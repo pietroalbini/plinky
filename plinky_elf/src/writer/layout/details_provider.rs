@@ -112,7 +112,7 @@ impl<I: ElfIds> LayoutDetailsProvider<I> for ElfObject<I> {
                 ElfSegmentType::Dynamic => continue,
                 ElfSegmentType::Note => continue,
                 ElfSegmentType::GnuStack => continue,
-                ElfSegmentType::GnuRelRO => continue,
+                ElfSegmentType::GnuRelro => continue,
                 ElfSegmentType::Null => continue,
                 ElfSegmentType::Unknown(_) => continue,
             };

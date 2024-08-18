@@ -113,6 +113,7 @@ fn deduplicate(
                 },
                 bytes: merged,
                 relocations: Vec::new(),
+                inside_relro: false,
             },
         )
         .source(source.expect("no deduplicated sections"))

@@ -142,6 +142,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                 SegmentType::Uninitialized => {}
                 SegmentType::Dynamic => continue,
                 SegmentType::GnuStack => continue,
+                SegmentType::GnuRelro => continue,
             }
 
             let group = LayoutPartsGroup {

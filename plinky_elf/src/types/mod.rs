@@ -415,7 +415,7 @@ pub enum ElfSegmentType {
     Dynamic,
     Note,
     GnuStack,
-    GnuRelRO,
+    GnuRelro,
     Null,
     Unknown(u32),
 }

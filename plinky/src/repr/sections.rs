@@ -148,6 +148,7 @@ pub(crate) struct DataSection {
     pub(crate) deduplication: ElfDeduplication,
     pub(crate) bytes: Vec<u8>,
     pub(crate) relocations: Vec<Relocation>,
+    pub(crate) inside_relro: bool,
 }
 
 impl DataSection {
@@ -157,6 +158,7 @@ impl DataSection {
             deduplication: ElfDeduplication::Disabled,
             bytes: content.into(),
             relocations: Vec::new(),
+            inside_relro: false,
         }
     }
 }

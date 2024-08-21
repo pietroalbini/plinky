@@ -189,6 +189,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "insta",
+ "plinky_macros",
  "serde",
  "tempfile",
 ]

@@ -3,6 +3,7 @@
 extern crate test;
 
 pub mod prerequisites;
+pub mod template;
 pub mod utils;
 
 use crate::utils::err_str;

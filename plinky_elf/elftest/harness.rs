@@ -3,9 +3,9 @@ use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
-use plinky_test_harness::prerequisites::{Arch, Prerequisites};
+use plinky_test_harness::legacy::prerequisites::{Arch, Prerequisites};
+use plinky_test_harness::legacy::{Test, TestGatherer};
 use plinky_test_harness::utils::record_snapshot;
-use plinky_test_harness::{Test, TestGatherer};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
@@ -142,5 +142,5 @@ fn default_true() -> bool {
 
 fn main() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("elftest");
-    plinky_test_harness::main(&path, Elftest);
+    plinky_test_harness::legacy::main(&path, Elftest);
 }

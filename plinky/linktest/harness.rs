@@ -1,7 +1,7 @@
 use anyhow::{bail, Error};
-use plinky_test_harness::prerequisites::{Arch, Prerequisites};
+use plinky_test_harness::legacy::prerequisites::{Arch, Prerequisites};
+use plinky_test_harness::legacy::{Test, TestGatherer};
 use plinky_test_harness::utils::record_snapshot;
-use plinky_test_harness::{Test, TestGatherer};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempfile::TempDir;
@@ -11,7 +11,7 @@ struct Linktest;
 impl TestGatherer for Linktest {
     const MANIFEST_NAME: &'static str = "test.toml";
 
-    fn tests_for_file(&self, toml_path: &Path) -> Result<Vec<plinky_test_harness::Test>, Error> {
+    fn tests_for_file(&self, toml_path: &Path) -> Result<Vec<Test>, Error> {
         let path = toml_path.parent().unwrap();
         let test_toml: TestSettings = toml::from_str(&std::fs::read_to_string(&toml_path)?)?;
 
@@ -155,5 +155,5 @@ enum TestKind {
 
 fn main() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("linktest");
-    plinky_test_harness::main(&path, Linktest);
+    plinky_test_harness::legacy::main(&path, Linktest);
 }

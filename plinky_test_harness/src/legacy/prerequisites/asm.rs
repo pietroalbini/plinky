@@ -1,4 +1,4 @@
-use crate::prerequisites::Arch;
+use crate::legacy::prerequisites::Arch;
 use crate::utils::run;
 use anyhow::Error;
 use std::path::Path;

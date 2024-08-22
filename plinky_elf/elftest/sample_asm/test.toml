@@ -1,5 +1,7 @@
-read = "hello.o"
 archs = ["x86", "x86_64"]
 
-[[asm]]
+[read.read]
+file = "${asm.hello}"
+
+[asm.hello]
 source = "hello.S"

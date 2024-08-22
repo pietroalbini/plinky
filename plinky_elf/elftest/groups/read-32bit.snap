@@ -1,7 +1,7 @@
 ---
 source: plinky_test_harness/src/utils.rs
 ---
-reading exited with exit status: 0
+command exited with exit status: 0
 
 === stdout ===
 section .group#1 (address: 0x0)
@@ -94,4 +94,3 @@ section .symtab#11 (address: 0x0)
 
 
 no stderr present
-

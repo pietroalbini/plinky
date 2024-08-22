@@ -1,7 +1,7 @@
 ---
 source: plinky_test_harness/src/utils.rs
 ---
-reading exited with exit status: 0
+command exited with exit status: 0
 
 === stdout ===
 section .hash#1 (address: 0x114)
@@ -71,4 +71,3 @@ section .dynsym#2 (address: 0x164)
 
 
 no stderr present
-

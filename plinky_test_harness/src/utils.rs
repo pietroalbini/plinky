@@ -54,8 +54,12 @@ pub fn record_snapshot(
     Ok(success)
 }
 
+pub(crate) fn file_name(path: impl AsRef<Path>) -> String {
+    path.as_ref().file_name().unwrap().to_str().unwrap().to_string()
+}
+
 #[track_caller]
-pub fn err_str<T>(result: Result<T, Error>) -> Result<T, String> {
+pub(crate) fn err_str<T>(result: Result<T, Error>) -> Result<T, String> {
     result.map_err(|err| {
         let mut repr = format!("error: {err}\n");
         let mut source = err.source();

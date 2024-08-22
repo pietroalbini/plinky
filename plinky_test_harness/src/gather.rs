@@ -1,0 +1,121 @@
+use crate::tests::{Arch, Test, TestStep};
+use crate::utils::err_str;
+use crate::Step;
+use anyhow::{Context, Error};
+use serde::de::DeserializeOwned;
+use std::collections::BTreeMap;
+use std::path::Path;
+use test::{ShouldPanic, TestDesc, TestDescAndFn, TestFn, TestName, TestType};
+use toml::Value;
+
+pub(crate) fn gather(
+    path: &Path,
+    define_steps: DefineStepsFn,
+) -> Result<Vec<TestDescAndFn>, Error> {
+    let mut tests = Vec::new();
+
+    for entry in path.read_dir()? {
+        let entry = entry?;
+
+        let toml = entry.path().join("test.toml");
+        if !toml.is_file() {
+            continue;
+        }
+
+        create_tests(&mut tests, &toml, define_steps)
+            .with_context(|| format!("failed to create tests from {}", toml.display()))?;
+    }
+
+    Ok(tests)
+}
+
+fn create_tests(
+    tests: &mut Vec<TestDescAndFn>,
+    toml_path: &Path,
+    define_steps: DefineStepsFn,
+) -> Result<(), Error> {
+    let source_dir = toml_path.parent().unwrap();
+    let name = source_dir.file_name().unwrap().to_str().unwrap();
+
+    let raw = std::fs::read_to_string(toml_path)?;
+    let toml: Toml = toml::from_str(&raw)?;
+
+    for &arch in &toml.archs {
+        let mut definer = DefineSteps { undefined: toml.steps.clone(), defined: Vec::new() };
+        define_steps(&mut definer)?;
+
+        let missing_step_kinds = definer.undefined.into_keys().collect::<Vec<_>>();
+        if !missing_step_kinds.is_empty() {
+            anyhow::bail!(
+                "test contains the following undefined step types: {}",
+                missing_step_kinds.join(", ")
+            );
+        }
+
+        let test = Test { arch, steps: definer.defined, source_dir: source_dir.into() };
+
+        tests.push(TestDescAndFn {
+            desc: TestDesc {
+                name: TestName::DynTestName(format!("{name} ({arch})")),
+                ignore: toml.ignore.is_some(),
+                ignore_message: toml.ignore.clone().map(leak),
+                source_file: "",
+                start_line: 0,
+                start_col: 0,
+                end_line: 0,
+                end_col: 0,
+                should_panic: ShouldPanic::No,
+                compile_fail: false,
+                no_run: false,
+                test_type: TestType::IntegrationTest,
+            },
+            testfn: TestFn::DynTestFn(Box::new(move || err_str(test.run()))),
+        });
+    }
+
+    Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct Toml {
+    archs: Vec<Arch>,
+    #[serde(default)]
+    ignore: Option<String>,
+    #[serde(flatten)]
+    steps: BTreeMap<String, BTreeMap<String, Value>>,
+}
+
+pub(crate) type DefineStepsFn = fn(&mut DefineSteps) -> Result<&mut DefineSteps, Error>;
+
+pub struct DefineSteps {
+    undefined: BTreeMap<String, BTreeMap<String, Value>>,
+    defined: Vec<TestStep>,
+}
+
+impl DefineSteps {
+    pub fn define_builtins(&mut self) -> Result<&mut Self, Error> {
+        self.define::<crate::steps::asm::AsmStep>("asm")?
+            .define::<crate::steps::ld::LdStep>("ld")?
+            .define::<crate::steps::c::CStep>("c")
+    }
+
+    pub fn define<S: Step + DeserializeOwned + 'static>(
+        &mut self,
+        kind_name: &str,
+    ) -> Result<&mut Self, Error> {
+        if let Some(steps) = self.undefined.remove(kind_name) {
+            for (step_name, data) in steps {
+                let name = format!("{kind_name}.{step_name}");
+                let step = Box::new(
+                    data.try_into::<S>().with_context(|| format!("failed to parse step {name}"))?,
+                );
+                self.defined.push(TestStep::new(&name, step));
+            }
+        }
+        Ok(self)
+    }
+}
+
+fn leak(string: String) -> &'static str {
+    Box::leak(Box::new(string)).as_str()
+}

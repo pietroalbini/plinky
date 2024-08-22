@@ -191,6 +191,7 @@ dependencies = [
  "plinky_macros",
  "serde",
  "tempfile",
+ "toml",
 ]
 
 [[package]]

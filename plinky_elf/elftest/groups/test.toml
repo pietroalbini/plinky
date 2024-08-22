@@ -1,6 +1,8 @@
-read = "groups.o"
 archs = ["x86", "x86_64"]
+
+[read.read]
+file = "${asm.groups}"
 filter = ".group*,.rodata*,.symtab"
 
-[[asm]]
+[asm.groups]
 source = "groups.S"

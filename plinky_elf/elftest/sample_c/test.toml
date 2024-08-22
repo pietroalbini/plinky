@@ -1,7 +1,9 @@
-read = "hello.o"
 archs = ["x86", "x86_64"]
 
-[[c]]
+[read.read]
+file = "${c.hello}"
+
+[c.hello]
 source = "hello.c"
 libc = "freestanding"
 relocation = "static"

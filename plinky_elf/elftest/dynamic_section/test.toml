@@ -1,12 +1,15 @@
-read = "dynamic.so"
 archs = ["x86", "x86_64"]
+
+[read.read]
+file = "${ld.dynamic}"
 filter = ".dyn*,*plt,@segments"
 
-[[ld]]
-dest = "dynamic.so"
+[ld.dynamic]
+output = "dynamic.so"
+content = ["${c.dynamic}"]
 shared-library = true
 
-[[ld.c]]
+[c.dynamic]
 source = "dynamic.c"
 libc = "freestanding"
 relocation = "pic"

@@ -1,12 +1,15 @@
-read = "hello.so"
 archs = ["x86", "x86_64"]
+
+[read.read]
+file = "${ld.hello}"
 filter = "*hash,.dynsym"
 
-[[ld]]
-dest = "hello.so"
+[ld.hello]
+output = "hello.so"
+content = ["${c.hello}"]
 shared-library = true
 
-[[ld.c]]
+[c.hello]
 source = "hello.c"
 libc = "freestanding"
 relocation = "pic"

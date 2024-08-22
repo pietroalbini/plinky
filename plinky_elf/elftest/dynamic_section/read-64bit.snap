@@ -1,7 +1,7 @@
 ---
 source: plinky_test_harness/src/utils.rs
 ---
-reading exited with exit status: 0
+command exited with exit status: 0
 
 === stdout ===
 section .dynsym#2 (address: 0x1e0)
@@ -113,4 +113,3 @@ section .got.plt#9 (address: 0x4000)
 
 
 no stderr present
-

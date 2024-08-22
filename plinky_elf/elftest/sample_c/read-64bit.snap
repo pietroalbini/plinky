@@ -1,7 +1,7 @@
 ---
 source: plinky_test_harness/src/utils.rs
 ---
-reading exited with exit status: 0
+command exited with exit status: 0
 
 === stdout ===
   Metadata:
@@ -183,4 +183,3 @@ No segments in the ELF file.
 
 
 no stderr present
-

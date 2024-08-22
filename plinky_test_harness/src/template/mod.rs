@@ -1,5 +1,6 @@
 mod lexer;
 mod parser;
+mod serde;
 
 use crate::template::lexer::Lexer;
 use crate::template::parser::Parser;
@@ -20,7 +21,7 @@ impl TemplateContext {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Template {
     parts: Vec<Part>,
 }
@@ -30,7 +31,7 @@ impl Template {
         Parser::new(Lexer::new(&mut input)).parse()
     }
 
-    pub fn resolve(&self, context: &TemplateContext) -> Option<String> {
+    pub fn resolve(&self, context: &TemplateContext) -> Result<String, TemplateResolveError> {
         let mut result = String::new();
         for part in &self.parts {
             match part {
@@ -38,7 +39,7 @@ impl Template {
                 Part::Expression(expr) => result.push_str(expr.resolve(context)?),
             }
         }
-        Some(result)
+        Ok(result)
     }
 
     pub fn will_resolve(&self, context: &TemplateContext) -> bool {
@@ -46,8 +47,9 @@ impl Template {
             match part {
                 Part::RawText(_) => {}
                 Part::Expression(expr) => {
-                    if expr.resolve(context).is_none() {
-                        return false;
+                    match expr.resolve(context) {
+                        Ok(_) => {},
+                        Err(TemplateResolveError::MissingVariable(_)) => return false,
                     }
                 }
             }
@@ -56,31 +58,41 @@ impl Template {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum Part {
     RawText(String),
     Expression(Expression),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum Expression {
     Variable(String),
 }
 
 impl Expression {
-    fn resolve<'a>(&self, context: &'a TemplateContext) -> Option<&'a str> {
+    fn resolve<'a>(&self, context: &'a TemplateContext) -> Result<&'a str, TemplateResolveError> {
         match self {
-            Expression::Variable(var) => context.variables.get(var).map(|s| s.as_str()),
+            Expression::Variable(var) => context
+                .variables
+                .get(var)
+                .map(|s| s.as_str())
+                .ok_or_else(|| TemplateResolveError::MissingVariable(var.clone())),
         }
     }
 }
 
 #[derive(Debug, Display, Error)]
 pub enum TemplateParseError {
-    #[display("]unexpected char: {f0}")]
+    #[display("unexpected char: {f0}")]
     UnexpectedChar(char),
     #[display("unexpected {actual}, expected {expected}")]
     UnexpectedToken { actual: String, expected: &'static str },
+}
+
+#[derive(Debug, Display, Error)]
+pub enum TemplateResolveError {
+    #[display("missing variable: {f0}")]
+    MissingVariable(String),
 }
 
 #[cfg(test)]
@@ -108,7 +120,7 @@ mod tests {
     #[track_caller]
     fn assert_not_resolve(ctx: &TemplateContext, template: &str) {
         let template = Template::parse(template).unwrap();
-        assert!(template.resolve(ctx).is_none(), "template did resolve");
+        assert!(template.resolve(ctx).is_err(), "template did resolve");
         assert!(!template.will_resolve(ctx));
     }
 }

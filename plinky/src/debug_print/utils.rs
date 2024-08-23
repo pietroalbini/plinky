@@ -1,9 +1,9 @@
 use crate::repr::object::Object;
 use crate::repr::symbols::SymbolValue;
-use plinky_utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::ids::ReprIdGetters;
 use plinky_elf::ElfPermissions;
+use plinky_utils::ints::ExtractNumber;
 
 pub(super) fn permissions(perms: &ElfPermissions) -> String {
     let mut output = String::new();

@@ -12,13 +12,13 @@ pub(crate) fn run(object: &mut Object) {
         .segments
         .iter()
         .filter(|segment| segment.type_ == SegmentType::Program)
-        .flat_map(|segment| segment.content.iter().filter_map(|c| {
-            match c {
+        .flat_map(|segment| {
+            segment.content.iter().filter_map(|c| match c {
                 SegmentContent::ProgramHeader => None,
                 SegmentContent::ElfHeader => None,
                 SegmentContent::Section(id) => Some(*id),
-            }
-        }))
+            })
+        })
         .collect::<BTreeSet<_>>();
 
     let mut segments = BTreeMap::new();
@@ -46,11 +46,6 @@ pub(crate) fn run(object: &mut Object) {
     }
 
     for ((type_, perms), content) in segments {
-        object.segments.add(Segment {
-            align: PAGE_SIZE,
-            type_,
-            perms,
-            content,
-        });
+        object.segments.add(Segment { align: PAGE_SIZE, type_, perms, content });
     }
 }

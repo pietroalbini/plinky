@@ -1,10 +1,10 @@
 use crate::template::TemplateContext;
+use crate::utils::record_snapshot;
 use crate::Step;
 use anyhow::{Context, Error};
 use std::path::{Path, PathBuf};
-use tempfile::TempDir;
-use crate::utils::record_snapshot;
 use std::process::Command;
+use tempfile::TempDir;
 
 #[derive(Debug)]
 pub(crate) struct Test {

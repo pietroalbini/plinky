@@ -1,12 +1,12 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use plinky_utils::ints::ExtractNumber;
 use plinky_elf::ids::serial::SymbolId;
 use plinky_elf::{
     ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
 };
 use plinky_macros::{Display, Error};
+use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
 pub(super) fn create_rela<'a>(

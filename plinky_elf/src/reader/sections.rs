@@ -30,12 +30,8 @@ pub(super) fn read_sections(
         cursor.seek_to(offset + (size as u64 * idx as u64))?;
         sections.insert(
             PendingSectionId(idx as _),
-            read_section(
-                cursor,
-                section_names_table,
-                PendingSectionId(idx as _),
-            )
-            .map_err(|inner| LoadError::FailedToParseSection { idx, inner: Box::new(inner) })?,
+            read_section(cursor, section_names_table, PendingSectionId(idx as _))
+                .map_err(|inner| LoadError::FailedToParseSection { idx, inner: Box::new(inner) })?,
         );
     }
 

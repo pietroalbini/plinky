@@ -57,7 +57,7 @@ impl<'a> Iterator for Lexer<'a, '_> {
                     Some(' ' | '\t') => {
                         **remaining = &remaining[1..];
                         continue;
-                    },
+                    }
                     Some(chr) => Some(Err(TemplateParseError::UnexpectedChar(chr))),
                     None => None,
                 };

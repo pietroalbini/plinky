@@ -46,12 +46,10 @@ impl Template {
         for part in &self.parts {
             match part {
                 Part::RawText(_) => {}
-                Part::Expression(expr) => {
-                    match expr.resolve(context) {
-                        Ok(_) => {},
-                        Err(TemplateResolveError::MissingVariable(_)) => return false,
-                    }
-                }
+                Part::Expression(expr) => match expr.resolve(context) {
+                    Ok(_) => {}
+                    Err(TemplateResolveError::MissingVariable(_)) => return false,
+                },
             }
         }
         true

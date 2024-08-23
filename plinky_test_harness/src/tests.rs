@@ -1,11 +1,10 @@
 use crate::template::TemplateContext;
-use crate::utils::record_snapshot;
 use crate::Step;
 use anyhow::{Context, Error};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tempfile::TempDir;
 use std::sync::Arc;
+use crate::utils::RunAndSnapshot;
 
 #[derive(Debug)]
 pub(crate) struct Test {
@@ -91,14 +90,14 @@ impl TestContext<'_> {
         }
     }
 
-    pub fn run_and_snapshot(&self, command: &mut Command) -> Result<bool, Error> {
+    pub fn run_and_snapshot(&self) -> RunAndSnapshot {
         let name = self.step_name.split_once('.').expect("invalid step name").1;
         let arch = match self.arch {
             Arch::X86 => "32bit",
             Arch::X86_64 => "64bit",
         };
 
-        record_snapshot(&format!("{name}-{arch}"), &self.src, "command", command)
+        RunAndSnapshot::new(&format!("{name}-{arch}"), &self.src)
     }
 }
 

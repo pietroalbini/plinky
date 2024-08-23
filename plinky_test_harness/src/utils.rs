@@ -1,5 +1,5 @@
 use anyhow::{bail, Error};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub fn run(command: &mut Command) -> Result<(), Error> {
@@ -19,39 +19,50 @@ pub fn run(command: &mut Command) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn record_snapshot(
-    snapshot_name: &str,
-    snapshot_path: &Path,
-    action: &str,
-    command: &mut Command,
-) -> Result<bool, Error> {
-    let (output_repr, success) = match command.output() {
-        Ok(output) => {
-            let mut output_repr = format!("{action} exited with {}\n", output.status);
-            for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
-                if content.is_empty() {
-                    output_repr.push_str(&format!("\nno {name} present\n"));
-                } else {
-                    let content = String::from_utf8_lossy(content);
-                    let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
+pub struct RunAndSnapshot {
+    name: String,
+    path: PathBuf,
+    output: String,
+}
 
-                    output_repr.push_str(&format!("\n=== {name} ===\n{}\n", content,));
+impl RunAndSnapshot {
+    pub fn new(name: &str, path: &Path) -> Self {
+        Self { name: name.into(), path: path.into(), output: String::new() }
+    }
+
+    pub fn run(&mut self, action: &str, command: &mut Command) -> Result<bool, Error> {
+        match command.output() {
+            Ok(output) => {
+                self.output.push_str(&format!("{action} exited with {}\n", output.status));
+                for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
+                    if content.is_empty() {
+                        self.output.push_str(&format!("\nno {name} present\n"));
+                    } else {
+                        let content = String::from_utf8_lossy(content);
+                        let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
+
+                        self.output.push_str(&format!("\n=== {name} ===\n{}\n", content,));
+                    }
                 }
+                Ok(output.status.success())
             }
-            (output_repr, output.status.success())
+            Err(err) => {
+                self.output.push_str(&format!("{action} failed to execute with error: {err}"));
+                Ok(false)
+            }
         }
-        Err(err) => (format!("{action} failed to execute with error: {err}"), false),
-    };
+    }
 
-    let mut insta_settings = insta::Settings::clone_current();
-    insta_settings.set_prepend_module_to_snapshot(false);
-    insta_settings.set_omit_expression(true);
-    insta_settings.set_snapshot_path(snapshot_path.canonicalize()?);
+    pub fn persist(self) {
+        let mut insta_settings = insta::Settings::clone_current();
+        insta_settings.set_prepend_module_to_snapshot(false);
+        insta_settings.set_omit_expression(true);
+        insta_settings.set_snapshot_path(self.path.canonicalize().unwrap());
 
-    insta_settings.bind(|| {
-        insta::assert_snapshot!(snapshot_name, output_repr);
-    });
-    Ok(success)
+        insta_settings.bind(|| {
+            insta::assert_snapshot!(self.name, self.output);
+        });
+    }
 }
 
 pub(crate) fn file_name(path: impl AsRef<Path>) -> String {

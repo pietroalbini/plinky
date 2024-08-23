@@ -1,10 +1,10 @@
 use anyhow::{bail, Error};
 use plinky_test_harness::legacy::prerequisites::{Arch, Prerequisites};
 use plinky_test_harness::legacy::{Test, TestGatherer};
-use plinky_test_harness::utils::record_snapshot;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempfile::TempDir;
+use plinky_test_harness::utils::RunAndSnapshot;
 
 struct Linktest;
 
@@ -107,7 +107,10 @@ impl TestExecution {
         action: &str,
         command: &mut Command,
     ) -> Result<bool, Error> {
-        record_snapshot(&format!("{name}{}", self.suffix()), &self.root, action, command)
+        let mut runner = RunAndSnapshot::new(&format!("{name}{}", self.suffix()), &self.root);
+        let outcome = runner.run(action, command)?;
+        runner.persist();
+        Ok(outcome)
     }
 
     fn suffix(&self) -> &'static str {

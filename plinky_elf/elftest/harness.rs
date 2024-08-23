@@ -12,7 +12,7 @@ use std::process::Command;
 
 #[derive(Debug, serde::Deserialize)]
 struct ReadStep {
-   file: Template,
+    file: Template,
     #[serde(default = "default_true")]
     roundtrip: bool,
     #[serde(default)]
@@ -53,7 +53,11 @@ impl ReadStep {
             command.arg(filter);
         }
 
-        if !ctx.run_and_snapshot(&mut command)? {
+        let mut runner = ctx.run_and_snapshot();
+        let outcome = runner.run("reading ELF", &mut command)?;
+        runner.persist();
+
+        if !outcome {
             bail!("failed to read the ELF file");
         }
 

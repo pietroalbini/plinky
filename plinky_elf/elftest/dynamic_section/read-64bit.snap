@@ -1,7 +1,7 @@
 ---
 source: plinky_test_harness/src/utils.rs
 ---
-command exited with exit status: 0
+reading ELF exited with exit status: 0
 
 === stdout ===
 section .dynsym#2 (address: 0x1e0)

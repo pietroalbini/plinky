@@ -1,7 +1,14 @@
 archs = ["x86", "x86_64"]
 
-[read.read]
+[read.object]
 file = "${asm.hello}"
+
+[read.linked]
+file = "${ld.hello}"
+
+[ld.hello]
+output = "hello"
+content = ["${asm.hello}"]
 
 [asm.hello]
 source = "hello.S"

@@ -5,6 +5,7 @@ use anyhow::{Context, Error};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempfile::TempDir;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub(crate) struct Test {
@@ -101,16 +102,16 @@ impl TestContext<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct TestStep {
-    name: String,
-    step: Box<dyn Step>,
+    pub(crate) name: String,
+    step: Arc<Box<dyn Step>>,
     completed: bool,
 }
 
 impl TestStep {
     pub(crate) fn new(name: &str, step: Box<dyn Step>) -> Self {
-        Self { name: name.into(), step, completed: false }
+        Self { name: name.into(), step: Arc::new(step), completed: false }
     }
 }
 

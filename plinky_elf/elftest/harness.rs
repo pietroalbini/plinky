@@ -12,7 +12,7 @@ use std::process::Command;
 
 #[derive(Debug, serde::Deserialize)]
 struct ReadStep {
-    file: Template,
+   file: Template,
     #[serde(default = "default_true")]
     roundtrip: bool,
     #[serde(default)]
@@ -36,6 +36,10 @@ impl Step for ReadStep {
 
     fn templates(&self) -> Vec<Template> {
         vec![self.file.clone()]
+    }
+
+    fn is_leaf(&self) -> bool {
+        true
     }
 }
 

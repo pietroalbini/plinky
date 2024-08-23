@@ -1,10 +1,10 @@
 use anyhow::{bail, Error};
 use plinky_test_harness::legacy::prerequisites::{Arch, Prerequisites};
 use plinky_test_harness::legacy::{Test, TestGatherer};
+use plinky_test_harness::utils::RunAndSnapshot;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempfile::TempDir;
-use plinky_test_harness::utils::RunAndSnapshot;
 
 struct Linktest;
 
@@ -66,12 +66,27 @@ impl TestExecution {
             &dest_dir,
         )?;
 
-        let (res, err) = match self.settings.kind {
-            TestKind::LinkFail => (!self.link()?, "linking was supposed to fail but passed!"),
-            TestKind::LinkPass => (self.link()?, "linking was supposed to pass but failed!"),
-            TestKind::RunFail => (!self.run()?, "running was supposed to fail but passed!"),
-            TestKind::RunPass => (self.run()?, "running was supposed to pass but failed!"),
+        let suffix = match &self.arch {
+            TestArch::X86 => "-32bit",
+            TestArch::X86_64 => "-64bit",
         };
+        let mut runner = RunAndSnapshot::new(&format!("test{}", suffix), &self.root);
+        let (res, err) = match self.settings.kind {
+            TestKind::LinkFail => {
+                (!self.link(&mut runner)?, "linking was supposed to fail but passed!")
+            }
+            TestKind::LinkPass => {
+                (self.link(&mut runner)?, "linking was supposed to pass but failed!")
+            }
+            TestKind::RunFail => {
+                (!self.run(&mut runner)?, "running was supposed to fail but passed!")
+            }
+            TestKind::RunPass => {
+                (self.run(&mut runner)?, "running was supposed to pass but failed!")
+            }
+        };
+        runner.persist();
+
         if res {
             let _ = std::fs::remove_dir_all(&dest_dir);
             Ok(())
@@ -80,44 +95,25 @@ impl TestExecution {
         }
     }
 
-    fn link(&self) -> Result<bool, Error> {
+    fn link(&self, runner: &mut RunAndSnapshot) -> Result<bool, Error> {
         let mut command = Command::new(env!("CARGO_BIN_EXE_ld.plinky"));
         command.current_dir(&self.dest_dir).args(&self.settings.cmd).env("RUST_BACKTRACE", "1");
         for debug_print in &self.settings.debug_print {
             command.args(["--debug-print", debug_print]);
         }
 
-        self.record_snapshot("linker", "linking", &mut command)
+        runner.run("linking", &mut command)
     }
 
-    fn run(&self) -> Result<bool, Error> {
-        if !self.link()? {
+    fn run(&self, runner: &mut RunAndSnapshot) -> Result<bool, Error> {
+        if !self.link(runner)? {
             bail!("linking was supposed to pass but failed!");
         }
 
         let mut command = Command::new(self.dest_dir.join("a.out"));
         command.current_dir(&self.dest_dir);
 
-        self.record_snapshot("run", "running", &mut command)
-    }
-
-    fn record_snapshot(
-        &self,
-        name: &str,
-        action: &str,
-        command: &mut Command,
-    ) -> Result<bool, Error> {
-        let mut runner = RunAndSnapshot::new(&format!("{name}{}", self.suffix()), &self.root);
-        let outcome = runner.run(action, command)?;
-        runner.persist();
-        Ok(outcome)
-    }
-
-    fn suffix(&self) -> &'static str {
-        match &self.arch {
-            TestArch::X86 => "-32bit",
-            TestArch::X86_64 => "-64bit",
-        }
+        runner.run("running", &mut command)
     }
 }
 

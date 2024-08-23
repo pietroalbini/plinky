@@ -33,6 +33,9 @@ impl RunAndSnapshot {
     pub fn run(&mut self, action: &str, command: &mut Command) -> Result<bool, Error> {
         match command.output() {
             Ok(output) => {
+                if !self.output.is_empty() {
+                    self.output.push_str("\n==============\n\n");
+                }
                 self.output.push_str(&format!("{action} exited with {}\n", output.status));
                 for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
                     if content.trim_ascii().is_empty() {

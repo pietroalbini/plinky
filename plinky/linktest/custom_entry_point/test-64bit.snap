@@ -1,5 +1,5 @@
 ---
-source: plinky/linktest/harness/tests.rs
+source: plinky_test_harness/src/utils.rs
 ---
 linking exited with exit status: 0
 
@@ -10,13 +10,13 @@ debug print: built elf
  │
  │    Metadata:
  │  ╭────────────┬────────────╮
- │  │ Class      │ ELF 32bit  │
+ │  │ Class      │ ELF 64bit  │
  │  ├────────────┼────────────┤
  │  │ Endian     │ Little     │
  │  ├────────────┼────────────┤
  │  │ ABI        │ System V   │
  │  ├────────────┼────────────┤
- │  │ Machine    │ x86        │
+ │  │ Machine    │ x86-64     │
  │  ├────────────┼────────────┤
  │  │ Type       │ Executable │
  │  ├────────────┼────────────┤
@@ -24,5 +24,11 @@ debug print: built elf
  │  ╰────────────┴────────────╯
  ┴
 
+==============
 
+running exited with exit status: 0
 
+=== stdout ===
+Hello world!
+
+no stderr present

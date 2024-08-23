@@ -74,5 +74,11 @@ debug print: built elf
  │  ╰───────────┴───────┴──────────┴─────────────┴──────────┴────────────────┴────────────╯
  ┴
 
+==============
 
+running exited with exit status: 0
 
+=== stdout ===
+hello
+
+no stderr present

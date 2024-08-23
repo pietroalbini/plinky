@@ -73,5 +73,11 @@ debug print: loaded object
  │  ╰─────────────┴──────┴───────────────────────────────────┴────────────┴────────────────╯
  ┴
 
+==============
 
+running exited with exit status: 0
 
+=== stdout ===
+Hello world!
+
+no stderr present

@@ -35,13 +35,16 @@ impl RunAndSnapshot {
             Ok(output) => {
                 self.output.push_str(&format!("{action} exited with {}\n", output.status));
                 for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
-                    if content.is_empty() {
+                    if content.trim_ascii().is_empty() {
                         self.output.push_str(&format!("\nno {name} present\n"));
                     } else {
-                        let content = String::from_utf8_lossy(content);
-                        let content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
+                        let mut content = String::from_utf8_lossy(content).to_string();
+                        content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
 
-                        self.output.push_str(&format!("\n=== {name} ===\n{}\n", content,));
+                        self.output.push_str(&format!(
+                            "\n=== {name} ===\n{}\n",
+                            content.trim_ascii_end()
+                        ));
                     }
                 }
                 Ok(output.status.success())
@@ -60,7 +63,7 @@ impl RunAndSnapshot {
         insta_settings.set_snapshot_path(self.path.canonicalize().unwrap());
 
         insta_settings.bind(|| {
-            insta::assert_snapshot!(self.name, self.output);
+            insta::assert_snapshot!(self.name, self.output.trim_ascii_end());
         });
     }
 }

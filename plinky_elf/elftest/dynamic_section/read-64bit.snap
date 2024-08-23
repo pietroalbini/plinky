@@ -111,5 +111,4 @@ section .got.plt#9 (address: 0x4000)
 │ GNU relocations read-only │ R     │ 0x1      │ 0x2f10      │ 0xf0     │ 0x3f10         │ 0xf0       │
 ╰───────────────────────────┴───────┴──────────┴─────────────┴──────────┴────────────────┴────────────╯
 
-
 no stderr present

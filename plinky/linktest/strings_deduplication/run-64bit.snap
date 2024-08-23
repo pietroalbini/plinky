@@ -1,5 +1,5 @@
 ---
-source: plinky/linktest/harness/main.rs
+source: plinky_test_harness/src/utils.rs
 ---
 running exited with exit status: 0
 
@@ -7,6 +7,4 @@ running exited with exit status: 0
 Hello world!
 Goodbye world!
 
-
 no stderr present
-

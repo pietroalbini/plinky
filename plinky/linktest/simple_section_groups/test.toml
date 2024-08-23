@@ -1,10 +1,12 @@
-cmd = ["foo.o", "bar.o"]
-kind = "link-pass"
-debug-print = ["loaded-object"]
 archs = ["x86", "x86_64"]
 
-[[asm]]
+[plinky.test]
+cmd = ["${asm.foo}", "${asm.bar}"]
+kind = "link-pass"
+debug-print = ["loaded-object"]
+
+[asm.foo]
 source = "foo.S"
 
-[[asm]]
+[asm.bar]
 source = "bar.S"

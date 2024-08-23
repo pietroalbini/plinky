@@ -5,21 +5,9 @@ mod serde;
 use crate::template::lexer::Lexer;
 use crate::template::parser::Parser;
 use plinky_macros::{Display, Error};
+use std::borrow::Cow;
 use std::collections::HashMap;
-
-pub struct TemplateContext {
-    variables: HashMap<String, String>,
-}
-
-impl TemplateContext {
-    pub fn new() -> Self {
-        Self { variables: HashMap::new() }
-    }
-
-    pub fn set_variable(&mut self, key: &str, value: &str) {
-        self.variables.insert(key.into(), value.into());
-    }
-}
+use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Template {
@@ -31,23 +19,32 @@ impl Template {
         Parser::new(Lexer::new(&mut input)).parse()
     }
 
-    pub fn resolve(&self, context: &TemplateContext) -> Result<String, TemplateResolveError> {
+    pub fn resolve(
+        &self,
+        context: &dyn TemplateContextGetters,
+    ) -> Result<String, TemplateResolveError> {
         let mut result = String::new();
         for part in &self.parts {
             match part {
                 Part::RawText(lit) => result.push_str(lit),
-                Part::Expression(expr) => result.push_str(expr.resolve(context)?),
+                Part::Expression(expr) => match expr.resolve(context)?.as_ref() {
+                    Value::String(s) => result.push_str(s),
+                    Value::Path(p) => result.push_str(
+                        p.to_str().ok_or_else(|| TemplateResolveError::NonUtf8Path(p.clone()))?,
+                    ),
+                },
             }
         }
         Ok(result)
     }
 
-    pub fn will_resolve(&self, context: &TemplateContext) -> bool {
+    pub fn will_resolve(&self, context: &dyn TemplateContextGetters) -> bool {
         for part in &self.parts {
             match part {
                 Part::RawText(_) => {}
                 Part::Expression(expr) => match expr.resolve(context) {
                     Ok(_) => {}
+                    Err(TemplateResolveError::NonUtf8Path(_)) => {}
                     Err(TemplateResolveError::MissingVariable(_)) => return false,
                 },
             }
@@ -68,14 +65,45 @@ enum Expression {
 }
 
 impl Expression {
-    fn resolve<'a>(&self, context: &'a TemplateContext) -> Result<&'a str, TemplateResolveError> {
+    fn resolve<'a>(
+        &self,
+        context: &'a dyn TemplateContextGetters,
+    ) -> Result<Cow<'a, Value>, TemplateResolveError> {
         match self {
             Expression::Variable(var) => context
-                .variables
-                .get(var)
-                .map(|s| s.as_str())
+                .get_variable(var)
                 .ok_or_else(|| TemplateResolveError::MissingVariable(var.clone())),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Value {
+    String(String),
+    Path(PathBuf),
+}
+
+pub struct TemplateContext {
+    variables: HashMap<String, Value>,
+}
+
+impl TemplateContext {
+    pub fn new() -> Self {
+        Self { variables: HashMap::new() }
+    }
+
+    pub fn set_variable(&mut self, key: &str, value: Value) {
+        self.variables.insert(key.into(), value);
+    }
+}
+
+pub trait TemplateContextGetters {
+    fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>>;
+}
+
+impl TemplateContextGetters for TemplateContext {
+    fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>> {
+        self.variables.get(key).map(Cow::Borrowed)
     }
 }
 
@@ -91,6 +119,8 @@ pub enum TemplateParseError {
 pub enum TemplateResolveError {
     #[display("missing variable: {f0}")]
     MissingVariable(String),
+    #[display("non-UTF-8 path: {f0:?}")]
+    NonUtf8Path(PathBuf),
 }
 
 #[cfg(test)]
@@ -103,9 +133,11 @@ mod tests {
         assert_not_resolve(&TemplateContext::new(), "Hello ${name}");
 
         let mut ctx = TemplateContext::new();
-        ctx.set_variable("name", "Pietro");
+        ctx.set_variable("name", Value::String("Pietro".into()));
+        ctx.set_variable("path", Value::Path("/dev/null".into()));
 
         assert_resolve(&ctx, "Hello ${name}!", "Hello Pietro!");
+        assert_resolve(&ctx, "The destination is ${path}.", "The destination is /dev/null.");
     }
 
     #[track_caller]

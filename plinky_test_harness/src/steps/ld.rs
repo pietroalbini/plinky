@@ -1,4 +1,4 @@
-use crate::template::Template;
+use crate::template::{Template, Value};
 use crate::utils::{file_name, run};
 use crate::{Arch, Step, TestContext};
 use anyhow::Error;
@@ -16,9 +16,9 @@ pub(crate) struct LdStep {
 
 impl Step for LdStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
-        let dest_name = self.output.resolve(&ctx.template)?;
+        let dest_name = self.output.resolve(&*ctx.template)?;
         let content =
-            self.content.iter().map(|c| c.resolve(&ctx.template)).collect::<Result<Vec<_>, _>>()?;
+            self.content.iter().map(|c| c.resolve(&*ctx.template)).collect::<Result<Vec<_>, _>>()?;
 
         let dest = ctx.dest.join(ctx.step_name);
         std::fs::create_dir_all(&dest)?;
@@ -38,7 +38,7 @@ impl Step for LdStep {
                 Arch::X86_64 => ["-m", "elf_x86_64"],
             }))?;
 
-        ctx.template.set_variable(ctx.step_name, dest.join(dest_name).to_str().unwrap());
+        ctx.template.set_variable(ctx.step_name, Value::Path(dest.join(dest_name)));
 
         Ok(())
     }

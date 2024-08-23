@@ -1,6 +1,8 @@
-cmd = ["libhello.a"]
-kind = "run-pass"
 archs = ["x86_64"]
 
-[[rust]]
+[plinky.test]
+cmd = ["${rust.hello}"]
+kind = "run-pass"
+
+[rust.hello]
 source = "hello.rs"

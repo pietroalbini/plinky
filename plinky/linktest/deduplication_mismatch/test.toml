@@ -1,8 +1,11 @@
-cmd = ["foo.o", "bar.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.foo}", "${asm.bar}"]
 kind = "link-pass"
 
-[[asm]]
+[asm.foo]
 source = "foo.S"
 
-[[asm]]
+[asm.bar]
 source = "bar.S"

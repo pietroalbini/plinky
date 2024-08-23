@@ -1,4 +1,4 @@
-use crate::template::TemplateContext;
+use crate::template::{TemplateContext, Value};
 use crate::Step;
 use anyhow::{Context, Error};
 use std::path::{Path, PathBuf};
@@ -16,7 +16,7 @@ pub(crate) struct Test {
 impl Test {
     pub(crate) fn run(mut self) -> Result<(), Error> {
         let mut template_ctx = TemplateContext::new();
-        template_ctx.set_variable("arch", &self.arch.to_string());
+        template_ctx.set_variable("arch", Value::String(self.arch.to_string()));
 
         // Cleanup for the temporary directory is done manually at the end, to ensure that the
         // build artifacts are present for inspection during a failure.
@@ -91,7 +91,7 @@ impl TestContext<'_> {
     }
 
     pub fn run_and_snapshot(&self) -> RunAndSnapshot {
-        let name = self.step_name.split_once('.').expect("invalid step name").1;
+        let name = self.step_name.split_once('.').expect("invalid step name").1.replace("_", "-");
         let arch = match self.arch {
             Arch::X86 => "32bit",
             Arch::X86_64 => "64bit",

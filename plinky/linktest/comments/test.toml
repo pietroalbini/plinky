@@ -1,6 +1,9 @@
-cmd = ["test.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.test}"]
 kind = "link-pass"
 debug-print = ["loaded-object=.comment", "layout", "final-elf=.comment"]
 
-[[asm]]
+[asm.test]
 source = "test.S"

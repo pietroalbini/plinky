@@ -1,7 +1,9 @@
-cmd = ["hello.o"]
-kind = "run-pass"
 archs = ["x86", "x86_64"]
+
+[plinky.test]
+cmd = ["${asm.hello}"]
+kind = "run-pass"
 debug-print = ["loaded-object", "relocated-object", "layout", "final-elf"]
 
-[[asm]]
+[asm.hello]
 source = "hello.S"

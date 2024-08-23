@@ -1,6 +1,8 @@
+pub(crate) mod ar;
 pub(crate) mod asm;
 pub(crate) mod c;
 pub(crate) mod ld;
+pub(crate) mod rust;
 
 use crate::template::Template;
 use crate::TestContext;

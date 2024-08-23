@@ -1,7 +1,9 @@
-cmd = ["stack.o", "-z", "execstack"]
+archs = ["x86"]
+
+[plinky.test]
+cmd = ["${asm.stack}", "-z", "execstack"]
 kind = "run-pass"
 debug-print = ["final-elf=@segments"]
 
-[[asm]]
+[asm.stack]
 source = "stack.S"
-format = "elf32"

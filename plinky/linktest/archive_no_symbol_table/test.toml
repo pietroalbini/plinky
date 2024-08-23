@@ -1,9 +1,13 @@
-cmd = ["archive.a"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${ar.foo}"]
 kind = "link-fail"
 
-[[ar]]
-name = "archive.a"
+[ar.foo]
+output = "archive.a"
+content = ["${asm.foo}"]
 symbol-table = false
 
-[[ar.asm]]
+[asm.foo]
 source = "foo.S"

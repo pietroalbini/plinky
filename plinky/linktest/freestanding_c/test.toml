@@ -1,16 +1,39 @@
-cmd = ["hello.o", "syscalls.o"]
-kind = "run-pass"
 archs = ["x86", "x86_64"]
 
-[[c]]
+[plinky.static]
+cmd = ["${c.hello_static}", "${asm.syscalls}"]
+kind = "run-pass"
+
+[plinky.static_got]
+cmd = ["${c.hello_got}", "${asm.syscalls}"]
+kind = "run-pass"
+debug-print = ["loaded-object=.text", "relocated-object=.text,.got,@symbols"]
+
+[plinky.pie_got]
+cmd = ["${c.hello_got}", "${asm.syscalls}", "-pie"]
+kind = "run-pass"
+debug-print = [
+    "loaded-object=.text",
+    "layout",
+    "relocated-object=.text,.got,.interp,@symbols,@dynamic",
+    "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
+]
+
+[plinky.pie_got_relro]
+cmd = ["${c.hello_got}", "${asm.syscalls}", "-pie", "-zrelro"]
+kind = "run-pass"
+debug-print = ["layout", "final-elf=@segments"]
+
+[c.hello_static]
 source = "hello.c"
 libc = "freestanding"
 relocation = "static"
 
-[[arch.x86.asm]]
-source = "syscalls.32bit.S"
-output = "syscalls.o"
+[c.hello_got]
+source = "hello.c"
+libc = "freestanding"
+relocation = "pic-only-got"
 
-[[arch.x86_64.asm]]
-source = "syscalls.64bit.S"
+[asm.syscalls]
 output = "syscalls.o"
+source = "syscalls.${arch}.S"

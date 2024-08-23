@@ -113,7 +113,9 @@ impl DefineSteps {
     pub fn define_builtins(&mut self) -> Result<&mut Self, Error> {
         self.define::<crate::steps::asm::AsmStep>("asm")?
             .define::<crate::steps::ld::LdStep>("ld")?
-            .define::<crate::steps::c::CStep>("c")
+            .define::<crate::steps::c::CStep>("c")?
+            .define::<crate::steps::rust::RustStep>("rust")?
+            .define::<crate::steps::ar::ArStep>("ar")
     }
 
     // Deserializing the Value into the concrete type cannot be done through dynamic dispatching.

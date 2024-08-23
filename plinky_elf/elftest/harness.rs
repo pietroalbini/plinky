@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ReadStep {
     file: Template,
     #[serde(default = "default_true")]
@@ -22,7 +23,7 @@ struct ReadStep {
 impl Step for ReadStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
         insta::allow_duplicates! {
-            let file = ctx.maybe_relative_to_src(&self.file.resolve(&ctx.template)?);
+            let file = ctx.maybe_relative_to_src(&self.file.resolve(&*ctx.template)?);
             self.read(&ctx, &file)?;
 
             if self.roundtrip {

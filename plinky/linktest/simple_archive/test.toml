@@ -1,15 +1,19 @@
-cmd = ["entry.o", "archived.a"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.entry}", "${ar.archived}"]
 kind = "run-pass"
 debug-print = ["loaded-object"]
 
-[[asm]]
+[ar.archived]
+output = "archived.a"
+content = ["${asm.hello}", "${asm.goodbye}"]
+
+[asm.entry]
 source = "entry.S"
 
-[[ar]]
-name = "archived.a"
-
-[[ar.asm]]
+[asm.hello]
 source = "hello.S"
 
-[[ar.asm]]
+[asm.goodbye]
 source = "goodbye.S"

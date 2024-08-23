@@ -1,6 +1,9 @@
-cmd = ["foo.o", "--gc-sections"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.foo}", "--gc-sections"]
 kind = "link-pass"
 debug-print = ["loaded-object", "gc", "relocated-object"]
 
-[[asm]]
+[asm.foo]
 source = "foo.S"

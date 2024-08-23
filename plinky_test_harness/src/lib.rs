@@ -3,7 +3,6 @@
 extern crate test;
 
 mod gather;
-pub mod legacy;
 mod steps;
 pub mod template;
 mod tests;

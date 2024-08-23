@@ -46,7 +46,7 @@ impl<'a> Iterator for Lexer<'a, '_> {
                     Some('a'..='z' | 'A'..='Z') => {
                         let end = remaining
                             .char_indices()
-                            .filter(|(_idx, chr)| !matches!(chr, 'a'..='z' | 'A'..='Z' | '.'))
+                            .filter(|(_idx, chr)| !matches!(chr, 'a'..='z' | 'A'..='Z' | '0'..='9' | '.' | '_'))
                             .map(|(idx, _chr)| idx)
                             .next()
                             .unwrap_or(remaining.len());

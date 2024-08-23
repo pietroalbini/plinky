@@ -1,12 +1,15 @@
-cmd = ["sample32.o", "sample64.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.sample32}", "${asm.sample64}"]
 kind = "link-fail"
 
-[[asm]]
+[asm.sample32]
 source = "sample.S"
-format = "elf32"
+arch = "x86"
 output = "sample32.o"
 
-[[asm]]
+[asm.sample64]
 source = "sample.S"
-format = "elf64"
+arch = "x86_64"
 output = "sample64.o"

@@ -7,31 +7,32 @@ use std::process::Command;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct AsmStep {
+pub(crate) struct RustStep {
     source: Template,
-    arch: Option<Arch>,
-    output: Option<Template>,
+    #[serde(default)]
+    panic: Panic,
 }
 
-impl Step for AsmStep {
+impl Step for RustStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
         let source = ctx.maybe_relative_to_src(self.source.resolve(&*ctx.template)?);
         let source_name = file_name(&source);
-
-        let dest_name = match &self.output {
-            Some(template) => template.resolve(&*ctx.template)?,
-            None => file_name(&source.with_extension("o")),
-        };
+        let dest_name = format!("lib{}", file_name(&source.with_extension("a")));
 
         let dest = ctx.dest.join(ctx.step_name);
         std::fs::create_dir_all(&dest)?;
         std::fs::copy(&source, dest.join(&source_name))?;
 
-        run(Command::new("as")
+        run(Command::new("rustc")
             .current_dir(&dest)
-            .arg(match self.arch.unwrap_or(ctx.arch) {
-                Arch::X86 => "--32",
-                Arch::X86_64 => "--64",
+            .arg("--target")
+            .arg(match ctx.arch {
+                Arch::X86 => "i686-unknown-linux-gnu",
+                Arch::X86_64 => "x86_64-unknown-linux-gnu",
+            })
+            .arg("--crate-type=staticlib")
+            .arg(match self.panic {
+                Panic::Abort => "-Cpanic=abort",
             })
             .arg("-o")
             .arg(&dest_name)
@@ -45,4 +46,11 @@ impl Step for AsmStep {
     fn templates(&self) -> Vec<Template> {
         vec![self.source.clone()]
     }
+}
+
+#[derive(serde::Deserialize, Debug, Default, Clone, Copy)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+enum Panic {
+    #[default]
+    Abort,
 }

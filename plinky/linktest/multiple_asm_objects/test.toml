@@ -1,10 +1,12 @@
-cmd = ["goodbye.o", "hello.o"]
-kind = "run-pass"
 archs = ["x86", "x86_64"]
+
+[plinky.test]
+cmd = ["${asm.goodbye}", "${asm.hello}"]
+kind = "run-pass"
 debug-print = ["loaded-object", "relocated-object", "layout", "final-elf"]
 
-[[asm]]
+[asm.hello]
 source = "hello.S"
 
-[[asm]]
+[asm.goodbye]
 source = "goodbye.S"

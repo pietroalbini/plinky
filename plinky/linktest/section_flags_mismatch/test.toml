@@ -1,9 +1,12 @@
-cmd = ["rx.o", "rwx.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.rx}", "${asm.rwx}"]
 kind = "link-pass"
 debug-print = ["layout"]
 
-[[asm]]
+[asm.rx]
 source = "rx.S"
 
-[[asm]]
+[asm.rwx]
 source = "rwx.S"

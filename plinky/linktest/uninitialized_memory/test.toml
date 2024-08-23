@@ -1,6 +1,9 @@
-cmd = ["bss.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.bss}"]
 kind = "run-pass"
 debug-print = ["loaded-object=.bss", "layout", "final-elf=.bss,@segments"]
 
-[[asm]]
+[asm.bss]
 source = "bss.S"

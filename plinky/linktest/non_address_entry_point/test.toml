@@ -1,5 +1,8 @@
-cmd = ["code.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.code}"]
 kind = "link-fail"
 
-[[asm]]
+[asm.code]
 source = "code.S"

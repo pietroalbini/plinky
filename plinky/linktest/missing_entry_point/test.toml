@@ -1,6 +1,9 @@
-cmd = ["hello.o"]
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.hello}"]
 kind = "link-fail"
 debug-print = ["loaded-object=@symbols"]
 
-[[asm]]
+[asm.hello]
 source = "hello.S"

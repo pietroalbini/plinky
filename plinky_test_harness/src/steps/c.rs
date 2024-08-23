@@ -1,4 +1,4 @@
-use crate::template::Template;
+use crate::template::{Template, Value};
 use crate::utils::{file_name, run};
 use crate::{Arch, Step, TestContext};
 use anyhow::Error;
@@ -16,7 +16,7 @@ pub(crate) struct CStep {
 
 impl Step for CStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
-        let source = ctx.maybe_relative_to_src(self.source.resolve(&ctx.template)?);
+        let source = ctx.maybe_relative_to_src(self.source.resolve(&*ctx.template)?);
         let source_name = file_name(&source);
         let dest_name = file_name(&source.with_extension("o"));
 
@@ -45,7 +45,7 @@ impl Step for CStep {
             })
             .arg(&source_name))?;
 
-        ctx.template.set_variable(ctx.step_name, dest.join(dest_name).to_str().unwrap());
+        ctx.template.set_variable(ctx.step_name, Value::Path(dest.join(dest_name)));
 
         Ok(())
     }

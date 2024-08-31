@@ -12,18 +12,23 @@ impl Segments {
         Self { segments: Vec::new() }
     }
 
-    pub(crate) fn add(&mut self, segment: Segment) {
+    pub(crate) fn add(&mut self, segment: Segment) -> SegmentId {
+        let id = SegmentId(self.segments.len());
         self.segments.push(segment);
+        id
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &Segment> {
-        self.segments.iter()
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (SegmentId, &Segment)> {
+        self.segments.iter().enumerate().map(|(idx, segment)| (SegmentId(idx), segment))
     }
 
     pub(crate) fn len(&self) -> usize {
         self.segments.len()
     }
 }
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) struct SegmentId(usize);
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Segment {

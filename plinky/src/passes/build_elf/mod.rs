@@ -250,7 +250,7 @@ impl<'a> ElfBuilder<'a> {
 
     fn prepare_segments(&self) -> Vec<ElfSegment> {
         let mut elf_segments = Vec::new();
-        for segment in self.object.segments.iter() {
+        for (_id, segment) in self.object.segments.iter() {
             let layout = segment.layout(self.layout);
             elf_segments.push(ElfSegment {
                 type_: match segment.type_ {

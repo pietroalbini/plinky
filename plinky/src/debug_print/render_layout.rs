@@ -45,7 +45,7 @@ pub(super) fn render_layout(
     let mut segments = Table::new();
     segments.set_title("Segments:");
     segments.add_row(["Start", "Align", "Type", "Perms", "Content"]);
-    for segment in object.segments.iter() {
+    for (_id, segment) in object.segments.iter() {
         segments.add_row([
             segment
                 .layout(layout)

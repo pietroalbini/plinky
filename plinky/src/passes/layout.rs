@@ -134,7 +134,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
 
     fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<SerialIds>>, LayoutError> {
         let mut result = Vec::new();
-        for segment in self.segments.iter() {
+        for (_id, segment) in self.segments.iter() {
             match &segment.type_ {
                 SegmentType::ProgramHeader => continue,
                 SegmentType::Interpreter => {}

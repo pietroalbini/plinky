@@ -48,7 +48,7 @@ pub(super) fn render_layout(
     for (_id, segment) in object.segments.iter() {
         segments.add_row([
             segment
-                .layout(layout)
+                .layout(object, layout)
                 .memory
                 .as_ref()
                 .map(|m| m.address.to_string())
@@ -70,6 +70,7 @@ pub(super) fn render_layout(
                 .map(|c| match c {
                     SegmentContent::ProgramHeader => "<program header>".into(),
                     SegmentContent::ElfHeader => "<elf header>".into(),
+                    SegmentContent::RelroSections => "<relro sections>".into(),
                     SegmentContent::Section(id) => section_name(object, *id),
                 })
                 .collect::<Vec<_>>()

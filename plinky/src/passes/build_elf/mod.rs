@@ -94,10 +94,12 @@ impl<'a> ElfBuilder<'a> {
             self.symbol_conversion.insert(section.id, created.conversion);
         }
 
+        // Needs to be executed before prepare_sections(), as this needs the full list of sections
+        // to be available.
+        let segments = self.prepare_segments();
+
         let entry = self.prepare_entry_point()?;
         let sections = self.prepare_sections()?;
-
-        let segments = self.prepare_segments();
 
         assert!(self.pending_symbol_tables.is_empty());
         assert!(self.pending_string_tables.is_empty());
@@ -251,7 +253,7 @@ impl<'a> ElfBuilder<'a> {
     fn prepare_segments(&self) -> Vec<ElfSegment> {
         let mut elf_segments = Vec::new();
         for (_id, segment) in self.object.segments.iter() {
-            let layout = segment.layout(self.layout);
+            let layout = segment.layout(&self.object, self.layout);
             elf_segments.push(ElfSegment {
                 type_: match segment.type_ {
                     SegmentType::Dynamic => ElfSegmentType::Dynamic,

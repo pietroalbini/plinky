@@ -17,6 +17,7 @@ pub(crate) fn run(object: &mut Object) {
                 SegmentContent::ProgramHeader => None,
                 SegmentContent::ElfHeader => None,
                 SegmentContent::Section(id) => Some(*id),
+                SegmentContent::RelroSections => None,
             })
         })
         .collect::<BTreeSet<_>>();

@@ -12,6 +12,7 @@ use plinky_elf::writer::layout::{
 use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeSet;
+use std::iter::once;
 
 pub(crate) fn run(object: &Object) -> Result<Layout<SerialIds>, LayoutError> {
     let base_address: Address = match object.mode {
@@ -150,11 +151,21 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                 parts: segment
                     .content
                     .iter()
-                    .map(|c| match c {
-                        SegmentContent::ProgramHeader => Part::ProgramHeaders,
-                        SegmentContent::ElfHeader => Part::Header,
-                        SegmentContent::Section(id) => {
-                            part_for_section(self.sections.get(*id).unwrap())
+                    .flat_map(|c| -> Box<dyn Iterator<Item = Part<SectionId>>> {
+                        match c {
+                            SegmentContent::ProgramHeader => Box::new(once(Part::ProgramHeaders)),
+                            SegmentContent::ElfHeader => Box::new(once(Part::Header)),
+                            SegmentContent::Section(id) => {
+                                Box::new(once(part_for_section(self.sections.get(*id).unwrap())))
+                            }
+                            SegmentContent::RelroSections => {
+                                Box::new(self.sections.iter().filter_map(|s| match &s.content {
+                                    SectionContent::Data(d) if d.inside_relro => {
+                                        Some(part_for_section(s))
+                                    }
+                                    _ => None,
+                                }))
+                            }
                         }
                     })
                     .collect(),

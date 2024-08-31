@@ -90,29 +90,15 @@ pub(crate) fn run(
     }
 
     if options.read_only_after_relocations {
-        prepare_relro(object);
-    }
-
-    Ok(())
-}
-
-fn prepare_relro(object: &mut Object) {
-    let mut content = Vec::new();
-    for section in object.sections.iter() {
-        let SectionContent::Data(data) = &section.content else { continue };
-        if data.inside_relro {
-            content.push(SegmentContent::Section(section.id));
-        }
-    }
-
-    if !content.is_empty() {
         object.segments.add(Segment {
             align: 0x1,
             type_: SegmentType::GnuRelro,
             perms: ElfPermissions::empty().read(),
-            content,
+            content: vec![SegmentContent::RelroSections],
         });
     }
+
+    Ok(())
 }
 
 #[derive(Debug, Error, Display)]

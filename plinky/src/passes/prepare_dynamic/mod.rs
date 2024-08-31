@@ -2,16 +2,14 @@ use crate::cli::{CliOptions, Mode};
 use crate::passes::prepare_dynamic::interpreter::InjectInterpreterError;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
-use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
-    DynamicSection, RelocationsSection, SectionContent, StringsForSymbolsSection, SymbolsSection,
-    SysvHashSection,
+    DynamicSection, SectionContent, StringsForSymbolsSection, SymbolsSection, SysvHashSection,
 };
-use crate::repr::segments::{Segment, SegmentContent, SegmentType};
+use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
-use plinky_macros::{Display, Error};
+use plinky_macros::{Display, Error, Getters};
 use plinky_utils::raw_types::RawTypeAsPointerSize;
 
 mod interpreter;
@@ -20,8 +18,12 @@ pub(crate) fn run(
     options: &CliOptions,
     object: &mut Object,
     ids: &mut SerialIds,
-    got_relocations: Vec<Relocation>,
-) -> Result<(), PrepareDynamicError> {
+) -> Result<Option<DynamicContext>, PrepareDynamicError> {
+    match object.mode {
+        Mode::PositionDependent => return Ok(None),
+        Mode::PositionIndependent => {}
+    };
+
     let interpreter_section = interpreter::run(options, ids, object)?;
 
     let mut segment_content = Vec::new();
@@ -52,18 +54,10 @@ pub(crate) fn run(
 
     create(".hash", SysvHashSection::new(DynamicSymbolTable, dynsym).into(), DynamicEntry::Hash);
 
-    if !got_relocations.is_empty() {
-        create(
-            ".rela.got",
-            RelocationsSection::new(None, dynsym, got_relocations).into(),
-            DynamicEntry::Rela,
-        );
-    }
-
     let dynamic = object.sections.builder(".dynamic", DynamicSection::new(dynstr)).create(ids);
     segment_content.push(SegmentContent::Section(dynamic));
 
-    object.segments.add(Segment {
+    let dynamic_segment = object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
         perms: ElfPermissions::empty().read(),
@@ -98,7 +92,15 @@ pub(crate) fn run(
         });
     }
 
-    Ok(())
+    Ok(Some(DynamicContext { dynsym, segment: dynamic_segment }))
+}
+
+#[derive(Debug, Getters)]
+pub(crate) struct DynamicContext {
+    #[get]
+    dynsym: SectionId,
+    #[get]
+    segment: SegmentId,
 }
 
 #[derive(Debug, Error, Display)]

@@ -1,7 +1,10 @@
 use crate::interner::intern;
+use crate::passes::prepare_dynamic::DynamicContext;
+use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
-use crate::repr::sections::{DataSection, SectionContent};
+use crate::repr::sections::{DataSection, RelocationsSection, SectionContent};
+use crate::repr::segments::SegmentContent;
 use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfPermissions;
@@ -9,32 +12,10 @@ use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) fn generate_got_static(
+pub(crate) fn generate_got(
     ids: &mut SerialIds,
     object: &mut Object,
-) -> Result<(), GenerateGotError> {
-    generate_got(ids, object, |data, relocations| data.relocations = relocations)
-}
-
-pub(crate) fn generate_got_dynamic(
-    ids: &mut SerialIds,
-    object: &mut Object,
-) -> Result<Vec<Relocation>, GenerateGotError> {
-    let mut relocations = None;
-    generate_got(ids, object, |_, r| relocations = Some(r))?;
-    let relocations = relocations.unwrap();
-
-    for relocation in &relocations {
-        object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
-    }
-
-    Ok(relocations)
-}
-
-fn generate_got(
-    ids: &mut SerialIds,
-    object: &mut Object,
-    store_relocations: impl FnOnce(&mut DataSection, Vec<Relocation>),
+    dynamic_context: &Option<DynamicContext>,
 ) -> Result<(), GenerateGotError> {
     let mut needs_got = false;
     let mut symbols = BTreeSet::new();
@@ -85,7 +66,22 @@ fn generate_got(
 
     let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
     data.inside_relro = true;
-    store_relocations(&mut data, relocations);
+
+    match dynamic_context {
+        Some(dynamic) => {
+            for relocation in &relocations {
+                object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
+            }
+
+            let rela = object
+                .sections
+                .builder(".rela.got", RelocationsSection::new(None, dynamic.dynsym(), relocations))
+                .create(ids);
+            object.segments.get_mut(dynamic.segment()).content.push(SegmentContent::Section(rela));
+            object.dynamic_entries.add(DynamicEntry::Rela(rela));
+        }
+        None => data.relocations = relocations,
+    }
 
     object.sections.builder(".got", data).create_with_id(id);
     object.got = Some(GOT { id, offsets });

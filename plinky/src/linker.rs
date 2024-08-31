@@ -1,10 +1,10 @@
-use crate::cli::{CliOptions, Mode};
+use crate::cli::CliOptions;
 use crate::passes;
 use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::deduplicate::{Deduplication, DeduplicationError};
 use crate::passes::gc_sections::RemovedSection;
-use crate::passes::generate_got::{generate_got_dynamic, generate_got_static, GenerateGotError};
+use crate::passes::generate_got::GenerateGotError;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::prepare_dynamic::PrepareDynamicError;
 use crate::passes::relocate::RelocationError;
@@ -36,13 +36,8 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
-    match object.mode {
-        Mode::PositionDependent => generate_got_static(&mut ids, &mut object)?,
-        Mode::PositionIndependent => {
-            let got_relocations = generate_got_dynamic(&mut ids, &mut object)?;
-            passes::prepare_dynamic::run(&options, &mut object, &mut ids, got_relocations)?;
-        }
-    }
+    let dynamic = passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
+    passes::generate_got::generate_got(&mut ids, &mut object, &dynamic)?;
 
     passes::exclude_section_symbols_from_tables::remove(&mut object);
     passes::demote_global_hidden_symbols::run(&mut object);

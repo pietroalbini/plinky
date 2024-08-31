@@ -24,6 +24,10 @@ impl Segments {
         self.segments.iter().enumerate().map(|(idx, segment)| (SegmentId(idx), segment))
     }
 
+    pub(crate) fn get_mut(&mut self, id: SegmentId) -> &mut Segment {
+        &mut self.segments[id.0]
+    }
+
     pub(crate) fn len(&self) -> usize {
         self.segments.len()
     }

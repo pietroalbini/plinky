@@ -82,7 +82,7 @@ pub(crate) fn generate_got(
             GotConfig {
                 section_name: ".got.plt",
                 rela_section_name: ".rela.plt",
-                inside_relro: false, // TODO: depending on -znow
+                inside_relro: options.read_only_got_plt,
                 relocation_type: RelocationType::FillGotPltSlot,
                 dynamic_entry: DynamicEntry::Rela, // TODO: use correct dynamic entry
             },

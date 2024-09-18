@@ -34,6 +34,11 @@ debug-print = [
     "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
 ]
 
+[plinky.pie_plt_now]
+cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie", "-znow"]
+kind = "run-pass"
+debug-print = ["layout", "final-elf=@segments"]
+
 [c.hello_static]
 source = "hello.c"
 libc = "freestanding"

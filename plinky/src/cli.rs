@@ -18,6 +18,7 @@ pub(crate) struct CliOptions {
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
     pub(crate) read_only_got: bool,
+    pub(crate) read_only_got_plt: bool,
     pub(crate) dynamic_linker: Option<String>,
     pub(crate) mode: Mode,
 }
@@ -48,6 +49,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut entry = None;
     let mut executable_stack = None;
     let mut read_only_got = None;
+    let mut read_only_got_plt = None;
     let mut gc_sections = None;
     let mut mode = None;
     let mut dynamic_linker = None;
@@ -89,16 +91,13 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                     &mut executable_stack,
                     || Ok(false),
                 )?,
-                "relro" => reject_duplicate(
-                    "-z relro or -z norelro",
-                    &mut read_only_got,
-                    || Ok(true),
-                )?,
-                "norelro" => reject_duplicate(
-                    "-z relro or -z norelro",
-                    &mut read_only_got,
-                    || Ok(false),
-                )?,
+                "relro" => {
+                    reject_duplicate("-z relro or -z norelro", &mut read_only_got, || Ok(true))?
+                }
+                "norelro" => {
+                    reject_duplicate("-z relro or -z norelro", &mut read_only_got, || Ok(false))?
+                }
+                "now" => reject_duplicate("-z now", &mut read_only_got_plt, || Ok(true))?,
                 other => return Err(CliError::UnsupportedFlag(format!("-z {other}"))),
             },
 
@@ -155,12 +154,17 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
         read_only_got: read_only_got.unwrap_or(false),
+        read_only_got_plt: read_only_got_plt.unwrap_or(false),
         dynamic_linker: dynamic_linker.map(|s| s.into()),
         mode: mode.unwrap_or(Mode::PositionDependent),
     };
 
     if options.read_only_got && !matches!(options.mode, Mode::PositionIndependent) {
         return Err(CliError::RelroOnlyForPie);
+    }
+
+    if options.read_only_got_plt && !matches!(options.mode, Mode::PositionIndependent) {
+        return Err(CliError::NowOnlyForPie);
     }
 
     Ok(options)
@@ -212,6 +216,8 @@ pub(crate) enum CliError {
     MissingValueForFlag(String),
     #[display("-z relro is only supported in PIE mode")]
     RelroOnlyForPie,
+    #[display("-z now is only supported in PIE mode")]
+    NowOnlyForPie,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -666,6 +672,32 @@ mod tests {
     }
 
     #[test]
+    fn test_now() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                mode: Mode::PositionIndependent,
+                read_only_got_plt: true,
+                ..default_options()
+            }),
+            parse(["foo", "-pie", "-z", "now"].into_iter())
+        )
+    }
+
+    #[test]
+    fn test_multiple_now_flags() {
+        assert_eq!(
+            Err(CliError::DuplicateFlag("-z now".into())),
+            parse(["foo", "-znow", "-z", "now"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_now_without_pie() {
+        assert_eq!(Err(CliError::NowOnlyForPie), parse(["foo", "-znow"].into_iter()));
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -682,6 +714,7 @@ mod tests {
             debug_print: BTreeSet::new(),
             executable_stack: false,
             read_only_got: false,
+            read_only_got_plt: false,
             dynamic_linker: None,
             mode: Mode::PositionDependent,
         }

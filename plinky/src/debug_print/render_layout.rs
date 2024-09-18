@@ -6,6 +6,7 @@ use plinky_diagnostics::widgets::{Table, Widget};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{Layout, Part};
+use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
 pub(super) fn render_layout(
@@ -42,10 +43,23 @@ pub(super) fn render_layout(
         ]);
     }
 
+    let mut sorted_segments = object.segments.iter().map(|(_id, segment)| segment).collect::<Vec<_>>();
+    sorted_segments.sort_by_key(|segment| {
+        (
+            &segment.type_,
+            segment
+                .layout(object, layout)
+                .memory
+                .as_ref()
+                .map(|m| m.address.extract())
+                .unwrap_or(0),
+        )
+    });
+
     let mut segments = Table::new();
     segments.set_title("Segments:");
     segments.add_row(["Start", "Align", "Type", "Perms", "Content"]);
-    for (_id, segment) in object.segments.iter() {
+    for segment in sorted_segments {
         segments.add_row([
             segment
                 .layout(object, layout)

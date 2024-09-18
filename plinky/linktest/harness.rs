@@ -68,7 +68,8 @@ impl PlinkyStep {
 
     fn run(&self, ctx: &TestContext<'_>, runner: &mut RunAndSnapshot) -> Result<bool, Error> {
         if !self.link(ctx, runner)? {
-            bail!("linking was supposed to pass but failed!");
+            runner.note("error: could not execute the program due to linking failing");
+            return Ok(false);
         }
 
         let dest = ctx.dest.join(ctx.step_name);

@@ -31,11 +31,9 @@ impl RunAndSnapshot {
     }
 
     pub fn run(&mut self, action: &str, command: &mut Command) -> Result<bool, Error> {
+        self.separator();
         match command.output() {
             Ok(output) => {
-                if !self.output.is_empty() {
-                    self.output.push_str("\n==============\n\n");
-                }
                 self.output.push_str(&format!("{action} exited with {}\n", output.status));
                 for (name, content) in [("stdout", &output.stdout), ("stderr", &output.stderr)] {
                     if content.trim_ascii().is_empty() {
@@ -44,10 +42,8 @@ impl RunAndSnapshot {
                         let mut content = String::from_utf8_lossy(content).to_string();
                         content = content.replace(env!("CARGO_MANIFEST_DIR"), "${project}");
 
-                        self.output.push_str(&format!(
-                            "\n=== {name} ===\n{}\n",
-                            content.trim_ascii_end()
-                        ));
+                        self.output
+                            .push_str(&format!("\n=== {name} ===\n{}\n", content.trim_ascii_end()));
                     }
                 }
                 Ok(output.status.success())
@@ -56,6 +52,20 @@ impl RunAndSnapshot {
                 self.output.push_str(&format!("{action} failed to execute with error: {err}"));
                 Ok(false)
             }
+        }
+    }
+
+    pub fn note(&mut self, note: &str) {
+        self.separator();
+        self.output.push_str(note);
+        if !note.ends_with('\n') {
+            self.output.push('\n');
+        }
+    }
+
+    fn separator(&mut self) {
+        if !self.output.is_empty() {
+            self.output.push_str("\n==============\n\n");
         }
     }
 
@@ -77,13 +87,16 @@ pub(crate) fn file_name(path: impl AsRef<Path>) -> String {
 
 #[track_caller]
 pub(crate) fn err_str<T>(result: Result<T, Error>) -> Result<T, String> {
-    result.map_err(|err| {
-        let mut repr = format!("error: {err}\n");
-        let mut source = err.source();
-        while let Some(err) = source {
-            repr.push_str(&format!("  cause: {err}\n"));
-            source = err.source();
+    match result {
+        Ok(ok) => Ok(ok),
+        Err(err) => {
+            let mut repr = format!("error: {err}\n");
+            let mut source = err.source();
+            while let Some(err) = source {
+                repr.push_str(&format!("  cause: {err}\n"));
+                source = err.source();
+            }
+            panic!("{repr}")
         }
-        panic!("{repr}")
-    })
+    }
 }

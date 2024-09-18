@@ -13,30 +13,38 @@ pub(crate) enum RelocationType {
     GOTIndex32,
     GOTLocationRelative32,
     OffsetFromGOT32,
-    FillGOTSlot,
+    FillGotSlot,
+    FillGotPltSlot,
 }
 
 impl RelocationType {
-    pub(crate) fn needs_got_entry(&self) -> bool {
+    pub(crate) fn needs_got_entry(&self) -> NeedsGot {
         match self {
-            RelocationType::Absolute32 => false,
-            RelocationType::AbsoluteSigned32 => false,
-            RelocationType::Relative32 => false,
-            RelocationType::PLT32 => false,
-            RelocationType::GOTRelative32 => true,
-            RelocationType::GOTIndex32 => true,
-            RelocationType::GOTLocationRelative32 => false,
-            RelocationType::OffsetFromGOT32 => false,
-            RelocationType::FillGOTSlot => false,
+            RelocationType::Absolute32 => NeedsGot::None,
+            RelocationType::AbsoluteSigned32 => NeedsGot::None,
+            RelocationType::Relative32 => NeedsGot::None,
+            RelocationType::PLT32 => NeedsGot::GotPlt,
+            RelocationType::GOTRelative32 => NeedsGot::Got,
+            RelocationType::GOTIndex32 => NeedsGot::Got,
+            RelocationType::GOTLocationRelative32 => NeedsGot::None,
+            RelocationType::OffsetFromGOT32 => NeedsGot::None,
+            RelocationType::FillGotSlot => NeedsGot::None,
+            RelocationType::FillGotPltSlot => NeedsGot::None,
         }
     }
 
-    pub(crate) fn needs_got_table(&self) -> bool {
+    pub(crate) fn needs_got_table(&self) -> NeedsGot {
         match self {
-            RelocationType::OffsetFromGOT32 => true,
+            RelocationType::OffsetFromGOT32 => NeedsGot::Got, // TODO: needs to be GotPlt
             _ => self.needs_got_entry(),
         }
     }
+}
+
+pub(crate) enum NeedsGot {
+    None,
+    Got,
+    GotPlt,
 }
 
 #[derive(Debug)]
@@ -57,6 +65,7 @@ impl Relocation {
             type_: match elf.relocation_type {
                 ElfRelocationType::X86_32 => RelocationType::Absolute32,
                 ElfRelocationType::X86_PC32 => RelocationType::Relative32,
+                ElfRelocationType::X86_PLT32 => RelocationType::PLT32,
                 ElfRelocationType::X86_GOTPC => RelocationType::GOTLocationRelative32,
                 ElfRelocationType::X86_GOTOff => RelocationType::OffsetFromGOT32,
                 ElfRelocationType::X86_GOT32 => RelocationType::GOTIndex32,

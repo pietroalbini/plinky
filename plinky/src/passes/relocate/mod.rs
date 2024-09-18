@@ -99,7 +99,7 @@ impl<'a> Relocator<'a> {
                 let addend = editor.addend_32()?;
                 editor.write_u32(slot.add(addend)?)
             }
-            RelocationType::FillGOTSlot => {
+            RelocationType::FillGotSlot | RelocationType::FillGotPltSlot => {
                 let symbol = self.symbol_as_absolute(relocation, 0.into())?;
                 match self.env.class {
                     ElfClass::Elf32 => editor.write_u32(symbol),

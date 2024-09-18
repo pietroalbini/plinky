@@ -2,7 +2,7 @@ use crate::interner::intern;
 use crate::passes::prepare_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
-use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::relocations::{NeedsGot, Relocation, RelocationType};
 use crate::repr::sections::{DataSection, RelocationsSection, SectionContent};
 use crate::repr::segments::SegmentContent;
 use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
@@ -17,51 +17,78 @@ pub(crate) fn generate_got(
     object: &mut Object,
     dynamic_context: &Option<DynamicContext>,
 ) -> Result<(), GenerateGotError> {
-    let mut needs_got = false;
-    let mut symbols = BTreeSet::new();
+    let mut got_needed = false;
+    let mut got_symbols = BTreeSet::new();
+    let mut got_plt_needed = false;
+    let mut got_plt_symbols = BTreeSet::new();
     for section in object.sections.iter() {
         let SectionContent::Data(data) = &section.content else {
             continue;
         };
         for relocation in &data.relocations {
-            if relocation.type_.needs_got_entry() {
-                symbols.insert(relocation.symbol);
-            }
+            match relocation.type_.needs_got_entry() {
+                NeedsGot::None => false, // Empty block, false due to insert() returning a bool.
+                NeedsGot::Got => got_symbols.insert(relocation.symbol),
+                NeedsGot::GotPlt => got_plt_symbols.insert(relocation.symbol),
+            };
+
             // Some relocations (like R_386_GOTOFF) require a GOT to be present even if no entries
             // in the GOT are actually there. We thus do the check separately, rather than only
             // emitting the GOT if there are GOT entries.
-            needs_got |= relocation.type_.needs_got_table();
+            match relocation.type_.needs_got_table() {
+                NeedsGot::None => {}
+                NeedsGot::Got => got_needed = true,
+                NeedsGot::GotPlt => got_plt_needed = true,
+            }
         }
     }
 
-    if !needs_got {
-        return Ok(());
+    if got_needed {
+        let got = build_got(
+            ids,
+            object,
+            dynamic_context,
+            &mut got_symbols.iter().copied(),
+            GotConfig {
+                section_name: ".got",
+                rela_section_name: ".rela.got",
+                inside_relro: true,
+                relocation_type: RelocationType::FillGotSlot,
+                dynamic_entry: DynamicEntry::Rela,
+            },
+        )?;
+
+        let got_symbol = ids.allocate_symbol_id();
+        object
+            .symbols
+            .add_symbol(Symbol::new_global_hidden(
+                got_symbol,
+                intern("_GLOBAL_OFFSET_TABLE_"),
+                SymbolValue::SectionRelative { section: got.id, offset: 0.into() },
+            ))
+            .map_err(GenerateGotError::CreateSymbol)?;
+
+        object.got = Some(got);
     }
 
-    let got = build_got(
-        ids,
-        object,
-        dynamic_context,
-        &mut symbols.iter().copied(),
-        GotConfig {
-            section_name: ".got",
-            rela_section_name: ".rela.got",
-            inside_relro: true,
-            dynamic_entry: DynamicEntry::Rela,
-        },
-    )?;
+    if got_plt_needed {
+        build_got(
+            ids,
+            object,
+            dynamic_context,
+            &mut got_plt_symbols.iter().copied(),
+            GotConfig {
+                section_name: ".got.plt",
+                rela_section_name: ".rela.plt",
+                inside_relro: false, // TODO: depending on -znow
+                relocation_type: RelocationType::FillGotPltSlot,
+                dynamic_entry: DynamicEntry::Rela, // TODO: use correct dynamic entry
+            },
+        )?;
+    }
 
-    let got_symbol = ids.allocate_symbol_id();
-    object
-        .symbols
-        .add_symbol(Symbol::new_global_hidden(
-            got_symbol,
-            intern("_GLOBAL_OFFSET_TABLE_"),
-            SymbolValue::SectionRelative { section: got.id, offset: 0.into() },
-        ))
-        .map_err(GenerateGotError::CreateSymbol)?;
-
-    object.got = Some(got);
+    // TODO: _GLOBAL_OFFSET_TABLE_ should be .got.plt, not .got (also changing the x86 relocation
+    // needing a got to require .got.plt instead of .got)
 
     Ok(())
 }
@@ -89,7 +116,7 @@ fn build_got(
 
         buf.extend_from_slice(placeholder);
         relocations.push(Relocation {
-            type_: RelocationType::FillGOTSlot,
+            type_: config.relocation_type,
             symbol,
             section: id,
             offset,
@@ -128,6 +155,7 @@ struct GotConfig {
     section_name: &'static str,
     rela_section_name: &'static str,
     inside_relro: bool,
+    relocation_type: RelocationType,
     dynamic_entry: fn(SectionId) -> DynamicEntry,
 }
 

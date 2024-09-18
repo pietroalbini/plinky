@@ -50,7 +50,8 @@ fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocat
         (ElfClass::Elf32, RelocationType::GOTIndex32) => ElfRelocationType::X86_GOT32,
         (ElfClass::Elf32, RelocationType::GOTLocationRelative32) => ElfRelocationType::X86_GOTPC,
         (ElfClass::Elf32, RelocationType::OffsetFromGOT32) => ElfRelocationType::X86_GOTOff,
-        (ElfClass::Elf32, RelocationType::FillGOTSlot) => ElfRelocationType::X86_GLOB_DAT,
+        (ElfClass::Elf32, RelocationType::FillGotSlot) => ElfRelocationType::X86_GlobDat,
+        (ElfClass::Elf32, RelocationType::FillGotPltSlot) => ElfRelocationType::X86_JumpSlot,
 
         (ElfClass::Elf64, RelocationType::Absolute32) => ElfRelocationType::X86_64_32,
         (ElfClass::Elf64, RelocationType::AbsoluteSigned32) => ElfRelocationType::X86_64_32S,
@@ -60,7 +61,9 @@ fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocat
         (ElfClass::Elf64, RelocationType::GOTIndex32) => unsupported!(),
         (ElfClass::Elf64, RelocationType::GOTLocationRelative32) => unsupported!(),
         (ElfClass::Elf64, RelocationType::OffsetFromGOT32) => unsupported!(),
-        (ElfClass::Elf64, RelocationType::FillGOTSlot) => ElfRelocationType::X86_64_GlobDat,
+        (ElfClass::Elf64, RelocationType::FillGotSlot) => ElfRelocationType::X86_64_GlobDat,
+        (ElfClass::Elf64, RelocationType::FillGotPltSlot) => ElfRelocationType::X86_64_JumpSlot,
+
     }
 }
 

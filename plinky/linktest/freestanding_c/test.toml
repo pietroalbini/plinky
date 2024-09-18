@@ -15,7 +15,7 @@ kind = "run-pass"
 debug-print = [
     "loaded-object=.text",
     "layout",
-    "relocated-object=.text,.got,.interp,@symbols,@dynamic",
+    "relocated-object=.text,.got*,.interp,@symbols,@dynamic",
     "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
 ]
 
@@ -23,6 +23,16 @@ debug-print = [
 cmd = ["${c.hello_got}", "${asm.syscalls}", "-pie", "-zrelro"]
 kind = "run-pass"
 debug-print = ["layout", "final-elf=@segments"]
+
+[plinky.pie_plt]
+cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie"]
+kind = "run-pass"
+debug-print = [
+    "loaded-object=.text",
+    "layout",
+    "relocated-object=.text,.got*,.interp,@symbols,@dynamic",
+    "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
+]
 
 [c.hello_static]
 source = "hello.c"
@@ -33,6 +43,11 @@ relocation = "static"
 source = "hello.c"
 libc = "freestanding"
 relocation = "pic-only-got"
+
+[c.hello_plt]
+source = "hello.c"
+libc = "freestanding"
+relocation = "pic"
 
 [asm.syscalls]
 output = "syscalls.o"

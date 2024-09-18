@@ -26,13 +26,13 @@ pub(crate) fn run(
 
     let section = object
         .sections
-        .builder(".interp", DataSection::new(ElfPermissions::empty().read(), &interpreter))
+        .builder(".interp", DataSection::new(ElfPermissions::R, &interpreter))
         .create(ids);
 
     object.segments.add(Segment {
         align: 1,
         type_: SegmentType::Interpreter,
-        perms: ElfPermissions::empty().read(),
+        perms: ElfPermissions::R,
         content: vec![SegmentContent::Section(section)],
     });
 

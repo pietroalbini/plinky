@@ -98,7 +98,7 @@ fn build_got(
         offsets.insert(symbol, offset);
     }
 
-    let mut data = DataSection::new(ElfPermissions::empty().read().write(), &buf);
+    let mut data = DataSection::new(ElfPermissions::RW, &buf);
     data.inside_relro = config.inside_relro;
 
     match dynamic_context {

@@ -428,24 +428,17 @@ pub struct ElfPermissions {
 }
 
 impl ElfPermissions {
-    pub fn empty() -> Self {
-        ElfPermissions { read: false, write: false, execute: false }
-    }
+    pub const EMPTY: Self = Self { read: false, write: false, execute: false };
 
-    pub fn read(mut self) -> Self {
-        self.read = true;
-        self
-    }
+    pub const R: Self = Self { read: true, write: false, execute: false };
+    pub const W: Self = Self { read: false, write: true, execute: false };
+    pub const X: Self = Self { read: false, write: false, execute: true };
 
-    pub fn write(mut self) -> Self {
-        self.write = true;
-        self
-    }
+    pub const RW: Self = Self { read: true, write: true, execute: false };
+    pub const RX: Self = Self { read: true, write: false, execute: true };
+    pub const WX: Self = Self { read: false, write: true, execute: true };
 
-    pub fn execute(mut self) -> Self {
-        self.execute = true;
-        self
-    }
+    pub const RWX: Self = Self { read: true, write: true, execute: true };
 }
 
 impl std::fmt::Debug for ElfPermissions {

@@ -60,21 +60,21 @@ pub(crate) fn run(
     let dynamic_segment = object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::Program,
-        perms: ElfPermissions::empty().read(),
+        perms: ElfPermissions::R,
         content: segment_content,
     });
 
     object.segments.add(Segment {
         align: <u64 as RawTypeAsPointerSize>::size(object.env.class) as _,
         type_: SegmentType::Dynamic,
-        perms: ElfPermissions::empty().read(),
+        perms: ElfPermissions::R,
         content: vec![SegmentContent::Section(dynamic)],
     });
 
     object.segments.add(Segment {
         align: 0x1000,
         type_: SegmentType::ProgramHeader,
-        perms: ElfPermissions::empty().read(),
+        perms: ElfPermissions::R,
         content: vec![SegmentContent::ProgramHeader],
     });
 
@@ -87,7 +87,7 @@ pub(crate) fn run(
         object.segments.add(Segment {
             align: 0x1,
             type_: SegmentType::GnuRelro,
-            perms: ElfPermissions::empty().read(),
+            perms: ElfPermissions::R,
             content: vec![SegmentContent::RelroSections],
         });
     }

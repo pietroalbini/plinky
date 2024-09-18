@@ -7,7 +7,7 @@ use crate::repr::sections::{DataSection, RelocationsSection, SectionContent};
 use crate::repr::segments::SegmentContent;
 use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
-use plinky_elf::ElfPermissions;
+use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
 use std::collections::{BTreeMap, BTreeSet};
@@ -38,22 +38,56 @@ pub(crate) fn generate_got(
         return Ok(());
     }
 
-    let id = ids.allocate_section_id();
+    let got = build_got(
+        ids,
+        object,
+        dynamic_context,
+        &mut symbols.iter().copied(),
+        GotConfig {
+            section_name: ".got",
+            rela_section_name: ".rela.got",
+            inside_relro: true,
+            dynamic_entry: DynamicEntry::Rela,
+        },
+    )?;
 
-    let (placeholder, placeholder_len): (&[u8], i64) = match object.env.class {
-        plinky_elf::ElfClass::Elf32 => (&[0; 4], 4),
-        plinky_elf::ElfClass::Elf64 => (&[0; 8], 8),
-    };
+    let got_symbol = ids.allocate_symbol_id();
+    object
+        .symbols
+        .add_symbol(Symbol::new_global_hidden(
+            got_symbol,
+            intern("_GLOBAL_OFFSET_TABLE_"),
+            SymbolValue::SectionRelative { section: got.id, offset: 0.into() },
+        ))
+        .map_err(GenerateGotError::CreateSymbol)?;
 
-    let mut bytes = Vec::new();
+    object.got = Some(got);
+
+    Ok(())
+}
+
+fn build_got(
+    ids: &mut SerialIds,
+    object: &mut Object,
+    dynamic_context: &Option<DynamicContext>,
+    symbols: &mut dyn Iterator<Item = SymbolId>,
+    config: GotConfig,
+) -> Result<GOT, GenerateGotError> {
+    let mut buf = Vec::new();
     let mut relocations = Vec::new();
     let mut offsets = BTreeMap::new();
-    let mut current_offset = 0;
-    for symbol in symbols {
-        let offset = Offset::from(current_offset);
-        current_offset += placeholder_len;
 
-        bytes.extend_from_slice(placeholder);
+    let id = ids.allocate_section_id();
+    let placeholder: &[u8] = match object.env.class {
+        ElfClass::Elf32 => &[0; 4],
+        ElfClass::Elf64 => &[0; 8],
+    };
+
+    for symbol in symbols {
+        let offset =
+            Offset::from(i64::try_from(buf.len()).map_err(|_| GenerateGotError::TooLarge)?);
+
+        buf.extend_from_slice(placeholder);
         relocations.push(Relocation {
             type_: RelocationType::FillGOTSlot,
             symbol,
@@ -64,8 +98,8 @@ pub(crate) fn generate_got(
         offsets.insert(symbol, offset);
     }
 
-    let mut data = DataSection::new(ElfPermissions::empty().read().write(), &bytes);
-    data.inside_relro = true;
+    let mut data = DataSection::new(ElfPermissions::empty().read().write(), &buf);
+    data.inside_relro = config.inside_relro;
 
     match dynamic_context {
         Some(dynamic) => {
@@ -75,28 +109,26 @@ pub(crate) fn generate_got(
 
             let rela = object
                 .sections
-                .builder(".rela.got", RelocationsSection::new(None, dynamic.dynsym(), relocations))
+                .builder(
+                    config.rela_section_name,
+                    RelocationsSection::new(None, dynamic.dynsym(), relocations),
+                )
                 .create(ids);
             object.segments.get_mut(dynamic.segment()).content.push(SegmentContent::Section(rela));
-            object.dynamic_entries.add(DynamicEntry::Rela(rela));
+            object.dynamic_entries.add((config.dynamic_entry)(rela));
         }
         None => data.relocations = relocations,
     }
 
-    object.sections.builder(".got", data).create_with_id(id);
-    object.got = Some(GOT { id, offsets });
+    object.sections.builder(config.section_name, data).create_with_id(id);
+    Ok(GOT { id, offsets })
+}
 
-    let got_symbol = ids.allocate_symbol_id();
-    object
-        .symbols
-        .add_symbol(Symbol::new_global_hidden(
-            got_symbol,
-            intern("_GLOBAL_OFFSET_TABLE_"),
-            SymbolValue::SectionRelative { section: id, offset: 0.into() },
-        ))
-        .map_err(GenerateGotError::CreateSymbol)?;
-
-    Ok(())
+struct GotConfig {
+    section_name: &'static str,
+    rela_section_name: &'static str,
+    inside_relro: bool,
+    dynamic_entry: fn(SectionId) -> DynamicEntry,
 }
 
 #[derive(Debug)]
@@ -116,6 +148,8 @@ impl GOT {
 
 #[derive(Debug, Display, Error)]
 pub(crate) enum GenerateGotError {
+    #[display("the GOT is too large")]
+    TooLarge,
     #[display("failed to create the _GLOBAL_OFFSET_TABLE_ symbol")]
     CreateSymbol(#[source] LoadSymbolsError),
 }

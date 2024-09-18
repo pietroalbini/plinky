@@ -5,6 +5,7 @@ pub(crate) mod demote_global_hidden_symbols;
 pub(crate) mod exclude_section_symbols_from_tables;
 pub(crate) mod gc_sections;
 pub(crate) mod generate_got;
+pub(crate) mod inject_gnu_relro;
 pub(crate) mod inject_gnu_stack;
 pub(crate) mod inject_symbol_table;
 pub(crate) mod layout;

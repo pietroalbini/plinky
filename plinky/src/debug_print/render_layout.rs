@@ -48,7 +48,7 @@ pub(super) fn render_layout(
         (
             &segment.type_,
             segment
-                .layout(object, layout)
+                .layout(layout)
                 .memory
                 .as_ref()
                 .map(|m| m.address.extract())
@@ -62,7 +62,7 @@ pub(super) fn render_layout(
     for segment in sorted_segments {
         segments.add_row([
             segment
-                .layout(object, layout)
+                .layout(layout)
                 .memory
                 .as_ref()
                 .map(|m| m.address.to_string())
@@ -84,7 +84,6 @@ pub(super) fn render_layout(
                 .map(|c| match c {
                     SegmentContent::ProgramHeader => "<program header>".into(),
                     SegmentContent::ElfHeader => "<elf header>".into(),
-                    SegmentContent::RelroSections => "<relro sections>".into(),
                     SegmentContent::Section(id) => section_name(object, *id),
                 })
                 .collect::<Vec<_>>()

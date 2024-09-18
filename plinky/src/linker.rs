@@ -37,11 +37,14 @@ pub(crate) fn link_driver(
     let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
     let dynamic = passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
-    passes::generate_got::generate_got(&mut ids, &mut object, &dynamic)?;
+    passes::generate_got::generate_got(&options, &mut ids, &mut object, &dynamic)?;
 
     passes::exclude_section_symbols_from_tables::remove(&mut object);
     passes::demote_global_hidden_symbols::run(&mut object);
     passes::create_segments::run(&mut object);
+
+    // This must be executed after we create all sections marked as data.inside_relro=true.
+    passes::inject_gnu_relro::run(&mut object);
 
     let layout = passes::layout::run(&object)?;
     callbacks.on_layout_calculated(&object, &layout, &deduplications);

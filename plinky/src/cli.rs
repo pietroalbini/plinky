@@ -17,7 +17,7 @@ pub(crate) struct CliOptions {
     pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
-    pub(crate) read_only_after_relocations: bool,
+    pub(crate) read_only_got: bool,
     pub(crate) dynamic_linker: Option<String>,
     pub(crate) mode: Mode,
 }
@@ -47,7 +47,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut output = None;
     let mut entry = None;
     let mut executable_stack = None;
-    let mut read_only_after_relocations = None;
+    let mut read_only_got = None;
     let mut gc_sections = None;
     let mut mode = None;
     let mut dynamic_linker = None;
@@ -91,12 +91,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 )?,
                 "relro" => reject_duplicate(
                     "-z relro or -z norelro",
-                    &mut read_only_after_relocations,
+                    &mut read_only_got,
                     || Ok(true),
                 )?,
                 "norelro" => reject_duplicate(
                     "-z relro or -z norelro",
-                    &mut read_only_after_relocations,
+                    &mut read_only_got,
                     || Ok(false),
                 )?,
                 other => return Err(CliError::UnsupportedFlag(format!("-z {other}"))),
@@ -154,12 +154,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
-        read_only_after_relocations: read_only_after_relocations.unwrap_or(false),
+        read_only_got: read_only_got.unwrap_or(false),
         dynamic_linker: dynamic_linker.map(|s| s.into()),
         mode: mode.unwrap_or(Mode::PositionDependent),
     };
 
-    if options.read_only_after_relocations && !matches!(options.mode, Mode::PositionIndependent) {
+    if options.read_only_got && !matches!(options.mode, Mode::PositionIndependent) {
         return Err(CliError::RelroOnlyForPie);
     }
 
@@ -625,7 +625,7 @@ mod tests {
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
                 mode: Mode::PositionIndependent,
-                read_only_after_relocations: true,
+                read_only_got: true,
                 ..default_options()
             }),
             parse(["foo", "-pie", "-z", "relro"].into_iter())
@@ -638,7 +638,7 @@ mod tests {
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
                 mode: Mode::PositionIndependent,
-                read_only_after_relocations: false,
+                read_only_got: false,
                 ..default_options()
             }),
             parse(["foo", "-pie", "-z", "norelro"].into_iter())
@@ -681,7 +681,7 @@ mod tests {
             gc_sections: false,
             debug_print: BTreeSet::new(),
             executable_stack: false,
-            read_only_after_relocations: false,
+            read_only_got: false,
             dynamic_linker: None,
             mode: Mode::PositionDependent,
         }

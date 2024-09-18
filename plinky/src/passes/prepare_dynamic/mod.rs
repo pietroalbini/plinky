@@ -83,15 +83,6 @@ pub(crate) fn run(
         Mode::PositionIndependent => object.dynamic_entries.add(DynamicEntry::PieFlag),
     }
 
-    if options.read_only_after_relocations {
-        object.segments.add(Segment {
-            align: 0x1,
-            type_: SegmentType::GnuRelro,
-            perms: ElfPermissions::R,
-            content: vec![SegmentContent::RelroSections],
-        });
-    }
-
     Ok(Some(DynamicContext { dynsym, segment: dynamic_segment }))
 }
 

@@ -1,3 +1,4 @@
+use crate::cli::CliOptions;
 use crate::interner::intern;
 use crate::passes::prepare_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
@@ -13,6 +14,7 @@ use plinky_utils::ints::Offset;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn generate_got(
+    options: &CliOptions,
     ids: &mut SerialIds,
     object: &mut Object,
     dynamic_context: &Option<DynamicContext>,
@@ -52,7 +54,7 @@ pub(crate) fn generate_got(
             GotConfig {
                 section_name: ".got",
                 rela_section_name: ".rela.got",
-                inside_relro: true,
+                inside_relro: options.read_only_got,
                 relocation_type: RelocationType::FillGotSlot,
                 dynamic_entry: DynamicEntry::Rela,
             },

@@ -35,7 +35,7 @@ impl X86Codegen {
             X86Instruction::JumpRelative(disp) => {
                 self.buf.push(0xE9);
                 self.buf.extend_from_slice(&disp.to_le_bytes());
-            },
+            }
             // Instruction encoding: FF /4
             X86Instruction::JumpReference(reference) => {
                 self.buf.push(0xFF);

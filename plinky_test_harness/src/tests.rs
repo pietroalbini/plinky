@@ -1,10 +1,10 @@
 use crate::template::{TemplateContext, Value};
+use crate::utils::RunAndSnapshot;
 use crate::Step;
 use anyhow::{Context, Error};
 use std::path::{Path, PathBuf};
-use tempfile::TempDir;
 use std::sync::Arc;
-use crate::utils::RunAndSnapshot;
+use tempfile::TempDir;
 
 #[derive(Debug)]
 pub(crate) struct Test {

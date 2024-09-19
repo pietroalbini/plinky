@@ -63,7 +63,6 @@ fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocat
         (ElfClass::Elf64, RelocationType::OffsetFromGOT32) => unsupported!(),
         (ElfClass::Elf64, RelocationType::FillGotSlot) => ElfRelocationType::X86_64_GlobDat,
         (ElfClass::Elf64, RelocationType::FillGotPltSlot) => ElfRelocationType::X86_64_JumpSlot,
-
     }
 }
 

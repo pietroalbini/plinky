@@ -43,16 +43,12 @@ pub(super) fn render_layout(
         ]);
     }
 
-    let mut sorted_segments = object.segments.iter().map(|(_id, segment)| segment).collect::<Vec<_>>();
+    let mut sorted_segments =
+        object.segments.iter().map(|(_id, segment)| segment).collect::<Vec<_>>();
     sorted_segments.sort_by_key(|segment| {
         (
             &segment.type_,
-            segment
-                .layout(layout)
-                .memory
-                .as_ref()
-                .map(|m| m.address.extract())
-                .unwrap_or(0),
+            segment.layout(layout).memory.as_ref().map(|m| m.address.extract()).unwrap_or(0),
         )
     });
 

@@ -17,8 +17,11 @@ pub(crate) struct LdStep {
 impl Step for LdStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
         let dest_name = self.output.resolve(&*ctx.template)?;
-        let content =
-            self.content.iter().map(|c| c.resolve(&*ctx.template)).collect::<Result<Vec<_>, _>>()?;
+        let content = self
+            .content
+            .iter()
+            .map(|c| c.resolve(&*ctx.template))
+            .collect::<Result<Vec<_>, _>>()?;
 
         let dest = ctx.dest.join(ctx.step_name);
         std::fs::create_dir_all(&dest)?;

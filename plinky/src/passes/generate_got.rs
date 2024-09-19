@@ -132,19 +132,25 @@ fn build_got(
 
     match dynamic_context {
         Some(dynamic) => {
-            for relocation in &relocations {
-                object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
-            }
+            if !relocations.is_empty() {
+                for relocation in &relocations {
+                    object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
+                }
 
-            let rela = object
-                .sections
-                .builder(
-                    config.rela_section_name,
-                    RelocationsSection::new(None, dynamic.dynsym(), relocations),
-                )
-                .create(ids);
-            object.segments.get_mut(dynamic.segment()).content.push(SegmentContent::Section(rela));
-            object.dynamic_entries.add((config.dynamic_entry)(id, rela));
+                let rela = object
+                    .sections
+                    .builder(
+                        config.rela_section_name,
+                        RelocationsSection::new(None, dynamic.dynsym(), relocations),
+                    )
+                    .create(ids);
+                object
+                    .segments
+                    .get_mut(dynamic.segment())
+                    .content
+                    .push(SegmentContent::Section(rela));
+                object.dynamic_entries.add((config.dynamic_entry)(id, rela));
+            }
         }
         None => data.relocations = relocations,
     }

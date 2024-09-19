@@ -24,7 +24,8 @@ pub(crate) enum DynamicEntry {
     StringTable(SectionId),
     SymbolTable(SectionId),
     Hash(SectionId),
-    Rela(SectionId),
+    GotRela(SectionId),
+    Plt { got_plt: SectionId, rela: SectionId },
     PieFlag,
 }
 
@@ -34,7 +35,8 @@ impl DynamicEntry {
             DynamicEntry::StringTable(_) => 2,
             DynamicEntry::SymbolTable(_) => 2,
             DynamicEntry::Hash(_) => 1,
-            DynamicEntry::Rela(_) => 3,
+            DynamicEntry::GotRela(_) => 3,
+            DynamicEntry::Plt { .. } => 4,
             DynamicEntry::PieFlag => 1,
         }
     }

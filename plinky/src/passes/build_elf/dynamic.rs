@@ -5,7 +5,9 @@ use crate::repr::sections::DynamicSection;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
-use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfSectionContent};
+use plinky_elf::{
+    ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfPLTRelocationsMode, ElfSectionContent,
+};
 use plinky_utils::ints::ExtractNumber;
 use plinky_utils::raw_types::RawType;
 
@@ -37,12 +39,26 @@ pub(super) fn build_dynamic_section(
                 let mem = layout(builder, id, "sysv hash");
                 directives.push(ElfDynamicDirective::Hash { address: mem.address.extract() });
             }
-            DynamicEntry::Rela(id) => {
-                let mem = layout(builder, id, "relocations table");
+            DynamicEntry::GotRela(id) => {
+                let mem = layout(builder, id, "got relocations table");
                 directives.push(ElfDynamicDirective::Rela { address: mem.address.extract() });
                 directives.push(ElfDynamicDirective::RelaSize { bytes: mem.len.extract() });
                 directives
                     .push(ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ });
+            }
+            DynamicEntry::Plt { got_plt, rela } => {
+                let got_plt_mem = layout(builder, got_plt, "got.plt relocations table");
+                let rela_mem = layout(builder, rela, "rela.plt relocations table");
+                directives
+                    .push(ElfDynamicDirective::JumpRel { address: rela_mem.address.extract() });
+                directives.push(ElfDynamicDirective::PLTRelocationsSize {
+                    bytes: rela_mem.len.extract(),
+                });
+                directives.push(ElfDynamicDirective::PTLRelocationsMode {
+                    mode: ElfPLTRelocationsMode::Rela,
+                });
+                directives
+                    .push(ElfDynamicDirective::PLTGOT { address: got_plt_mem.address.extract() });
             }
             DynamicEntry::PieFlag => {
                 directives.push(ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true }));

@@ -56,7 +56,7 @@ pub(crate) fn generate_got(
                 rela_section_name: ".rela.got",
                 inside_relro: options.read_only_got,
                 relocation_type: RelocationType::FillGotSlot,
-                dynamic_entry: DynamicEntry::Rela,
+                dynamic_entry: |_got_plt, rela| DynamicEntry::GotRela(rela),
             },
         )?;
 
@@ -84,7 +84,7 @@ pub(crate) fn generate_got(
                 rela_section_name: ".rela.plt",
                 inside_relro: options.read_only_got_plt,
                 relocation_type: RelocationType::FillGotPltSlot,
-                dynamic_entry: DynamicEntry::Rela, // TODO: use correct dynamic entry
+                dynamic_entry: |got_plt, rela| DynamicEntry::Plt { got_plt, rela },
             },
         )?;
     }
@@ -144,7 +144,7 @@ fn build_got(
                 )
                 .create(ids);
             object.segments.get_mut(dynamic.segment()).content.push(SegmentContent::Section(rela));
-            object.dynamic_entries.add((config.dynamic_entry)(rela));
+            object.dynamic_entries.add((config.dynamic_entry)(id, rela));
         }
         None => data.relocations = relocations,
     }
@@ -158,7 +158,7 @@ struct GotConfig {
     rela_section_name: &'static str,
     inside_relro: bool,
     relocation_type: RelocationType,
-    dynamic_entry: fn(SectionId) -> DynamicEntry,
+    dynamic_entry: fn(SectionId, SectionId) -> DynamicEntry,
 }
 
 #[derive(Debug)]

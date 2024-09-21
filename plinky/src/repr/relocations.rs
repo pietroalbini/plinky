@@ -3,7 +3,7 @@ use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RelocationType {
     Absolute32,
     AbsoluteSigned32,
@@ -47,7 +47,7 @@ pub(crate) enum NeedsGot {
     GotPlt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Relocation {
     pub(crate) type_: RelocationType,
     pub(crate) symbol: SymbolId,

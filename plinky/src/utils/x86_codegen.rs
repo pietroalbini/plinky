@@ -1,10 +1,14 @@
 #![cfg_attr(not(test), expect(unused))]
 
+use crate::repr::relocations::{Relocation, RelocationType};
+use plinky_elf::ids::serial::SymbolId;
+use plinky_utils::ints::Offset;
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum X86Instruction {
-    PushImmediate(i32),
+    PushImmediate(X86Value),
     PushReference(X86Reference),
-    JumpRelative(i32),
+    JumpRelative(X86Value),
     JumpReference(X86Reference),
     Nop,
 }
@@ -12,11 +16,12 @@ pub(crate) enum X86Instruction {
 pub(crate) struct X86Codegen {
     arch: X86Arch,
     buf: Vec<u8>,
+    relocations: Vec<Relocation>,
 }
 
 impl X86Codegen {
     fn new(arch: X86Arch) -> Self {
-        Self { arch, buf: Vec::new() }
+        Self { arch, buf: Vec::new(), relocations: Vec::new() }
     }
 
     fn encode(&mut self, instruction: X86Instruction) {
@@ -24,7 +29,7 @@ impl X86Codegen {
             // Instruction encoding: 68 id
             X86Instruction::PushImmediate(imm) => {
                 self.buf.push(0x68);
-                self.buf.extend_from_slice(&imm.to_le_bytes());
+                self.encode_value(imm);
             }
             // Instruction encoding: FF /6
             X86Instruction::PushReference(reference) => {
@@ -34,7 +39,7 @@ impl X86Codegen {
             // Instruction encoding: E9 cd
             X86Instruction::JumpRelative(disp) => {
                 self.buf.push(0xE9);
-                self.buf.extend_from_slice(&disp.to_le_bytes());
+                self.encode_value(disp);
             }
             // Instruction encoding: FF /4
             X86Instruction::JumpReference(reference) => {
@@ -55,7 +60,7 @@ impl X86Codegen {
                 X86Arch::X86 => panic!("rip-relative displacement is not available on x86"),
                 X86Arch::X86_64 => {
                     self.buf.push(modrm(0b00, modrm_opcode, 0b101));
-                    self.buf.extend_from_slice(&disp32.to_le_bytes());
+                    self.encode_value(disp32);
                 }
             },
             X86Reference::Displacement(disp32) => {
@@ -71,9 +76,27 @@ impl X86Codegen {
                         self.buf.push(sib(0b00, 0b100, 0b101));
                     }
                 }
-                self.buf.extend_from_slice(&disp32.to_le_bytes());
+                self.encode_value(disp32);
             }
         }
+    }
+
+    fn encode_value(&mut self, value: X86Value) {
+        let bytes = match value {
+            X86Value::Known(value) => value.to_le_bytes(),
+            X86Value::Relocation { type_, symbol, addend } => {
+                self.relocations.push(Relocation {
+                    type_,
+                    symbol,
+                    offset: Offset::from(
+                        i64::try_from(self.buf.len()).expect("generated x86 too large"),
+                    ),
+                    addend: Some(addend),
+                });
+                0i32.to_le_bytes()
+            }
+        };
+        self.buf.extend_from_slice(&bytes);
     }
 }
 
@@ -84,9 +107,15 @@ pub(crate) enum X86Arch {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) enum X86Value {
+    Known(i32),
+    Relocation { type_: RelocationType, symbol: SymbolId, addend: Offset },
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum X86Reference {
-    Displacement(i32),
-    RipRelativeDisplacement(i32),
+    Displacement(X86Value),
+    RipRelativeDisplacement(X86Value),
 }
 
 fn modrm(mod_: u8, reg_opcode: u8, rm: u8) -> u8 {
@@ -100,6 +129,7 @@ fn sib(scale: u8, index: u8, base: u8) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use plinky_elf::ids::serial::SerialIds;
 
     #[track_caller]
     fn encode_all<const N: usize>(instruction: X86Instruction, expected: [u8; N]) {
@@ -116,6 +146,10 @@ mod tests {
         assert_eq!(&codegen.buf, &expected, "wrong encoding for arch {arch:?}");
     }
 
+    fn v(known: i32) -> X86Value {
+        X86Value::Known(known)
+    }
+
     #[test]
     fn test_modrm_encoding() {
         // Example from the Intel manual.
@@ -129,51 +163,82 @@ mod tests {
     }
 
     #[test]
+    fn test_value_encoding() {
+        let mut ids = SerialIds::new();
+        let symbol = ids.allocate_symbol_id();
+
+        let mut codegen = X86Codegen::new(X86Arch::X86_64);
+        codegen.encode(X86Instruction::PushImmediate(X86Value::Known(42)));
+
+        assert_eq!(&[0x68, 42, 0, 0, 0], codegen.buf.as_slice());
+        assert!(codegen.relocations.is_empty());
+
+        codegen.encode(X86Instruction::PushImmediate(X86Value::Relocation {
+            type_: RelocationType::Absolute32,
+            symbol,
+            addend: 42_i64.into(),
+        }));
+        assert_eq!(
+            &[/* First */ 0x68, 42, 0, 0, 0, /* Second */ 0x68, 0, 0, 0, 0,],
+            codegen.buf.as_slice()
+        );
+        assert_eq!(
+            &[Relocation {
+                type_: RelocationType::Absolute32,
+                symbol,
+                offset: 6_i64.into(),
+                addend: Some(42_i64.into())
+            }],
+            codegen.relocations.as_slice()
+        );
+    }
+
+    #[test]
     fn test_encode_push_immediate() {
-        encode_all(X86Instruction::PushImmediate(42), [0x68, 42, 0, 0, 0]);
+        encode_all(X86Instruction::PushImmediate(v(42)), [0x68, 42, 0, 0, 0]);
     }
 
     #[test]
     fn test_encode_push_reference() {
         encode(
             X86Arch::X86_64,
-            X86Instruction::PushReference(X86Reference::RipRelativeDisplacement(42)),
+            X86Instruction::PushReference(X86Reference::RipRelativeDisplacement(v(42))),
             [0xFF, 0x35, 42, 0, 0, 0],
         );
 
         encode(
             X86Arch::X86,
-            X86Instruction::PushReference(X86Reference::Displacement(42)),
+            X86Instruction::PushReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x35, 42, 0, 0, 0],
         );
         encode(
             X86Arch::X86_64,
-            X86Instruction::PushReference(X86Reference::Displacement(42)),
+            X86Instruction::PushReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x34, 0x25, 42, 0, 0, 0],
         );
     }
 
     #[test]
     fn test_encode_jump_relative() {
-        encode_all(X86Instruction::JumpRelative(42), [0xE9, 42, 0, 0, 0]);
+        encode_all(X86Instruction::JumpRelative(v(42)), [0xE9, 42, 0, 0, 0]);
     }
 
     #[test]
     fn test_encode_jump_reference() {
         encode(
             X86Arch::X86_64,
-            X86Instruction::JumpReference(X86Reference::RipRelativeDisplacement(42)),
+            X86Instruction::JumpReference(X86Reference::RipRelativeDisplacement(v(42))),
             [0xFF, 0x25, 42, 0, 0, 0],
         );
 
         encode(
             X86Arch::X86,
-            X86Instruction::JumpReference(X86Reference::Displacement(42)),
+            X86Instruction::JumpReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x25, 42, 0, 0, 0],
         );
         encode(
             X86Arch::X86_64,
-            X86Instruction::JumpReference(X86Reference::Displacement(42)),
+            X86Instruction::JumpReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x24, 0x25, 42, 0, 0, 0],
         );
     }

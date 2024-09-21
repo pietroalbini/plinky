@@ -9,7 +9,7 @@ use crate::repr::sections::{
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
 use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::Offset;
@@ -86,17 +86,17 @@ pub(crate) fn run(
         Mode::PositionIndependent => object.dynamic_entries.add(DynamicEntry::PieFlag),
     }
 
-    let dynamic_symbol_id = ids.allocate_symbol_id();
+    let dynamic_symbol = ids.allocate_symbol_id();
     object
         .symbols
         .add_symbol(Symbol::new_global_hidden(
-            dynamic_symbol_id,
+            dynamic_symbol,
             intern("_DYNAMIC"),
             SymbolValue::SectionRelative { section: dynamic, offset: Offset::from(0) },
         ))
         .map_err(PrepareDynamicError::DynamicSymbolCreation)?;
 
-    Ok(Some(DynamicContext { dynsym, segment: dynamic_segment }))
+    Ok(Some(DynamicContext { dynsym, segment: dynamic_segment, dynamic_symbol }))
 }
 
 #[derive(Debug, Getters)]
@@ -105,6 +105,8 @@ pub(crate) struct DynamicContext {
     dynsym: SectionId,
     #[get]
     segment: SegmentId,
+    #[get]
+    dynamic_symbol: SymbolId,
 }
 
 #[derive(Debug, Error, Display)]

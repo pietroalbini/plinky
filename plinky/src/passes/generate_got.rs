@@ -47,12 +47,8 @@ pub(crate) fn generate_got(
     }
 
     let got_symbol = intern("_GLOBAL_OFFSET_TABLE_");
-    got_plt_needed |= object
-        .symbols
-        .iter(&AllSymbols)
-        .filter(|(_, s)| s.name() == got_symbol)
-        .next()
-        .is_some();
+    got_plt_needed |=
+        object.symbols.iter(&AllSymbols).filter(|(_, s)| s.name() == got_symbol).next().is_some();
 
     if got_needed {
         object.got = Some(build_got(
@@ -64,6 +60,7 @@ pub(crate) fn generate_got(
                 section_name: ".got",
                 rela_section_name: ".rela.got",
                 inside_relro: options.read_only_got,
+                add_prelude: false,
                 relocation_type: RelocationType::FillGotSlot,
                 dynamic_entry: |_got_plt, rela| DynamicEntry::GotRela(rela),
             },
@@ -80,6 +77,7 @@ pub(crate) fn generate_got(
                 section_name: ".got.plt",
                 rela_section_name: ".rela.plt",
                 inside_relro: options.read_only_got_plt,
+                add_prelude: true,
                 relocation_type: RelocationType::FillGotPltSlot,
                 dynamic_entry: |got_plt, rela| DynamicEntry::Plt { got_plt, rela },
             },
@@ -118,6 +116,25 @@ fn build_got(
         ElfClass::Elf64 => &[0; 8],
     };
 
+    // The psABI for x86-64 states that the first entry in the .got.plt must point to the _DYNAMIC
+    // symbol (resolved at link time), and it must be followed by two other entries reserved for
+    // the use of the dynamic linker.
+    let mut prelude_relocation = None;
+    if config.add_prelude {
+        if let Some(dynamic) = dynamic_context {
+            for _ in 0..3 {
+                buf.extend_from_slice(placeholder);
+            }
+            prelude_relocation = Some(Relocation {
+                type_: RelocationType::Absolute32,
+                symbol: dynamic.dynamic_symbol(),
+                section: id,
+                offset: 0.into(),
+                addend: Some(0.into()),
+            });
+        }
+    }
+
     for symbol in symbols {
         let offset =
             Offset::from(i64::try_from(buf.len()).map_err(|_| GenerateGotError::TooLarge)?);
@@ -135,6 +152,12 @@ fn build_got(
 
     let mut data = DataSection::new(ElfPermissions::RW, &buf);
     data.inside_relro = config.inside_relro;
+
+    // The relocation for the _DYNAMIC symbol in the prelude must always be resolved at link time,
+    // so we unconditionally add it in the relocations applied by the linker.
+    if let Some(relocation) = prelude_relocation {
+        data.relocations.push(relocation);
+    }
 
     match dynamic_context {
         Some(dynamic) => {
@@ -158,7 +181,7 @@ fn build_got(
                 object.dynamic_entries.add((config.dynamic_entry)(id, rela));
             }
         }
-        None => data.relocations = relocations,
+        None => data.relocations.extend(relocations.into_iter()),
     }
 
     object.sections.builder(config.section_name, data).create_with_id(id);
@@ -169,6 +192,7 @@ struct GotConfig {
     section_name: &'static str,
     rela_section_name: &'static str,
     inside_relro: bool,
+    add_prelude: bool,
     relocation_type: RelocationType,
     dynamic_entry: fn(SectionId, SectionId) -> DynamicEntry,
 }

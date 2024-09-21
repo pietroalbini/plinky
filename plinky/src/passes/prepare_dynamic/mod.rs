@@ -1,4 +1,5 @@
 use crate::cli::{CliOptions, Mode};
+use crate::interner::intern;
 use crate::passes::prepare_dynamic::interpreter::InjectInterpreterError;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
@@ -7,9 +8,11 @@ use crate::repr::sections::{
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
+use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error, Getters};
+use plinky_utils::ints::Offset;
 use plinky_utils::raw_types::RawTypeAsPointerSize;
 
 mod interpreter;
@@ -83,6 +86,16 @@ pub(crate) fn run(
         Mode::PositionIndependent => object.dynamic_entries.add(DynamicEntry::PieFlag),
     }
 
+    let dynamic_symbol_id = ids.allocate_symbol_id();
+    object
+        .symbols
+        .add_symbol(Symbol::new_global_hidden(
+            dynamic_symbol_id,
+            intern("_DYNAMIC"),
+            SymbolValue::SectionRelative { section: dynamic, offset: Offset::from(0) },
+        ))
+        .map_err(PrepareDynamicError::DynamicSymbolCreation)?;
+
     Ok(Some(DynamicContext { dynsym, segment: dynamic_segment }))
 }
 
@@ -98,4 +111,6 @@ pub(crate) struct DynamicContext {
 pub(crate) enum PrepareDynamicError {
     #[transparent]
     Interpreter(InjectInterpreterError),
+    #[display("failed to prepare the _DYNAMIC symbol")]
+    DynamicSymbolCreation(#[source] LoadSymbolsError),
 }

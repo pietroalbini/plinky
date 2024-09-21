@@ -114,14 +114,14 @@ impl<'a> Relocator<'a> {
             }
             RelocationType::OffsetFromGOT32 => {
                 let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
-                let got = self.resolver.address(self.got()?.id, 0.into())?.1;
-                editor.write_i32(symbol.as_offset()?.add(got.as_offset()?.neg())?)
+                let got_plt = self.resolver.address(self.got()?.id, 0.into())?.1;
+                editor.write_i32(symbol.as_offset()?.add(got_plt.as_offset()?.neg())?)
             }
         }
     }
 
     fn got(&self) -> Result<&GOT, RelocationErrorInner> {
-        self.got.ok_or(RelocationErrorInner::GOTRelativeWithoutGOT)
+        self.got.ok_or(RelocationErrorInner::GotRelativeWithoutGot)
     }
 
     fn symbol(
@@ -184,5 +184,5 @@ pub(crate) enum RelocationErrorInner {
     #[display("relative relocations with absolute values are not supported")]
     RelativeRelocationWithAbsoluteValue,
     #[display("GOT-relative addressing used without a GOT")]
-    GOTRelativeWithoutGOT,
+    GotRelativeWithoutGot,
 }

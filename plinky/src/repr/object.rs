@@ -15,6 +15,7 @@ pub(crate) struct Object {
     pub(crate) symbols: Symbols,
     pub(crate) dynamic_entries: DynamicEntries,
     pub(crate) got: Option<GOT>,
+    pub(crate) got_plt: Option<GOT>,
     pub(crate) entry_point: SymbolId,
     pub(crate) mode: Mode,
     pub(crate) executable_stack: bool,

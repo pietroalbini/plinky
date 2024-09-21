@@ -35,7 +35,7 @@ impl RelocationType {
 
     pub(crate) fn needs_got_table(&self) -> NeedsGot {
         match self {
-            RelocationType::OffsetFromGOT32 => NeedsGot::Got, // TODO: needs to be GotPlt
+            RelocationType::OffsetFromGOT32 => NeedsGot::Got,
             _ => self.needs_got_entry(),
         }
     }

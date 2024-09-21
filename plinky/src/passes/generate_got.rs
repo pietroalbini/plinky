@@ -6,6 +6,7 @@ use crate::repr::object::Object;
 use crate::repr::relocations::{NeedsGot, Relocation, RelocationType};
 use crate::repr::sections::{DataSection, RelocationsSection, SectionContent};
 use crate::repr::segments::SegmentContent;
+use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
 use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfClass, ElfPermissions};
@@ -45,8 +46,16 @@ pub(crate) fn generate_got(
         }
     }
 
+    let got_symbol = intern("_GLOBAL_OFFSET_TABLE_");
+    got_plt_needed |= object
+        .symbols
+        .iter(&AllSymbols)
+        .filter(|(_, s)| s.name() == got_symbol)
+        .next()
+        .is_some();
+
     if got_needed {
-        let got = build_got(
+        object.got = Some(build_got(
             ids,
             object,
             dynamic_context,
@@ -58,23 +67,11 @@ pub(crate) fn generate_got(
                 relocation_type: RelocationType::FillGotSlot,
                 dynamic_entry: |_got_plt, rela| DynamicEntry::GotRela(rela),
             },
-        )?;
-
-        let got_symbol = ids.allocate_symbol_id();
-        object
-            .symbols
-            .add_symbol(Symbol::new_global_hidden(
-                got_symbol,
-                intern("_GLOBAL_OFFSET_TABLE_"),
-                SymbolValue::SectionRelative { section: got.id, offset: 0.into() },
-            ))
-            .map_err(GenerateGotError::CreateSymbol)?;
-
-        object.got = Some(got);
+        )?);
     }
 
     if got_plt_needed {
-        build_got(
+        let got_plt = build_got(
             ids,
             object,
             dynamic_context,
@@ -87,10 +84,19 @@ pub(crate) fn generate_got(
                 dynamic_entry: |got_plt, rela| DynamicEntry::Plt { got_plt, rela },
             },
         )?;
-    }
 
-    // TODO: _GLOBAL_OFFSET_TABLE_ should be .got.plt, not .got (also changing the x86 relocation
-    // needing a got to require .got.plt instead of .got)
+        let got_plt_symbol = ids.allocate_symbol_id();
+        object
+            .symbols
+            .add_symbol(Symbol::new_global_hidden(
+                got_plt_symbol,
+                intern("_GLOBAL_OFFSET_TABLE_"),
+                SymbolValue::SectionRelative { section: got_plt.id, offset: 0.into() },
+            ))
+            .map_err(GenerateGotError::CreateSymbol)?;
+
+        object.got_plt = Some(got_plt);
+    }
 
     Ok(())
 }

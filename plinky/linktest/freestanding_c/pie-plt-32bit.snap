@@ -338,7 +338,7 @@ debug print: built elf
  │  section .rela.plt#17 (address: 0x1f4)
  │   │
  │   │  symbol table:       .dynsym#12
- │   │  applies to section: #0
+ │   │  applies to section: .got.plt#16
  │   │
  │   │    Relocations:
  │   │  ╭──────────────┬─────────┬────────┬────────╮

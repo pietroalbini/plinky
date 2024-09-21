@@ -335,7 +335,7 @@ debug print: built elf
  │  section .rela.got#16 (address: 0x1ec)
  │   │
  │   │  symbol table:       .dynsym#12
- │   │  applies to section: #0
+ │   │  applies to section: .got#15
  │   │
  │   │    Relocations:
  │   │  ╭─────────────┬─────────┬────────┬────────╮

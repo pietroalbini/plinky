@@ -209,12 +209,10 @@ impl<'a> ElfBuilder<'a> {
                 ),
 
                 SectionContent::Relocations(relocations) => create_rela(
+                    relocations.section(),
                     relocations.relocations().into_iter(),
                     self.object.env.class,
-                    relocations
-                        .section()
-                        .map(|s| *self.section_ids.get(&s).unwrap())
-                        .unwrap_or(self.section_zero_id),
+                    *self.section_ids.get(&relocations.section()).unwrap(),
                     *self.section_ids.get(&relocations.symbols_table()).unwrap(),
                     self.symbol_conversion.get(&relocations.symbols_table()).unwrap(),
                     &self.resolver,

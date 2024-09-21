@@ -242,10 +242,7 @@ fn render_relocations_section(
         section_widget(object, section, "relocations")
             .add(Text::new(format!(
                 "applies to section: {}\nsymbol table: {}",
-                relocations
-                    .section()
-                    .map(|s| section_name(object, s))
-                    .unwrap_or_else(|| "all".into()),
+                section_name(object, relocations.section()),
                 section_name(object, relocations.symbols_table())
             )))
             .add(render_relocations(object, "Relocations:", relocations.relocations())),

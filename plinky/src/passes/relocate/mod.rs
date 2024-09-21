@@ -47,21 +47,21 @@ impl<'a> Relocator<'a> {
         data_section: &mut DataSection,
     ) -> Result<(), RelocationError> {
         for relocation in data_section.relocations.drain(..) {
-            assert_eq!(relocation.section, section_id);
-            self.relocate_one(&relocation, &mut data_section.bytes).map_err(|inner| {
-                RelocationError {
+            self.relocate_one(section_id, &relocation, &mut data_section.bytes).map_err(
+                |inner| RelocationError {
                     section_id,
                     offset: relocation.offset,
                     relocation_type: relocation.type_,
                     inner,
-                }
-            })?;
+                },
+            )?;
         }
         Ok(())
     }
 
     fn relocate_one(
         &mut self,
+        section_id: SectionId,
         relocation: &Relocation,
         bytes: &mut [u8],
     ) -> Result<(), RelocationErrorInner> {
@@ -75,14 +75,13 @@ impl<'a> Relocator<'a> {
             }
             RelocationType::Relative32 | RelocationType::PLT32 => {
                 let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
-                let offset = self.resolver.address(relocation.section, relocation.offset.into())?.1;
+                let offset = self.resolver.address(section_id, relocation.offset.into())?.1;
                 editor.write_i32(symbol.as_offset()?.add(offset.as_offset()?.neg())?)
             }
             RelocationType::GOTRelative32 => {
                 let got = self.got()?;
                 let slot = got.offset(relocation.symbol);
-                let section_addr =
-                    self.resolver.address(relocation.section, relocation.offset.into())?.1;
+                let section_addr = self.resolver.address(section_id, relocation.offset.into())?.1;
                 let got_addr = self.resolver.address(got.id, 0.into())?.1;
                 let addend = editor.addend_32()?;
 
@@ -109,7 +108,7 @@ impl<'a> Relocator<'a> {
             RelocationType::GOTLocationRelative32 => {
                 let got_addr = self.resolver.address(self.got()?.id, 0.into())?.1;
                 let addend = editor.addend_32()?;
-                let offset = self.resolver.address(relocation.section, relocation.offset.into())?.1;
+                let offset = self.resolver.address(section_id, relocation.offset.into())?.1;
                 editor.write_i32(got_addr.as_offset()?.add(addend)?.add(offset.as_offset()?.neg())?)
             }
             RelocationType::OffsetFromGOT32 => {

@@ -118,7 +118,7 @@ pub(super) fn merge(
                         .remove(&id)
                         .unwrap_or_default()
                         .into_iter()
-                        .map(|r| Relocation::from_elf(id, r))
+                        .map(Relocation::from_elf)
                         .collect::<Result<_, _>>()?,
                     inside_relro: false,
                 },

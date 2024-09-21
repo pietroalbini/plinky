@@ -1,7 +1,7 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use plinky_elf::ids::serial::SymbolId;
+use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::{
     ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
 };
@@ -10,6 +10,7 @@ use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
 pub(super) fn create_rela<'a>(
+    section: SectionId,
     relocations: impl Iterator<Item = &'a Relocation>,
     class: ElfClass,
     applies_to_section: BuiltElfSectionId,
@@ -20,7 +21,7 @@ pub(super) fn create_rela<'a>(
     let mut elf_relocations = Vec::new();
     for relocation in relocations {
         elf_relocations.push(ElfRelocation {
-            offset: resolver.address(relocation.section, relocation.offset)?.1.extract(),
+            offset: resolver.address(section, relocation.offset)?.1.extract(),
             symbol: *symbol_conversion.get(&relocation.symbol).unwrap(),
             relocation_type: convert_relocation_type(class, relocation.type_),
             addend: relocation.addend.map(|off| off.extract()),

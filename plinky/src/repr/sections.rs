@@ -212,7 +212,7 @@ impl SysvHashSection {
 #[derive(Debug, Getters)]
 pub(crate) struct RelocationsSection {
     #[get]
-    section: Option<SectionId>,
+    section: SectionId,
     #[get]
     symbols_table: SectionId,
     relocations: Vec<Relocation>,
@@ -220,7 +220,7 @@ pub(crate) struct RelocationsSection {
 
 impl RelocationsSection {
     pub(crate) fn new(
-        section: Option<SectionId>,
+        section: SectionId,
         symbols_table: SectionId,
         relocations: Vec<Relocation>,
     ) -> Self {

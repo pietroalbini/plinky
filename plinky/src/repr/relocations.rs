@@ -1,4 +1,4 @@
-use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use plinky_elf::ids::serial::{SerialIds, SymbolId};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
@@ -51,14 +51,12 @@ pub(crate) enum NeedsGot {
 pub(crate) struct Relocation {
     pub(crate) type_: RelocationType,
     pub(crate) symbol: SymbolId,
-    pub(crate) section: SectionId,
     pub(crate) offset: Offset,
     pub(crate) addend: Option<Offset>,
 }
 
 impl Relocation {
     pub(crate) fn from_elf(
-        section: SectionId,
         elf: ElfRelocation<SerialIds>,
     ) -> Result<Self, UnsupportedRelocationType> {
         Ok(Relocation {
@@ -81,7 +79,6 @@ impl Relocation {
                 elf_type => return Err(UnsupportedRelocationType { elf_type }),
             },
             symbol: elf.symbol,
-            section,
             offset: (elf.offset as i64).into(),
             addend: elf.addend.map(|a| a.into()),
         })

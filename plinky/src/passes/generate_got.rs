@@ -128,7 +128,6 @@ fn build_got(
             prelude_relocation = Some(Relocation {
                 type_: RelocationType::Absolute32,
                 symbol: dynamic.dynamic_symbol(),
-                section: id,
                 offset: 0.into(),
                 addend: Some(0.into()),
             });
@@ -143,7 +142,6 @@ fn build_got(
         relocations.push(Relocation {
             type_: config.relocation_type,
             symbol,
-            section: id,
             offset,
             addend: Some(0.into()),
         });
@@ -170,7 +168,7 @@ fn build_got(
                     .sections
                     .builder(
                         config.rela_section_name,
-                        RelocationsSection::new(None, dynamic.dynsym(), relocations),
+                        RelocationsSection::new(id, dynamic.dynsym(), relocations),
                     )
                     .create(ids);
                 object

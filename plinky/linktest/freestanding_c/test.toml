@@ -30,7 +30,7 @@ kind = "run-pass"
 debug-print = [
     "loaded-object=.text",
     "layout",
-    "relocated-object=.text,.got*,.interp,@symbols,@dynamic",
+    "relocated-object=.text,.got*,.plt,.interp,@symbols,@dynamic",
     "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
 ]
 

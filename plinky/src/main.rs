@@ -7,6 +7,7 @@ use plinky_diagnostics::Diagnostic;
 use std::error::{request_ref, Error};
 use std::process::ExitCode;
 
+mod arch;
 mod cli;
 mod debug_print;
 mod diagnostics;

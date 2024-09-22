@@ -60,6 +60,20 @@ impl Symbol {
         }
     }
 
+    pub(crate) fn new_for_section(id: SymbolId, section: SectionId) -> Self {
+        Self {
+            id,
+            name: intern(""),
+            type_: SymbolType::Section,
+            stt_file: None,
+            span: intern(ObjectSpan::new_synthetic()),
+            visibility: SymbolVisibility::Local,
+            value: SymbolValue::SectionRelative { section, offset: Offset::from(0i64) },
+            needed_by_dynamic: false,
+            exclude_from_tables: false,
+        }
+    }
+
     pub(crate) fn new_elf(
         id: SymbolId,
         elf: ElfSymbol<SerialIds>,

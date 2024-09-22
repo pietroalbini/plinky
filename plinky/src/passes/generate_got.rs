@@ -68,7 +68,7 @@ pub(crate) fn generate_got(
     }
 
     if got_plt_needed {
-        let got_plt = build_got(
+        let mut got_plt = build_got(
             ids,
             object,
             dynamic_context,
@@ -93,6 +93,7 @@ pub(crate) fn generate_got(
             ))
             .map_err(GenerateGotError::CreateSymbol)?;
 
+        got_plt.symbol = Some(got_plt_symbol);
         object.got_plt = Some(got_plt);
     }
 
@@ -183,7 +184,7 @@ fn build_got(
     }
 
     object.sections.builder(config.section_name, data).create_with_id(id);
-    Ok(GOT { id, offsets })
+    Ok(GOT { id, offsets, symbol: None })
 }
 
 struct GotConfig {
@@ -199,6 +200,7 @@ struct GotConfig {
 pub(crate) struct GOT {
     pub(crate) id: SectionId,
     pub(crate) offsets: BTreeMap<SymbolId, Offset>,
+    pub(crate) symbol: Option<SymbolId>,
 }
 
 impl GOT {

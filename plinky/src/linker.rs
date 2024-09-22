@@ -38,6 +38,7 @@ pub(crate) fn link_driver(
 
     let dynamic = passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
     passes::generate_got::generate_got(&options, &mut ids, &mut object, &dynamic)?;
+    passes::generate_plt::run(&mut ids, &mut object);
 
     passes::exclude_section_symbols_from_tables::remove(&mut object);
     passes::demote_global_hidden_symbols::run(&mut object);

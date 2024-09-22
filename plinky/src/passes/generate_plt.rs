@@ -5,11 +5,6 @@ use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::{ElfMachine, ElfPermissions};
 
 pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
-    match object.env.machine {
-        ElfMachine::X86 => return, // TODO: generate PLT for x86 too
-        ElfMachine::X86_64 => {}
-    }
-
     let Some(got_plt) = &object.got_plt else { return };
 
     // The .got.plt might not have any entries within it if it was generated just to fulfill the
@@ -22,7 +17,10 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
     let plt_symbol = ids.allocate_symbol_id();
     object.symbols.add_symbol(Symbol::new_for_section(plt_symbol, plt_section)).unwrap();
 
-    let (content, relocations) = crate::arch::x86_64::generate_plt(got_plt, plt_symbol);
+    let (content, relocations) = match object.env.machine {
+        ElfMachine::X86 => crate::arch::x86::generate_plt(got_plt, plt_symbol),
+        ElfMachine::X86_64 => crate::arch::x86_64::generate_plt(got_plt, plt_symbol),
+    };
 
     let mut data = DataSection::new(ElfPermissions::RX, &content);
     data.relocations.extend(relocations.into_iter());

@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), expect(unused))]
-
 use crate::repr::relocations::{Relocation, RelocationType};
 use plinky_elf::ids::serial::SymbolId;
 use plinky_utils::ints::Offset;
@@ -94,14 +92,14 @@ impl X86Codegen {
             // rip-relative displacement is only available in x86-64, and is represented by a
             // ModR/M byte for disp32, which on x86-64 is interpreted as `[rip] + disp32` instead
             // of, you know, `disp32`.
-            X86Reference::RipRelativeDisplacement(disp32) => match self.arch {
+            X86Reference::RipRelativeDisplacement(value) => match self.arch {
                 X86Arch::X86 => panic!("rip-relative displacement is not available on x86"),
                 X86Arch::X86_64 => {
                     self.buf.push(modrm(0b00, modrm_opcode, 0b101));
-                    self.encode_value(disp32);
+                    self.encode_value(value);
                 }
             },
-            X86Reference::Displacement(disp32) => {
+            X86Reference::Displacement(value) => {
                 match self.arch {
                     X86Arch::X86 => {
                         self.buf.push(modrm(0b00, modrm_opcode, 0b101));
@@ -114,7 +112,11 @@ impl X86Codegen {
                         self.buf.push(sib(0b00, 0b100, 0b101));
                     }
                 }
-                self.encode_value(disp32);
+                self.encode_value(value);
+            }
+            X86Reference::EbxPlus(value) => {
+                self.buf.push(modrm(0b10, modrm_opcode, 0b011));
+                self.encode_value(value);
             }
         }
     }
@@ -156,6 +158,8 @@ pub(crate) enum X86Value {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum X86Reference {
+    EbxPlus(X86Value),
+    #[cfg_attr(not(test), expect(dead_code))]
     Displacement(X86Value),
     RipRelativeDisplacement(X86Value),
 }
@@ -290,6 +294,11 @@ mod tests {
             X86Instruction::PushReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x34, 0x25, 42, 0, 0, 0],
         );
+
+        encode_all(
+            X86Instruction::PushReference(X86Reference::EbxPlus(v(42))),
+            [0xff, 0xb3, 42, 0, 0, 0],
+        );
     }
 
     #[test]
@@ -314,6 +323,11 @@ mod tests {
             X86Arch::X86_64,
             X86Instruction::JumpReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x24, 0x25, 42, 0, 0, 0],
+        );
+
+        encode_all(
+            X86Instruction::JumpReference(X86Reference::EbxPlus(v(42))),
+            [0xff, 0xa3, 42, 0, 0, 0],
         );
     }
 

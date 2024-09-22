@@ -20,11 +20,19 @@ pub(crate) struct X86Codegen {
 }
 
 impl X86Codegen {
-    fn new(arch: X86Arch) -> Self {
+    pub(crate) fn new(arch: X86Arch) -> Self {
         Self { arch, buf: Vec::new(), relocations: Vec::new() }
     }
 
-    fn encode(&mut self, instruction: X86Instruction) {
+    pub(crate) fn len(&self) -> usize {
+        self.buf.len()
+    }
+
+    pub(crate) fn finish(self) -> (Vec<u8>, Vec<Relocation>) {
+        (self.buf, self.relocations)
+    }
+
+    pub(crate) fn encode(&mut self, instruction: X86Instruction) {
         match instruction {
             // Instruction encoding: 68 id
             X86Instruction::PushImmediate(imm) => {

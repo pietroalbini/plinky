@@ -1,8 +1,10 @@
 use crate::repr::object::Object;
 use crate::repr::sections::DataSection;
 use crate::repr::symbols::Symbol;
-use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
 use plinky_elf::{ElfMachine, ElfPermissions};
+use std::collections::BTreeMap;
+use plinky_utils::ints::Offset;
 
 pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
     let Some(got_plt) = &object.got_plt else { return };
@@ -17,7 +19,7 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
     let plt_symbol = ids.allocate_symbol_id();
     object.symbols.add_symbol(Symbol::new_for_section(plt_symbol, plt_section)).unwrap();
 
-    let (content, relocations) = match object.env.machine {
+    let (content, relocations, offsets) = match object.env.machine {
         ElfMachine::X86 => crate::arch::x86::generate_plt(got_plt, plt_symbol),
         ElfMachine::X86_64 => crate::arch::x86_64::generate_plt(got_plt, plt_symbol),
     };
@@ -26,4 +28,12 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
     data.relocations.extend(relocations.into_iter());
 
     object.sections.builder(".plt", data).create_with_id(plt_section);
+
+    object.plt = Some(Plt { section: plt_section, offsets });
+}
+
+#[derive(Debug)]
+pub(crate) struct Plt {
+    pub(crate) section: SectionId,
+    pub(crate) offsets: BTreeMap<SymbolId, Offset>,
 }

@@ -1,6 +1,7 @@
 mod editor;
 
 use crate::passes::generate_got::GOT;
+use crate::passes::generate_plt::Plt;
 use crate::passes::relocate::editor::ByteEditor;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
@@ -20,6 +21,7 @@ pub(crate) fn run(
         symbols: &mut object.symbols,
         env: &object.env,
         got: object.got.as_ref(),
+        plt: object.plt.as_ref(),
         resolver,
     };
     for section in object.sections.iter_mut() {
@@ -36,6 +38,7 @@ pub(crate) fn run(
 struct Relocator<'a> {
     env: &'a ElfEnvironment,
     got: Option<&'a GOT>,
+    plt: Option<&'a Plt>,
     symbols: &'a mut Symbols,
     resolver: &'a AddressResolver<'a>,
 }
@@ -73,7 +76,7 @@ impl<'a> Relocator<'a> {
             RelocationType::AbsoluteSigned32 => {
                 editor.write_i32(self.symbol_as_absolute(relocation, editor.addend_32()?)?)
             }
-            RelocationType::Relative32 | RelocationType::PLT32 => {
+            RelocationType::Relative32 => {
                 let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
                 let offset = self.resolver.address(section_id, relocation.offset.into())?.1;
                 editor.write_i32(symbol.as_offset()?.add(offset.as_offset()?.neg())?)
@@ -89,6 +92,21 @@ impl<'a> Relocator<'a> {
                     got_addr
                         .as_offset()?
                         .add(slot)?
+                        .add(addend)?
+                        .add(section_addr.as_offset()?.neg())?,
+                )
+            }
+            RelocationType::PLT32 => {
+                let plt = self.plt.ok_or(RelocationErrorInner::PltWithoutPlt)?;
+                let plt_offset = *plt.offsets.get(&relocation.symbol).unwrap();
+                let section_addr = self.resolver.address(section_id, relocation.offset.into())?.1;
+                let plt_addr = self.resolver.address(plt.section, 0.into())?.1;
+                let addend = editor.addend_32()?;
+
+                editor.write_i32(
+                    plt_addr
+                        .as_offset()?
+                        .add(plt_offset)?
                         .add(addend)?
                         .add(section_addr.as_offset()?.neg())?,
                 )
@@ -184,4 +202,6 @@ pub(crate) enum RelocationErrorInner {
     RelativeRelocationWithAbsoluteValue,
     #[display("GOT-relative addressing used without a GOT")]
     GotRelativeWithoutGot,
+    #[display("PLT relocation used without a PLT")]
+    PltWithoutPlt,
 }

@@ -4,9 +4,13 @@ use crate::utils::x86_codegen::{
     X86Arch, X86Codegen, X86Instruction::*, X86Reference::*, X86Value,
 };
 use plinky_elf::ids::serial::SymbolId;
-use plinky_utils::ints::ExtractNumber;
+use plinky_utils::ints::{ExtractNumber, Offset};
+use std::collections::BTreeMap;
 
-pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> (Vec<u8>, Vec<Relocation>) {
+pub(crate) fn generate_plt(
+    got_plt: &GOT,
+    plt_symbol: SymbolId,
+) -> (Vec<u8>, Vec<Relocation>, BTreeMap<SymbolId, Offset>) {
     let got_plt_symbol = got_plt.symbol.expect(".got.plt without the symbol");
     let mut codegen = X86Codegen::new(X86Arch::X86_64);
 
@@ -33,8 +37,11 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> (Vec<u8>, Vec
     // Ensure alignment.
     debug_assert!(codegen.len() % 16 == 0);
 
-    for (idx, offset) in got_plt.offsets.values().enumerate() {
-        codegen.encode(JumpReference(RipRelativeDisplacement(got_plt_reloc(offset.extract()))));
+    let mut offsets = BTreeMap::new();
+    for (idx, (symbol, got_offset)) in got_plt.offsets.iter().enumerate() {
+        offsets.insert(*symbol, i64::try_from(codegen.len()).unwrap().into());
+
+        codegen.encode(JumpReference(RipRelativeDisplacement(got_plt_reloc(got_offset.extract()))));
         codegen.encode(PushImmediate(X86Value::Known(idx as _)));
         codegen.encode(JumpRelative(plt_reloc));
 
@@ -42,5 +49,6 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> (Vec<u8>, Vec
         debug_assert!(codegen.len() % 16 == 0);
     }
 
-    codegen.finish()
+    let (content, relocations) = codegen.finish();
+    (content, relocations, offsets)
 }

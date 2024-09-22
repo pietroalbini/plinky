@@ -1,5 +1,6 @@
 use crate::cli::Mode;
 use crate::passes::generate_got::GOT;
+use crate::passes::generate_plt::Plt;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
@@ -16,6 +17,7 @@ pub(crate) struct Object {
     pub(crate) dynamic_entries: DynamicEntries,
     pub(crate) got: Option<GOT>,
     pub(crate) got_plt: Option<GOT>,
+    pub(crate) plt: Option<Plt>,
     pub(crate) entry_point: SymbolId,
     pub(crate) mode: Mode,
     pub(crate) executable_stack: bool,

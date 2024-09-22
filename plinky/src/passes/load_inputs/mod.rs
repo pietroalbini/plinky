@@ -52,6 +52,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     dynamic_entries: DynamicEntries::new(),
                     got: None,
                     got_plt: None,
+                    plt: None,
                     entry_point,
                     mode: options.mode,
                     executable_stack: options.executable_stack,

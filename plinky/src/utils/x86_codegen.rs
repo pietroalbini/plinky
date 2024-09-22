@@ -17,11 +17,12 @@ pub(crate) struct X86Codegen {
     arch: X86Arch,
     buf: Vec<u8>,
     relocations: Vec<Relocation>,
+    relocations_to_add: Vec<(Offset, Relocation)>,
 }
 
 impl X86Codegen {
     pub(crate) fn new(arch: X86Arch) -> Self {
-        Self { arch, buf: Vec::new(), relocations: Vec::new() }
+        Self { arch, buf: Vec::new(), relocations: Vec::new(), relocations_to_add: Vec::new() }
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -29,6 +30,7 @@ impl X86Codegen {
     }
 
     pub(crate) fn finish(self) -> (Vec<u8>, Vec<Relocation>) {
+        assert!(self.relocations_to_add.is_empty());
         (self.buf, self.relocations)
     }
 
@@ -56,6 +58,34 @@ impl X86Codegen {
             }
             // Instruction encoding: 90
             X86Instruction::Nop => self.buf.push(0x90),
+        }
+
+        let end_offset = self.offset();
+        while let Some((relocation_offset, mut relocation)) = self.relocations_to_add.pop() {
+            match relocation.type_ {
+                RelocationType::Absolute32 | RelocationType::AbsoluteSigned32 => {
+                    self.relocations.push(relocation)
+                }
+
+                RelocationType::Relative32 => {
+                    // Instructions operating on relative addresses use the current instruction
+                    // pointer as the starting point for relative calculations. In x86 and x86_64,
+                    // the instruction pointer points to the *next* instruction.
+                    //
+                    // Linkers on the other hand (including plinky) treat the offset the relocation
+                    // is applied to as the starting point for relative calculations, which is
+                    // earlier than the instruction pointer will be at runtime.
+                    //
+                    // To ensure everything works correctly, we have to adjust the addend to
+                    // account for the difference in starting points.
+                    let addend = relocation.addend.as_mut().expect("addend must be present");
+                    *addend = addend.add(relocation_offset.add(end_offset.neg()).unwrap()).unwrap();
+
+                    self.relocations.push(relocation);
+                }
+
+                type_ => panic!("unsupported relocation {type_:?} during codegen"),
+            }
         }
     }
 
@@ -93,18 +123,22 @@ impl X86Codegen {
         let bytes = match value {
             X86Value::Known(value) => value.to_le_bytes(),
             X86Value::Relocation { type_, symbol, addend } => {
-                self.relocations.push(Relocation {
-                    type_,
-                    symbol,
-                    offset: Offset::from(
-                        i64::try_from(self.buf.len()).expect("generated x86 too large"),
-                    ),
-                    addend: Some(addend),
-                });
+                // Relocations are added to a temporary list rather than directly into the
+                // relocations list because some processing might be needed when finishing to
+                // encode the instruction, depending on the relocation type.
+                let offset = self.offset();
+                self.relocations_to_add
+                    .push((offset, Relocation { type_, symbol, offset, addend: Some(addend) }));
+
+                // Placeholder, as it will be relocated later.
                 0i32.to_le_bytes()
             }
         };
         self.buf.extend_from_slice(&bytes);
+    }
+
+    fn offset(&self) -> Offset {
+        Offset::from(i64::try_from(self.buf.len()).expect("generated x86 too large"))
     }
 }
 
@@ -197,6 +231,38 @@ mod tests {
                 offset: 6_i64.into(),
                 addend: Some(42_i64.into())
             }],
+            codegen.relocations.as_slice()
+        );
+
+        codegen.encode(X86Instruction::PushImmediate(X86Value::Relocation {
+            type_: RelocationType::Relative32,
+            symbol,
+            addend: 42_i64.into(),
+        }));
+        assert_eq!(
+            &[
+                /* First */ 0x68, 42, 0, 0, 0, /* Second */ 0x68, 0, 0, 0, 0,
+                /* Third */ 0x68, 0, 0, 0, 0
+            ],
+            codegen.buf.as_slice()
+        );
+        assert_eq!(
+            &[
+                Relocation {
+                    type_: RelocationType::Absolute32,
+                    symbol,
+                    offset: 6_i64.into(),
+                    addend: Some(42_i64.into())
+                },
+                Relocation {
+                    type_: RelocationType::Relative32,
+                    symbol,
+                    offset: 11_i64.into(),
+                    // This is less than 42 intentionally, as it needs to account for the
+                    // instruction pointer being further ahead.
+                    addend: Some(38_i64.into()),
+                },
+            ],
             codegen.relocations.as_slice()
         );
     }

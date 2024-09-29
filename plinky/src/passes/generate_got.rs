@@ -162,7 +162,7 @@ fn build_got(
         data.relocations.push(relocation);
     }
 
-    match dynamic_context {
+    let resolved_at_runtime = match dynamic_context {
         Some(dynamic) => {
             if !relocations.is_empty() {
                 for relocation in &relocations {
@@ -182,13 +182,20 @@ fn build_got(
                     .content
                     .push(SegmentContent::Section(rela));
                 object.dynamic_entries.add((config.dynamic_entry)(id, rela));
+
+                true
+            } else {
+                false
             }
         }
-        None => data.relocations.extend(relocations.into_iter()),
-    }
+        None => {
+            data.relocations.extend(relocations.into_iter());
+            false
+        }
+    };
 
     object.sections.builder(config.section_name, data).create_with_id(id);
-    Ok(GOT { id, offsets, symbol: None })
+    Ok(GOT { id, offsets, symbol: None, resolved_at_runtime })
 }
 
 struct GotConfig {
@@ -205,6 +212,7 @@ pub(crate) struct GOT {
     pub(crate) id: SectionId,
     pub(crate) offsets: BTreeMap<SymbolId, Offset>,
     pub(crate) symbol: Option<SymbolId>,
+    pub(crate) resolved_at_runtime: bool,
 }
 
 impl GOT {

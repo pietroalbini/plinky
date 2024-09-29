@@ -27,6 +27,10 @@ impl X86Codegen {
         self.buf.len()
     }
 
+    pub(crate) fn current_offset(&self) -> Offset {
+        Offset::from(i64::try_from(self.buf.len()).unwrap())
+    }
+
     pub(crate) fn finish(self) -> (Vec<u8>, Vec<Relocation>) {
         assert!(self.relocations_to_add.is_empty());
         (self.buf, self.relocations)

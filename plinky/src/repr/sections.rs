@@ -24,6 +24,10 @@ impl Sections {
         self.inner.get(&id)
     }
 
+    pub(crate) fn get_mut(&mut self, id: SectionId) -> Option<&mut Section> {
+        self.inner.get_mut(&id)
+    }
+
     pub(crate) fn builder<'a>(
         &'a mut self,
         name: &str,

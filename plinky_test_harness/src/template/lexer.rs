@@ -5,6 +5,9 @@ pub(super) enum Token<'a> {
     RawText(&'a str),
     Variable(&'a str),
     StringLiteral(&'a str),
+    QuestionMark,
+    Colon,
+    DoubleEquals,
     BeginInterpolation,
     EndInterpolation,
 }
@@ -15,6 +18,9 @@ impl std::fmt::Display for Token<'_> {
             Token::RawText(_) => f.write_str("raw text"),
             Token::Variable(var) => f.write_str(var),
             Token::StringLiteral(lit) => write!(f, "'{lit}'"),
+            Token::QuestionMark => f.write_str("?"),
+            Token::Colon => f.write_str(":"),
+            Token::DoubleEquals => f.write_str("=="),
             Token::BeginInterpolation => f.write_str("${"),
             Token::EndInterpolation => f.write_str("}"),
         }
@@ -72,6 +78,21 @@ impl<'a> Iterator for Lexer<'a, '_> {
                             None => Some(Err(TemplateParseError::UnterminatedStringLiteral)),
                         }
                     }
+                    Some('?') => {
+                        **remaining = &remaining[1..];
+                        Some(Ok(Token::QuestionMark))
+                    }
+                    Some(':') => {
+                        **remaining = &remaining[1..];
+                        Some(Ok(Token::Colon))
+                    }
+                    Some('=') => {
+                        if remaining.chars().skip(1).next() != Some('=') {
+                            return Some(Err(TemplateParseError::UnexpectedChar('=')));
+                        }
+                        **remaining = &remaining[2..];
+                        Some(Ok(Token::DoubleEquals))
+                    }
                     Some(' ' | '\t') => {
                         **remaining = &remaining[1..];
                         continue;
@@ -116,12 +137,15 @@ mod tests {
                 Token::EndInterpolation,
                 Token::RawText("! I am "),
                 Token::BeginInterpolation,
+                Token::QuestionMark,
+                Token::DoubleEquals,
+                Token::Colon,
                 Token::Variable("caller.role"),
                 Token::StringLiteral("hello \t world"),
                 Token::Variable("caller.name.both")
             ],
             Lexer::new(
-                &mut "Hello ${user}! I am ${   caller.role \t 'hello \t world' caller.name.both"
+                &mut "Hello ${user}! I am ${ ?==:  caller.role \t 'hello \t world' caller.name.both"
             )
             .map(|t| t.unwrap())
             .collect::<Vec<_>>(),
@@ -135,5 +159,14 @@ mod tests {
             // The first token being skipped is the beginning of the interpolation.
             Lexer::new(&mut "${ 'hello }").skip(1).next().unwrap().unwrap_err()
         );
+    }
+
+    #[test]
+    fn test_single_equals() {
+        assert_eq!(
+            TemplateParseError::UnexpectedChar('='),
+            // The first token being skipped is the beginning of the interpolation.
+            Lexer::new(&mut "${ = }").skip(1).next().unwrap().unwrap_err()
+        )
     }
 }

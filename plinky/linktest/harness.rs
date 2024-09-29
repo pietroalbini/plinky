@@ -90,7 +90,6 @@ impl TemplateContextGetters for CopyFilesTemplateResolver<'_> {
     fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>> {
         let parent = self.context.get_variable(key)?;
         match parent.as_ref() {
-            Value::String(_) => Some(parent),
             Value::Path(path) => {
                 let file_name = path.file_name().expect("path without file name");
                 let dest = self.dest.join(file_name);
@@ -99,6 +98,7 @@ impl TemplateContextGetters for CopyFilesTemplateResolver<'_> {
                 }
                 Some(Cow::Owned(Value::Path(file_name.into())))
             }
+            _ => Some(parent),
         }
     }
 }

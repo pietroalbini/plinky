@@ -58,6 +58,9 @@ pub(super) fn build_dynamic_section(
                 directives
                     .push(ElfDynamicDirective::PLTGOT { address: got_plt_mem.address.extract() });
             }
+            DynamicEntry::Flags => {
+                directives.push(ElfDynamicDirective::Flags(builder.object.dynamic_entries.flags.clone()));
+            }
             DynamicEntry::Flags1 => {
                 directives.push(ElfDynamicDirective::Flags1(builder.object.dynamic_entries.flags1.clone()));
             }

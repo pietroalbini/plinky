@@ -83,6 +83,10 @@ pub(crate) fn generate_got(
             },
         )?;
 
+        if options.read_only_got_plt {
+            object.dynamic_entries.flags.bind_now = true;
+        }
+
         let got_plt_symbol = ids.allocate_symbol_id();
         object
             .symbols

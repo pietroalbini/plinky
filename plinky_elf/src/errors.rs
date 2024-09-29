@@ -50,6 +50,8 @@ pub enum LoadError {
     MergeFlagOnUnsupportedSection { section_idx: u32 },
     #[display("bad symbol visibility: {f0}")]
     BadSymbolVisibility(u8),
+    #[display("failed to parse the flags field of the dynamic table")]
+    DynamicFlags(BitfieldReadError),
     #[display("failed to parse the flags1 field of the dynamic table")]
     DynamicFlags1(BitfieldReadError),
     #[display("failed to parse section header number {idx}")]

@@ -377,8 +377,17 @@ pub enum ElfDynamicDirective {
     RelocationsWillModifyText,
     JumpRel { address: u64 },
     BindNow,
+    Flags(ElfDynamicFlags),
     Flags1(ElfDynamicFlags1),
     Unknown { tag: u64, value: u64 },
+}
+
+#[derive(Debug, Bitfield, Clone)]
+#[bitfield_repr(u64)]
+#[bitfield_display_comma_separated]
+pub struct ElfDynamicFlags {
+    #[bit(3)]
+    pub bind_now: bool,
 }
 
 #[derive(Debug, Bitfield, Clone)]

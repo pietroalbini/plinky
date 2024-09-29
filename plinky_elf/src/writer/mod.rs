@@ -589,6 +589,7 @@ where
                 ElfDynamicDirective::RelocationsWillModifyText => (22, 0),
                 ElfDynamicDirective::JumpRel { address } => (23, *address),
                 ElfDynamicDirective::BindNow => (24, 0),
+                ElfDynamicDirective::Flags(flags) => (30, Bitfield::write(flags)),
                 ElfDynamicDirective::Flags1(flags) => (0x6ffffffb, Bitfield::write(flags)),
                 ElfDynamicDirective::Unknown { tag, value } => (*tag, *value),
             };

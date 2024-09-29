@@ -4,8 +4,8 @@ use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSectionHeader
 use crate::reader::notes::read_notes;
 use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
 use crate::{
-    ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfGroup,
-    ElfHash, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocation,
+    ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
+    ElfGroup, ElfHash, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocation,
     ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
     ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection, RawBytes,
@@ -483,6 +483,9 @@ fn read_dynamic(
             22 => ElfDynamicDirective::RelocationsWillModifyText,
             23 => ElfDynamicDirective::JumpRel { address: value },
             24 => ElfDynamicDirective::BindNow,
+            30 => ElfDynamicDirective::Flags(
+                ElfDynamicFlags::read(value).map_err(LoadError::DynamicFlags)?,
+            ),
             0x6ffffef5 => ElfDynamicDirective::GnuHash { address: value },
             0x6ffffffb => ElfDynamicDirective::Flags1(
                 ElfDynamicFlags1::read(value).map_err(LoadError::DynamicFlags1)?,

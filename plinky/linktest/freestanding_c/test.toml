@@ -36,8 +36,8 @@ debug-print = [
 
 [plinky.pie_plt_now]
 cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie", "-znow"]
-kind = "run-${ arch == 'x86' ? 'pass' : 'fail' }"
-debug-print = ["layout", "final-elf=@segments"]
+kind = "run-pass"
+debug-print = ["layout", "final-elf=.dynamic,@segments"]
 
 [c.hello_static]
 source = "hello.c"

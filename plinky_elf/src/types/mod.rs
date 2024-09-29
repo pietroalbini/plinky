@@ -381,7 +381,7 @@ pub enum ElfDynamicDirective {
     Unknown { tag: u64, value: u64 },
 }
 
-#[derive(Debug, Bitfield)]
+#[derive(Debug, Bitfield, Clone)]
 #[bitfield_repr(u64)]
 #[bitfield_display_comma_separated]
 pub struct ElfDynamicFlags1 {

@@ -7,6 +7,14 @@ pub trait Bitfield: Sized {
 
     fn read(raw: Self::Repr) -> Result<Self, BitfieldReadError>;
     fn write(&self) -> Self::Repr;
+
+    fn empty() -> Self {
+        Self::read(Self::Repr::empty()).expect("failed to parse empty bitfield")
+    }
+
+    fn is_empty(&self) -> bool {
+        self.write() == Self::Repr::empty()
+    }
 }
 
 impl<T> RawType for T

@@ -5,9 +5,7 @@ use crate::repr::sections::DynamicSection;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
-use plinky_elf::{
-    ElfDynamic, ElfDynamicDirective, ElfDynamicFlags1, ElfPLTRelocationsMode, ElfSectionContent,
-};
+use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPLTRelocationsMode, ElfSectionContent};
 use plinky_utils::ints::ExtractNumber;
 use plinky_utils::raw_types::RawType;
 
@@ -60,8 +58,8 @@ pub(super) fn build_dynamic_section(
                 directives
                     .push(ElfDynamicDirective::PLTGOT { address: got_plt_mem.address.extract() });
             }
-            DynamicEntry::PieFlag => {
-                directives.push(ElfDynamicDirective::Flags1(ElfDynamicFlags1 { pie: true }));
+            DynamicEntry::Flags1 => {
+                directives.push(ElfDynamicDirective::Flags1(builder.object.dynamic_entries.flags1.clone()));
             }
         }
 

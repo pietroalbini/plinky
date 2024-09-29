@@ -1,5 +1,5 @@
 use super::lexer::Token;
-use super::Expression;
+use super::{Expression, Value};
 use crate::template::lexer::Lexer;
 use crate::template::{Part, Template, TemplateParseError};
 
@@ -19,13 +19,8 @@ impl<'a, 'b> Parser<'a, 'b> {
             match token? {
                 Token::RawText(raw) => parts.push(Part::RawText(raw.into())),
                 Token::BeginInterpolation => {
-                    // First check for the presence of a variable.
-                    match self.lexer.next().transpose()? {
-                        Some(Token::Variable(var)) => {
-                            parts.push(Part::Expression(Expression::Variable(var.into())));
-                        }
-                        actual => return unexpected(actual, "variable"),
-                    }
+                    // First check for the expression.
+                    parts.push(Part::Expression(self.parse_expression()?));
 
                     // Then for the presence of the interpolation end.
                     match self.lexer.next().transpose()? {
@@ -38,6 +33,14 @@ impl<'a, 'b> Parser<'a, 'b> {
         }
 
         Ok(Template { parts })
+    }
+
+    pub(super) fn parse_expression(&mut self) -> Result<Expression, TemplateParseError> {
+        match self.lexer.next().transpose()? {
+            Some(Token::Variable(var)) => Ok(Expression::Variable(var.into())),
+            Some(Token::StringLiteral(lit)) => Ok(Expression::Value(Value::String(lit.into()))),
+            actual => unexpected(actual, "variable"),
+        }
     }
 }
 
@@ -57,20 +60,26 @@ fn unexpected<'a, T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::template::Value;
 
     #[test]
     fn test_parse_just_raw() {
-        assert_eq!(
-            Template { parts: vec![Part::RawText("Hello world!".into())] },
-            parse("Hello world!").unwrap()
-        );
+        assert_eq!(template([raw("Hello world!")]), parse("Hello world!").unwrap());
     }
 
     #[test]
     fn test_parse_one_variable() {
         assert_eq!(
-            Template { parts: vec![raw("Hello "), var("name"), raw("!")] },
+            template([raw("Hello "), var("name"), raw("!")]),
             parse("Hello ${name}!").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_parse_one_string_literal() {
+        assert_eq!(
+            template([raw("Hello "), str_lit("Pietro"), raw("!")]),
+            parse("Hello ${'Pietro'}!").unwrap()
         );
     }
 
@@ -99,12 +108,20 @@ mod tests {
         }
     }
 
+    fn template<const N: usize>(parts: [Part; N]) -> Template {
+        Template { parts: parts.into() }
+    }
+
     fn raw(text: &str) -> Part {
         Part::RawText(text.into())
     }
 
     fn var(name: &str) -> Part {
         Part::Expression(Expression::Variable(name.into()))
+    }
+
+    fn str_lit(lit: &str) -> Part {
+        Part::Expression(Expression::Value(Value::String(lit.into())))
     }
 
     fn parse(mut input: &str) -> Result<Template, TemplateParseError> {

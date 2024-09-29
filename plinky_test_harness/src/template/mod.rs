@@ -62,22 +62,24 @@ enum Part {
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum Expression {
     Variable(String),
+    Value(Value),
 }
 
 impl Expression {
     fn resolve<'a>(
-        &self,
+        &'a self,
         context: &'a dyn TemplateContextGetters,
     ) -> Result<Cow<'a, Value>, TemplateResolveError> {
         match self {
             Expression::Variable(var) => context
                 .get_variable(var)
                 .ok_or_else(|| TemplateResolveError::MissingVariable(var.clone())),
+            Expression::Value(value) => Ok(Cow::Borrowed(value)),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     String(String),
     Path(PathBuf),
@@ -107,12 +109,14 @@ impl TemplateContextGetters for TemplateContext {
     }
 }
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, PartialEq, Eq)]
 pub enum TemplateParseError {
     #[display("unexpected char: {f0}")]
     UnexpectedChar(char),
     #[display("unexpected {actual}, expected {expected}")]
     UnexpectedToken { actual: String, expected: &'static str },
+    #[display("unterminated string literal")]
+    UnterminatedStringLiteral,
 }
 
 #[derive(Debug, Display, Error)]

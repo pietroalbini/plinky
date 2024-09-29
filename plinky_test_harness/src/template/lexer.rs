@@ -4,6 +4,7 @@ use crate::template::TemplateParseError;
 pub(super) enum Token<'a> {
     RawText(&'a str),
     Variable(&'a str),
+    StringLiteral(&'a str),
     BeginInterpolation,
     EndInterpolation,
 }
@@ -13,6 +14,7 @@ impl std::fmt::Display for Token<'_> {
         match self {
             Token::RawText(_) => f.write_str("raw text"),
             Token::Variable(var) => f.write_str(var),
+            Token::StringLiteral(lit) => write!(f, "'{lit}'"),
             Token::BeginInterpolation => f.write_str("${"),
             Token::EndInterpolation => f.write_str("}"),
         }
@@ -53,6 +55,22 @@ impl<'a> Iterator for Lexer<'a, '_> {
                         let result = Token::Variable(&remaining[..end]);
                         **remaining = &remaining[end..];
                         Some(Ok(result))
+                    }
+                    Some('\'') => {
+                        let end = remaining
+                            .char_indices()
+                            .skip(1) // Skip the initial quote.
+                            .filter(|(_id, chr)| *chr == '\'')
+                            .map(|(idx, _chr)| idx)
+                            .next();
+                        match end {
+                            Some(end) => {
+                                let result = Token::StringLiteral(&remaining[1..end]);
+                                **remaining = &remaining[(end + 1)..];
+                                Some(Ok(result))
+                            }
+                            None => Some(Err(TemplateParseError::UnterminatedStringLiteral)),
+                        }
                     }
                     Some(' ' | '\t') => {
                         **remaining = &remaining[1..];
@@ -99,11 +117,23 @@ mod tests {
                 Token::RawText("! I am "),
                 Token::BeginInterpolation,
                 Token::Variable("caller.role"),
+                Token::StringLiteral("hello \t world"),
                 Token::Variable("caller.name.both")
             ],
-            Lexer::new(&mut "Hello ${user}! I am ${   caller.role \t caller.name.both")
-                .map(|t| t.unwrap())
-                .collect::<Vec<_>>(),
+            Lexer::new(
+                &mut "Hello ${user}! I am ${   caller.role \t 'hello \t world' caller.name.both"
+            )
+            .map(|t| t.unwrap())
+            .collect::<Vec<_>>(),
+        );
+    }
+
+    #[test]
+    fn test_unterminated_string_literal() {
+        assert_eq!(
+            TemplateParseError::UnterminatedStringLiteral,
+            // The first token being skipped is the beginning of the interpolation.
+            Lexer::new(&mut "${ 'hello }").skip(1).next().unwrap().unwrap_err()
         );
     }
 }

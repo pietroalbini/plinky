@@ -25,7 +25,6 @@ plinky_utils.workspace = true
 anyhow.workspace = true
 plinky_test_harness.workspace = true
 serde.workspace = true
-tempfile.workspace = true
 toml.workspace = true
 
 [lints]

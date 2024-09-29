@@ -2,9 +2,9 @@ use crate::template::{TemplateContext, Value};
 use crate::utils::RunAndSnapshot;
 use crate::Step;
 use anyhow::{Context, Error};
+use plinky_utils::create_temp_dir;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tempfile::TempDir;
 
 #[derive(Debug)]
 pub(crate) struct Test {
@@ -20,7 +20,7 @@ impl Test {
 
         // Cleanup for the temporary directory is done manually at the end, to ensure that the
         // build artifacts are present for inspection during a failure.
-        let dest = TempDir::new()?.into_path();
+        let dest = create_temp_dir()?;
         eprintln!("output directory: {}", dest.display());
 
         let mut last_number_of_completed = usize::MAX;

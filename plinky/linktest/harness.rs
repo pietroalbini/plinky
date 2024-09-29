@@ -5,12 +5,13 @@ use plinky_test_harness::{Step, TestContext};
 use std::borrow::Cow;
 use std::path::Path;
 use std::process::Command;
+use std::iter::once;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 struct PlinkyStep {
     cmd: Vec<Template>,
-    kind: TestKind,
+    kind: Template,
     #[serde(default)]
     debug_print: Vec<String>,
 }
@@ -18,19 +19,20 @@ struct PlinkyStep {
 impl Step for PlinkyStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
         let mut runner = ctx.run_and_snapshot();
-        let (res, err) = match self.kind {
-            TestKind::LinkFail => {
+        let (res, err) = match self.kind.resolve(ctx.template)?.as_str() {
+            "link-fail" => {
                 (!self.link(&ctx, &mut runner)?, "linking was supposed to fail but passed!")
             }
-            TestKind::LinkPass => {
+            "link-pass" => {
                 (self.link(&ctx, &mut runner)?, "linking was supposed to pass but failed!")
             }
-            TestKind::RunFail => {
+            "run-fail" => {
                 (!self.run(&ctx, &mut runner)?, "running was supposed to fail but passed!")
             }
-            TestKind::RunPass => {
+            "run-pass" => {
                 (self.run(&ctx, &mut runner)?, "running was supposed to pass but failed!")
             }
+            kind => bail!("unsupported test kind: {kind}"),
         };
         runner.persist();
 
@@ -41,7 +43,7 @@ impl Step for PlinkyStep {
     }
 
     fn templates(&self) -> Vec<Template> {
-        self.cmd.clone()
+        once(self.kind.clone()).chain(self.cmd.iter().cloned()).collect()
     }
 
     fn is_leaf(&self) -> bool {
@@ -101,15 +103,6 @@ impl TemplateContextGetters for CopyFilesTemplateResolver<'_> {
             _ => Some(parent),
         }
     }
-}
-
-#[derive(serde::Deserialize, Debug, Clone, Copy)]
-#[serde(rename_all = "kebab-case")]
-enum TestKind {
-    LinkFail,
-    LinkPass,
-    RunFail,
-    RunPass,
 }
 
 fn main() {

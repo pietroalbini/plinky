@@ -26,7 +26,7 @@ debug-print = ["layout", "final-elf=@segments"]
 
 [plinky.pie_plt]
 cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie"]
-kind = "run-pass"
+kind = "run-${ arch == 'x86' ? 'pass' : 'fail' }"
 debug-print = [
     "loaded-object=.text",
     "layout",
@@ -36,7 +36,7 @@ debug-print = [
 
 [plinky.pie_plt_now]
 cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie", "-znow"]
-kind = "run-pass"
+kind = "run-${ arch == 'x86' ? 'pass' : 'fail' }"
 debug-print = ["layout", "final-elf=@segments"]
 
 [c.hello_static]

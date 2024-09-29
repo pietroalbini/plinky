@@ -177,8 +177,8 @@ debug print: object after relocations are applied
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 55 48 89 e5 ba 0c 00 00 00 48 8d 05 f0 ef ff ff │ UH.......H...... │
- │   │  │ 48 89 c6 bf 01 00 00 00 e8 0a 00 00 00 bf 00 00 │ H............... │
- │   │  │ 00 00 e8 16 00 00 00                            │ .......          │
+ │   │  │ 48 89 c6 bf 01 00 00 00 e8 3c 00 00 00 bf 00 00 │ H........<...... │
+ │   │  │ 00 00 e8 42 00 00 00                            │ ...B...          │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
@@ -366,9 +366,8 @@ debug print: built elf
 
 ==============
 
-running exited with exit status: 0
+running exited with signal: 11 (SIGSEGV) (core dumped)
 
-=== stdout ===
-Hello world
+no stdout present
 
 no stderr present

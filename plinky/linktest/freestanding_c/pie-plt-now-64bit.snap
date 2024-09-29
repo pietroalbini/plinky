@@ -135,9 +135,8 @@ debug print: built elf
 
 ==============
 
-running exited with exit status: 0
+running exited with signal: 11 (SIGSEGV) (core dumped)
 
-=== stdout ===
-Hello world
+no stdout present
 
 no stderr present

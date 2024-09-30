@@ -1,0 +1,45 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  section .text#2 (perms: rx) in third.o inside archive archive.a
+ │   │
+ │   │  ╭────────────────┬───────╮
+ │   │  │ e9 00 00 00 00 │ ..... │
+ │   │  ╰────────────────┴───────╯
+ │   │
+ │   │    Relocations:
+ │   │  ╭───────┬──────────┬────────┬────────────────────╮
+ │   │  │ Type  │ Symbol   │ Offset │ Addend             │
+ │   │  ├───────┼──────────┼────────┼────────────────────┤
+ │   │  │ PLT32 │ second#5 │ 0x1    │ 0xfffffffffffffffc │
+ │   │  ╰───────┴──────────┴────────┴────────────────────╯
+ │   ┴
+ │
+ │  section .text#11 (perms: rx) in second.o inside archive archive.a
+ │   │
+ │   │  ╭────────────────┬───────╮
+ │   │  │ e9 00 00 00 00 │ ..... │
+ │   │  ╰────────────────┴───────╯
+ │   │
+ │   │    Relocations:
+ │   │  ╭───────┬─────────┬────────┬────────────────────╮
+ │   │  │ Type  │ Symbol  │ Offset │ Addend             │
+ │   │  ├───────┼─────────┼────────┼────────────────────┤
+ │   │  │ PLT32 │ first#9 │ 0x1    │ 0xfffffffffffffffc │
+ │   │  ╰───────┴─────────┴────────┴────────────────────╯
+ │   ┴
+ │
+ │  section .text#19 (perms: rx) in first.o inside archive archive.a
+ │   │
+ │   │  ╭────┬───╮
+ │   │  │ 90 │ . │
+ │   │  ╰────┴───╯
+ │   ┴
+ ┴

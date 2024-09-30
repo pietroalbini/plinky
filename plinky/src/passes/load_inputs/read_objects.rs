@@ -29,7 +29,7 @@ impl<'a> ObjectsReader<'a> {
         symbols: &Symbols,
     ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         loop {
-            if let Some(result) = self.next_from_archive(ids)? {
+            if let Some(result) = self.next_from_archive(ids, symbols)? {
                 return Ok(Some(result));
             }
 
@@ -63,9 +63,10 @@ impl<'a> ObjectsReader<'a> {
     fn next_from_archive(
         &mut self,
         ids: &mut SerialIds,
+        symbols: &Symbols,
     ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         let Some(pending_archive) = &mut self.current_archive else { return Ok(None) };
-        match pending_archive.next()? {
+        match pending_archive.next(symbols)? {
             Some(file) => match ElfObject::load(&mut Cursor::new(file.content), ids) {
                 Ok(object) => Ok(Some((
                     ObjectSpan::new_archive_member(&pending_archive.path, file.name),
@@ -89,6 +90,7 @@ struct PendingArchive {
     path: PathBuf,
     reader: ArReader<BufReader<File>>,
     pending_members: VecDeque<ArMemberId>,
+    loaded_members: HashSet<ArMemberId>,
 }
 
 impl PendingArchive {
@@ -97,43 +99,64 @@ impl PendingArchive {
         reader: BufReader<File>,
         symbols: &Symbols,
     ) -> Result<Option<Self>, ReadObjectsError> {
-        let reader =
-            ArReader::new(reader).map_err(|e| ReadObjectsError::ExtractFailed(path.clone(), e))?;
+        let mut this = PendingArchive {
+            reader: ArReader::new(reader)
+                .map_err(|e| ReadObjectsError::ExtractFailed(path.clone(), e))?,
+            path,
+            pending_members: VecDeque::new(),
+            loaded_members: HashSet::new(),
+        };
 
-        let Some(symbol_table) = reader.symbol_table().cloned() else {
+        // Only return a new instance of PendingArchive if there are actually objects to load.
+        this.calculate_pending(symbols)?;
+        Ok(Some(this).filter(|this| !this.pending_members.is_empty()))
+    }
+
+    fn calculate_pending(&mut self, symbols: &Symbols) -> Result<(), ReadObjectsError> {
+        let Some(symbol_table) = self.reader.symbol_table() else {
             return Err(ReadObjectsError::NoSymbolTableAtArchiveStart {
-                diagnostic: crate::diagnostics::no_symbol_table_at_archive_start::build(&path),
-                path,
+                diagnostic: crate::diagnostics::no_symbol_table_at_archive_start::build(&self.path),
+                path: self.path.clone(),
             });
         };
 
-        let mut pending_members = VecDeque::new();
-        let mut pending_members_set = HashSet::new();
-        for (symbol_name, member_id) in symbol_table.symbols {
-            if let Ok(symbol) = symbols.get_global(intern(&symbol_name)) {
+        for (symbol_name, member_id) in &symbol_table.symbols {
+            if let Ok(symbol) = symbols.get_global(intern(symbol_name)) {
                 if let SymbolValue::Undefined = symbol.value() {
                     // We want to maintain the ordering of the ArMemberId to ensure determinism in the
                     // linker output (aka we need to store it in a Vec). The HashSet is used as a quick
                     // way to lookup, since it doesn't preserve ordering.
-                    if pending_members_set.insert(member_id) {
-                        pending_members.push_back(member_id);
+                    //
+                    // This also prevents loading the same object file multiple times when scanning
+                    // the archive again for new required symbols.
+                    if self.loaded_members.insert(*member_id) {
+                        self.pending_members.push_back(*member_id);
                     }
                 }
             }
         }
 
-        Ok(Some(PendingArchive { path, reader, pending_members }))
+        Ok(())
     }
 
-    fn next(&mut self) -> Result<Option<ArFile>, ReadObjectsError> {
-        if let Some(member_id) = self.pending_members.pop_front() {
-            Ok(Some(
-                self.reader
-                    .read_member_by_id(&member_id)
-                    .map_err(|e| ReadObjectsError::ExtractFailed(self.path.clone(), e))?,
-            ))
-        } else {
-            Ok(None)
+    fn next(&mut self, symbols: &Symbols) -> Result<Option<ArFile>, ReadObjectsError> {
+        loop {
+            if let Some(member_id) = self.pending_members.pop_front() {
+                return Ok(Some(
+                    self.reader
+                        .read_member_by_id(&member_id)
+                        .map_err(|e| ReadObjectsError::ExtractFailed(self.path.clone(), e))?,
+                ));
+            }
+
+            // After loading the archive, new undefined symbols that can be satisfied by the
+            // archive can appear. This can happen for example if an object file later in the
+            // archive depends on object files earlier in the archive. We thus continue trying to
+            // load from the archive until there are no more pending files to load.
+            self.calculate_pending(symbols)?;
+            if self.pending_members.is_empty() {
+                return Ok(None);
+            }
         }
     }
 }

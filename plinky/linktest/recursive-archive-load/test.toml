@@ -1,0 +1,28 @@
+# This test ensures that within an archive, object files are searched
+# recursively for missing symbols. In this example, the archive contains
+# first.o, second.o and third.o, with third.o depending on second.o and
+# second.o depending on first.o.
+#
+# If we didn't recursively search inside the archive, the linker would load
+# third.o as it contains _start, but it wouldn't then go back and load first.o
+# and second.o, causing a linker failure.
+
+archs = ["x86", "x86_64"]
+
+[plinky.test]
+cmd = ["${ar.archive}"]
+kind = "link-pass"
+debug-print = ["loaded-object=.text"]
+
+[ar.archive]
+output = "archive.a"
+content = ["${asm.first}", "${asm.second}", "${asm.third}"]
+
+[asm.first]
+source = "first.S"
+
+[asm.second]
+source = "second.S"
+
+[asm.third]
+source = "third.S"

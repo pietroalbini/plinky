@@ -164,12 +164,16 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         mode: mode.unwrap_or(Mode::PositionDependent),
     };
 
-    if options.read_only_got && !matches!(options.mode, Mode::PositionIndependent) {
-        return Err(CliError::RelroOnlyForPie);
-    }
-
-    if options.read_only_got_plt && !matches!(options.mode, Mode::PositionIndependent) {
-        return Err(CliError::NowOnlyForPie);
+    match options.mode {
+        Mode::PositionDependent => {
+            if options.read_only_got {
+                return Err(CliError::RelroOnlyForPie);
+            }
+            if options.read_only_got_plt {
+                return Err(CliError::NowOnlyForPie);
+            }
+        }
+        Mode::PositionIndependent => {}
     }
 
     Ok(options)

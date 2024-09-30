@@ -1,20 +1,21 @@
-use crate::cli::CliOptions;
+use crate::cli::{CliOptions, DynamicLinker};
 use crate::repr::object::Object;
 use crate::repr::sections::DataSection;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use plinky_elf::ids::serial::{SectionId, SerialIds};
-use plinky_elf::ElfPermissions;
+use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error};
 
 pub(crate) fn run(
     options: &CliOptions,
     ids: &mut SerialIds,
     object: &mut Object,
-) -> Result<SectionId, InjectInterpreterError> {
+) -> Result<Option<SectionId>, InjectInterpreterError> {
     let mut interpreter: Vec<u8> = match (&options.dynamic_linker, object.env.class) {
-        (Some(linker), _) => linker.as_bytes().into(),
-        (None, plinky_elf::ElfClass::Elf32) => b"/lib/ld-linux.so.2".into(),
-        (None, plinky_elf::ElfClass::Elf64) => b"/lib64/ld-linux-x86-64.so.2".into(),
+        (DynamicLinker::Unsupported, _) => return Ok(None),
+        (DynamicLinker::Custom(linker), _) => linker.as_bytes().into(),
+        (DynamicLinker::PlatformDefault, ElfClass::Elf32) => b"/lib/ld-linux.so.2".into(),
+        (DynamicLinker::PlatformDefault, ElfClass::Elf64) => b"/lib64/ld-linux-x86-64.so.2".into(),
     };
 
     // The interpreter needs to be a null-terminated string, so ensure that there are no other byte
@@ -36,7 +37,7 @@ pub(crate) fn run(
         content: vec![SegmentContent::Section(section)],
     });
 
-    Ok(section)
+    Ok(Some(section))
 }
 
 #[derive(Debug, Error, Display)]

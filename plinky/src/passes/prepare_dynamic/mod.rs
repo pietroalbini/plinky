@@ -27,13 +27,14 @@ pub(crate) fn run(
         Mode::PositionIndependent => {}
     };
 
-    let interpreter_section = interpreter::run(options, ids, object)?;
-
     let mut segment_content = Vec::new();
 
     segment_content.push(SegmentContent::ElfHeader);
     segment_content.push(SegmentContent::ProgramHeader);
-    segment_content.push(SegmentContent::Section(interpreter_section));
+
+    if let Some(section_id) = interpreter::run(options, ids, object)? {
+        segment_content.push(SegmentContent::Section(section_id));
+    }
 
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {

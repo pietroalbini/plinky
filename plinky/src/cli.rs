@@ -19,7 +19,7 @@ pub(crate) struct CliOptions {
     pub(crate) executable_stack: bool,
     pub(crate) read_only_got: bool,
     pub(crate) read_only_got_plt: bool,
-    pub(crate) dynamic_linker: Option<String>,
+    pub(crate) dynamic_linker: DynamicLinker,
     pub(crate) mode: Mode,
 }
 
@@ -27,6 +27,13 @@ pub(crate) struct CliOptions {
 pub(crate) enum Mode {
     PositionDependent,
     PositionIndependent,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum DynamicLinker {
+    Unsupported,
+    PlatformDefault,
+    Custom(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
@@ -151,6 +158,8 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         previous_token = Some(token);
     }
 
+    let mode = mode.unwrap_or(Mode::PositionDependent);
+
     let options = CliOptions {
         inputs,
         output: output.unwrap_or("a.out").into(),
@@ -160,8 +169,16 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         executable_stack: executable_stack.unwrap_or(false),
         read_only_got: read_only_got.unwrap_or(false),
         read_only_got_plt: read_only_got_plt.unwrap_or(false),
-        dynamic_linker: dynamic_linker.map(|s| s.into()),
-        mode: mode.unwrap_or(Mode::PositionDependent),
+        mode,
+
+        dynamic_linker: match (mode, dynamic_linker) {
+            (Mode::PositionDependent, None) => DynamicLinker::Unsupported,
+            (Mode::PositionDependent, Some(_)) => {
+                return Err(CliError::UnsupportedCustomDynamicLinker);
+            }
+            (Mode::PositionIndependent, None) => DynamicLinker::PlatformDefault,
+            (Mode::PositionIndependent, Some(custom)) => DynamicLinker::Custom(custom.into()),
+        },
     };
 
     match options.mode {
@@ -227,6 +244,8 @@ pub(crate) enum CliError {
     RelroOnlyForPie,
     #[display("-z now is only supported in PIE mode")]
     NowOnlyForPie,
+    #[display("this mode does not support custom dynamic linkers")]
+    UnsupportedCustomDynamicLinker,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -378,7 +397,7 @@ mod tests {
     #[test]
     fn test_no_flags() {
         assert_eq!(
-            Ok(CliOptions { inputs: Vec::new(), ..default_options() }),
+            Ok(CliOptions { inputs: Vec::new(), ..default_options_static() }),
             parse(std::iter::empty::<String>())
         );
     }
@@ -386,7 +405,7 @@ mod tests {
     #[test]
     fn test_one_input() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options() }),
+            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_static() }),
             parse(["foo"].into_iter())
         )
     }
@@ -394,7 +413,7 @@ mod tests {
     #[test]
     fn test_two_inputs() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into(), "bar".into()], ..default_options() }),
+            Ok(CliOptions { inputs: vec!["foo".into(), "bar".into()], ..default_options_static() }),
             parse(["foo", "bar"].into_iter())
         )
     }
@@ -413,7 +432,7 @@ mod tests {
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
                     output: "bar".into(),
-                    ..default_options()
+                    ..default_options_static()
                 }),
                 parse(flags.iter().copied())
             );
@@ -451,7 +470,7 @@ mod tests {
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
                     entry: "bar".into(),
-                    ..default_options()
+                    ..default_options_static()
                 }),
                 parse(flags.iter().copied())
             );
@@ -499,7 +518,7 @@ mod tests {
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
                     debug_print: expected,
-                    ..default_options()
+                    ..default_options_static()
                 }),
                 parse(flags.iter().copied())
             )
@@ -569,7 +588,7 @@ mod tests {
     #[test]
     fn test_gc_sections() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], gc_sections: true, ..default_options() }),
+            Ok(CliOptions { inputs: vec!["foo".into()], gc_sections: true, ..default_options_static() }),
             parse(["foo", "--gc-sections"].into_iter())
         );
     }
@@ -583,13 +602,21 @@ mod tests {
     }
 
     #[test]
-    fn test_dynamic_linker() {
+    fn test_dynamic_linker_pie() {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                dynamic_linker: Some("bar".into()),
-                ..default_options()
+                dynamic_linker: DynamicLinker::Custom("bar".into()),
+                ..default_options_pie()
             }),
+            parse(["foo", "--dynamic-linker=bar", "-pie"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_dynamic_linker_static() {
+        assert_eq!(
+            Err(CliError::UnsupportedCustomDynamicLinker),
             parse(["foo", "--dynamic-linker=bar"].into_iter())
         );
     }
@@ -607,8 +634,7 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                mode: Mode::PositionDependent,
-                ..default_options()
+                ..default_options_static()
             }),
             parse(["foo", "-no-pie"].into_iter())
         );
@@ -619,8 +645,7 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                mode: Mode::PositionIndependent,
-                ..default_options()
+                ..default_options_pie()
             }),
             parse(["foo", "-pie"].into_iter())
         );
@@ -639,9 +664,8 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                mode: Mode::PositionIndependent,
                 read_only_got: true,
-                ..default_options()
+                ..default_options_pie()
             }),
             parse(["foo", "-pie", "-z", "relro"].into_iter())
         );
@@ -652,9 +676,8 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                mode: Mode::PositionIndependent,
                 read_only_got: false,
-                ..default_options()
+                ..default_options_pie()
             }),
             parse(["foo", "-pie", "-z", "norelro"].into_iter())
         );
@@ -685,9 +708,8 @@ mod tests {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
-                mode: Mode::PositionIndependent,
                 read_only_got_plt: false,
-                ..default_options()
+                ..default_options_pie()
             }),
             parse(["foo", "-pie", "-z", "lazy"].into_iter())
         )
@@ -700,7 +722,7 @@ mod tests {
                 inputs: vec!["foo".into()],
                 mode: Mode::PositionIndependent,
                 read_only_got_plt: true,
-                ..default_options()
+                ..default_options_pie()
             }),
             parse(["foo", "-pie", "-z", "now"].into_iter())
         )
@@ -734,7 +756,7 @@ mod tests {
         )
     }
 
-    fn default_options() -> CliOptions {
+    fn default_options_static() -> CliOptions {
         CliOptions {
             inputs: Vec::new(),
             output: "a.out".into(),
@@ -744,8 +766,16 @@ mod tests {
             executable_stack: false,
             read_only_got: false,
             read_only_got_plt: false,
-            dynamic_linker: None,
+            dynamic_linker: DynamicLinker::Unsupported,
             mode: Mode::PositionDependent,
+        }
+    }
+
+    fn default_options_pie() -> CliOptions {
+        CliOptions {
+            mode: Mode::PositionIndependent,
+            dynamic_linker: DynamicLinker::PlatformDefault,
+            ..default_options_static()
         }
     }
 }

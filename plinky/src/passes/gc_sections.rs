@@ -35,7 +35,9 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
         }
     }
 
-    visitor.add(object.entry_point);
+    if let Some(entry_point) = object.entry_point {
+        visitor.add(entry_point);
+    }
     visitor.process(object);
 
     let mut removed_sections = Vec::new();

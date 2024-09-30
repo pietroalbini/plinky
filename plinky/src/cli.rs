@@ -13,7 +13,7 @@ const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie"];
 pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<PathBuf>,
     pub(crate) output: PathBuf,
-    pub(crate) entry: String,
+    pub(crate) entry: Option<String>,
     pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
@@ -163,13 +163,18 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let options = CliOptions {
         inputs,
         output: output.unwrap_or("a.out").into(),
-        entry: entry.unwrap_or("_start").into(),
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
         executable_stack: executable_stack.unwrap_or(false),
         read_only_got: read_only_got.unwrap_or(false),
         read_only_got_plt: read_only_got_plt.unwrap_or(false),
         mode,
+
+        entry: match mode {
+            Mode::PositionDependent | Mode::PositionIndependent => {
+                Some(entry.unwrap_or("_start").into())
+            }
+        },
 
         dynamic_linker: match (mode, dynamic_linker) {
             (Mode::PositionDependent, None) => DynamicLinker::Unsupported,
@@ -469,7 +474,7 @@ mod tests {
             assert_eq!(
                 Ok(CliOptions {
                     inputs: vec!["foo".into()],
-                    entry: "bar".into(),
+                    entry: Some("bar".into()),
                     ..default_options_static()
                 }),
                 parse(flags.iter().copied())
@@ -588,7 +593,11 @@ mod tests {
     #[test]
     fn test_gc_sections() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], gc_sections: true, ..default_options_static() }),
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                gc_sections: true,
+                ..default_options_static()
+            }),
             parse(["foo", "--gc-sections"].into_iter())
         );
     }
@@ -632,10 +641,7 @@ mod tests {
     #[test]
     fn test_no_pie() {
         assert_eq!(
-            Ok(CliOptions {
-                inputs: vec!["foo".into()],
-                ..default_options_static()
-            }),
+            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_static() }),
             parse(["foo", "-no-pie"].into_iter())
         );
     }
@@ -643,10 +649,7 @@ mod tests {
     #[test]
     fn test_pie() {
         assert_eq!(
-            Ok(CliOptions {
-                inputs: vec!["foo".into()],
-                ..default_options_pie()
-            }),
+            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_pie() }),
             parse(["foo", "-pie"].into_iter())
         );
     }
@@ -760,7 +763,7 @@ mod tests {
         CliOptions {
             inputs: Vec::new(),
             output: "a.out".into(),
-            entry: "_start".into(),
+            entry: Some("_start".into()),
             gc_sections: false,
             debug_print: BTreeSet::new(),
             executable_stack: false,

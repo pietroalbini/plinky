@@ -18,7 +18,7 @@ pub(crate) struct Object {
     pub(crate) got: Option<GOT>,
     pub(crate) got_plt: Option<GOT>,
     pub(crate) plt: Option<Plt>,
-    pub(crate) entry_point: SymbolId,
+    pub(crate) entry_point: Option<SymbolId>,
     pub(crate) mode: Mode,
     pub(crate) executable_stack: bool,
     pub(crate) gnu_stack_section_ignored: bool,

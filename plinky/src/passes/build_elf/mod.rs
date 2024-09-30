@@ -118,7 +118,8 @@ impl<'a> ElfBuilder<'a> {
     }
 
     fn prepare_entry_point(&self) -> Result<Option<NonZeroU64>, ElfBuilderError> {
-        let symbol = self.object.symbols.get(self.object.entry_point);
+        let Some(symbol_id) = self.object.entry_point else { return Ok(None) };
+        let symbol = self.object.symbols.get(symbol_id);
         let resolved = symbol
             .resolve(&self.resolver, 0.into())
             .map_err(ElfBuilderError::EntryPointResolution)?;

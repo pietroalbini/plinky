@@ -26,8 +26,11 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new(ids);
-    let entry_point = empty_symbols
-        .add_unknown_global(ids, &options.entry)
+    let entry_point = options
+        .entry
+        .as_ref()
+        .map(|entry| empty_symbols.add_unknown_global(ids, entry))
+        .transpose()
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
     let mut state = State::Empty {

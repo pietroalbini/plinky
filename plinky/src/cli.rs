@@ -97,7 +97,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 "norelro" => {
                     reject_duplicate("-z relro or -z norelro", &mut read_only_got, || Ok(false))?
                 }
-                "now" => reject_duplicate("-z now", &mut read_only_got_plt, || Ok(true))?,
+                "now" => {
+                    reject_duplicate("-z now or -z lazy", &mut read_only_got_plt, || Ok(true))?
+                }
+                "lazy" => {
+                    reject_duplicate("-z now or -z lazy", &mut read_only_got_plt, || Ok(false))?
+                }
                 other => return Err(CliError::UnsupportedFlag(format!("-z {other}"))),
             },
 
@@ -672,6 +677,19 @@ mod tests {
     }
 
     #[test]
+    fn test_lazy() {
+        assert_eq!(
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                mode: Mode::PositionIndependent,
+                read_only_got_plt: false,
+                ..default_options()
+            }),
+            parse(["foo", "-pie", "-z", "lazy"].into_iter())
+        )
+    }
+
+    #[test]
     fn test_now() {
         assert_eq!(
             Ok(CliOptions {
@@ -686,10 +704,17 @@ mod tests {
 
     #[test]
     fn test_multiple_now_flags() {
-        assert_eq!(
-            Err(CliError::DuplicateFlag("-z now".into())),
-            parse(["foo", "-znow", "-z", "now"].into_iter())
-        );
+        for case in [
+            ["foo", "-znow", "-znow"],
+            ["foo", "-znow", "-zlazy"],
+            ["foo", "-zlazy", "-znow"],
+            ["foo", "-zlazy", "-zlazy"],
+        ] {
+            assert_eq!(
+                Err(CliError::DuplicateFlag("-z now or -z lazy".into())),
+                parse(case.into_iter())
+            );
+        }
     }
 
     #[test]

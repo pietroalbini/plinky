@@ -1,0 +1,17 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: garbage collector outcome
+ │
+ │    Removed sections:
+ │  ╭──────────────┬────────╮
+ │  │ Section name │ Source │
+ │  ├──────────────┼────────┤
+ │  │ .text.baz#7  │ foo.o  │
+ │  ╰──────────────┴────────╯
+ ┴

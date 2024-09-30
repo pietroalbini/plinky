@@ -30,6 +30,8 @@ pub(crate) fn link_driver(
     passes::inject_gnu_stack::run(&mut object);
     callbacks.on_inputs_loaded(&object);
 
+    passes::mark_shared_library_symbols::run(&mut object);
+
     if options.gc_sections {
         let removed = passes::gc_sections::run(&mut object);
         callbacks.on_sections_removed_by_gc(&object, &removed);

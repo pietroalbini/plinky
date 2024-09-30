@@ -1,6 +1,6 @@
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
-use crate::repr::symbols::views::AllSymbols;
+use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable};
 use crate::repr::symbols::SymbolValue;
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::{SectionId, SymbolId};
@@ -22,6 +22,12 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
         to_save: BTreeSet::new(),
         queue: BTreeSet::new(),
     };
+
+    // Mark all symbols to be exported in .dynsym as a GC root, to avoid literally everything being
+    // discarded when building shared libraries.
+    for (id, _symbol) in object.symbols.iter(&DynamicSymbolTable) {
+        visitor.add(id);
+    }
 
     // Mark all sections that will not be allocated in memory to be saved, as checking the
     // relocations from the entry point is not accurate for that.

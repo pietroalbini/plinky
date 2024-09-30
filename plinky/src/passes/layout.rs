@@ -17,6 +17,7 @@ pub(crate) fn run(object: &Object) -> Result<Layout<SerialIds>, LayoutError> {
     let base_address: Address = match object.mode {
         Mode::PositionDependent => 0x400000u64.into(),
         Mode::PositionIndependent => 0u64.into(),
+        Mode::SharedLibrary => 0u64.into(),
     };
 
     Layout::new(object, Some(base_address))

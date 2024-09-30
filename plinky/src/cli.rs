@@ -7,7 +7,7 @@ use std::path::PathBuf;
 // GNU ld loves to be inconsistent, and thus some long flags are prefixed with a single dash
 // rather than a double dash. To ensure we still parse the CLI correctly, we have a list of
 // flags that should be emitted as LongShortFlag.
-const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie"];
+const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie", "shared"];
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CliOptions {
@@ -27,6 +27,7 @@ pub(crate) struct CliOptions {
 pub(crate) enum Mode {
     PositionDependent,
     PositionIndependent,
+    SharedLibrary,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -85,6 +86,10 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongShortFlag("pie") => {
                 reject_multiple_modes(&mut mode, Mode::PositionIndependent)?;
+            }
+
+            CliToken::LongShortFlag("shared") => {
+                reject_multiple_modes(&mut mode, Mode::SharedLibrary)?;
             }
 
             CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
@@ -174,11 +179,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             Mode::PositionDependent | Mode::PositionIndependent => {
                 Some(entry.unwrap_or("_start").into())
             }
+            Mode::SharedLibrary => None,
         },
 
         dynamic_linker: match (mode, dynamic_linker) {
-            (Mode::PositionDependent, None) => DynamicLinker::Unsupported,
-            (Mode::PositionDependent, Some(_)) => {
+            (Mode::PositionDependent | Mode::SharedLibrary, None) => DynamicLinker::Unsupported,
+            (Mode::PositionDependent | Mode::SharedLibrary, Some(_)) => {
                 return Err(CliError::UnsupportedCustomDynamicLinker);
             }
             (Mode::PositionIndependent, None) => DynamicLinker::PlatformDefault,
@@ -187,7 +193,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     };
 
     match options.mode {
-        Mode::PositionDependent => {
+        Mode::PositionDependent | Mode::SharedLibrary => {
             if options.read_only_got {
                 return Err(CliError::RelroOnlyForPie);
             }
@@ -631,6 +637,14 @@ mod tests {
     }
 
     #[test]
+    fn test_dynamic_linker_shared() {
+        assert_eq!(
+            Err(CliError::UnsupportedCustomDynamicLinker),
+            parse(["foo", "--dynamic-linker=bar", "-shared"].into_iter())
+        );
+    }
+
+    #[test]
     fn test_duplicate_dynamic_linker() {
         assert_eq!(
             Err(CliError::DuplicateFlag("--dynamic-linker".into())),
@@ -655,11 +669,23 @@ mod tests {
     }
 
     #[test]
-    fn test_duplicate_modes() {
+    fn test_shared() {
         assert_eq!(
-            Err(CliError::MultipleModeChanges),
-            parse(["foo", "-no-pie", "-pie"].into_iter())
-        );
+            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_shared() }),
+            parse(["foo", "-shared"].into_iter())
+        )
+    }
+
+    #[test]
+    fn test_duplicate_modes() {
+        for case in [
+            ["foo", "-no-pie", "-pie"],
+            ["foo", "-pie", "-no-pie"],
+            ["foo", "-shared", "-pie"],
+            ["foo", "-no-pie", "-shared"],
+        ] {
+            assert_eq!(Err(CliError::MultipleModeChanges), parse(case.into_iter()));
+        }
     }
 
     #[test]
@@ -780,5 +806,9 @@ mod tests {
             dynamic_linker: DynamicLinker::PlatformDefault,
             ..default_options_static()
         }
+    }
+
+    fn default_options_shared() -> CliOptions {
+        CliOptions { mode: Mode::SharedLibrary, entry: None, ..default_options_static() }
     }
 }

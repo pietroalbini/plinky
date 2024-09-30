@@ -21,6 +21,7 @@ pub(crate) fn run(
     match object.mode {
         Mode::PositionDependent => return Ok(None),
         Mode::PositionIndependent => {}
+        Mode::SharedLibrary => {}
     };
 
     let mut segment_content = Vec::new();
@@ -77,6 +78,7 @@ pub(crate) fn run(
     match object.mode {
         Mode::PositionDependent => unreachable!(),
         Mode::PositionIndependent => object.dynamic_entries.flags1.pie = true,
+        Mode::SharedLibrary => {}
     }
 
     let dynamic_symbol = ids.allocate_symbol_id();

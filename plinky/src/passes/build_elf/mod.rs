@@ -108,6 +108,7 @@ impl<'a> ElfBuilder<'a> {
                 type_: match self.object.mode {
                     Mode::PositionDependent => ElfType::Executable,
                     Mode::PositionIndependent => ElfType::SharedObject,
+                    Mode::SharedLibrary => ElfType::SharedObject,
                 },
                 entry,
                 sections,

@@ -1,6 +1,6 @@
 use crate::cli::CliOptions;
 use crate::interner::intern;
-use crate::passes::prepare_dynamic::DynamicContext;
+use crate::passes::generate_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::relocations::{NeedsGot, Relocation, RelocationType};

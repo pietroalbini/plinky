@@ -4,9 +4,10 @@ use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::deduplicate::{Deduplication, DeduplicationError};
 use crate::passes::gc_sections::RemovedSection;
+use crate::passes::generate_dynamic::GenerateDynamicError;
 use crate::passes::generate_got::GenerateGotError;
+use crate::passes::inject_interpreter::InjectInterpreterError;
 use crate::passes::load_inputs::LoadInputsError;
-use crate::passes::prepare_dynamic::PrepareDynamicError;
 use crate::passes::relocate::RelocationError;
 use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
 use crate::passes::write_to_disk::WriteToDiskError;
@@ -36,9 +37,10 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
-    let dynamic = passes::prepare_dynamic::run(&options, &mut object, &mut ids)?;
+    let dynamic = passes::generate_dynamic::run(&mut object, &mut ids)?;
     passes::generate_got::generate_got(&options, &mut ids, &mut object, &dynamic)?;
     passes::generate_plt::run(&mut ids, &mut object);
+    passes::inject_interpreter::run(&options, &mut ids, &mut object, &dynamic)?;
 
     passes::exclude_section_symbols_from_tables::remove(&mut object);
     passes::demote_global_hidden_symbols::run(&mut object);
@@ -91,7 +93,9 @@ pub(crate) enum LinkerError {
     #[transparent]
     DeduplicationFailed(DeduplicationError),
     #[transparent]
-    Dynamic(PrepareDynamicError),
+    Dynamic(GenerateDynamicError),
+    #[transparent]
+    InjectInterpreter(InjectInterpreterError),
     #[display("failed to generate the global offset table")]
     GenerateGot(#[from] GenerateGotError),
     #[transparent]

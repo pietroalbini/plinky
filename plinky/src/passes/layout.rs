@@ -137,7 +137,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
         for (_id, segment) in self.segments.iter() {
             match &segment.type_ {
                 SegmentType::ProgramHeader => continue,
-                SegmentType::Interpreter => {}
+                SegmentType::Interpreter => continue,
                 SegmentType::Program => {}
                 SegmentType::Uninitialized => {}
                 SegmentType::Dynamic => continue,

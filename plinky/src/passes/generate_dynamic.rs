@@ -1,6 +1,5 @@
-use crate::cli::{CliOptions, Mode};
+use crate::cli::Mode;
 use crate::interner::intern;
-use crate::passes::prepare_dynamic::interpreter::InjectInterpreterError;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::sections::{
@@ -15,13 +14,10 @@ use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::Offset;
 use plinky_utils::raw_types::RawTypeAsPointerSize;
 
-mod interpreter;
-
 pub(crate) fn run(
-    options: &CliOptions,
     object: &mut Object,
     ids: &mut SerialIds,
-) -> Result<Option<DynamicContext>, PrepareDynamicError> {
+) -> Result<Option<DynamicContext>, GenerateDynamicError> {
     match object.mode {
         Mode::PositionDependent => return Ok(None),
         Mode::PositionIndependent => {}
@@ -31,10 +27,6 @@ pub(crate) fn run(
 
     segment_content.push(SegmentContent::ElfHeader);
     segment_content.push(SegmentContent::ProgramHeader);
-
-    if let Some(section_id) = interpreter::run(options, ids, object)? {
-        segment_content.push(SegmentContent::Section(section_id));
-    }
 
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
@@ -95,7 +87,7 @@ pub(crate) fn run(
             intern("_DYNAMIC"),
             SymbolValue::SectionRelative { section: dynamic, offset: Offset::from(0) },
         ))
-        .map_err(PrepareDynamicError::DynamicSymbolCreation)?;
+        .map_err(GenerateDynamicError::DynamicSymbolCreation)?;
 
     Ok(Some(DynamicContext { dynsym, segment: dynamic_segment, dynamic_symbol }))
 }
@@ -111,9 +103,7 @@ pub(crate) struct DynamicContext {
 }
 
 #[derive(Debug, Error, Display)]
-pub(crate) enum PrepareDynamicError {
-    #[transparent]
-    Interpreter(InjectInterpreterError),
+pub(crate) enum GenerateDynamicError {
     #[display("failed to prepare the _DYNAMIC symbol")]
     DynamicSymbolCreation(#[source] LoadSymbolsError),
 }

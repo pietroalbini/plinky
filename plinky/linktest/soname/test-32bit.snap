@@ -1,0 +1,60 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: object after relocations are applied
+ │
+ │  string table section .dynstr#11 in <plinky>
+ │   │
+ │   │  symbol names for: dynamic symbol table
+ │   │
+ │   │    Additional strings:
+ │   │  ╭───────────╮
+ │   │  │ libfoo.so │
+ │   │  ╰───────────╯
+ │   ┴
+ ┴
+
+debug print: built elf
+ │
+ │  section .dynstr#6 (address: 0xd4)
+ │   │
+ │   │    Strings table:
+ │   │  ╭─────┬───────────╮
+ │   │  │ 0x0 │           │
+ │   │  ├─────┼───────────┤
+ │   │  │ 0x1 │ libfoo.so │
+ │   │  ├─────┼───────────┤
+ │   │  │ 0xb │           │
+ │   │  ├─────┼───────────┤
+ │   │  │ 0xc │ hello     │
+ │   │  ╰─────┴───────────╯
+ │   ┴
+ │
+ │  section .dynamic#9 (address: 0x100122)
+ │   │
+ │   │  dynamic information | string table: .dynstr#6
+ │   │
+ │   │  ╭─────────────────────────┬──────────────────────────────╮
+ │   │  │ Kind                    │ Value                        │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Shared object name      │ offset 1 in the string table │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ String table            │ address 0xd4                 │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ String table size       │ 18 bytes                     │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Symbol table            │ address 0xe6                 │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Symbol table entry size │ 16 bytes                     │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Hash table              │ address 0x106                │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Null                    │ -                            │
+ │   │  ╰─────────────────────────┴──────────────────────────────╯
+ │   ┴
+ ┴

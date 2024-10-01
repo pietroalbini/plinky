@@ -1,4 +1,4 @@
-use crate::cli::Mode;
+use crate::cli::{CliOptions, Mode};
 use crate::interner::intern;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
@@ -15,6 +15,7 @@ use plinky_utils::ints::Offset;
 use plinky_utils::raw_types::RawTypeAsPointerSize;
 
 pub(crate) fn run(
+    options: &CliOptions,
     object: &mut Object,
     ids: &mut SerialIds,
 ) -> Result<Option<DynamicContext>, GenerateDynamicError> {
@@ -29,6 +30,12 @@ pub(crate) fn run(
     segment_content.push(SegmentContent::ElfHeader);
     segment_content.push(SegmentContent::ProgramHeader);
 
+    let mut dynstr_section = StringsSection::new(DynamicSymbolTable);
+    if let Some(soname) = &options.shared_object_name {
+        let soname_id = dynstr_section.add_custom_string(soname);
+        object.dynamic_entries.add(DynamicEntry::SharedObjectName(soname_id));
+    }
+
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
             let id = object.sections.builder(name, content).create(ids);
@@ -36,12 +43,7 @@ pub(crate) fn run(
             object.dynamic_entries.add(entry(id));
             id
         };
-
-    let dynstr = create(
-        ".dynstr",
-        StringsSection::new(DynamicSymbolTable).into(),
-        DynamicEntry::StringTable,
-    );
+    let dynstr = create(".dynstr", dynstr_section.into(), DynamicEntry::StringTable);
 
     let dynsym = create(
         ".dynsym",

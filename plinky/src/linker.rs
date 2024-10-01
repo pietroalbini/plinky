@@ -39,7 +39,7 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object, &mut ids)?;
 
-    let dynamic = passes::generate_dynamic::run(&mut object, &mut ids)?;
+    let dynamic = passes::generate_dynamic::run(&options, &mut object, &mut ids)?;
     passes::generate_got::generate_got(&options, &mut ids, &mut object, &dynamic)?;
     passes::generate_plt::run(&mut ids, &mut object);
     passes::inject_interpreter::run(&options, &mut ids, &mut object, &dynamic)?;

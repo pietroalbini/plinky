@@ -3,6 +3,7 @@ use crate::passes::build_elf::ElfBuilder;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::sections::DynamicSection;
 use plinky_elf::ids::serial::SectionId;
+use plinky_elf::ids::StringIdGetters;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
 use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPLTRelocationsMode, ElfSectionContent};
@@ -15,10 +16,31 @@ pub(super) fn build_dynamic_section(
 ) -> ElfSectionContent<BuiltElfIds> {
     let bits = builder.object.env.class;
 
+    let mut string_table_id = None;
+    for entry in builder.object.dynamic_entries.iter() {
+        match entry {
+            DynamicEntry::StringTable(section_id) => string_table_id = Some(*section_id),
+            _ => {}
+        }
+    }
+
     let mut directives = Vec::new();
     for entry in builder.object.dynamic_entries.iter() {
         let old_len = directives.len();
         match entry {
+            DynamicEntry::SharedObjectName(string_id) => {
+                directives.push(ElfDynamicDirective::SharedObjectName {
+                    string_table_offset: builder
+                        .pending_string_tables
+                        .get(&string_table_id.expect("no dynamic string table"))
+                        .expect("dynamic string table not prepared")
+                        .custom_strings
+                        .get(string_id)
+                        .expect("shared object name's string missing")
+                        .offset()
+                        .into(),
+                })
+            }
             DynamicEntry::StringTable(id) => {
                 let mem = layout(builder, id, "dynamic string table");
                 directives
@@ -59,10 +81,13 @@ pub(super) fn build_dynamic_section(
                     .push(ElfDynamicDirective::PLTGOT { address: got_plt_mem.address.extract() });
             }
             DynamicEntry::Flags => {
-                directives.push(ElfDynamicDirective::Flags(builder.object.dynamic_entries.flags.clone()));
+                directives
+                    .push(ElfDynamicDirective::Flags(builder.object.dynamic_entries.flags.clone()));
             }
             DynamicEntry::Flags1 => {
-                directives.push(ElfDynamicDirective::Flags1(builder.object.dynamic_entries.flags1.clone()));
+                directives.push(ElfDynamicDirective::Flags1(
+                    builder.object.dynamic_entries.flags1.clone(),
+                ));
             }
         }
 

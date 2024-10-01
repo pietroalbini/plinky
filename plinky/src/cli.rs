@@ -7,7 +7,7 @@ use std::path::PathBuf;
 // GNU ld loves to be inconsistent, and thus some long flags are prefixed with a single dash
 // rather than a double dash. To ensure we still parse the CLI correctly, we have a list of
 // flags that should be emitted as LongShortFlag.
-const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie", "shared"];
+const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie", "shared", "soname"];
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CliOptions {
@@ -20,6 +20,7 @@ pub(crate) struct CliOptions {
     pub(crate) read_only_got: bool,
     pub(crate) read_only_got_plt: bool,
     pub(crate) dynamic_linker: DynamicLinker,
+    pub(crate) shared_object_name: Option<String>,
     pub(crate) mode: Mode,
 }
 
@@ -61,6 +62,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut gc_sections = None;
     let mut mode = None;
     let mut dynamic_linker = None;
+    let mut shared_object_name = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -78,6 +80,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongFlag("dynamic-linker") => {
                 reject_duplicate(&token, &mut dynamic_linker, || lexer.expect_flag_value(&token))?;
+            }
+
+            CliToken::LongShortFlag("soname") | CliToken::ShortFlag("h") => {
+                reject_duplicate("-soname or -h", &mut shared_object_name, || {
+                    lexer.expect_flag_value(&token)
+                })?;
             }
 
             CliToken::LongShortFlag("no-pie") => {
@@ -170,6 +178,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         output: output.unwrap_or("a.out").into(),
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
+        shared_object_name: shared_object_name.map(|s| s.into()),
         executable_stack: executable_stack.unwrap_or(false),
         read_only_got: read_only_got.unwrap_or(false),
         read_only_got_plt: read_only_got_plt.unwrap_or(false),
@@ -202,6 +211,15 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             }
         }
         Mode::PositionIndependent => {}
+    }
+
+    match options.mode {
+        Mode::PositionDependent | Mode::PositionIndependent => {
+            if options.shared_object_name.is_some() {
+                return Err(CliError::UnsupportedSharedObjectName);
+            }
+        }
+        Mode::SharedLibrary => {}
     }
 
     Ok(options)
@@ -257,6 +275,8 @@ pub(crate) enum CliError {
     NowOnlyForPie,
     #[display("this mode does not support custom dynamic linkers")]
     UnsupportedCustomDynamicLinker,
+    #[display("setting the shared object name is only supported when building shared objects")]
+    UnsupportedSharedObjectName,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -778,6 +798,48 @@ mod tests {
     }
 
     #[test]
+    fn test_soname_shared() {
+        for case in [["foo", "-shared", "-soname=hello.so"], ["foo", "-shared", "-hhello.so"]] {
+            assert_eq!(
+                Ok(CliOptions {
+                    inputs: vec!["foo".into()],
+                    shared_object_name: Some("hello.so".into()),
+                    ..default_options_shared()
+                }),
+                parse(case.into_iter())
+            );
+        }
+    }
+
+    #[test]
+    fn test_soname_static() {
+        for case in [["foo", "-soname=hello.so"], ["foo", "-hhello.so"]] {
+            assert_eq!(Err(CliError::UnsupportedSharedObjectName), parse(case.into_iter()));
+        }
+    }
+
+    #[test]
+    fn test_soname_pie() {
+        for case in [["foo", "-pie", "-soname=hello.so"], ["foo", "-pie", "-hhello.so"]] {
+            assert_eq!(Err(CliError::UnsupportedSharedObjectName), parse(case.into_iter()));
+        }
+    }
+
+    #[test]
+    fn test_duplicate_soname() {
+        for case in [
+            ["foo", "-shared", "-soname=foo", "-soname=bar"],
+            ["foo", "-shared", "-soname=foo", "-hbar"],
+            ["foo", "-shared", "-hfoo", "-hbar"],
+        ] {
+            assert_eq!(
+                Err(CliError::DuplicateFlag("-soname or -h".into())),
+                parse(case.into_iter())
+            );
+        }
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -796,6 +858,7 @@ mod tests {
             read_only_got: false,
             read_only_got_plt: false,
             dynamic_linker: DynamicLinker::Unsupported,
+            shared_object_name: None,
             mode: Mode::PositionDependent,
         }
     }

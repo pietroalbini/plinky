@@ -1,5 +1,5 @@
 use crate::cli::Mode;
-use crate::interner::Interned;
+use crate::interner::{intern, Interned};
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::sections::{Section, SectionContent};
@@ -55,30 +55,32 @@ impl LayoutDetailsProvider<SerialIds> for Object {
     }
 
     fn string_table_len(&self, id: &SectionId) -> usize {
-        let strings: Box<dyn Iterator<Item = Interned<String>>> =
-            match self.sections.get(*id).map(|s| &s.content) {
-                Some(SectionContent::Strings(symbols)) => {
-                    // Local symbols also have a STT_FILE entry for every file.
-                    let file_names = self
-                        .symbols
-                        .iter(symbols.symbol_names_view())
-                        .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
-                        .filter_map(|(_, s)| s.stt_file())
-                        .collect::<BTreeSet<_>>();
+        let strings: Box<dyn Iterator<Item = Interned<String>>> = match self
+            .sections
+            .get(*id)
+            .map(|s| &s.content)
+        {
+            Some(SectionContent::Strings(strings)) => {
+                // Local symbols also have a STT_FILE entry for every file.
+                let file_names = self
+                    .symbols
+                    .iter(strings.symbol_names_view())
+                    .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
+                    .filter_map(|(_, s)| s.stt_file())
+                    .collect::<BTreeSet<_>>();
 
-                    Box::new(
-                        self.symbols
-                            .iter(symbols.symbol_names_view())
-                            .map(|(_, s)| s.name())
-                            .chain(file_names.into_iter()),
-                    )
-                }
-                Some(SectionContent::SectionNames) => {
-                    Box::new(self.sections.iter().map(|s| s.name))
-                }
-                Some(_) => panic!("section {id:?} is of the wrong type"),
-                None => panic!("section {id:?} is missing"),
-            };
+                Box::new(
+                    self.symbols
+                        .iter(strings.symbol_names_view())
+                        .map(|(_, s)| s.name())
+                        .chain(file_names.into_iter())
+                        .chain(strings.iter_custom_strings().map(|(_id, string)| intern(string))),
+                )
+            }
+            Some(SectionContent::SectionNames) => Box::new(self.sections.iter().map(|s| s.name)),
+            Some(_) => panic!("section {id:?} is of the wrong type"),
+            None => panic!("section {id:?} is missing"),
+        };
 
         strings
             .map(|s| s.resolve().len() + 1 /* null byte */)

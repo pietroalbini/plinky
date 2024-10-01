@@ -201,9 +201,18 @@ fn render_strings_section(
     section: &Section,
     strings: &StringsSection,
 ) -> Box<dyn Widget> {
+    let mut custom_count = 0;
+    let mut custom = Table::new();
+    custom.set_title("Additional strings:");
+    for (_, string) in strings.iter_custom_strings() {
+        custom_count += 1;
+        custom.add_row([string]);
+    }
+
     Box::new(
         section_widget(object, section, "string table")
-            .add(Text::new(format!("symbol names for: {}", strings.symbol_names_view()))),
+            .add(Text::new(format!("symbol names for: {}", strings.symbol_names_view())))
+            .add_iter(Some(custom).filter(|_| custom_count > 0)),
     )
 }
 

@@ -8,6 +8,7 @@ use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::Getters;
 use plinky_utils::ints::Length;
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Debug)]
 pub(crate) struct Sections {
@@ -176,16 +177,46 @@ pub(crate) struct UninitializedSection {
 #[derive(Debug)]
 pub(crate) struct StringsSection {
     symbol_names: Box<dyn SymbolsView>,
+    custom_strings: Vec<String>,
+    generation: usize,
 }
 
 impl StringsSection {
     pub(crate) fn new(view: impl SymbolsView + 'static) -> Self {
-        Self { symbol_names: Box::new(view) }
+        static GENERATIONS: AtomicUsize = AtomicUsize::new(0);
+        Self {
+            symbol_names: Box::new(view),
+            custom_strings: Vec::new(),
+            generation: GENERATIONS.fetch_add(1, Ordering::Relaxed),
+        }
+    }
+
+    pub(crate) fn add_custom_string(&mut self, string: impl Into<String>) -> UpcomingStringId {
+        let index = self.custom_strings.len();
+        self.custom_strings.push(string.into());
+        UpcomingStringId { generation: self.generation, index }
+    }
+
+    pub(crate) fn iter_custom_strings(&self) -> impl Iterator<Item = (UpcomingStringId, &str)> {
+        self.custom_strings.iter().enumerate().map(|(index, string)| {
+            (UpcomingStringId { generation: self.generation, index }, string.as_str())
+        })
+    }
+
+    pub(crate) fn get_custom_string(&self, id: UpcomingStringId) -> &str {
+        assert_eq!(id.generation, self.generation);
+        &self.custom_strings[id.index]
     }
 
     pub(crate) fn symbol_names_view(&self) -> &dyn SymbolsView {
         &*self.symbol_names
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct UpcomingStringId {
+    generation: usize,
+    index: usize,
 }
 
 #[derive(Debug)]

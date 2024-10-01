@@ -1,3 +1,4 @@
+use crate::repr::sections::UpcomingStringId;
 use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{ElfDynamicFlags, ElfDynamicFlags1};
 use plinky_utils::bitfields::Bitfield;
@@ -32,6 +33,7 @@ impl DynamicEntries {
 
 #[derive(Debug)]
 pub(crate) enum DynamicEntry {
+    SharedObjectName(UpcomingStringId),
     StringTable(SectionId),
     SymbolTable(SectionId),
     Hash(SectionId),
@@ -44,6 +46,7 @@ pub(crate) enum DynamicEntry {
 impl DynamicEntry {
     pub(crate) fn directives_count(&self) -> usize {
         match self {
+            DynamicEntry::SharedObjectName(_) => 1,
             DynamicEntry::StringTable(_) => 2,
             DynamicEntry::SymbolTable(_) => 2,
             DynamicEntry::Hash(_) => 1,

@@ -353,7 +353,7 @@ where
         else {
             panic!("section {id:?} is not a program section");
         };
-        self.writer.write_all(&program.raw.0)?;
+        self.writer.write_all(&program.raw)?;
         Ok(())
     }
 

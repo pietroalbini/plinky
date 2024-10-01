@@ -6,7 +6,7 @@ pub mod raw;
 mod reader;
 pub mod render_elf;
 mod types;
-mod utils;
 pub mod writer;
 
 pub use self::types::*;
+pub use self::reader::ReadSeek;

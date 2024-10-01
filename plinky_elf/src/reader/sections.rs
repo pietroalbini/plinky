@@ -8,7 +8,7 @@ use crate::{
     ElfGroup, ElfHash, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocation,
     ElfRelocationType, ElfRelocationsTable, ElfSection, ElfSectionContent, ElfStringTable,
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
-    ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection, RawBytes,
+    ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_utils::bitfields::Bitfield;
 use std::collections::BTreeMap;
@@ -113,7 +113,7 @@ fn read_section(
                 execute: header.flags.exec,
             },
             deduplication: deduplication.take().unwrap_or(ElfDeduplication::Disabled),
-            raw: RawBytes(read_section_raw_content(&header, cursor)?),
+            raw: read_section_raw_content(&header, cursor)?,
         }),
         SectionType::SymbolTable { dynsym } => {
             let raw = read_section_raw_content(&header, cursor)?;
@@ -156,7 +156,7 @@ fn read_section(
         }
         SectionType::Unknown(other) => ElfSectionContent::Unknown(ElfUnknownSection {
             id: other,
-            raw: RawBytes(read_section_raw_content(&header, cursor)?),
+            raw: read_section_raw_content(&header, cursor)?,
         }),
     };
 

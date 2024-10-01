@@ -6,13 +6,12 @@ use crate::errors::LoadError;
 use crate::ids::{convert, ConvertibleElfIds, ElfIds};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use crate::reader::{read_object, PendingIds, ReadCursor};
-use crate::utils::{render_hex, ReadSeek};
+use crate::ReadSeek;
 use plinky_macros::Bitfield;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use plinky_utils::{Bits, Endian};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
-use std::ops::Deref;
 
 #[derive(Debug)]
 pub struct ElfObject<I: ElfIds> {
@@ -162,7 +161,7 @@ pub enum ElfDeduplication {
 pub struct ElfProgramSection {
     pub perms: ElfPermissions,
     pub deduplication: ElfDeduplication,
-    pub raw: RawBytes,
+    pub raw: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -184,14 +183,14 @@ pub enum ElfNote {
 #[derive(Debug)]
 pub struct ElfUnknownNote {
     pub name: String,
-    pub value: RawBytes,
+    pub value: Vec<u8>,
     pub type_: u32,
 }
 
 #[derive(Debug)]
 pub struct ElfUnknownSection {
     pub id: u32,
-    pub raw: RawBytes,
+    pub raw: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -469,33 +468,5 @@ impl std::fmt::Display for ElfPermissions {
             content.push('X');
         }
         f.write_str(&content)
-    }
-}
-
-#[derive(Clone)]
-pub struct RawBytes(pub Vec<u8>);
-
-impl std::fmt::Debug for RawBytes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("RawBytes {")?;
-        if self.0.is_empty() {
-            // Nothing
-        } else if f.alternate() {
-            render_hex(f, "    ", &self.0)?;
-        } else {
-            for byte in &self.0 {
-                f.write_fmt(format_args!(" {byte:0>2x}"))?;
-            }
-            f.write_str(" ")?;
-        }
-        f.write_str("}")
-    }
-}
-
-impl Deref for RawBytes {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }

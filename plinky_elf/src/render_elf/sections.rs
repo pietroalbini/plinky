@@ -54,7 +54,7 @@ fn render_section_program(program: &ElfProgramSection) -> Vec<Box<dyn Widget>> {
         }
     }
 
-    vec![Box::new(Text::new(intro.trim())), Box::new(HexDump::new(program.raw.0.as_slice()))]
+    vec![Box::new(Text::new(intro.trim())), Box::new(HexDump::new(program.raw.as_slice()))]
 }
 
 fn render_section_uninit(uninit: &ElfUninitializedSection) -> Vec<Box<dyn Widget>> {
@@ -226,7 +226,7 @@ fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
                         "unknown note with name {} and type {:#x}",
                         unknown.name, unknown.type_
                     ))
-                    .add(HexDump::new(unknown.value.0.as_slice())),
+                    .add(HexDump::new(unknown.value.as_slice())),
             ) as Box<dyn Widget>),
         }
     }
@@ -339,6 +339,6 @@ fn render_section_dynamic<I: ElfIds>(
 fn render_section_unknown(unknown: &ElfUnknownSection) -> Vec<Box<dyn Widget>> {
     vec![
         Box::new(Text::new(format!("unknown section with type {:#x}", unknown.id))),
-        Box::new(HexDump::new(unknown.raw.0.as_slice())),
+        Box::new(HexDump::new(unknown.raw.as_slice())),
     ]
 }

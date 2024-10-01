@@ -113,7 +113,7 @@ pub(super) fn merge(
                 DataSection {
                     perms: program.perms,
                     deduplication: program.deduplication,
-                    bytes: program.raw.0,
+                    bytes: program.raw,
                     relocations: relocations
                         .remove(&id)
                         .unwrap_or_default()

@@ -22,7 +22,7 @@ use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
-    ElfStringTable, ElfType, ElfUninitializedSection, RawBytes,
+    ElfStringTable, ElfType, ElfUninitializedSection,
 };
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -182,7 +182,7 @@ impl<'a> ElfBuilder<'a> {
                 SectionContent::Data(data) => ElfSectionContent::Program(ElfProgramSection {
                     perms: data.perms,
                     deduplication: data.deduplication,
-                    raw: RawBytes(data.bytes.clone()),
+                    raw: data.bytes.clone(),
                 }),
 
                 SectionContent::Uninitialized(uninit) => {

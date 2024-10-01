@@ -1,8 +1,7 @@
 use crate::errors::LoadError;
-use crate::utils::ReadSeek;
 use crate::{ElfClass, ElfEndian};
 use plinky_utils::raw_types::RawType;
-use std::io::SeekFrom;
+use std::io::{Read, Seek, SeekFrom};
 
 pub(crate) struct ReadCursor<'a> {
     reader: &'a mut dyn ReadSeek,
@@ -57,3 +56,7 @@ impl std::io::Read for ReadCursor<'_> {
         self.reader.read(buf)
     }
 }
+
+pub trait ReadSeek: Read + Seek {}
+
+impl<T: Read + Seek> ReadSeek for T {}

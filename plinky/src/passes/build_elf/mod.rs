@@ -1,24 +1,24 @@
 mod dynamic;
 pub(crate) mod ids;
 mod relocations;
+mod strings;
 mod symbols;
 pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::dynamic::build_dynamic_section;
-use crate::passes::build_elf::ids::{
-    BuiltElfIds, BuiltElfSectionId, BuiltElfStringId, BuiltElfSymbolId,
-};
+use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
-use crate::passes::build_elf::symbols::create_symbols;
+use crate::passes::build_elf::strings::{create_strings, BuiltStringsTable};
+use crate::passes::build_elf::symbols::{create_symbols, BuiltSymbolsTable};
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::SegmentType;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
@@ -45,9 +45,8 @@ pub(crate) fn run(
         resolver,
         object,
         ids,
-        pending_symbol_tables: BTreeMap::new(),
         pending_string_tables: BTreeMap::new(),
-        symbol_conversion: BTreeMap::new(),
+        pending_symbol_tables: BTreeMap::new(),
     };
     builder.build()
 }
@@ -61,9 +60,8 @@ struct ElfBuilder<'a> {
     section_zero_id: BuiltElfSectionId,
     section_ids: BTreeMap<SectionId, BuiltElfSectionId>,
 
-    pending_symbol_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
-    pending_string_tables: BTreeMap<SectionId, ElfSectionContent<BuiltElfIds>>,
-    symbol_conversion: BTreeMap<SectionId, BTreeMap<SymbolId, BuiltElfSymbolId>>,
+    pending_string_tables: BTreeMap<SectionId, BuiltStringsTable>,
+    pending_symbol_tables: BTreeMap<SectionId, BuiltSymbolsTable>,
 }
 
 impl<'a> ElfBuilder<'a> {
@@ -73,34 +71,33 @@ impl<'a> ElfBuilder<'a> {
             self.section_ids.insert(section.id, self.ids.allocate_section_id());
         }
 
-        // Symbol and string table sections need to be created together (as the string table
-        // contains the symbol names for the symbol table), which makes it hard to create them
-        // individually as part of prepare_sections(). We thus create them together, and store them
-        // in a pending state.
+        // Precalculate string tables, as other sections will need to reference string IDs.
         for section in self.object.sections.iter() {
-            let SectionContent::Symbols(symbols_section) = &section.content else { continue };
+            let SectionContent::Strings(strings) = &section.content else { continue };
+            let pending = create_strings(&self, section.id, strings);
+            self.pending_string_tables.insert(section.id, pending);
+        }
 
-            let string_table_id = *self.section_ids.get(&symbols_section.strings).unwrap();
-            let created = create_symbols(
-                &self.object.symbols,
-                &*symbols_section.view,
+        // Precalculate symbol tables, as other sections will need to reference symbol IDs. This
+        // has to happen after precalculating string tables.
+        for section in self.object.sections.iter() {
+            let SectionContent::Symbols(symbols) = &section.content else { continue };
+            let pending = create_symbols(
                 &mut self.ids,
-                &mut self.section_ids,
-                string_table_id,
-                symbols_section.is_dynamic,
+                &self.section_ids,
+                &self.pending_string_tables,
+                &self.object.symbols,
+                symbols,
             );
-            self.pending_symbol_tables.insert(section.id, created.symbol_table);
-            self.pending_string_tables.insert(symbols_section.strings, created.string_table);
-            self.symbol_conversion.insert(section.id, created.conversion);
+            self.pending_symbol_tables.insert(section.id, pending);
         }
 
         let entry = self.prepare_entry_point()?;
         let sections = self.prepare_sections()?;
-
         let segments = self.prepare_segments();
 
-        assert!(self.pending_symbol_tables.is_empty());
-        assert!(self.pending_string_tables.is_empty());
+        assert!(self.pending_symbol_tables.values().all(|t| t.elf.is_none()));
+        assert!(self.pending_string_tables.values().all(|t| t.elf.is_none()));
 
         Ok((
             ElfObject {
@@ -145,7 +142,7 @@ impl<'a> ElfBuilder<'a> {
         &mut self,
     ) -> Result<BTreeMap<BuiltElfSectionId, ElfSection<BuiltElfIds>>, ElfBuilderError> {
         // Prepare section names ahead of time.
-        let mut section_names = PendingStringsTable::new(
+        let mut section_names = StringsTableBuilder::new(
             *self
                 .section_ids
                 .get(
@@ -195,15 +192,21 @@ impl<'a> ElfBuilder<'a> {
                     })
                 }
 
-                SectionContent::StringsForSymbols(_) => self
+                SectionContent::Strings(_) => self
                     .pending_string_tables
-                    .remove(&section.id)
-                    .expect("string table should've been prepared"),
+                    .get_mut(&section.id)
+                    .expect("string table should've been prepared")
+                    .elf
+                    .take()
+                    .expect("another section already took the string table"),
 
                 SectionContent::Symbols(_) => self
                     .pending_symbol_tables
-                    .remove(&section.id)
-                    .expect("symbol table should've been prepared"),
+                    .get_mut(&section.id)
+                    .expect("symbol table should've been prepared")
+                    .elf
+                    .take()
+                    .expect("another section already took the symbol table"),
 
                 SectionContent::SysvHash(sysv) => create_sysv_hash(
                     self.object.symbols.iter(&*sysv.view).map(|(_id, sym)| sym),
@@ -216,7 +219,11 @@ impl<'a> ElfBuilder<'a> {
                     self.object.env.class,
                     *self.section_ids.get(&relocations.section()).unwrap(),
                     *self.section_ids.get(&relocations.symbols_table()).unwrap(),
-                    self.symbol_conversion.get(&relocations.symbols_table()).unwrap(),
+                    &self
+                        .pending_symbol_tables
+                        .get(&relocations.symbols_table())
+                        .expect("missing symbol table")
+                        .conversion,
                     &self.resolver,
                 )?,
 
@@ -277,14 +284,14 @@ impl<'a> ElfBuilder<'a> {
     }
 }
 
-struct PendingStringsTable {
+struct StringsTableBuilder {
     id: BuiltElfSectionId,
     strings: BTreeMap<u32, String>,
     next_offset: u32,
     zero_id: BuiltElfStringId,
 }
 
-impl PendingStringsTable {
+impl StringsTableBuilder {
     fn new(id: BuiltElfSectionId) -> Self {
         let mut strings = BTreeMap::new();
         strings.insert(0, String::new()); // First string has to always be empty.

@@ -1,6 +1,6 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
-use crate::passes::build_elf::PendingStringsTable;
-use crate::repr::symbols::views::SymbolsView;
+use crate::passes::build_elf::strings::BuiltStringsTable;
+use crate::repr::sections::SymbolsSection;
 use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
 use plinky_elf::ids::serial::{SectionId, SymbolId};
 use plinky_elf::{
@@ -10,22 +10,17 @@ use plinky_elf::{
 use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
-pub(super) fn create_symbols<'a>(
-    all_symbols: &Symbols,
-    view: &dyn SymbolsView,
+pub(super) fn create_symbols(
     ids: &mut BuiltElfIds,
     section_ids: &BTreeMap<SectionId, BuiltElfSectionId>,
-    string_table_id: BuiltElfSectionId,
-    is_dynamic: bool,
-) -> CreateSymbolsOutput {
-    let mut strings = PendingStringsTable::new(string_table_id);
-    let mut symbols = BTreeMap::new();
-    let mut conversion = BTreeMap::new();
-
+    string_tables: &BTreeMap<SectionId, BuiltStringsTable>,
+    all_symbols: &Symbols,
+    symbols_section: &SymbolsSection,
+) -> BuiltSymbolsTable {
     let mut null_symbol = None;
     let mut global_symbols = Vec::new();
     let mut local_by_source = BTreeMap::new();
-    for (symbol_id, symbol) in all_symbols.iter(view) {
+    for (symbol_id, symbol) in all_symbols.iter(&*symbols_section.view) {
         if symbol_id == all_symbols.null_symbol_id() {
             assert!(null_symbol.is_none());
             null_symbol = Some(symbol);
@@ -36,21 +31,28 @@ pub(super) fn create_symbols<'a>(
         }
     }
 
-    add_symbol(
+    let mut converter = Converter {
         ids,
         section_ids,
-        &mut symbols,
-        &mut strings,
-        &mut conversion,
-        null_symbol.expect("missing null symbol"),
-    );
+        strings: &string_tables
+            .get(&symbols_section.strings)
+            .expect("missing string table for symbol table"),
+        symbols: BTreeMap::new(),
+        conversion: BTreeMap::new(),
+    };
+
+    converter.convert(null_symbol.expect("missing null symbol"));
 
     for (file, symbols_in_file) in local_by_source {
         if let Some(file) = file {
-            symbols.insert(
-                ids.allocate_symbol_id(),
+            converter.symbols.insert(
+                converter.ids.allocate_symbol_id(),
                 ElfSymbol {
-                    name: strings.add(file.resolve().as_str()),
+                    name: *converter
+                        .strings
+                        .symbol_file_names
+                        .get(&file)
+                        .expect("no string for the file"),
                     binding: ElfSymbolBinding::Local,
                     type_: ElfSymbolType::File,
                     visibility: ElfSymbolVisibility::Default,
@@ -61,82 +63,87 @@ pub(super) fn create_symbols<'a>(
             );
         }
         for symbol in symbols_in_file {
-            add_symbol(ids, section_ids, &mut symbols, &mut strings, &mut conversion, symbol);
+            converter.convert(symbol);
         }
     }
     for symbol in global_symbols {
-        add_symbol(ids, section_ids, &mut symbols, &mut strings, &mut conversion, symbol);
+        converter.convert(symbol);
     }
 
-    CreateSymbolsOutput {
-        symbol_table: ElfSectionContent::SymbolTable(ElfSymbolTable {
-            dynsym: is_dynamic,
-            symbols,
-        }),
-        string_table: strings.into_elf(),
-        conversion,
+    BuiltSymbolsTable {
+        elf: Some(ElfSectionContent::SymbolTable(ElfSymbolTable {
+            dynsym: symbols_section.is_dynamic,
+            symbols: converter.symbols,
+        })),
+        conversion: converter.conversion,
     }
 }
 
-pub(super) struct CreateSymbolsOutput {
-    pub(super) symbol_table: ElfSectionContent<BuiltElfIds>,
-    pub(super) string_table: ElfSectionContent<BuiltElfIds>,
+pub(super) struct BuiltSymbolsTable {
+    pub(super) elf: Option<ElfSectionContent<BuiltElfIds>>,
     pub(super) conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
 }
 
-fn add_symbol(
-    ids: &mut BuiltElfIds,
-    section_ids: &BTreeMap<SectionId, BuiltElfSectionId>,
-    symbols: &mut BTreeMap<BuiltElfSymbolId, ElfSymbol<BuiltElfIds>>,
-    strings: &mut PendingStringsTable,
-    conversion: &mut BTreeMap<SymbolId, BuiltElfSymbolId>,
-    symbol: &Symbol,
-) {
-    let id = ids.allocate_symbol_id();
-    symbols.insert(
-        id,
-        ElfSymbol {
-            name: strings.add(symbol.name().resolve().as_str()),
-            binding: match symbol.visibility() {
-                SymbolVisibility::Local => ElfSymbolBinding::Local,
-                SymbolVisibility::Global { weak: true, hidden: _ } => ElfSymbolBinding::Weak,
-                SymbolVisibility::Global { weak: false, hidden: _ } => ElfSymbolBinding::Global,
+struct Converter<'a> {
+    ids: &'a mut BuiltElfIds,
+    section_ids: &'a BTreeMap<SectionId, BuiltElfSectionId>,
+    strings: &'a BuiltStringsTable,
+    symbols: BTreeMap<BuiltElfSymbolId, ElfSymbol<BuiltElfIds>>,
+    conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
+}
+
+impl Converter<'_> {
+    fn convert(&mut self, symbol: &Symbol) {
+        let id = self.ids.allocate_symbol_id();
+        self.symbols.insert(
+            id,
+            ElfSymbol {
+                name: *self.strings.symbol_names.get(&symbol.id()).expect("no string for symbol"),
+                binding: match symbol.visibility() {
+                    SymbolVisibility::Local => ElfSymbolBinding::Local,
+                    SymbolVisibility::Global { weak: true, hidden: _ } => ElfSymbolBinding::Weak,
+                    SymbolVisibility::Global { weak: false, hidden: _ } => ElfSymbolBinding::Global,
+                },
+                visibility: match symbol.visibility() {
+                    SymbolVisibility::Local => ElfSymbolVisibility::Default,
+                    SymbolVisibility::Global { weak: _, hidden: false } => {
+                        ElfSymbolVisibility::Default
+                    }
+                    SymbolVisibility::Global { weak: _, hidden: true } => {
+                        ElfSymbolVisibility::Hidden
+                    }
+                },
+                type_: match symbol.type_() {
+                    SymbolType::NoType => ElfSymbolType::NoType,
+                    SymbolType::Function => ElfSymbolType::Function,
+                    SymbolType::Object => ElfSymbolType::Object,
+                    SymbolType::Section => ElfSymbolType::Section,
+                },
+                definition: match symbol.value() {
+                    SymbolValue::Absolute { .. } => ElfSymbolDefinition::Absolute,
+                    SymbolValue::SectionRelative { .. } => {
+                        panic!("section relative addresses should not reach this stage");
+                    }
+                    SymbolValue::SectionVirtualAddress { section, .. } => {
+                        ElfSymbolDefinition::Section(*self.section_ids.get(&section).unwrap())
+                    }
+                    SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
+                    SymbolValue::Null => ElfSymbolDefinition::Undefined,
+                },
+                value: match symbol.value() {
+                    SymbolValue::Absolute { value } => value.extract(),
+                    SymbolValue::SectionRelative { .. } => {
+                        panic!("section relative addresses should not reach this stage");
+                    }
+                    SymbolValue::SectionVirtualAddress { memory_address, .. } => {
+                        memory_address.extract()
+                    }
+                    SymbolValue::Undefined => 0,
+                    SymbolValue::Null => 0,
+                },
+                size: 0,
             },
-            visibility: match symbol.visibility() {
-                SymbolVisibility::Local => ElfSymbolVisibility::Default,
-                SymbolVisibility::Global { weak: _, hidden: false } => ElfSymbolVisibility::Default,
-                SymbolVisibility::Global { weak: _, hidden: true } => ElfSymbolVisibility::Hidden,
-            },
-            type_: match symbol.type_() {
-                SymbolType::NoType => ElfSymbolType::NoType,
-                SymbolType::Function => ElfSymbolType::Function,
-                SymbolType::Object => ElfSymbolType::Object,
-                SymbolType::Section => ElfSymbolType::Section,
-            },
-            definition: match symbol.value() {
-                SymbolValue::Absolute { .. } => ElfSymbolDefinition::Absolute,
-                SymbolValue::SectionRelative { .. } => {
-                    panic!("section relative addresses should not reach this stage");
-                }
-                SymbolValue::SectionVirtualAddress { section, .. } => {
-                    ElfSymbolDefinition::Section(*section_ids.get(&section).unwrap())
-                }
-                SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
-                SymbolValue::Null => ElfSymbolDefinition::Undefined,
-            },
-            value: match symbol.value() {
-                SymbolValue::Absolute { value } => value.extract(),
-                SymbolValue::SectionRelative { .. } => {
-                    panic!("section relative addresses should not reach this stage");
-                }
-                SymbolValue::SectionVirtualAddress { memory_address, .. } => {
-                    memory_address.extract()
-                }
-                SymbolValue::Undefined => 0,
-                SymbolValue::Null => 0,
-            },
-            size: 0,
-        },
-    );
-    conversion.insert(symbol.id(), id);
+        );
+        self.conversion.insert(symbol.id(), id);
+    }
 }

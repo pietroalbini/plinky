@@ -57,18 +57,18 @@ impl LayoutDetailsProvider<SerialIds> for Object {
     fn string_table_len(&self, id: &SectionId) -> usize {
         let strings: Box<dyn Iterator<Item = Interned<String>>> =
             match self.sections.get(*id).map(|s| &s.content) {
-                Some(SectionContent::StringsForSymbols(symbols)) => {
+                Some(SectionContent::Strings(symbols)) => {
                     // Local symbols also have a STT_FILE entry for every file.
                     let file_names = self
                         .symbols
-                        .iter(&*symbols.view)
+                        .iter(symbols.symbol_names_view())
                         .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
                         .filter_map(|(_, s)| s.stt_file())
                         .collect::<BTreeSet<_>>();
 
                     Box::new(
                         self.symbols
-                            .iter(&*symbols.view)
+                            .iter(symbols.symbol_names_view())
                             .map(|(_, s)| s.name())
                             .chain(file_names.into_iter()),
                     )
@@ -172,7 +172,7 @@ fn part_for_section(section: &Section) -> Part<SectionId> {
     match &section.content {
         SectionContent::Data(_) => Part::ProgramSection(section.id),
         SectionContent::Uninitialized(_) => Part::UninitializedSection(section.id),
-        SectionContent::StringsForSymbols(_) => Part::StringTable(section.id),
+        SectionContent::Strings(_) => Part::StringTable(section.id),
         SectionContent::Symbols(_) => Part::SymbolTable(section.id),
         SectionContent::SysvHash(_) => Part::Hash(section.id),
         SectionContent::Relocations(_) => Part::Rela(section.id),

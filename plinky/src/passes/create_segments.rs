@@ -30,7 +30,7 @@ pub(crate) fn run(object: &mut Object) {
             SectionContent::Data(data) => (SegmentType::Program, data.perms),
             SectionContent::Uninitialized(uninit) => (SegmentType::Uninitialized, uninit.perms),
 
-            SectionContent::StringsForSymbols(_)
+            SectionContent::Strings(_)
             | SectionContent::Symbols(_)
             | SectionContent::SysvHash(_)
             | SectionContent::Relocations(_)

@@ -3,7 +3,7 @@ use crate::interner::intern;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::sections::{
-    DynamicSection, SectionContent, StringsForSymbolsSection, SymbolsSection, SysvHashSection,
+    DynamicSection, SectionContent, StringsSection, SymbolsSection, SysvHashSection,
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
@@ -39,7 +39,7 @@ pub(crate) fn run(
 
     let dynstr = create(
         ".dynstr",
-        StringsForSymbolsSection::new(DynamicSymbolTable).into(),
+        StringsSection::new(DynamicSymbolTable).into(),
         DynamicEntry::StringTable,
     );
 

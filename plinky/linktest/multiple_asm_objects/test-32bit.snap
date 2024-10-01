@@ -38,9 +38,9 @@ debug print: loaded object
  │   │  section names
  │   ┴
  │
- │  string table (for symbols) section .strtab#20 in <plinky>
+ │  string table section .strtab#20 in <plinky>
  │   │
- │   │  symbols view: symbol table
+ │   │  symbol names for: symbol table
  │   ┴
  │
  │  symbols table section .symtab#21 in <plinky>
@@ -190,9 +190,9 @@ debug print: object after relocations are applied
  │   │  section names
  │   ┴
  │
- │  string table (for symbols) section .strtab#20 in <plinky>
+ │  string table section .strtab#20 in <plinky>
  │   │
- │   │  symbols view: symbol table
+ │   │  symbol names for: symbol table
  │   ┴
  │
  │  symbols table section .symtab#21 in <plinky>
@@ -346,21 +346,21 @@ debug print: built elf
  │   │  ├──────┼───────────┤
  │   │  │ 0x1  │           │
  │   │  ├──────┼───────────┤
- │   │  │ 0x2  │ goodbye.S │
+ │   │  │ 0x2  │ _start    │
  │   │  ├──────┼───────────┤
- │   │  │ 0xc  │ msg       │
+ │   │  │ 0x9  │ msg       │
  │   │  ├──────┼───────────┤
- │   │  │ 0x10 │ len       │
+ │   │  │ 0xd  │ len       │
  │   │  ├──────┼───────────┤
- │   │  │ 0x14 │ hello.S   │
+ │   │  │ 0x11 │ goodbye   │
  │   │  ├──────┼───────────┤
- │   │  │ 0x1c │ msg       │
+ │   │  │ 0x19 │ msg       │
  │   │  ├──────┼───────────┤
- │   │  │ 0x20 │ len       │
+ │   │  │ 0x1d │ len       │
  │   │  ├──────┼───────────┤
- │   │  │ 0x24 │ _start    │
+ │   │  │ 0x21 │ goodbye.S │
  │   │  ├──────┼───────────┤
- │   │  │ 0x2b │ goodbye   │
+ │   │  │ 0x2b │ hello.S   │
  │   │  ╰──────┴───────────╯
  │   ┴
  │

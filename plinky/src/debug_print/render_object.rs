@@ -3,8 +3,8 @@ use crate::debug_print::utils::{permissions, section_name, symbol_name};
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
-    DataSection, DynamicSection, RelocationsSection, Section, SectionContent,
-    StringsForSymbolsSection, SymbolsSection, SysvHashSection, UninitializedSection,
+    DataSection, DynamicSection, RelocationsSection, Section, SectionContent, StringsSection,
+    SymbolsSection, SysvHashSection, UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
@@ -61,9 +61,7 @@ fn render_section(
         SectionContent::Uninitialized(uninit) => {
             render_uninitialized_section(object, layout, section, uninit)
         }
-        SectionContent::StringsForSymbols(strings) => {
-            render_strings_for_symbols_section(object, section, strings)
-        }
+        SectionContent::Strings(strings) => render_strings_section(object, section, strings),
         SectionContent::Symbols(symbols) => render_symbols_section(object, section, symbols),
         SectionContent::SysvHash(sysv) => render_sysv_hash_section(object, section, sysv),
         SectionContent::Relocations(relocations) => {
@@ -198,14 +196,14 @@ fn render_layout(layout: Option<&Layout<SerialIds>>, id: SectionId) -> Option<Te
     })
 }
 
-fn render_strings_for_symbols_section(
+fn render_strings_section(
     object: &Object,
     section: &Section,
-    strings: &StringsForSymbolsSection,
+    strings: &StringsSection,
 ) -> Box<dyn Widget> {
     Box::new(
-        section_widget(object, section, "string table (for symbols)")
-            .add(Text::new(format!("symbols view: {}", strings.view))),
+        section_widget(object, section, "string table")
+            .add(Text::new(format!("symbol names for: {}", strings.symbol_names_view()))),
     )
 }
 

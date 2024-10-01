@@ -138,7 +138,7 @@ pub(crate) struct Section {
 pub(crate) enum SectionContent {
     Data(DataSection),
     Uninitialized(UninitializedSection),
-    StringsForSymbols(StringsForSymbolsSection),
+    Strings(StringsSection),
     Symbols(SymbolsSection),
     SysvHash(SysvHashSection),
     Relocations(RelocationsSection),
@@ -174,13 +174,17 @@ pub(crate) struct UninitializedSection {
 }
 
 #[derive(Debug)]
-pub(crate) struct StringsForSymbolsSection {
-    pub(crate) view: Box<dyn SymbolsView>,
+pub(crate) struct StringsSection {
+    symbol_names: Box<dyn SymbolsView>,
 }
 
-impl StringsForSymbolsSection {
+impl StringsSection {
     pub(crate) fn new(view: impl SymbolsView + 'static) -> Self {
-        Self { view: Box::new(view) }
+        Self { symbol_names: Box::new(view) }
+    }
+
+    pub(crate) fn symbol_names_view(&self) -> &dyn SymbolsView {
+        &*self.symbol_names
     }
 }
 
@@ -260,7 +264,7 @@ macro_rules! from {
 
 from!(impl From<DataSection> for SectionContent::Data);
 from!(impl From<UninitializedSection> for SectionContent::Uninitialized);
-from!(impl From<StringsForSymbolsSection> for SectionContent::StringsForSymbols);
+from!(impl From<StringsSection> for SectionContent::Strings);
 from!(impl From<SymbolsSection> for SectionContent::Symbols);
 from!(impl From<SysvHashSection> for SectionContent::SysvHash);
 from!(impl From<RelocationsSection> for SectionContent::Relocations);

@@ -24,9 +24,9 @@ debug print: loaded object
  │   │  section names
  │   ┴
  │
- │  string table (for symbols) section .strtab#11 in <plinky>
+ │  string table section .strtab#11 in <plinky>
  │   │
- │   │  symbols view: symbol table
+ │   │  symbol names for: symbol table
  │   ┴
  │
  │  symbols table section .symtab#12 in <plinky>
@@ -51,6 +51,3 @@ debug print: loaded object
  │  │ _start#1   │ none │ foo.o    │ global     │ .text.b#6 + 0x0 │
  │  ╰────────────┴──────┴──────────┴────────────┴─────────────────╯
  ┴
-
-
-

@@ -203,11 +203,6 @@ impl StringsSection {
         })
     }
 
-    pub(crate) fn get_custom_string(&self, id: UpcomingStringId) -> &str {
-        assert_eq!(id.generation, self.generation);
-        &self.custom_strings[id.index]
-    }
-
     pub(crate) fn symbol_names_view(&self) -> &dyn SymbolsView {
         &*self.symbol_names
     }

@@ -1,6 +1,6 @@
 use std::io::{Error, ErrorKind};
-use std::random::{DefaultRandomSource, RandomSource};
 use std::path::PathBuf;
+use std::random::{DefaultRandomSource, RandomSource};
 
 pub fn create_temp_dir() -> Result<PathBuf, Error> {
     for _ in 0..10 {

@@ -3,9 +3,9 @@ use plinky_test_harness::template::{Template, TemplateContext, TemplateContextGe
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};
 use std::borrow::Cow;
+use std::iter::once;
 use std::path::Path;
 use std::process::Command;
-use std::iter::once;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]

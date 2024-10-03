@@ -7,6 +7,4 @@ no stdout present
 
 === stderr ===
 error: failed to include the ELF file bar.o
-caused by: symbol symbol#9 points inside a section group but is not global
-
-
+caused by: symbol symbol#7 points inside a section group but is not global

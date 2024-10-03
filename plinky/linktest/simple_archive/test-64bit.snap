@@ -19,7 +19,7 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .data#1 (perms: rw) in hello.o inside archive archived.a
+ │  section .data#0 (perms: rw) in hello.o inside archive archived.a
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
@@ -67,7 +67,7 @@ debug print: loaded object
  │  ├───────────┼──────┼───────────────────────────────────┼────────────┼───────────────┤
  │  │ _start    │ none │ entry.o                           │ global     │ .text#0 + 0x0 │
  │  ├───────────┼──────┼───────────────────────────────────┼────────────┼───────────────┤
- │  │ hello     │ none │ hello.o inside archive archived.a │ global     │ .data#1 + 0x0 │
+ │  │ hello     │ none │ hello.o inside archive archived.a │ global     │ .data#0 + 0x0 │
  │  ├───────────┼──────┼───────────────────────────────────┼────────────┼───────────────┤
  │  │ hello_len │ none │ hello.o inside archive archived.a │ global     │ 0xd           │
  │  ╰───────────┴──────┴───────────────────────────────────┴────────────┴───────────────╯

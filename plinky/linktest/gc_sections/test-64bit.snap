@@ -140,7 +140,7 @@ debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#2 (no perms) in mix of foo.o and <plinky>
+ │  section .comment#0 (no perms) in mix of foo.o and <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │

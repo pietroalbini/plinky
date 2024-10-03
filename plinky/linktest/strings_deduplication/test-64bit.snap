@@ -28,7 +28,7 @@ debug print: calculated layout
  │  ├────────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <padding>          │ 0x5c9       │ 0xa37       │ -              │ -             │
  │  ├────────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
- │  │ .custom_messages#2 │ 0x1000      │ 0x17        │ 0x400000       │ 0x17          │
+ │  │ .custom_messages#0 │ 0x1000      │ 0x17        │ 0x400000       │ 0x17          │
  │  ├────────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <padding>          │ 0x1017      │ 0xfe9       │ -              │ -             │
  │  ├────────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
@@ -47,7 +47,7 @@ debug print: calculated layout
  │  ╭──────────┬────────┬───────────┬───────┬────────────────────╮
  │  │ Start    │ Align  │ Type      │ Perms │ Content            │
  │  ├──────────┼────────┼───────────┼───────┼────────────────────┤
- │  │ 0x400000 │ 0x1000 │ program   │ R     │ .custom_messages#2 │
+ │  │ 0x400000 │ 0x1000 │ program   │ R     │ .custom_messages#0 │
  │  ├──────────┼────────┼───────────┼───────┼────────────────────┤
  │  │ 0x401000 │ 0x1000 │ program   │ RX    │ .text#0            │
  │  │          │        │           │       │ .text#1            │
@@ -58,28 +58,28 @@ debug print: calculated layout
  │  │ -        │ 0x1    │ GNU stack │ RW    │                    │
  │  ╰──────────┴────────┴───────────┴───────┴────────────────────╯
  │
- │    deduplication facade .custom_messages#0 in foo.o
+ │    deduplication facade .custom_messages#1 in foo.o
  │  ╭──────┬──────────────────────────╮
  │  │ From │ To                       │
  │  ├──────┼──────────────────────────┤
- │  │ 0x0  │ .custom_messages#2 + 0x0 │
+ │  │ 0x0  │ .custom_messages#0 + 0x0 │
  │  ├──────┼──────────────────────────┤
- │  │ 0x6  │ .custom_messages#2 + 0x6 │
+ │  │ 0x6  │ .custom_messages#0 + 0x6 │
  │  ╰──────┴──────────────────────────╯
  │
- │    deduplication facade .custom_messages#1 in bar.o
+ │    deduplication facade .custom_messages#2 in bar.o
  │  ╭──────┬──────────────────────────╮
  │  │ From │ To                       │
  │  ├──────┼──────────────────────────┤
- │  │ 0x0  │ .custom_messages#2 + 0xf │
+ │  │ 0x0  │ .custom_messages#0 + 0xf │
  │  ├──────┼──────────────────────────┤
- │  │ 0x8  │ .custom_messages#2 + 0x6 │
+ │  │ 0x8  │ .custom_messages#0 + 0x6 │
  │  ╰──────┴──────────────────────────╯
  ┴
 
 debug print: object after relocations are applied
  │
- │  section .custom_messages#2 (perms: r) in mix of foo.o and bar.o
+ │  section .custom_messages#0 (perms: r) in mix of foo.o and bar.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │

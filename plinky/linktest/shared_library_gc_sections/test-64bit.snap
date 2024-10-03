@@ -12,6 +12,6 @@ debug print: garbage collector outcome
  │  ╭──────────────┬────────╮
  │  │ Section name │ Source │
  │  ├──────────────┼────────┤
- │  │ .text.baz#7  │ foo.o  │
+ │  │ .text.baz    │ foo.o  │
  │  ╰──────────────┴────────╯
  ┴

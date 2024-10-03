@@ -24,7 +24,27 @@ section #0 (address: 0x0)
  │  empty section
  ┴
 
-section .text#1 (address: 0x8049000)
+section .shstrtab#1 (address: 0x0)
+ │
+ │    Strings table:
+ │  ╭──────┬───────────╮
+ │  │ 0x0  │           │
+ │  ├──────┼───────────┤
+ │  │ 0x1  │ .symtab   │
+ │  ├──────┼───────────┤
+ │  │ 0x9  │ .strtab   │
+ │  ├──────┼───────────┤
+ │  │ 0x11 │ .shstrtab │
+ │  ├──────┼───────────┤
+ │  │ 0x1b │ .text     │
+ │  ├──────┼───────────┤
+ │  │ 0x21 │ .data     │
+ │  ├──────┼───────────┤
+ │  │ 0x27 │ .bss      │
+ │  ╰──────┴───────────╯
+ ┴
+
+section .text#2 (address: 0x8049000)
  │
  │  program data | permissions: R X
  │
@@ -36,7 +56,7 @@ section .text#1 (address: 0x8049000)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .data#2 (address: 0x804a000)
+section .data#3 (address: 0x804a000)
  │
  │  program data | permissions: RW
  │
@@ -46,12 +66,12 @@ section .data#2 (address: 0x804a000)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .bss#3 (address: 0x804a020)
+section .bss#4 (address: 0x804a020)
  │
  │  uninitialized | len: 0x8 | permissions: RW 
  ┴
 
-section .symtab#4 (address: 0x0)
+section .symtab#5 (address: 0x0)
  │
  │    Symbol table:
  │  ╭───────────────┬─────────┬────────┬────────────┬────────────┬───────────┬──────╮
@@ -61,27 +81,27 @@ section .symtab#4 (address: 0x0)
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
  │  │ hello.S#1     │ Local   │ File   │ Default    │ Absolute   │ 0x0       │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ msg_hello#2   │ Local   │ -      │ Default    │ .data#2    │ 0x804a000 │ 0x0  │
+ │  │ msg_hello#2   │ Local   │ -      │ Default    │ .data#3    │ 0x804a000 │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
  │  │ len_hello#3   │ Local   │ -      │ Default    │ Absolute   │ 0xd       │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ msg_goodbye#4 │ Local   │ -      │ Default    │ .data#2    │ 0x804a00d │ 0x0  │
+ │  │ msg_goodbye#4 │ Local   │ -      │ Default    │ .data#3    │ 0x804a00d │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
  │  │ len_goodbye#5 │ Local   │ -      │ Default    │ Absolute   │ 0xf       │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ uninit#6      │ Local   │ Object │ Default    │ .bss#3     │ 0x804a020 │ 0x8  │
+ │  │ uninit#6      │ Local   │ Object │ Default    │ .bss#4     │ 0x804a020 │ 0x8  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ _start#7      │ Global  │ -      │ Default    │ .text#1    │ 0x8049000 │ 0x0  │
+ │  │ _start#7      │ Global  │ -      │ Default    │ .text#2    │ 0x8049000 │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ __bss_start#8 │ Global  │ -      │ Default    │ .bss#3     │ 0x804a01c │ 0x0  │
+ │  │ __bss_start#8 │ Global  │ -      │ Default    │ .bss#4     │ 0x804a01c │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ _edata#9      │ Global  │ -      │ Default    │ .data#2    │ 0x804a01c │ 0x0  │
+ │  │ _edata#9      │ Global  │ -      │ Default    │ .data#3    │ 0x804a01c │ 0x0  │
  │  ├───────────────┼─────────┼────────┼────────────┼────────────┼───────────┼──────┤
- │  │ _end#10       │ Global  │ -      │ Default    │ .bss#3     │ 0x804a028 │ 0x0  │
+ │  │ _end#10       │ Global  │ -      │ Default    │ .bss#4     │ 0x804a028 │ 0x0  │
  │  ╰───────────────┴─────────┴────────┴────────────┴────────────┴───────────┴──────╯
  ┴
 
-section .strtab#5 (address: 0x0)
+section .strtab#6 (address: 0x0)
  │
  │    Strings table:
  │  ╭──────┬─────────────╮
@@ -105,26 +125,6 @@ section .strtab#5 (address: 0x0)
  │  ├──────┼─────────────┤
  │  │ 0x4f │ _end        │
  │  ╰──────┴─────────────╯
- ┴
-
-section .shstrtab#6 (address: 0x0)
- │
- │    Strings table:
- │  ╭──────┬───────────╮
- │  │ 0x0  │           │
- │  ├──────┼───────────┤
- │  │ 0x1  │ .symtab   │
- │  ├──────┼───────────┤
- │  │ 0x9  │ .strtab   │
- │  ├──────┼───────────┤
- │  │ 0x11 │ .shstrtab │
- │  ├──────┼───────────┤
- │  │ 0x1b │ .text     │
- │  ├──────┼───────────┤
- │  │ 0x21 │ .data     │
- │  ├──────┼───────────┤
- │  │ 0x27 │ .bss      │
- │  ╰──────┴───────────╯
  ┴
 
   Segments:

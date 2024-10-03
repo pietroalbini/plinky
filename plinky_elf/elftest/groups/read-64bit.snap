@@ -4,39 +4,35 @@ source: plinky_test_harness/src/utils.rs
 reading ELF exited with exit status: 0
 
 === stdout ===
-section .group#1 (address: 0x0)
+section .group#2 (address: 0x0)
  │
- │  group | signature: first_group#2
+ │  group | signature: first_group#0
  │
  │    Sections:
  │  ╭──────────────────╮
- │  │ .rodata.group1#7 │
+ │  │ .rodata.group1#4 │
  │  ╰──────────────────╯
  ┴
 
-section .group#2 (address: 0x0)
+section .symtab#3 (address: 0x0)
  │
- │  group | COMDAT | signature: second_group#3
- │
- │    Sections:
- │  ╭────────────────────╮
- │  │ .rodata.group2_1#8 │
- │  ├────────────────────┤
- │  │ .rodata.group2_2#9 │
- │  ╰────────────────────╯
+ │    Symbol table:
+ │  ╭────────────────┬─────────┬──────┬────────────┬────────────┬───────┬──────╮
+ │  │ Name           │ Binding │ Type │ Visibility │ Definition │ Value │ Size │
+ │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │  │ first_group#0  │ Local   │ -    │ Default    │ .group#2   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │  │ second_group#1 │ Local   │ -    │ Default    │ .group#5   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │  │ third_group#2  │ Local   │ -    │ Default    │ .group#8   │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │  │ #3             │ Local   │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │  │ groups.S#4     │ Local   │ File │ Default    │ Absolute   │ 0x0   │ 0x0  │
+ │  ╰────────────────┴─────────┴──────┴────────────┴────────────┴───────┴──────╯
  ┴
 
-section .group#3 (address: 0x0)
- │
- │  group | signature: third_group#4
- │
- │    Sections:
- │  ╭───────────────────╮
- │  │ .rodata.group3#10 │
- │  ╰───────────────────╯
- ┴
-
-section .rodata.group1#7 (address: 0x0, part of a group)
+section .rodata.group1#4 (address: 0x0, part of a group)
  │
  │  program data | permissions: R
  │
@@ -45,7 +41,19 @@ section .rodata.group1#7 (address: 0x0, part of a group)
  │  ╰──────────────────────────────────┴─────────────╯
  ┴
 
-section .rodata.group2_1#8 (address: 0x0, part of a group)
+section .group#5 (address: 0x0)
+ │
+ │  group | COMDAT | signature: second_group#1
+ │
+ │    Sections:
+ │  ╭────────────────────╮
+ │  │ .rodata.group2_1#6 │
+ │  ├────────────────────┤
+ │  │ .rodata.group2_2#7 │
+ │  ╰────────────────────╯
+ ┴
+
+section .rodata.group2_1#6 (address: 0x0, part of a group)
  │
  │  program data | permissions: R
  │
@@ -55,7 +63,7 @@ section .rodata.group2_1#8 (address: 0x0, part of a group)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .rodata.group2_2#9 (address: 0x0, part of a group)
+section .rodata.group2_2#7 (address: 0x0, part of a group)
  │
  │  program data | permissions: R
  │
@@ -65,31 +73,23 @@ section .rodata.group2_2#9 (address: 0x0, part of a group)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .rodata.group3#10 (address: 0x0, part of a group)
+section .group#8 (address: 0x0)
+ │
+ │  group | signature: third_group#2
+ │
+ │    Sections:
+ │  ╭──────────────────╮
+ │  │ .rodata.group3#9 │
+ │  ╰──────────────────╯
+ ┴
+
+section .rodata.group3#9 (address: 0x0, part of a group)
  │
  │  program data | permissions: R
  │
  │  ╭──────────────────────────────────┬─────────────╮
  │  │ 54 68 69 72 64 20 67 72 6f 75 70 │ Third group │
  │  ╰──────────────────────────────────┴─────────────╯
- ┴
-
-section .symtab#11 (address: 0x0)
- │
- │    Symbol table:
- │  ╭────────────────┬─────────┬──────┬────────────┬────────────┬───────┬──────╮
- │  │ Name           │ Binding │ Type │ Visibility │ Definition │ Value │ Size │
- │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
- │  │ #0             │ Local   │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
- │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
- │  │ groups.S#1     │ Local   │ File │ Default    │ Absolute   │ 0x0   │ 0x0  │
- │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
- │  │ first_group#2  │ Local   │ -    │ Default    │ .group#1   │ 0x0   │ 0x0  │
- │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
- │  │ second_group#3 │ Local   │ -    │ Default    │ .group#2   │ 0x0   │ 0x0  │
- │  ├────────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
- │  │ third_group#4  │ Local   │ -    │ Default    │ .group#3   │ 0x0   │ 0x0  │
- │  ╰────────────────┴─────────┴──────┴────────────┴────────────┴───────┴──────╯
  ┴
 
 no stderr present

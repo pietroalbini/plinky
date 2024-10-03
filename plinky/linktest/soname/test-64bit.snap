@@ -8,7 +8,7 @@ no stdout present
 === stderr ===
 debug print: object after relocations are applied
  │
- │  string table section .dynstr#11 in <plinky>
+ │  string table section .dynstr in <plinky>
  │   │
  │   │  symbol names for: dynamic symbol table
  │   │

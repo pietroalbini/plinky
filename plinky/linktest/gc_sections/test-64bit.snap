@@ -10,7 +10,7 @@ debug print: loaded object
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#12 (no perms) in foo.o
+ │  section .comment#0 (no perms) in foo.o
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -19,7 +19,7 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .comment#16 (no perms) in <plinky>
+ │  section .comment#1 (no perms) in <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -28,65 +28,51 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .rodata.name#10 (perms: r) in foo.o
+ │  section .rodata.name (perms: r) in foo.o
  │   │
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 50 69 65 74 72 6f 00 │ Pietro. │
  │   │  ╰──────────────────────┴─────────╯
  │   ┴
  │
- │  section .rodata.surname#11 (perms: r) in foo.o
+ │  section .rodata.surname (perms: r) in foo.o
  │   │
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 41 6c 62 69 6e 69 00 │ Albini. │
  │   │  ╰──────────────────────┴─────────╯
  │   ┴
  │
- │  section names section .shstrtab#0 in <plinky>
+ │  section names section .shstrtab in <plinky>
  │   │
  │   │  section names
  │   ┴
  │
- │  string table section .strtab#17 in <plinky>
+ │  string table section .strtab in <plinky>
  │   │
  │   │  symbol names for: symbol table
  │   ┴
  │
- │  symbols table section .symtab#18 in <plinky>
+ │  symbols table section .symtab in <plinky>
  │   │
  │   │  view: symbol table
- │   │  strings: .strtab#17
+ │   │  strings: .strtab
  │   ┴
  │
- │  section .text#2 (perms: rx) in foo.o
+ │  section .text (perms: rx) in foo.o
  │   │
  │   │  ╭────────────────┬───────╮
  │   │  │ e9 00 00 00 00 │ ..... │
  │   │  ╰────────────────┴───────╯
  │   │
  │   │    Relocations:
- │   │  ╭────────────┬───────────────────────┬────────┬────────────────────╮
- │   │  │ Type       │ Symbol                │ Offset │ Addend             │
- │   │  ├────────────┼───────────────────────┼────────┼────────────────────┤
- │   │  │ Relative32 │ <section .text.foo#6> │ 0x1    │ 0xfffffffffffffffc │
- │   │  ╰────────────┴───────────────────────┴────────┴────────────────────╯
+ │   │  ╭────────────┬─────────────────────┬────────┬────────────────────╮
+ │   │  │ Type       │ Symbol              │ Offset │ Addend             │
+ │   │  ├────────────┼─────────────────────┼────────┼────────────────────┤
+ │   │  │ Relative32 │ <section .text.foo> │ 0x1    │ 0xfffffffffffffffc │
+ │   │  ╰────────────┴─────────────────────┴────────┴────────────────────╯
  │   ┴
  │
- │  section .text.bar#8 (perms: rx) in foo.o
- │   │
- │   │  ╭──────────────────────┬─────────╮
- │   │  │ 8b 04 25 00 00 00 00 │ ..%.... │
- │   │  ╰──────────────────────┴─────────╯
- │   │
- │   │    Relocations:
- │   │  ╭──────────────────┬──────────────────────────────┬────────┬────────╮
- │   │  │ Type             │ Symbol                       │ Offset │ Addend │
- │   │  ├──────────────────┼──────────────────────────────┼────────┼────────┤
- │   │  │ AbsoluteSigned32 │ <section .rodata.surname#11> │ 0x3    │ 0x0    │
- │   │  ╰──────────────────┴──────────────────────────────┴────────┴────────╯
- │   ┴
- │
- │  section .text.foo#6 (perms: rx) in foo.o
+ │  section .text.bar (perms: rx) in foo.o
  │   │
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 8b 04 25 00 00 00 00 │ ..%.... │
@@ -96,51 +82,65 @@ debug print: loaded object
  │   │  ╭──────────────────┬───────────────────────────┬────────┬────────╮
  │   │  │ Type             │ Symbol                    │ Offset │ Addend │
  │   │  ├──────────────────┼───────────────────────────┼────────┼────────┤
- │   │  │ AbsoluteSigned32 │ <section .rodata.name#10> │ 0x3    │ 0x0    │
+ │   │  │ AbsoluteSigned32 │ <section .rodata.surname> │ 0x3    │ 0x0    │
  │   │  ╰──────────────────┴───────────────────────────┴────────┴────────╯
  │   ┴
  │
+ │  section .text.foo (perms: rx) in foo.o
+ │   │
+ │   │  ╭──────────────────────┬─────────╮
+ │   │  │ 8b 04 25 00 00 00 00 │ ..%.... │
+ │   │  ╰──────────────────────┴─────────╯
+ │   │
+ │   │    Relocations:
+ │   │  ╭──────────────────┬────────────────────────┬────────┬────────╮
+ │   │  │ Type             │ Symbol                 │ Offset │ Addend │
+ │   │  ├──────────────────┼────────────────────────┼────────┼────────┤
+ │   │  │ AbsoluteSigned32 │ <section .rodata.name> │ 0x3    │ 0x0    │
+ │   │  ╰──────────────────┴────────────────────────┴────────┴────────╯
+ │   ┴
+ │
  │    Symbols:
- │  ╭──────────────────────────────┬─────────┬──────────┬────────────┬──────────────────────────╮
- │  │ Name                         │ Type    │ Source   │ Visibility │ Value                    │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ <symbol#0>                   │ none    │ <plinky> │ local      │ <null>                   │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ <section .text.foo#6>        │ section │ foo.o    │ local      │ .text.foo#6 + 0x0        │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ <section .rodata.name#10>    │ section │ foo.o    │ local      │ .rodata.name#10 + 0x0    │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ <section .rodata.surname#11> │ section │ foo.o    │ local      │ .rodata.surname#11 + 0x0 │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ _start#1                     │ none    │ foo.o    │ global     │ .text#2 + 0x0            │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ excluded#7                   │ none    │ foo.o    │ local      │ .text.bar#8 + 0x0        │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ name#6                       │ none    │ foo.o    │ local      │ .rodata.name#10 + 0x0    │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ sample#4                     │ none    │ foo.o    │ local      │ .text.foo#6 + 0x0        │
- │  ├──────────────────────────────┼─────────┼──────────┼────────────┼──────────────────────────┤
- │  │ surname#8                    │ none    │ foo.o    │ local      │ .rodata.surname#11 + 0x0 │
- │  ╰──────────────────────────────┴─────────┴──────────┴────────────┴──────────────────────────╯
+ │  ╭───────────────────────────┬─────────┬──────────┬────────────┬───────────────────────╮
+ │  │ Name                      │ Type    │ Source   │ Visibility │ Value                 │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ <empty>                   │ none    │ <plinky> │ local      │ <null>                │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ <section .text.foo>       │ section │ foo.o    │ local      │ .text.foo + 0x0       │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ <section .rodata.name>    │ section │ foo.o    │ local      │ .rodata.name + 0x0    │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ <section .rodata.surname> │ section │ foo.o    │ local      │ .rodata.surname + 0x0 │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ _start                    │ none    │ foo.o    │ global     │ .text + 0x0           │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ excluded                  │ none    │ foo.o    │ local      │ .text.bar + 0x0       │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ name                      │ none    │ foo.o    │ local      │ .rodata.name + 0x0    │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ sample                    │ none    │ foo.o    │ local      │ .text.foo + 0x0       │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
+ │  │ surname                   │ none    │ foo.o    │ local      │ .rodata.surname + 0x0 │
+ │  ╰───────────────────────────┴─────────┴──────────┴────────────┴───────────────────────╯
  ┴
 
 debug print: garbage collector outcome
  │
  │    Removed sections:
- │  ╭────────────────────┬────────╮
- │  │ Section name       │ Source │
- │  ├────────────────────┼────────┤
- │  │ .text.bar#8        │ foo.o  │
- │  ├────────────────────┼────────┤
- │  │ .rodata.surname#11 │ foo.o  │
- │  ╰────────────────────┴────────╯
+ │  ╭─────────────────┬────────╮
+ │  │ Section name    │ Source │
+ │  ├─────────────────┼────────┤
+ │  │ .text.bar       │ foo.o  │
+ │  ├─────────────────┼────────┤
+ │  │ .rodata.surname │ foo.o  │
+ │  ╰─────────────────┴────────╯
  ┴
 
 debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#19 (no perms) in mix of foo.o and <plinky>
+ │  section .comment#2 (no perms) in mix of foo.o and <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -152,7 +152,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata.name#10 (perms: r) in foo.o
+ │  section .rodata.name (perms: r) in foo.o
  │   │
  │   │  address: 0x400000
  │   │
@@ -161,23 +161,23 @@ debug print: object after relocations are applied
  │   │  ╰──────────────────────┴─────────╯
  │   ┴
  │
- │  section names section .shstrtab#0 in <plinky>
+ │  section names section .shstrtab in <plinky>
  │   │
  │   │  section names
  │   ┴
  │
- │  string table section .strtab#17 in <plinky>
+ │  string table section .strtab in <plinky>
  │   │
  │   │  symbol names for: symbol table
  │   ┴
  │
- │  symbols table section .symtab#18 in <plinky>
+ │  symbols table section .symtab in <plinky>
  │   │
  │   │  view: symbol table
- │   │  strings: .strtab#17
+ │   │  strings: .strtab
  │   ┴
  │
- │  section .text#2 (perms: rx) in foo.o
+ │  section .text (perms: rx) in foo.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -186,7 +186,7 @@ debug print: object after relocations are applied
  │   │  ╰────────────────┴───────╯
  │   ┴
  │
- │  section .text.foo#6 (perms: rx) in foo.o
+ │  section .text.foo (perms: rx) in foo.o
  │   │
  │   │  address: 0x401005
  │   │
@@ -196,19 +196,19 @@ debug print: object after relocations are applied
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────────┬─────────┬──────────┬────────────┬───────────────────────╮
- │  │ Name                      │ Type    │ Source   │ Visibility │ Value                 │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
- │  │ <symbol#0>                │ none    │ <plinky> │ local      │ <null>                │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
- │  │ <section .text.foo#6>     │ section │ foo.o    │ local      │ .text.foo#6 + 0x0     │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
- │  │ <section .rodata.name#10> │ section │ foo.o    │ local      │ .rodata.name#10 + 0x0 │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
- │  │ _start#1                  │ none    │ foo.o    │ global     │ .text#2 + 0x0         │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
- │  │ name#6                    │ none    │ foo.o    │ local      │ .rodata.name#10 + 0x0 │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
- │  │ sample#4                  │ none    │ foo.o    │ local      │ .text.foo#6 + 0x0     │
- │  ╰───────────────────────────┴─────────┴──────────┴────────────┴───────────────────────╯
+ │  ╭────────────────────────┬─────────┬──────────┬────────────┬────────────────────╮
+ │  │ Name                   │ Type    │ Source   │ Visibility │ Value              │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ <empty>                │ none    │ <plinky> │ local      │ <null>             │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ <section .text.foo>    │ section │ foo.o    │ local      │ .text.foo + 0x0    │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ <section .rodata.name> │ section │ foo.o    │ local      │ .rodata.name + 0x0 │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ _start                 │ none    │ foo.o    │ global     │ .text + 0x0        │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ name                   │ none    │ foo.o    │ local      │ .rodata.name + 0x0 │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ sample                 │ none    │ foo.o    │ local      │ .text.foo + 0x0    │
+ │  ╰────────────────────────┴─────────┴──────────┴────────────┴────────────────────╯
  ┴

@@ -9,19 +9,17 @@ no stdout present
 debug print: loaded object
  │
  │    Symbols:
- │  ╭────────────────┬──────┬──────────┬────────────┬───────────────╮
- │  │ Name           │ Type │ Source   │ Visibility │ Value         │
- │  ├────────────────┼──────┼──────────┼────────────┼───────────────┤
- │  │ <symbol#0>     │ none │ <plinky> │ local      │ <null>        │
- │  ├────────────────┼──────┼──────────┼────────────┼───────────────┤
- │  │ _start#1       │ none │ <plinky> │ global     │ <undefined>   │
- │  ├────────────────┼──────┼──────────┼────────────┼───────────────┤
- │  │ custom_entry#4 │ none │ hello.o  │ global     │ .text#2 + 0x0 │
- │  ╰────────────────┴──────┴──────────┴────────────┴───────────────╯
+ │  ╭──────────────┬──────┬──────────┬────────────┬─────────────╮
+ │  │ Name         │ Type │ Source   │ Visibility │ Value       │
+ │  ├──────────────┼──────┼──────────┼────────────┼─────────────┤
+ │  │ <empty>      │ none │ <plinky> │ local      │ <null>      │
+ │  ├──────────────┼──────┼──────────┼────────────┼─────────────┤
+ │  │ _start       │ none │ <plinky> │ global     │ <undefined> │
+ │  ├──────────────┼──────┼──────────┼────────────┼─────────────┤
+ │  │ custom_entry │ none │ hello.o  │ global     │ .text + 0x0 │
+ │  ╰──────────────┴──────┴──────────┴────────────┴─────────────╯
  ┴
 
 error: failed to resolve the entry point
 caused by: failed to resolve symbol _start
 caused by: symbol is not defined
-
-

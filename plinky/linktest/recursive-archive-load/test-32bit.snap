@@ -8,35 +8,35 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  section .text#2 (perms: rx) in third.o inside archive archive.a
+ │  section .text#0 (perms: rx) in third.o inside archive archive.a
  │   │
  │   │  ╭────────────────┬───────╮
  │   │  │ e9 fc ff ff ff │ ..... │
  │   │  ╰────────────────┴───────╯
  │   │
  │   │    Relocations:
- │   │  ╭────────────┬──────────┬────────┬────────╮
- │   │  │ Type       │ Symbol   │ Offset │ Addend │
- │   │  ├────────────┼──────────┼────────┼────────┤
- │   │  │ Relative32 │ second#5 │ 0x1    │        │
- │   │  ╰────────────┴──────────┴────────┴────────╯
+ │   │  ╭────────────┬────────┬────────┬────────╮
+ │   │  │ Type       │ Symbol │ Offset │ Addend │
+ │   │  ├────────────┼────────┼────────┼────────┤
+ │   │  │ Relative32 │ second │ 0x1    │        │
+ │   │  ╰────────────┴────────┴────────┴────────╯
  │   ┴
  │
- │  section .text#11 (perms: rx) in second.o inside archive archive.a
+ │  section .text#1 (perms: rx) in second.o inside archive archive.a
  │   │
  │   │  ╭────────────────┬───────╮
  │   │  │ e9 fc ff ff ff │ ..... │
  │   │  ╰────────────────┴───────╯
  │   │
  │   │    Relocations:
- │   │  ╭────────────┬─────────┬────────┬────────╮
- │   │  │ Type       │ Symbol  │ Offset │ Addend │
- │   │  ├────────────┼─────────┼────────┼────────┤
- │   │  │ Relative32 │ first#9 │ 0x1    │        │
- │   │  ╰────────────┴─────────┴────────┴────────╯
+ │   │  ╭────────────┬────────┬────────┬────────╮
+ │   │  │ Type       │ Symbol │ Offset │ Addend │
+ │   │  ├────────────┼────────┼────────┼────────┤
+ │   │  │ Relative32 │ first  │ 0x1    │        │
+ │   │  ╰────────────┴────────┴────────┴────────╯
  │   ┴
  │
- │  section .text#19 (perms: rx) in first.o inside archive archive.a
+ │  section .text#2 (perms: rx) in first.o inside archive archive.a
  │   │
  │   │  ╭────┬───╮
  │   │  │ 90 │ . │

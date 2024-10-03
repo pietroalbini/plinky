@@ -1,4 +1,4 @@
-use crate::debug_print::utils::section_name;
+use crate::debug_print::names::Names;
 use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::segments::{SegmentContent, SegmentType};
@@ -14,6 +14,8 @@ pub(super) fn render_layout(
     layout: &Layout<SerialIds>,
     deduplications: &BTreeMap<SectionId, Deduplication>,
 ) -> Diagnostic {
+    let names = Names::new(object);
+
     let mut table = Table::new();
     table.set_title("Layout:");
     table.add_row(["Part", "File offset", "File length", "Memory address", "Memory length"]);
@@ -34,7 +36,7 @@ pub(super) fn render_layout(
                 | Part::Rel(id)
                 | Part::Rela(id)
                 | Part::Group(id)
-                | Part::Dynamic(id) => section_name(object, *id),
+                | Part::Dynamic(id) => names.section(*id).into(),
             },
             meta.file.as_ref().map(|m| m.offset.to_string()).unwrap_or_else(|| "-".into()),
             meta.file.as_ref().map(|m| m.len.to_string()).unwrap_or_else(|| "-".into()),
@@ -78,9 +80,9 @@ pub(super) fn render_layout(
                 .content
                 .iter()
                 .map(|c| match c {
-                    SegmentContent::ProgramHeader => "<program header>".into(),
-                    SegmentContent::ElfHeader => "<elf header>".into(),
-                    SegmentContent::Section(id) => section_name(object, *id),
+                    SegmentContent::ProgramHeader => "<program header>",
+                    SegmentContent::ElfHeader => "<elf header>",
+                    SegmentContent::Section(id) => names.section(*id),
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
@@ -93,21 +95,21 @@ pub(super) fn render_layout(
         .add_iter(
             deduplications
                 .iter()
-                .map(|(id, deduplication)| render_deduplication(object, *id, deduplication)),
+                .map(|(id, deduplication)| render_deduplication(&names, *id, deduplication)),
         )
 }
 
 fn render_deduplication(
-    object: &Object,
+    names: &Names,
     id: SectionId,
     deduplication: &Deduplication,
 ) -> Box<dyn Widget> {
-    let target = section_name(object, deduplication.target);
+    let target = names.section(deduplication.target);
 
     let mut table = Table::new();
     table.set_title(format!(
         "deduplication facade {} in {}",
-        section_name(object, id),
+        names.section(id),
         deduplication.source
     ));
     table.add_row(["From", "To"]);

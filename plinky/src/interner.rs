@@ -2,6 +2,7 @@ use plinky_diagnostics::ObjectSpan;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Display};
+use std::hash::Hash;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
@@ -74,6 +75,12 @@ impl<T: Internable + PartialOrd> PartialOrd for Interned<T> {
 impl<T: Internable + Ord> Ord for Interned<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.resolve().cmp(&other.resolve())
+    }
+}
+
+impl<T: Internable> Hash for Interned<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 

@@ -1,5 +1,6 @@
 pub(crate) mod filters;
 mod render_gc;
+mod names;
 mod render_layout;
 mod render_object;
 mod utils;

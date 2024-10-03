@@ -80,8 +80,10 @@ impl Sections {
         self.inner.values_mut()
     }
 
-    pub(crate) fn name_of_removed_section(&self, id: SectionId) -> Option<Interned<String>> {
-        self.names_of_removed_sections.get(&id).copied()
+    pub(crate) fn names_of_removed_sections(
+        &self,
+    ) -> impl Iterator<Item = (SectionId, Interned<String>)> + '_ {
+        self.names_of_removed_sections.iter().map(|(k, v)| (*k, *v))
     }
 
     pub(crate) fn len(&self) -> usize {

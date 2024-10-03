@@ -1,5 +1,6 @@
 use crate::ids::ElfIds;
-use crate::render_elf::utils::{render_perms, section_name, symbol_name};
+use crate::render_elf::names::Names;
+use crate::render_elf::utils::render_perms;
 use crate::{
     ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGroup, ElfHash, ElfNote, ElfNotesTable,
     ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelocationsTable, ElfSection,
@@ -9,6 +10,7 @@ use crate::{
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
 pub(super) fn render_section<I: ElfIds>(
+    names: &Names<I>,
     object: &ElfObject<I>,
     id: &I::SectionId,
     section: &ElfSection<I>,
@@ -17,13 +19,13 @@ pub(super) fn render_section<I: ElfIds>(
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
         ElfSectionContent::Program(program) => render_section_program(program),
         ElfSectionContent::Uninitialized(uninit) => render_section_uninit(uninit),
-        ElfSectionContent::SymbolTable(symbols) => render_section_symbols(object, id, symbols),
+        ElfSectionContent::SymbolTable(symbols) => render_section_symbols(names, symbols),
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
-        ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(object, relocs),
-        ElfSectionContent::Group(group) => render_section_group(object, group),
-        ElfSectionContent::Hash(hash) => render_section_hash(object, hash),
+        ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(names, relocs),
+        ElfSectionContent::Group(group) => render_section_group(names, group),
+        ElfSectionContent::Hash(hash) => render_section_hash(names, object, hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
-        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(object, dynamic),
+        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(names, dynamic),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
 
@@ -35,7 +37,7 @@ pub(super) fn render_section<I: ElfIds>(
     WidgetGroup::new()
         .name(format!(
             "section {} (address: {:#x}{extra})",
-            section_name(object, id),
+            names.section(id),
             section.memory_address
         ))
         .add_iter(content)
@@ -66,8 +68,7 @@ fn render_section_uninit(uninit: &ElfUninitializedSection) -> Vec<Box<dyn Widget
 }
 
 fn render_section_symbols<I: ElfIds>(
-    object: &ElfObject<I>,
-    section_id: &I::SectionId,
+    names: &Names<I>,
     symbols: &ElfSymbolTable<I>,
 ) -> Vec<Box<dyn Widget>> {
     let mut table = Table::new();
@@ -79,7 +80,7 @@ fn render_section_symbols<I: ElfIds>(
     table.add_row(["Name", "Binding", "Type", "Visibility", "Definition", "Value", "Size"]);
     for (id, symbol) in &symbols.symbols {
         table.add_row([
-            symbol_name(object, section_id, id),
+            names.symbol(id).to_string(),
             match symbol.binding {
                 ElfSymbolBinding::Local => "Local".into(),
                 ElfSymbolBinding::Global => "Global".into(),
@@ -107,7 +108,7 @@ fn render_section_symbols<I: ElfIds>(
                 ElfSymbolDefinition::Undefined => "Undefined".into(),
                 ElfSymbolDefinition::Absolute => "Absolute".into(),
                 ElfSymbolDefinition::Common => "Common".into(),
-                ElfSymbolDefinition::Section(section_id) => section_name(object, section_id),
+                ElfSymbolDefinition::Section(section_id) => names.section(section_id).into(),
             },
             format!("{:#x}", symbol.value),
             format!("{:#x}", symbol.size),
@@ -126,14 +127,15 @@ fn render_section_strings(strings: &ElfStringTable) -> Vec<Box<dyn Widget>> {
 }
 
 fn render_section_relocs<I: ElfIds>(
-    object: &ElfObject<I>,
+    names: &Names<I>,
     relocs: &ElfRelocationsTable<I>,
 ) -> Vec<Box<dyn Widget>> {
     let intro = Text::new(format!(
         "symbol table:       {}\n\
          applies to section: {}",
-        section_name(object, &relocs.symbol_table),
-        section_name(object, &relocs.applies_to_section),
+
+        names.section(&relocs.symbol_table),
+        names.section(&relocs.applies_to_section),
     ));
 
     let mut table = Table::new();
@@ -147,7 +149,7 @@ fn render_section_relocs<I: ElfIds>(
         };
         table.add_row([
             format!("{:?}", relocation.relocation_type),
-            symbol_name(object, &relocs.symbol_table, &relocation.symbol),
+            names.symbol(&relocation.symbol).to_string(),
             format!("{:#x}", relocation.offset),
             addend,
         ]);
@@ -157,7 +159,7 @@ fn render_section_relocs<I: ElfIds>(
 }
 
 fn render_section_group<I: ElfIds>(
-    object: &ElfObject<I>,
+    names: &Names<I>,
     group: &ElfGroup<I>,
 ) -> Vec<Box<dyn Widget>> {
     let mut info = "group | ".to_string();
@@ -165,18 +167,19 @@ fn render_section_group<I: ElfIds>(
         info.push_str("COMDAT | ");
     }
     info.push_str("signature: ");
-    info.push_str(&symbol_name(object, &group.symbol_table, &group.signature));
+    info.push_str(names.symbol(&group.signature));
 
     let mut sections = Table::new();
     sections.set_title("Sections:");
     for section in &group.sections {
-        sections.add_row([section_name(object, section)]);
+        sections.add_row([names.section(section)]);
     }
 
     vec![Box::new(Text::new(info)), Box::new(sections)]
 }
 
 fn render_section_hash<I: ElfIds>(
+    names: &Names<I>,
     object: &ElfObject<I>,
     hash: &ElfHash<I>,
 ) -> Vec<Box<dyn Widget>> {
@@ -186,7 +189,7 @@ fn render_section_hash<I: ElfIds>(
         panic!("hash table's symbol table is not a symbol table");
     };
 
-    let info = Text::new(format!("Hash table for {}", section_name(object, &hash.symbol_table)));
+    let info = Text::new(format!("Hash table for {}", names.section(&hash.symbol_table)));
 
     let mut buckets = Vec::new();
     for mut entry in hash.buckets.iter().copied() {
@@ -207,7 +210,7 @@ fn render_section_hash<I: ElfIds>(
             if pos != 0 {
                 symbols_str.push('\n');
             }
-            symbols_str.push_str(&symbol_name(object, &hash.symbol_table, symbol));
+            symbols_str.push_str(names.symbol(symbol));
         }
         content.add_row([id.to_string(), symbols_str]);
     }
@@ -235,7 +238,7 @@ fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
 }
 
 fn render_section_dynamic<I: ElfIds>(
-    object: &ElfObject<I>,
+    names: &Names<I>,
     dynamic: &ElfDynamic<I>,
 ) -> Vec<Box<dyn Widget>> {
     enum Value<'a> {
@@ -248,7 +251,7 @@ fn render_section_dynamic<I: ElfIds>(
 
     let info = Text::new(format!(
         "dynamic information | string table: {}",
-        section_name(object, &dynamic.string_table)
+        names.section(&dynamic.string_table),
     ));
 
     let mut table = Table::new();

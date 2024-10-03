@@ -197,12 +197,12 @@ debug print: built elf
  │  │ Entrypoint │ 0x400000   │
  │  ╰────────────┴────────────╯
  │
- │  section #0 (address: 0x0)
+ │  section <empty> (address: 0x0)
  │   │
  │   │  empty section
  │   ┴
  │
- │  section .shstrtab#1 (address: 0x0)
+ │  section .shstrtab (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬───────────╮
@@ -222,7 +222,7 @@ debug print: built elf
  │   │  ╰──────┴───────────╯
  │   ┴
  │
- │  section .text#2 (address: 0x400000)
+ │  section .text (address: 0x400000)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -232,7 +232,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .data#3 (address: 0x401000)
+ │  section .data (address: 0x401000)
  │   │
  │   │  program data | permissions: RW
  │   │
@@ -241,7 +241,7 @@ debug print: built elf
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .comment#4 (address: 0x0)
+ │  section .comment (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │
@@ -250,7 +250,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .strtab#5 (address: 0x0)
+ │  section .strtab (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬─────────╮
@@ -268,22 +268,22 @@ debug print: built elf
  │   │  ╰──────┴─────────╯
  │   ┴
  │
- │  section .symtab#6 (address: 0x0)
+ │  section .symtab (address: 0x0)
  │   │
  │   │    Symbol table:
- │   │  ╭───────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
- │   │  │ Name      │ Binding │ Type │ Visibility │ Definition │ Value    │ Size │
- │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ #0        │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
- │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ hello.S#1 │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
- │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#2     │ Local   │ -    │ Default    │ .data#3    │ 0x401000 │ 0x0  │
- │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ len#3     │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
- │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ _start#4  │ Global  │ -    │ Default    │ .text#2    │ 0x400000 │ 0x0  │
- │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
+ │   │  ╭─────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
+ │   │  │ Name    │ Binding │ Type │ Visibility │ Definition │ Value    │ Size │
+ │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ <empty> │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
+ │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ hello.S │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
+ │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ msg     │ Local   │ -    │ Default    │ .data      │ 0x401000 │ 0x0  │
+ │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ len     │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
+ │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ _start  │ Global  │ -    │ Default    │ .text      │ 0x400000 │ 0x0  │
+ │   │  ╰─────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
  │   ┴
  │
  │    Segments:

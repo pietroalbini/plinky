@@ -19,12 +19,12 @@ reading ELF exited with exit status: 0
 │ Entrypoint │ -           │
 ╰────────────┴─────────────╯
 
-section #0 (address: 0x0)
+section <empty> (address: 0x0)
  │
  │  empty section
  ┴
 
-section .text#1 (address: 0x0)
+section .text (address: 0x0)
  │
  │  program data | permissions: R X
  │
@@ -34,22 +34,22 @@ section .text#1 (address: 0x0)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .rela.text#2 (address: 0x0)
+section .rela.text (address: 0x0)
  │
- │  symbol table:       .symtab#10
- │  applies to section: .text#1
+ │  symbol table:       .symtab
+ │  applies to section: .text
  │
  │    Relocations:
- │  ╭──────────────┬────────┬────────┬────────╮
- │  │ Type         │ Symbol │ Offset │ Addend │
- │  ├──────────────┼────────┼────────┼────────┤
- │  │ X86_64_32    │ #3     │ 0x10   │ 0x0    │
- │  ├──────────────┼────────┼────────┼────────┤
- │  │ X86_64_PLT32 │ puts#5 │ 0x15   │ -0x4   │
- │  ╰──────────────┴────────┴────────┴────────╯
+ │  ╭──────────────┬───────────────────┬────────┬────────╮
+ │  │ Type         │ Symbol            │ Offset │ Addend │
+ │  ├──────────────┼───────────────────┼────────┼────────┤
+ │  │ X86_64_32    │ <section .rodata> │ 0x10   │ 0x0    │
+ │  ├──────────────┼───────────────────┼────────┼────────┤
+ │  │ X86_64_PLT32 │ puts              │ 0x15   │ -0x4   │
+ │  ╰──────────────┴───────────────────┴────────┴────────╯
  ┴
 
-section .data#3 (address: 0x0)
+section .data (address: 0x0)
  │
  │  program data | permissions: RW
  │
@@ -58,12 +58,12 @@ section .data#3 (address: 0x0)
  │  ╰──┴──╯
  ┴
 
-section .bss#4 (address: 0x0)
+section .bss (address: 0x0)
  │
  │  uninitialized | len: 0x0 | permissions: RW 
  ┴
 
-section .rodata#5 (address: 0x0)
+section .rodata (address: 0x0)
  │
  │  program data | permissions: R
  │
@@ -72,7 +72,7 @@ section .rodata#5 (address: 0x0)
  │  ╰─────────────────────────────────────┴──────────────╯
  ┴
 
-section .comment#6 (address: 0x0)
+section .comment (address: 0x0)
  │
  │  program data | permissions: -   | deduplicating zero-terminated strings
  │
@@ -83,7 +83,7 @@ section .comment#6 (address: 0x0)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .note.GNU-stack#7 (address: 0x0)
+section .note.GNU-stack (address: 0x0)
  │
  │  program data | permissions: -
  │
@@ -92,7 +92,7 @@ section .note.GNU-stack#7 (address: 0x0)
  │  ╰──┴──╯
  ┴
 
-section .eh_frame#8 (address: 0x0)
+section .eh_frame (address: 0x0)
  │
  │  program data | permissions: R
  │
@@ -104,40 +104,40 @@ section .eh_frame#8 (address: 0x0)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .rela.eh_frame#9 (address: 0x0)
+section .rela.eh_frame (address: 0x0)
  │
- │  symbol table:       .symtab#10
- │  applies to section: .eh_frame#8
+ │  symbol table:       .symtab
+ │  applies to section: .eh_frame
  │
  │    Relocations:
- │  ╭─────────────┬────────┬────────┬────────╮
- │  │ Type        │ Symbol │ Offset │ Addend │
- │  ├─────────────┼────────┼────────┼────────┤
- │  │ X86_64_PC32 │ #2     │ 0x20   │ 0x0    │
- │  ╰─────────────┴────────┴────────┴────────╯
+ │  ╭─────────────┬─────────────────┬────────┬────────╮
+ │  │ Type        │ Symbol          │ Offset │ Addend │
+ │  ├─────────────┼─────────────────┼────────┼────────┤
+ │  │ X86_64_PC32 │ <section .text> │ 0x20   │ 0x0    │
+ │  ╰─────────────┴─────────────────┴────────┴────────╯
  ┴
 
-section .symtab#10 (address: 0x0)
+section .symtab (address: 0x0)
  │
  │    Symbol table:
- │  ╭───────────┬─────────┬──────────┬────────────┬────────────┬───────┬──────╮
- │  │ Name      │ Binding │ Type     │ Visibility │ Definition │ Value │ Size │
- │  ├───────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
- │  │ #0        │ Local   │ -        │ Default    │ Undefined  │ 0x0   │ 0x0  │
- │  ├───────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
- │  │ hello.c#1 │ Local   │ File     │ Default    │ Absolute   │ 0x0   │ 0x0  │
- │  ├───────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
- │  │ #2        │ Local   │ Section  │ Default    │ .text#1    │ 0x0   │ 0x0  │
- │  ├───────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
- │  │ #3        │ Local   │ Section  │ Default    │ .rodata#5  │ 0x0   │ 0x0  │
- │  ├───────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
- │  │ main#4    │ Global  │ Function │ Default    │ .text#1    │ 0x0   │ 0x20 │
- │  ├───────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
- │  │ puts#5    │ Global  │ -        │ Default    │ Undefined  │ 0x0   │ 0x0  │
- │  ╰───────────┴─────────┴──────────┴────────────┴────────────┴───────┴──────╯
+ │  ╭───────────────────┬─────────┬──────────┬────────────┬────────────┬───────┬──────╮
+ │  │ Name              │ Binding │ Type     │ Visibility │ Definition │ Value │ Size │
+ │  ├───────────────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
+ │  │ <empty>           │ Local   │ -        │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │  ├───────────────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
+ │  │ hello.c           │ Local   │ File     │ Default    │ Absolute   │ 0x0   │ 0x0  │
+ │  ├───────────────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
+ │  │ <section .text>   │ Local   │ Section  │ Default    │ .text      │ 0x0   │ 0x0  │
+ │  ├───────────────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
+ │  │ <section .rodata> │ Local   │ Section  │ Default    │ .rodata    │ 0x0   │ 0x0  │
+ │  ├───────────────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
+ │  │ main              │ Global  │ Function │ Default    │ .text      │ 0x0   │ 0x20 │
+ │  ├───────────────────┼─────────┼──────────┼────────────┼────────────┼───────┼──────┤
+ │  │ puts              │ Global  │ -        │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │  ╰───────────────────┴─────────┴──────────┴────────────┴────────────┴───────┴──────╯
  ┴
 
-section .strtab#11 (address: 0x0)
+section .strtab (address: 0x0)
  │
  │    Strings table:
  │  ╭─────┬─────────╮
@@ -151,7 +151,7 @@ section .strtab#11 (address: 0x0)
  │  ╰─────┴─────────╯
  ┴
 
-section .shstrtab#12 (address: 0x0)
+section .shstrtab (address: 0x0)
  │
  │    Strings table:
  │  ╭──────┬─────────────────╮

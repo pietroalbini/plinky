@@ -115,9 +115,9 @@ debug print: calculated layout
 
 debug print: built elf
  │
- │  section .dynamic#13 (address: 0x1a9)
+ │  section .dynamic (address: 0x1a9)
  │   │
- │   │  dynamic information | string table: .dynstr#10
+ │   │  dynamic information | string table: .dynstr
  │   │
  │   │  ╭─────────────────────────┬────────────────╮
  │   │  │ Kind                    │ Value          │

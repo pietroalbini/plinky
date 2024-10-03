@@ -78,7 +78,7 @@ debug print: calculated layout
 
 debug print: built elf
  │
- │  section .comment#5 (address: 0x0)
+ │  section .comment (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │

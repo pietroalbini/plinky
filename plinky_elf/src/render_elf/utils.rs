@@ -1,4 +1,4 @@
-use crate::ids::{ElfIds, ReprIdGetters, StringIdGetters};
+use crate::ids::{ElfIds, StringIdGetters};
 use crate::{ElfObject, ElfPermissions, ElfSectionContent};
 use plinky_diagnostics::widgets::Widget;
 use plinky_diagnostics::WidgetWriter;
@@ -16,24 +16,6 @@ pub(super) fn render_perms(perms: &ElfPermissions) -> String {
     } else {
         output
     }
-}
-
-pub(super) fn section_name<I: ElfIds>(object: &ElfObject<I>, id: &I::SectionId) -> String {
-    let section = object.sections.get(id).expect("invalid section id");
-    format!("{}#{}", resolve_string(object, &section.name), id.repr_id())
-}
-
-pub(super) fn symbol_name<I: ElfIds>(
-    object: &ElfObject<I>,
-    symbol_table_id: &I::SectionId,
-    id: &I::SymbolId,
-) -> String {
-    let symbol_table = object.sections.get(symbol_table_id).expect("invalid symbol table id");
-    let ElfSectionContent::SymbolTable(symbol_table) = &symbol_table.content else {
-        panic!("symbol table id is not a symbol table");
-    };
-    let symbol = symbol_table.symbols.get(id).expect("invalid symbol id");
-    format!("{}#{}", resolve_string(object, &symbol.name), id.repr_id())
 }
 
 pub(super) fn resolve_string<'a, I: ElfIds>(object: &'a ElfObject<I>, id: &I::StringId) -> &'a str {

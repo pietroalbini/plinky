@@ -240,7 +240,7 @@ debug print: built elf
  │  │ Entrypoint │ 0x2000        │
  │  ╰────────────┴───────────────╯
  │
- │  section .dynstr#9 (address: 0x200)
+ │  section .dynstr (address: 0x200)
  │   │
  │   │    Strings table:
  │   │  ╭─────┬───────╮
@@ -254,36 +254,36 @@ debug print: built elf
  │   │  ╰─────┴───────╯
  │   ┴
  │
- │  section .dynsym#10 (address: 0x20d)
+ │  section .dynsym (address: 0x20d)
  │   │
  │   │    Dynamic symbol table:
- │   │  ╭─────────┬─────────┬──────┬────────────┬────────────┬────────┬──────╮
- │   │  │ Name    │ Binding │ Type │ Visibility │ Definition │ Value  │ Size │
- │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ #6      │ Local   │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ write#7 │ Global  │ -    │ Default    │ .text#5    │ 0x2029 │ 0x0  │
- │   │  ├─────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ exit#8  │ Global  │ -    │ Default    │ .text#5    │ 0x203f │ 0x0  │
- │   │  ╰─────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
+ │   │  ╭───────────┬─────────┬──────┬────────────┬────────────┬────────┬──────╮
+ │   │  │ Name      │ Binding │ Type │ Visibility │ Definition │ Value  │ Size │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
+ │   │  │ <empty>#1 │ Local   │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
+ │   │  │ write#1   │ Global  │ -    │ Default    │ .text#1    │ 0x2029 │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
+ │   │  │ exit#1    │ Global  │ -    │ Default    │ .text#1    │ 0x203f │ 0x0  │
+ │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
  │   ┴
  │
- │  section .hash#11 (address: 0x255)
+ │  section .hash (address: 0x255)
  │   │
- │   │  Hash table for .dynsym#10
+ │   │  Hash table for .dynsym
  │   │
  │   │    Content:
  │   │  ╭───────────┬───────────────────╮
  │   │  │ Bucket ID │ Symbols in bucket │
  │   │  ├───────────┼───────────────────┤
- │   │  │ 0         │ exit#8            │
- │   │  │           │ write#7           │
+ │   │  │ 0         │ exit#1            │
+ │   │  │           │ write#1           │
  │   │  ╰───────────┴───────────────────╯
  │   ┴
  │
- │  section .dynamic#12 (address: 0x26d)
+ │  section .dynamic (address: 0x26d)
  │   │
- │   │  dynamic information | string table: .dynstr#9
+ │   │  dynamic information | string table: .dynstr
  │   │
  │   │  ╭─────────────────────────┬───────────────╮
  │   │  │ Kind                    │ Value         │
@@ -310,22 +310,22 @@ debug print: built elf
  │   │  ╰─────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .rela.got#14 (address: 0x30d)
+ │  section .rela.got (address: 0x30d)
  │   │
- │   │  symbol table:       .dynsym#10
- │   │  applies to section: .got#13
+ │   │  symbol table:       .dynsym
+ │   │  applies to section: .got
  │   │
  │   │    Relocations:
  │   │  ╭────────────────┬─────────┬────────┬────────╮
  │   │  │ Type           │ Symbol  │ Offset │ Addend │
  │   │  ├────────────────┼─────────┼────────┼────────┤
- │   │  │ X86_64_GlobDat │ write#7 │ 0x3000 │ 0x0    │
+ │   │  │ X86_64_GlobDat │ write#1 │ 0x3000 │ 0x0    │
  │   │  ├────────────────┼─────────┼────────┼────────┤
- │   │  │ X86_64_GlobDat │ exit#8  │ 0x3008 │ 0x0    │
+ │   │  │ X86_64_GlobDat │ exit#1  │ 0x3008 │ 0x0    │
  │   │  ╰────────────────┴─────────┴────────┴────────╯
  │   ┴
  │
- │  section .interp#16 (address: 0x33d)
+ │  section .interp (address: 0x33d)
  │   │
  │   │  program data | permissions: R
  │   │

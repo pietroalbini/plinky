@@ -57,7 +57,7 @@ debug print: calculated layout
 
 debug print: built elf
  │
- │  section .bss#3 (address: 0x401000)
+ │  section .bss (address: 0x401000)
  │   │
  │   │  uninitialized | len: 0x6 | permissions: RW 
  │   ┴

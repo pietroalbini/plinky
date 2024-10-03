@@ -21,7 +21,7 @@ debug print: object after relocations are applied
 
 debug print: built elf
  │
- │  section .dynstr#6 (address: 0xd4)
+ │  section .dynstr (address: 0xd4)
  │   │
  │   │    Strings table:
  │   │  ╭─────┬───────────╮
@@ -35,9 +35,9 @@ debug print: built elf
  │   │  ╰─────┴───────────╯
  │   ┴
  │
- │  section .dynamic#9 (address: 0x100122)
+ │  section .dynamic (address: 0x100122)
  │   │
- │   │  dynamic information | string table: .dynstr#6
+ │   │  dynamic information | string table: .dynstr
  │   │
  │   │  ╭─────────────────────────┬──────────────────────────────╮
  │   │  │ Kind                    │ Value                        │

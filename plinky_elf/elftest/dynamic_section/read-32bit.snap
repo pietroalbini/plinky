@@ -4,21 +4,21 @@ source: plinky_test_harness/src/utils.rs
 reading ELF exited with exit status: 0
 
 === stdout ===
-section .dynsym#2 (address: 0x12c)
+section .dynsym (address: 0x12c)
  │
  │    Dynamic symbol table:
- │  ╭───────┬─────────┬──────────┬────────────┬────────────┬────────┬──────╮
- │  │ Name  │ Binding │ Type     │ Visibility │ Definition │ Value  │ Size │
- │  ├───────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
- │  │ #0    │ Local   │ -        │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │  ├───────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
- │  │ add#1 │ Global  │ -        │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │  ├───────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
- │  │ sub#2 │ Global  │ Function │ Default    │ .text#6    │ 0x1020 │ 0x2c │
- │  ╰───────┴─────────┴──────────┴────────────┴────────────┴────────┴──────╯
+ │  ╭───────────┬─────────┬──────────┬────────────┬────────────┬────────┬──────╮
+ │  │ Name      │ Binding │ Type     │ Visibility │ Definition │ Value  │ Size │
+ │  ├───────────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
+ │  │ <empty>#0 │ Local   │ -        │ Default    │ Undefined  │ 0x0    │ 0x0  │
+ │  ├───────────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
+ │  │ add#0     │ Global  │ -        │ Default    │ Undefined  │ 0x0    │ 0x0  │
+ │  ├───────────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
+ │  │ sub#0     │ Global  │ Function │ Default    │ .text      │ 0x1020 │ 0x2c │
+ │  ╰───────────┴─────────┴──────────┴────────────┴────────────┴────────┴──────╯
  ┴
 
-section .dynstr#3 (address: 0x15c)
+section .dynstr (address: 0x15c)
  │
  │    Strings table:
  │  ╭─────┬─────╮
@@ -30,20 +30,20 @@ section .dynstr#3 (address: 0x15c)
  │  ╰─────┴─────╯
  ┴
 
-section .rel.plt#4 (address: 0x168)
+section .rel.plt (address: 0x168)
  │
- │  symbol table:       .dynsym#2
- │  applies to section: .got.plt#9
+ │  symbol table:       .dynsym
+ │  applies to section: .got.plt
  │
  │    Relocations:
  │  ╭──────────────┬────────┬────────┬────────╮
  │  │ Type         │ Symbol │ Offset │ Addend │
  │  ├──────────────┼────────┼────────┼────────┤
- │  │ X86_JumpSlot │ add#1  │ 0x400c │ -      │
+ │  │ X86_JumpSlot │ add#0  │ 0x400c │ -      │
  │  ╰──────────────┴────────┴────────┴────────╯
  ┴
 
-section .plt#5 (address: 0x1000)
+section .plt (address: 0x1000)
  │
  │  program data | permissions: R X
  │
@@ -53,9 +53,9 @@ section .plt#5 (address: 0x1000)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .dynamic#8 (address: 0x3f88)
+section .dynamic (address: 0x3f88)
  │
- │  dynamic information | string table: .dynstr#3
+ │  dynamic information | string table: .dynstr
  │
  │  ╭─────────────────────────┬────────────────╮
  │  │ Kind                    │ Value          │
@@ -82,7 +82,7 @@ section .dynamic#8 (address: 0x3f88)
  │  ╰─────────────────────────┴────────────────╯
  ┴
 
-section .got.plt#9 (address: 0x4000)
+section .got.plt (address: 0x4000)
  │
  │  program data | permissions: RW
  │

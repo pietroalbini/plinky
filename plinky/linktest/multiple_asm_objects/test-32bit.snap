@@ -262,12 +262,12 @@ debug print: built elf
  │  │ Entrypoint │ 0x40101f   │
  │  ╰────────────┴────────────╯
  │
- │  section #0 (address: 0x0)
+ │  section <empty> (address: 0x0)
  │   │
  │   │  empty section
  │   ┴
  │
- │  section .shstrtab#1 (address: 0x0)
+ │  section .shstrtab (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬───────────╮
@@ -291,7 +291,7 @@ debug print: built elf
  │   │  ╰──────┴───────────╯
  │   ┴
  │
- │  section .text#2 (address: 0x401000)
+ │  section .text#0 (address: 0x401000)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -301,7 +301,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata#3 (address: 0x400000)
+ │  section .rodata#0 (address: 0x400000)
  │   │
  │   │  program data | permissions: R
  │   │
@@ -310,7 +310,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .comment#4 (address: 0x0)
+ │  section .comment (address: 0x0)
  │   │
  │   │  program data | permissions: -   | deduplicating zero-terminated strings
  │   │
@@ -319,7 +319,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .text#5 (address: 0x40101f)
+ │  section .text#1 (address: 0x40101f)
  │   │
  │   │  program data | permissions: R X
  │   │
@@ -329,7 +329,7 @@ debug print: built elf
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata#6 (address: 0x40000f)
+ │  section .rodata#1 (address: 0x40000f)
  │   │
  │   │  program data | permissions: R
  │   │
@@ -338,7 +338,7 @@ debug print: built elf
  │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .strtab#7 (address: 0x0)
+ │  section .strtab (address: 0x0)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬───────────╮
@@ -364,30 +364,30 @@ debug print: built elf
  │   │  ╰──────┴───────────╯
  │   ┴
  │
- │  section .symtab#8 (address: 0x0)
+ │  section .symtab (address: 0x0)
  │   │
  │   │    Symbol table:
- │   │  ╭─────────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
- │   │  │ Name        │ Binding │ Type │ Visibility │ Definition │ Value    │ Size │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ #0          │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ goodbye.S#1 │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#2       │ Local   │ -    │ Default    │ .rodata#3  │ 0x400000 │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ len#3       │ Local   │ -    │ Default    │ Absolute   │ 0xf      │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ hello.S#4   │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ msg#5       │ Local   │ -    │ Default    │ .rodata#6  │ 0x40000f │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ len#6       │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ _start#7    │ Global  │ -    │ Default    │ .text#5    │ 0x40101f │ 0x0  │
- │   │  ├─────────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
- │   │  │ goodbye#8   │ Global  │ -    │ Default    │ .text#2    │ 0x401000 │ 0x0  │
- │   │  ╰─────────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
+ │   │  ╭───────────┬─────────┬──────┬────────────┬────────────┬──────────┬──────╮
+ │   │  │ Name      │ Binding │ Type │ Visibility │ Definition │ Value    │ Size │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ <empty>   │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ goodbye.S │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ msg#0     │ Local   │ -    │ Default    │ .rodata#0  │ 0x400000 │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ len#0     │ Local   │ -    │ Default    │ Absolute   │ 0xf      │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ hello.S   │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ msg#1     │ Local   │ -    │ Default    │ .rodata#1  │ 0x40000f │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ len#1     │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ _start    │ Global  │ -    │ Default    │ .text#1    │ 0x40101f │ 0x0  │
+ │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼──────────┼──────┤
+ │   │  │ goodbye   │ Global  │ -    │ Default    │ .text#0    │ 0x401000 │ 0x0  │
+ │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
  │   ┴
  │
  │    Segments:

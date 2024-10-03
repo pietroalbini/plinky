@@ -1,7 +1,8 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::symbols::SymbolId;
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use plinky_elf::ids::serial::{SectionId, SymbolId};
+use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{
     ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
 };

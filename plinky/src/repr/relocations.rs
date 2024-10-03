@@ -1,7 +1,9 @@
-use plinky_elf::ids::serial::{SerialIds, SymbolId};
+use crate::repr::symbols::SymbolId;
+use plinky_elf::ids::serial::{SerialIds, SerialSymbolId};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RelocationType {
@@ -58,6 +60,7 @@ pub(crate) struct Relocation {
 impl Relocation {
     pub(crate) fn from_elf(
         elf: ElfRelocation<SerialIds>,
+        conversion: &BTreeMap<SerialSymbolId, SymbolId>,
     ) -> Result<Self, UnsupportedRelocationType> {
         Ok(Relocation {
             type_: match elf.relocation_type {
@@ -78,7 +81,7 @@ impl Relocation {
 
                 elf_type => return Err(UnsupportedRelocationType { elf_type }),
             },
-            symbol: elf.symbol,
+            symbol: *conversion.get(&elf.symbol).unwrap(),
             offset: (elf.offset as i64).into(),
             addend: elf.addend.map(|a| a.into()),
         })

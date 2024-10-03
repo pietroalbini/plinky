@@ -9,7 +9,7 @@ pub(crate) fn run(object: &mut Object) {
         Mode::SharedLibrary => {}
     }
 
-    for (_, symbol) in object.symbols.iter_mut(&AllSymbols) {
+    for symbol in object.symbols.iter_mut(&AllSymbols) {
         if let SymbolVisibility::Global { hidden: false, .. } = symbol.visibility() {
             symbol.mark_needed_by_dynamic();
         }

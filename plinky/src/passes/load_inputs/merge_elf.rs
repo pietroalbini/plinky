@@ -4,9 +4,9 @@ use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, UninitializedSection};
-use crate::repr::symbols::{LoadSymbolsError, Symbol, Symbols};
+use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SerialSymbolId};
 use plinky_elf::{
     ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
 };
@@ -25,6 +25,7 @@ pub(super) fn merge(
     let mut uninitialized_sections = Vec::new();
     let mut pending_groups = Vec::new();
     let mut relocations = BTreeMap::new();
+    let mut symbol_conversion = BTreeMap::new();
 
     for (section_id, section) in elf.sections.into_iter() {
         match section.content {
@@ -80,11 +81,15 @@ pub(super) fn merge(
     // to resolve the strings as part of symbol loading.
     for (name_id, mut table) in symbol_tables {
         section_groups.filter_symbol_table(&mut table)?;
-        merge_symbols(&mut object.symbols, intern(source.clone()), table, &strings).map_err(
-            |inner| MergeElfError::SymbolsLoadingFailed {
-                section_name: strings.get(name_id).unwrap_or("<unknown>").into(),
-                inner,
-            },
+
+        let table_name = strings.get(name_id).unwrap_or("<unknown>").to_string();
+        merge_symbols(
+            &mut object.symbols,
+            &mut symbol_conversion,
+            intern(source.clone()),
+            table,
+            &strings,
+            &table_name,
         )?;
     }
 
@@ -118,7 +123,7 @@ pub(super) fn merge(
                         .remove(&id)
                         .unwrap_or_default()
                         .into_iter()
-                        .map(Relocation::from_elf)
+                        .map(|rel| Relocation::from_elf(rel, &symbol_conversion))
                         .collect::<Result<_, _>>()?,
                     inside_relro: false,
                 },
@@ -131,39 +136,48 @@ pub(super) fn merge(
 
 fn merge_symbols(
     symbols: &mut Symbols,
+    symbol_conversion: &mut BTreeMap<SerialSymbolId, SymbolId>,
     span: Interned<ObjectSpan>,
     table: ElfSymbolTable<SerialIds>,
     strings: &Strings,
-) -> Result<(), LoadSymbolsError> {
+    section: &str,
+) -> Result<(), MergeElfError> {
     let mut stt_file = None;
     let mut is_first = true;
     for (symbol_id, elf_symbol) in table.symbols.into_iter() {
-        let name: Interned<String> = intern(
-            strings
-                .get(elf_symbol.name)
-                .map_err(|_| LoadSymbolsError::MissingSymbolName(symbol_id))?,
-        );
+        let resolved_name: Interned<String> =
+            intern(strings.get(elf_symbol.name).map_err(|_| MergeElfError::MissingSymbolName {
+                symbol: symbol_id,
+                section: section.into(),
+            })?);
 
         if is_first {
             is_first = false;
 
             // Instead of creating the null symbol for every object we load, we instead
             // redirect it to the shared null symbol defined during initialization.
-            if name.resolve().is_empty()
+            if resolved_name.resolve().is_empty()
                 && matches!(elf_symbol.definition, ElfSymbolDefinition::Undefined)
                 && matches!(elf_symbol.type_, ElfSymbolType::NoType)
             {
-                symbols.add_redirect(symbol_id, symbols.null_symbol_id());
+                symbol_conversion.insert(symbol_id, symbols.null_symbol_id());
                 continue;
             }
         }
 
         if let ElfSymbolType::File = elf_symbol.type_ {
-            stt_file = Some(name);
+            stt_file = Some(resolved_name);
             continue;
         }
 
-        symbols.add_symbol(Symbol::new_elf(symbol_id, elf_symbol, name, span, stt_file)?)?;
+        let id = symbols
+            .add(UpcomingSymbol::Elf { elf: elf_symbol, resolved_name, span, stt_file })
+            .map_err(|err| MergeElfError::AddSymbolFailed {
+                symbol: resolved_name,
+                section: section.into(),
+                err,
+            })?;
+        symbol_conversion.insert(symbol_id, id);
     }
     Ok(())
 }
@@ -180,17 +194,20 @@ pub(crate) enum MergeElfError {
     UnsupportedDynamicSymbolTable,
     #[display("loading dynamic metadata sections is not supported")]
     UnsupportedDynamicSection,
-    #[display("failed to load symbols from section {section_name}")]
-    SymbolsLoadingFailed {
-        section_name: String,
-        #[source]
-        inner: LoadSymbolsError,
-    },
     #[display("failed to fetch section name for section {id:?}")]
     MissingSectionName {
         id: SectionId,
         #[source]
         err: MissingStringError,
+    },
+    #[display("missing name for symbol {symbol:?} in section {section}")]
+    MissingSymbolName { symbol: SerialSymbolId, section: String },
+    #[display("failed to add symbol {symbol} in section {section}")]
+    AddSymbolFailed {
+        symbol: Interned<String>,
+        section: String,
+        #[source]
+        err: LoadSymbolsError,
     },
     #[transparent]
     SectionGroups(SectionGroupsError),

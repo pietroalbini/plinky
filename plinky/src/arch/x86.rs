@@ -1,10 +1,10 @@
 use crate::passes::generate_got::GOT;
 use crate::passes::generate_plt::GeneratePltArchOutput;
 use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::symbols::SymbolId;
 use crate::utils::x86_codegen::{
     X86Arch, X86Codegen, X86Instruction::*, X86Reference::*, X86Value,
 };
-use plinky_elf::ids::serial::SymbolId;
 use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 

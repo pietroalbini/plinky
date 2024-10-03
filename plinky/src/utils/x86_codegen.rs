@@ -1,5 +1,5 @@
 use crate::repr::relocations::{Relocation, RelocationType};
-use plinky_elf::ids::serial::SymbolId;
+use crate::repr::symbols::SymbolId;
 use plinky_utils::ints::Offset;
 
 #[derive(Debug, Clone, Copy)]
@@ -179,7 +179,7 @@ fn sib(scale: u8, index: u8, base: u8) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use plinky_elf::ids::serial::SerialIds;
+    use crate::repr::symbols::Symbols;
 
     #[track_caller]
     fn encode_all<const N: usize>(instruction: X86Instruction, expected: [u8; N]) {
@@ -214,8 +214,8 @@ mod tests {
 
     #[test]
     fn test_value_encoding() {
-        let mut ids = SerialIds::new();
-        let symbol = ids.allocate_symbol_id();
+        let symbols = Symbols::new().unwrap();
+        let symbol = symbols.null_symbol_id();
 
         let mut codegen = X86Codegen::new(X86Arch::X86_64);
         codegen.encode(X86Instruction::PushImmediate(X86Value::Known(42)));

@@ -7,8 +7,8 @@ use crate::repr::relocations::{NeedsGot, Relocation, RelocationType};
 use crate::repr::sections::{DataSection, RelocationsSection, SectionContent};
 use crate::repr::segments::SegmentContent;
 use crate::repr::symbols::views::AllSymbols;
-use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
-use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use crate::repr::symbols::{LoadSymbolsError, SymbolId, SymbolValue, UpcomingSymbol};
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
@@ -48,7 +48,7 @@ pub(crate) fn generate_got(
 
     let got_symbol = intern("_GLOBAL_OFFSET_TABLE_");
     got_plt_needed |=
-        object.symbols.iter(&AllSymbols).filter(|(_, s)| s.name() == got_symbol).next().is_some();
+        object.symbols.iter(&AllSymbols).filter(|s| s.name() == got_symbol).next().is_some();
 
     if got_needed {
         object.got = Some(build_got(
@@ -87,14 +87,12 @@ pub(crate) fn generate_got(
             object.dynamic_entries.flags.bind_now = true;
         }
 
-        let got_plt_symbol = ids.allocate_symbol_id();
-        object
+        let got_plt_symbol = object
             .symbols
-            .add_symbol(Symbol::new_global_hidden(
-                got_plt_symbol,
-                intern("_GLOBAL_OFFSET_TABLE_"),
-                SymbolValue::SectionRelative { section: got_plt.id, offset: 0.into() },
-            ))
+            .add(UpcomingSymbol::GlobalHidden {
+                name: intern("_GLOBAL_OFFSET_TABLE_"),
+                value: SymbolValue::SectionRelative { section: got_plt.id, offset: 0.into() },
+            })
             .map_err(GenerateGotError::CreateSymbol)?;
 
         got_plt.symbol = Some(got_plt_symbol);

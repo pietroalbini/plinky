@@ -1,19 +1,19 @@
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable};
-use crate::repr::symbols::SymbolValue;
+use crate::repr::symbols::{SymbolId, SymbolValue};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SymbolId};
+use plinky_elf::ids::serial::SectionId;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     let mut visitor = Visitor {
         symbols_to_sections: object
             .symbols
-            .iter_with_redirects(&AllSymbols)
-            .filter_map(|(id, symbol)| match symbol.value() {
-                SymbolValue::SectionRelative { section, .. } => Some((id, section)),
-                SymbolValue::SectionVirtualAddress { section, .. } => Some((id, section)),
+            .iter(&AllSymbols)
+            .filter_map(|symbol| match symbol.value() {
+                SymbolValue::SectionRelative { section, .. } => Some((symbol.id(), section)),
+                SymbolValue::SectionVirtualAddress { section, .. } => Some((symbol.id(), section)),
                 SymbolValue::Absolute { .. } => None,
                 SymbolValue::Undefined => None,
                 SymbolValue::Null => None,
@@ -25,8 +25,8 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
 
     // Mark all symbols to be exported in .dynsym as a GC root, to avoid literally everything being
     // discarded when building shared libraries.
-    for (id, _symbol) in object.symbols.iter(&DynamicSymbolTable) {
-        visitor.add(id);
+    for symbol in object.symbols.iter(&DynamicSymbolTable) {
+        visitor.add(symbol.id());
     }
 
     // Mark all sections that will not be allocated in memory to be saved, as checking the

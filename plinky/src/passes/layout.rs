@@ -65,14 +65,14 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                 let file_names = self
                     .symbols
                     .iter(strings.symbol_names_view())
-                    .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
-                    .filter_map(|(_, s)| s.stt_file())
+                    .filter(|s| matches!(s.visibility(), SymbolVisibility::Local))
+                    .filter_map(|s| s.stt_file())
                     .collect::<BTreeSet<_>>();
 
                 Box::new(
                     self.symbols
                         .iter(strings.symbol_names_view())
-                        .map(|(_, s)| s.name())
+                        .map(|s| s.name())
                         .chain(file_names.into_iter())
                         .chain(strings.iter_custom_strings().map(|(_id, string)| intern(string))),
                 )
@@ -96,8 +96,8 @@ impl LayoutDetailsProvider<SerialIds> for Object {
         let files_count = self
             .symbols
             .iter(&*symbols.view)
-            .filter(|(_, s)| matches!(s.visibility(), SymbolVisibility::Local))
-            .filter_map(|(_, s)| s.stt_file())
+            .filter(|s| matches!(s.visibility(), SymbolVisibility::Local))
+            .filter_map(|s| s.stt_file())
             .collect::<BTreeSet<_>>()
             .len();
 

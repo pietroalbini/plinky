@@ -8,7 +8,7 @@ pub(crate) fn replace(
     object: &mut Object,
     resolver: &AddressResolver<'_>,
 ) -> Result<(), ReplaceSectionRelativeSymbolsError> {
-    for (_, symbol) in object.symbols.iter_mut(&AllSymbols) {
+    for symbol in object.symbols.iter_mut(&AllSymbols) {
         let SymbolValue::SectionRelative { .. } = symbol.value() else {
             continue;
         };

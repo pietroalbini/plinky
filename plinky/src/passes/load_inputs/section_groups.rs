@@ -1,6 +1,6 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
-use plinky_elf::ids::serial::{SectionId, SerialIds, StringId, SymbolId};
+use plinky_elf::ids::serial::{SectionId, SerialIds, SerialSymbolId, StringId};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
@@ -113,9 +113,9 @@ pub(crate) enum SectionGroupsError {
     #[display("only section groups with a single section are supported")]
     MultipleSections,
     #[display("group signature {f0:?} is not present in any symbol table")]
-    MissingSignatureSymbol(SymbolId),
+    MissingSignatureSymbol(SerialSymbolId),
     #[display("symbol {f0:?} points inside a section group but is not global")]
-    NonGlobalSymbolInGroup(SymbolId),
+    NonGlobalSymbolInGroup(SerialSymbolId),
     #[display("missing group signature")]
     MissingSignatureString(#[source] MissingStringError),
 }

@@ -138,7 +138,7 @@ macro_rules! new_serial_ids {
 new_serial_ids! {
     pub SerialIds {
         type SectionId = pub SectionId;
-        type SymbolId = pub SymbolId;
+        type SymbolId = pub SerialSymbolId;
         type StringId = pub StringId;
     }
 }

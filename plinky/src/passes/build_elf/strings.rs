@@ -2,8 +2,8 @@ use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfStringId};
 use crate::passes::build_elf::{ElfBuilder, StringsTableBuilder};
 use crate::repr::sections::{StringsSection, UpcomingStringId};
-use crate::repr::symbols::SymbolVisibility;
-use plinky_elf::ids::serial::{SectionId, SymbolId};
+use crate::repr::symbols::{SymbolId, SymbolVisibility};
+use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfSectionContent;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -21,7 +21,7 @@ pub(super) fn create_strings(
 
     let mut symbol_names = BTreeMap::new();
     let mut found_file_names = BTreeSet::new();
-    for (_, symbol) in builder.object.symbols.iter(strings_section.symbol_names_view()) {
+    for symbol in builder.object.symbols.iter(strings_section.symbol_names_view()) {
         symbol_names.insert(symbol.id(), table.add(symbol.name().resolve().as_str()));
 
         if let (Some(name), SymbolVisibility::Local) = (symbol.stt_file(), symbol.visibility()) {

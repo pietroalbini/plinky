@@ -209,7 +209,7 @@ impl<'a> ElfBuilder<'a> {
                     .expect("another section already took the symbol table"),
 
                 SectionContent::SysvHash(sysv) => create_sysv_hash(
-                    self.object.symbols.iter(&*sysv.view).map(|(_id, sym)| sym),
+                    self.object.symbols.iter(&*sysv.view),
                     *self.section_ids.get(&sysv.symbols).unwrap(),
                 ),
 

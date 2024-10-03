@@ -7,8 +7,8 @@ use crate::repr::sections::{
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
-use crate::repr::symbols::{LoadSymbolsError, Symbol, SymbolValue};
-use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use crate::repr::symbols::{LoadSymbolsError, SymbolId, SymbolValue, UpcomingSymbol};
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::Offset;
@@ -83,14 +83,12 @@ pub(crate) fn run(
         Mode::SharedLibrary => {}
     }
 
-    let dynamic_symbol = ids.allocate_symbol_id();
-    object
+    let dynamic_symbol = object
         .symbols
-        .add_symbol(Symbol::new_global_hidden(
-            dynamic_symbol,
-            intern("_DYNAMIC"),
-            SymbolValue::SectionRelative { section: dynamic, offset: Offset::from(0) },
-        ))
+        .add(UpcomingSymbol::GlobalHidden {
+            name: intern("_DYNAMIC"),
+            value: SymbolValue::SectionRelative { section: dynamic, offset: Offset::from(0) },
+        })
         .map_err(GenerateDynamicError::DynamicSymbolCreation)?;
 
     Ok(Some(DynamicContext { dynsym, segment: dynamic_segment, dynamic_symbol }))

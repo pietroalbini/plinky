@@ -1,8 +1,8 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::passes::build_elf::strings::BuiltStringsTable;
 use crate::repr::sections::SymbolsSection;
-use crate::repr::symbols::{Symbol, SymbolType, SymbolValue, SymbolVisibility, Symbols};
-use plinky_elf::ids::serial::{SectionId, SymbolId};
+use crate::repr::symbols::{Symbol, SymbolId, SymbolType, SymbolValue, SymbolVisibility, Symbols};
+use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,
@@ -20,8 +20,8 @@ pub(super) fn create_symbols(
     let mut null_symbol = None;
     let mut global_symbols = Vec::new();
     let mut local_by_source = BTreeMap::new();
-    for (symbol_id, symbol) in all_symbols.iter(&*symbols_section.view) {
-        if symbol_id == all_symbols.null_symbol_id() {
+    for symbol in all_symbols.iter(&*symbols_section.view) {
+        if symbol.id() == all_symbols.null_symbol_id() {
             assert!(null_symbol.is_none());
             null_symbol = Some(symbol);
         } else if let SymbolVisibility::Global { .. } = symbol.visibility() {

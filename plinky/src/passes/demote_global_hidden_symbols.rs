@@ -6,7 +6,7 @@ use crate::repr::symbols::SymbolVisibility;
 ///
 /// https://maskray.me/blog/2021-06-20-symbol-processing
 pub(crate) fn run(object: &mut Object) {
-    for (_id, symbol) in object.symbols.iter_mut(&AllSymbols) {
+    for symbol in object.symbols.iter_mut(&AllSymbols) {
         if let SymbolVisibility::Global { hidden: true, .. } = symbol.visibility() {
             symbol.set_visibility(SymbolVisibility::Local);
         }

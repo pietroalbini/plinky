@@ -1,8 +1,8 @@
 use crate::interner::{intern, Interned};
-use crate::repr::symbols::LoadSymbolsError;
+use crate::repr::symbols::{LoadSymbolsError, SymbolId};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds, SymbolId};
+use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
@@ -32,128 +32,6 @@ pub(crate) struct Symbol {
 }
 
 impl Symbol {
-    pub(crate) fn new_null(id: SymbolId) -> Self {
-        Self {
-            id,
-            name: intern(""),
-            type_: SymbolType::NoType,
-            stt_file: None,
-            span: intern(ObjectSpan::new_synthetic()),
-            visibility: SymbolVisibility::Local,
-            value: SymbolValue::Null,
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        }
-    }
-
-    pub(crate) fn new_global_unknown(id: SymbolId, name: &str) -> Self {
-        Self {
-            id,
-            name: intern(name),
-            type_: SymbolType::NoType,
-            stt_file: None,
-            span: intern(ObjectSpan::new_synthetic()),
-            visibility: SymbolVisibility::Global { weak: false, hidden: false },
-            value: SymbolValue::Undefined,
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        }
-    }
-
-    pub(crate) fn new_for_section(id: SymbolId, section: SectionId) -> Self {
-        Self {
-            id,
-            name: intern(""),
-            type_: SymbolType::Section,
-            stt_file: None,
-            span: intern(ObjectSpan::new_synthetic()),
-            visibility: SymbolVisibility::Local,
-            value: SymbolValue::SectionRelative { section, offset: Offset::from(0i64) },
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        }
-    }
-
-    pub(crate) fn new_elf(
-        id: SymbolId,
-        elf: ElfSymbol<SerialIds>,
-        name: Interned<String>,
-        span: Interned<ObjectSpan>,
-        stt_file: Option<Interned<String>>,
-    ) -> Result<Self, LoadSymbolsError> {
-        let type_ = match elf.type_ {
-            ElfSymbolType::NoType => SymbolType::NoType,
-            ElfSymbolType::Object => SymbolType::Object,
-            ElfSymbolType::Function => SymbolType::Function,
-            ElfSymbolType::Section => SymbolType::Section,
-            ElfSymbolType::File => {
-                return Err(LoadSymbolsError::UnsupportedFileSymbolType);
-            }
-            ElfSymbolType::Unknown(_) => {
-                return Err(LoadSymbolsError::UnsupportedUnknownSymbolType);
-            }
-        };
-
-        let hidden = match elf.visibility {
-            ElfSymbolVisibility::Default => false,
-            ElfSymbolVisibility::Hidden => true,
-            other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
-        };
-
-        Ok(Symbol {
-            id,
-            name,
-            type_,
-            stt_file,
-            span,
-            visibility: match (elf.binding, hidden) {
-                (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
-                (ElfSymbolBinding::Local, true) => {
-                    return Err(LoadSymbolsError::LocalHiddenSymbol);
-                }
-                (ElfSymbolBinding::Global, hidden) => {
-                    SymbolVisibility::Global { weak: false, hidden }
-                }
-                (ElfSymbolBinding::Weak, hidden) => SymbolVisibility::Global { weak: true, hidden },
-                (ElfSymbolBinding::Unknown(_), _) => {
-                    return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
-                }
-            },
-            value: match elf.definition {
-                ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
-                ElfSymbolDefinition::Absolute => SymbolValue::Absolute { value: elf.value.into() },
-                ElfSymbolDefinition::Common => todo!(),
-                ElfSymbolDefinition::Section(section) => {
-                    SymbolValue::SectionRelative { section, offset: (elf.value as i64).into() }
-                }
-            },
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        })
-    }
-
-    pub(crate) fn new_global_hidden(
-        id: SymbolId,
-        name: Interned<String>,
-        value: SymbolValue,
-    ) -> Self {
-        Self {
-            id,
-            name,
-            type_: SymbolType::NoType,
-            stt_file: None,
-            span: intern(ObjectSpan::new_synthetic()),
-            visibility: SymbolVisibility::Global { weak: false, hidden: true },
-            value,
-            needed_by_dynamic: false,
-            exclude_from_tables: false,
-        }
-    }
-
-    pub(super) fn set_id(&mut self, id: SymbolId) {
-        self.id = id;
-    }
-
     pub(crate) fn set_value(&mut self, value: SymbolValue) {
         self.value = value;
     }
@@ -230,6 +108,141 @@ pub(crate) enum SymbolValue {
     SectionVirtualAddress { section: SectionId, memory_address: Address },
     Undefined,
     Null,
+}
+
+#[derive(Debug)]
+pub(crate) enum UpcomingSymbol {
+    Null,
+    GlobalUnknown {
+        name: Interned<String>,
+    },
+    GlobalHidden {
+        name: Interned<String>,
+        value: SymbolValue,
+    },
+    Section {
+        section: SectionId,
+    },
+    Elf {
+        elf: ElfSymbol<SerialIds>,
+        resolved_name: Interned<String>,
+        span: Interned<ObjectSpan>,
+        stt_file: Option<Interned<String>>,
+    },
+}
+
+impl UpcomingSymbol {
+    pub(super) fn create(self, id: SymbolId) -> Result<Symbol, LoadSymbolsError> {
+        let visibility = self.visibility()?;
+        let name = self.name();
+        let value = self.value();
+
+        let mut type_ = SymbolType::NoType;
+        let mut stt_file = None;
+        let mut span = None;
+
+        match &self {
+            UpcomingSymbol::Null => {}
+            UpcomingSymbol::GlobalUnknown { .. } => {}
+            UpcomingSymbol::GlobalHidden { .. } => {}
+            UpcomingSymbol::Section { .. } => {
+                type_ = SymbolType::Section;
+            }
+            UpcomingSymbol::Elf { elf, span: new_span, stt_file: new_stt_file, .. } => {
+                type_ = match elf.type_ {
+                    ElfSymbolType::NoType => SymbolType::NoType,
+                    ElfSymbolType::Object => SymbolType::Object,
+                    ElfSymbolType::Function => SymbolType::Function,
+                    ElfSymbolType::Section => SymbolType::Section,
+                    ElfSymbolType::File => {
+                        return Err(LoadSymbolsError::UnsupportedFileSymbolType);
+                    }
+                    ElfSymbolType::Unknown(_) => {
+                        return Err(LoadSymbolsError::UnsupportedUnknownSymbolType);
+                    }
+                };
+                stt_file = new_stt_file.clone();
+                span = Some(*new_span);
+            }
+        };
+
+        Ok(Symbol {
+            id,
+            name,
+            type_,
+            stt_file,
+            span: span.unwrap_or_else(|| intern(ObjectSpan::new_synthetic())),
+            visibility,
+            value,
+            needed_by_dynamic: false,
+            exclude_from_tables: false,
+        })
+    }
+
+    pub(super) fn name(&self) -> Interned<String> {
+        match self {
+            UpcomingSymbol::Null => intern(""),
+            UpcomingSymbol::GlobalUnknown { name } => *name,
+            UpcomingSymbol::GlobalHidden { name, .. } => *name,
+            UpcomingSymbol::Section { .. } => intern(""),
+            UpcomingSymbol::Elf { resolved_name, .. } => *resolved_name,
+        }
+    }
+
+    pub(super) fn visibility(&self) -> Result<SymbolVisibility, LoadSymbolsError> {
+        Ok(match self {
+            UpcomingSymbol::Null => SymbolVisibility::Local,
+            UpcomingSymbol::Section { .. } => SymbolVisibility::Local,
+            UpcomingSymbol::GlobalUnknown { .. } => {
+                SymbolVisibility::Global { weak: false, hidden: false }
+            }
+            UpcomingSymbol::GlobalHidden { .. } => {
+                SymbolVisibility::Global { weak: false, hidden: true }
+            }
+            UpcomingSymbol::Elf { elf, .. } => {
+                let hidden = match elf.visibility {
+                    ElfSymbolVisibility::Default => false,
+                    ElfSymbolVisibility::Hidden => true,
+                    other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
+                };
+
+                match (&elf.binding, hidden) {
+                    (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
+                    (ElfSymbolBinding::Local, true) => {
+                        return Err(LoadSymbolsError::LocalHiddenSymbol);
+                    }
+                    (ElfSymbolBinding::Global, hidden) => {
+                        SymbolVisibility::Global { weak: false, hidden }
+                    }
+                    (ElfSymbolBinding::Weak, hidden) => {
+                        SymbolVisibility::Global { weak: true, hidden }
+                    }
+                    (ElfSymbolBinding::Unknown(_), _) => {
+                        return Err(LoadSymbolsError::UnsupportedUnknownSymbolBinding);
+                    }
+                }
+            }
+        })
+    }
+
+    pub(super) fn value(&self) -> SymbolValue {
+        match self {
+            UpcomingSymbol::Null => SymbolValue::Null,
+            UpcomingSymbol::GlobalUnknown { .. } => SymbolValue::Undefined,
+            UpcomingSymbol::GlobalHidden { value, .. } => *value,
+            UpcomingSymbol::Section { section } => {
+                SymbolValue::SectionRelative { section: *section, offset: 0i64.into() }
+            }
+            UpcomingSymbol::Elf { elf, .. } => match elf.definition {
+                ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
+                ElfSymbolDefinition::Absolute => SymbolValue::Absolute { value: elf.value.into() },
+                ElfSymbolDefinition::Common => todo!(),
+                ElfSymbolDefinition::Section(section) => {
+                    SymbolValue::SectionRelative { section, offset: (elf.value as i64).into() }
+                }
+            },
+        }
+    }
 }
 
 pub(crate) enum ResolvedSymbol {

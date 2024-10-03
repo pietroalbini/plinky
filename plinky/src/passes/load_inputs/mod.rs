@@ -1,4 +1,5 @@
 use crate::cli::CliOptions;
+use crate::interner::intern;
 use crate::passes::load_inputs::merge_elf::MergeElfError;
 use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
 use crate::passes::load_inputs::section_groups::SectionGroups;
@@ -7,7 +8,7 @@ use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;
 use crate::repr::sections::{SectionContent, Sections};
 use crate::repr::segments::Segments;
-use crate::repr::symbols::{LoadSymbolsError, Symbols};
+use crate::repr::symbols::{LoadSymbolsError, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
@@ -25,11 +26,11 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
 
     let mut reader = ObjectsReader::new(&options.inputs);
 
-    let mut empty_symbols = Symbols::new(ids);
+    let mut empty_symbols = Symbols::new().map_err(LoadInputsError::SymbolTableCreationFailed)?;
     let entry_point = options
         .entry
         .as_ref()
-        .map(|entry| empty_symbols.add_unknown_global(ids, entry))
+        .map(|entry| empty_symbols.add(UpcomingSymbol::GlobalUnknown { name: intern(entry) }))
         .transpose()
         .map_err(LoadInputsError::EntryInsertionFailed)?;
 
@@ -133,6 +134,8 @@ pub(crate) enum LoadInputsError {
     ReadFailed(ReadObjectsError),
     #[display("failed to include the ELF file {f0}")]
     MergeFailed(ObjectSpan, #[source] MergeElfError),
+    #[display("failed to create the symbol table")]
+    SymbolTableCreationFailed(#[source] LoadSymbolsError),
     #[display("environment of {first_span} is {first_env:?}, while environment of {current_span} is {current_env:?}")]
     MismatchedEnv {
         first_span: ObjectSpan,

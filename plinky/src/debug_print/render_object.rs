@@ -161,12 +161,12 @@ fn render_symbols<'a>(
     if symbols.len() <= 1 {
         return None;
     }
-    symbols.sort_by_key(|(_, symbol)| symbol.name());
+    symbols.sort_by_key(|symbol| symbol.name());
 
     let mut table = Table::new();
     table.set_title(title);
     table.add_row(["Name", "Type", "Source", "Visibility", "Value"]);
-    for (id, symbol) in symbols {
+    for symbol in symbols {
         let type_ = match symbol.type_() {
             SymbolType::NoType => "none",
             SymbolType::Function => "function",
@@ -191,7 +191,7 @@ fn render_symbols<'a>(
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),
         };
-        table.add_row([names.symbol(id), type_, &symbol.span().to_string(), visibility, &value]);
+        table.add_row([names.symbol(symbol.id()), type_, &symbol.span().to_string(), visibility, &value]);
     }
     Some(table)
 }

@@ -1,12 +1,12 @@
 use crate::passes::generate_got::GOT;
 use crate::passes::generate_plt::GeneratePltArchOutput;
 use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::symbols::SymbolId;
 use crate::utils::x86_codegen::{
     X86Arch, X86Codegen, X86Instruction::*, X86Reference::*, X86Value,
 };
-use plinky_elf::ids::serial::SymbolId;
-use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
+use plinky_utils::ints::ExtractNumber;
 
 pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltArchOutput {
     let got_plt_symbol = got_plt.symbol.expect(".got.plt without the symbol");

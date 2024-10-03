@@ -4,8 +4,7 @@ use crate::passes::generate_plt::Plt;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
-use crate::repr::symbols::Symbols;
-use plinky_elf::ids::serial::SymbolId;
+use crate::repr::symbols::{SymbolId, Symbols};
 use plinky_elf::ElfEnvironment;
 
 #[derive(Debug)]

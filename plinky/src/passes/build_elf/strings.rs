@@ -1,10 +1,10 @@
 use crate::interner::Interned;
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfStringId};
 use crate::passes::build_elf::{ElfBuilder, StringsTableBuilder};
 use crate::repr::sections::{SectionId, StringsSection, UpcomingStringId};
 use crate::repr::symbols::{SymbolId, SymbolVisibility};
 use plinky_elf::ElfSectionContent;
 use std::collections::{BTreeMap, BTreeSet};
+use plinky_elf::ids::{ElfStringId, Ids};
 
 pub(super) fn create_strings(
     builder: &ElfBuilder<'_>,
@@ -43,8 +43,8 @@ pub(super) fn create_strings(
 }
 
 pub(super) struct BuiltStringsTable {
-    pub(super) elf: Option<ElfSectionContent<BuiltElfIds>>,
-    pub(super) symbol_file_names: BTreeMap<Interned<String>, BuiltElfStringId>,
-    pub(super) symbol_names: BTreeMap<SymbolId, BuiltElfStringId>,
-    pub(super) custom_strings: BTreeMap<UpcomingStringId, BuiltElfStringId>,
+    pub(super) elf: Option<ElfSectionContent<Ids>>,
+    pub(super) symbol_file_names: BTreeMap<Interned<String>, ElfStringId>,
+    pub(super) symbol_names: BTreeMap<SymbolId, ElfStringId>,
+    pub(super) custom_strings: BTreeMap<UpcomingStringId, ElfStringId>,
 }

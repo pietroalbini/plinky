@@ -10,15 +10,15 @@ use crate::debug_print::render_gc::render_gc;
 use crate::debug_print::render_layout::render_layout;
 use crate::debug_print::render_object::render_object;
 use crate::linker::LinkerCallbacks;
-use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::deduplicate::Deduplication;
 use crate::passes::gc_sections::RemovedSection;
 use crate::repr::object::Object;
+use crate::repr::sections::SectionId;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
+use plinky_elf::ids::Ids;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::ElfObject;
 use std::collections::{BTreeMap, BTreeSet};
-use crate::repr::sections::SectionId;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: BTreeSet<DebugPrint>,
@@ -63,7 +63,7 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_elf_built(&self, elf: &ElfObject<BuiltElfIds>) {
+    fn on_elf_built(&self, elf: &ElfObject<Ids>) {
         for print in &self.print {
             if let DebugPrint::FinalElf(filters) = print {
                 render(

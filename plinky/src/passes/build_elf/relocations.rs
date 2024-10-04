@@ -1,24 +1,24 @@
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::sections::SectionId;
 use crate::repr::symbols::SymbolId;
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
+use plinky_elf::ids::{ElfSectionId, ElfSymbolId, Ids};
 use plinky_elf::{
     ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
 };
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
-use crate::repr::sections::SectionId;
 
 pub(super) fn create_rela<'a>(
     section: SectionId,
     relocations: impl Iterator<Item = &'a Relocation>,
     class: ElfClass,
-    applies_to_section: BuiltElfSectionId,
-    symbol_table: BuiltElfSectionId,
-    symbol_conversion: &BTreeMap<SymbolId, BuiltElfSymbolId>,
+    applies_to_section: ElfSectionId,
+    symbol_table: ElfSectionId,
+    symbol_conversion: &BTreeMap<SymbolId, ElfSymbolId>,
     resolver: &AddressResolver<'_>,
-) -> Result<ElfSectionContent<BuiltElfIds>, RelaCreationError> {
+) -> Result<ElfSectionContent<Ids>, RelaCreationError> {
     let mut elf_relocations = Vec::new();
     for relocation in relocations {
         elf_relocations.push(ElfRelocation {

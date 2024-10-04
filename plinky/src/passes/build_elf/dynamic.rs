@@ -1,8 +1,7 @@
-use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilder;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::sections::{DynamicSection, SectionId};
-use plinky_elf::ids::StringIdGetters;
+use plinky_elf::ids::Ids;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
 use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPLTRelocationsMode, ElfSectionContent};
@@ -12,7 +11,7 @@ use plinky_utils::raw_types::RawType;
 pub(super) fn build_dynamic_section(
     builder: &mut ElfBuilder,
     dynamic: &DynamicSection,
-) -> ElfSectionContent<BuiltElfIds> {
+) -> ElfSectionContent<Ids> {
     let bits = builder.object.env.class;
 
     let mut string_table_id = None;
@@ -36,7 +35,7 @@ pub(super) fn build_dynamic_section(
                         .custom_strings
                         .get(string_id)
                         .expect("shared object name's string missing")
-                        .offset()
+                        .offset
                         .into(),
                 })
             }

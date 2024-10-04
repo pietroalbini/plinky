@@ -1,7 +1,7 @@
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::passes::build_elf::strings::BuiltStringsTable;
 use crate::repr::sections::{SectionId, SymbolsSection};
 use crate::repr::symbols::{Symbol, SymbolId, SymbolType, SymbolValue, SymbolVisibility, Symbols};
+use plinky_elf::ids::{ElfSectionId, ElfSymbolId, Ids};
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,
@@ -10,8 +10,8 @@ use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
 pub(super) fn create_symbols(
-    ids: &mut BuiltElfIds,
-    section_ids: &BTreeMap<SectionId, BuiltElfSectionId>,
+    section_id: ElfSectionId,
+    section_ids: &BTreeMap<SectionId, ElfSectionId>,
     string_tables: &BTreeMap<SectionId, BuiltStringsTable>,
     all_symbols: &Symbols,
     symbols_section: &SymbolsSection,
@@ -31,7 +31,8 @@ pub(super) fn create_symbols(
     }
 
     let mut converter = Converter {
-        ids,
+        index: 0,
+        section: section_id,
         section_ids,
         strings: &string_tables
             .get(&symbols_section.strings)
@@ -44,8 +45,9 @@ pub(super) fn create_symbols(
 
     for (file, symbols_in_file) in local_by_source {
         if let Some(file) = file {
+            let id = converter.allocate_id();
             converter.symbols.insert(
-                converter.ids.allocate_symbol_id(),
+                id,
                 ElfSymbol {
                     name: *converter
                         .strings
@@ -79,21 +81,22 @@ pub(super) fn create_symbols(
 }
 
 pub(super) struct BuiltSymbolsTable {
-    pub(super) elf: Option<ElfSectionContent<BuiltElfIds>>,
-    pub(super) conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
+    pub(super) elf: Option<ElfSectionContent<Ids>>,
+    pub(super) conversion: BTreeMap<SymbolId, ElfSymbolId>,
 }
 
 struct Converter<'a> {
-    ids: &'a mut BuiltElfIds,
-    section_ids: &'a BTreeMap<SectionId, BuiltElfSectionId>,
+    section: ElfSectionId,
+    index: u32,
+    section_ids: &'a BTreeMap<SectionId, ElfSectionId>,
     strings: &'a BuiltStringsTable,
-    symbols: BTreeMap<BuiltElfSymbolId, ElfSymbol<BuiltElfIds>>,
-    conversion: BTreeMap<SymbolId, BuiltElfSymbolId>,
+    symbols: BTreeMap<ElfSymbolId, ElfSymbol<Ids>>,
+    conversion: BTreeMap<SymbolId, ElfSymbolId>,
 }
 
 impl Converter<'_> {
     fn convert(&mut self, symbol: &Symbol) {
-        let id = self.ids.allocate_symbol_id();
+        let id = self.allocate_id();
         self.symbols.insert(
             id,
             ElfSymbol {
@@ -144,5 +147,11 @@ impl Converter<'_> {
             },
         );
         self.conversion.insert(symbol.id(), id);
+    }
+
+    fn allocate_id(&mut self) -> ElfSymbolId {
+        let id = ElfSymbolId { section: self.section, index: self.index };
+        self.index += 1;
+        id
     }
 }

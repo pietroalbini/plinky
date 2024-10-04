@@ -1,5 +1,4 @@
 mod dynamic;
-pub(crate) mod ids;
 mod relocations;
 mod strings;
 mod symbols;
@@ -8,7 +7,6 @@ pub(crate) mod sysv_hash;
 use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::dynamic::build_dynamic_section;
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfStringId};
 use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
 use crate::passes::build_elf::strings::{create_strings, BuiltStringsTable};
 use crate::passes::build_elf::symbols::{create_symbols, BuiltSymbolsTable};
@@ -18,6 +16,7 @@ use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::segments::SegmentType;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
+use plinky_elf::ids::{ElfSectionId, ElfStringId, Ids};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
@@ -28,22 +27,20 @@ use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-type SectionConversion = BTreeMap<SectionId, BuiltElfSectionId>;
+type SectionConversion = BTreeMap<SectionId, ElfSectionId>;
 
 pub(crate) fn run(
     object: Object,
     layout: &Layout<SectionId>,
     resolver: &AddressResolver<'_>,
-) -> Result<(ElfObject<BuiltElfIds>, SectionConversion), ElfBuilderError> {
-    let mut ids = BuiltElfIds::new();
+) -> Result<(ElfObject<Ids>, SectionConversion), ElfBuilderError> {
     let builder = ElfBuilder {
-        section_zero_id: ids.allocate_section_id(),
+        section_zero_id: ElfSectionId { index: 0 },
         section_ids: BTreeMap::new(),
 
         layout,
         resolver,
         object,
-        ids,
         pending_string_tables: BTreeMap::new(),
         pending_symbol_tables: BTreeMap::new(),
     };
@@ -54,20 +51,20 @@ struct ElfBuilder<'a> {
     object: Object,
     layout: &'a Layout<SectionId>,
     resolver: &'a AddressResolver<'a>,
-    ids: BuiltElfIds,
 
-    section_zero_id: BuiltElfSectionId,
-    section_ids: BTreeMap<SectionId, BuiltElfSectionId>,
+    section_zero_id: ElfSectionId,
+    section_ids: BTreeMap<SectionId, ElfSectionId>,
 
     pending_string_tables: BTreeMap<SectionId, BuiltStringsTable>,
     pending_symbol_tables: BTreeMap<SectionId, BuiltSymbolsTable>,
 }
 
 impl<'a> ElfBuilder<'a> {
-    fn build(mut self) -> Result<(ElfObject<BuiltElfIds>, SectionConversion), ElfBuilderError> {
+    fn build(mut self) -> Result<(ElfObject<Ids>, SectionConversion), ElfBuilderError> {
         // Precalculate section IDs, to avoid circular dependencies.
-        for section in self.object.sections.iter() {
-            self.section_ids.insert(section.id, self.ids.allocate_section_id());
+        for (index, section) in self.object.sections.iter().enumerate() {
+            // The +1 is due to the zero section.
+            self.section_ids.insert(section.id, ElfSectionId { index: index as u32 + 1 });
         }
 
         // Precalculate string tables, as other sections will need to reference string IDs.
@@ -82,7 +79,7 @@ impl<'a> ElfBuilder<'a> {
         for section in self.object.sections.iter() {
             let SectionContent::Symbols(symbols) = &section.content else { continue };
             let pending = create_symbols(
-                &mut self.ids,
+                *self.section_ids.get(&section.id).unwrap(),
                 &self.section_ids,
                 &self.pending_string_tables,
                 &self.object.symbols,
@@ -139,7 +136,7 @@ impl<'a> ElfBuilder<'a> {
 
     fn prepare_sections(
         &mut self,
-    ) -> Result<BTreeMap<BuiltElfSectionId, ElfSection<BuiltElfIds>>, ElfBuilderError> {
+    ) -> Result<BTreeMap<ElfSectionId, ElfSection<Ids>>, ElfBuilderError> {
         // Prepare section names ahead of time.
         let mut section_names = StringsTableBuilder::new(
             *self
@@ -284,27 +281,27 @@ impl<'a> ElfBuilder<'a> {
 }
 
 struct StringsTableBuilder {
-    id: BuiltElfSectionId,
+    id: ElfSectionId,
     strings: BTreeMap<u32, String>,
     next_offset: u32,
-    zero_id: BuiltElfStringId,
+    zero_id: ElfStringId,
 }
 
 impl StringsTableBuilder {
-    fn new(id: BuiltElfSectionId) -> Self {
+    fn new(id: ElfSectionId) -> Self {
         let mut strings = BTreeMap::new();
         strings.insert(0, String::new()); // First string has to always be empty.
-        Self { id, strings, next_offset: 1, zero_id: BuiltElfStringId::new(id, 0) }
+        Self { id, strings, next_offset: 1, zero_id: ElfStringId { section: id, offset: 0 } }
     }
 
-    fn add(&mut self, string: &str) -> BuiltElfStringId {
+    fn add(&mut self, string: &str) -> ElfStringId {
         let offset = self.next_offset;
         self.next_offset += string.len() as u32 + 1;
         self.strings.insert(offset, string.into());
-        BuiltElfStringId::new(self.id, offset)
+        ElfStringId { section: self.id, offset }
     }
 
-    fn into_elf(self) -> ElfSectionContent<BuiltElfIds> {
+    fn into_elf(self) -> ElfSectionContent<Ids> {
         ElfSectionContent::StringTable(ElfStringTable::new(self.strings))
     }
 }

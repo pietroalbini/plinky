@@ -1,4 +1,3 @@
-use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use plinky_elf::errors::WriteError;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
@@ -8,10 +7,11 @@ use std::fs::{File, Permissions};
 use std::io::BufWriter;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
+use plinky_elf::ids::{ElfSectionId, Ids};
 
 pub(crate) fn run(
-    object: ElfObject<BuiltElfIds>,
-    layout: Layout<BuiltElfSectionId>,
+    object: ElfObject<Ids>,
+    layout: Layout<ElfSectionId>,
     dest: &Path,
 ) -> Result<(), WriteToDiskError> {
     let mut file = BufWriter::new(
@@ -31,7 +31,7 @@ pub(crate) fn run(
 #[derive(Debug, Error)]
 pub(crate) enum WriteToDiskError {
     FileCreation(PathBuf, #[source] std::io::Error),
-    WriteFailed(PathBuf, #[source] WriteError<BuiltElfIds>),
+    WriteFailed(PathBuf, #[source] WriteError<Ids>),
     PermissionSetFailed(PathBuf, #[source] std::io::Error),
 }
 

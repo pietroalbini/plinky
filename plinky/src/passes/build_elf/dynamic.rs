@@ -1,8 +1,7 @@
 use crate::passes::build_elf::ids::BuiltElfIds;
 use crate::passes::build_elf::ElfBuilder;
 use crate::repr::dynamic_entries::DynamicEntry;
-use crate::repr::sections::DynamicSection;
-use plinky_elf::ids::serial::SectionId;
+use crate::repr::sections::{DynamicSection, SectionId};
 use plinky_elf::ids::StringIdGetters;
 use plinky_elf::raw::{RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;

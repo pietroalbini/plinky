@@ -3,13 +3,11 @@ use crate::passes::generate_dynamic::DynamicContext;
 use crate::repr::object::Object;
 use crate::repr::sections::DataSection;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error};
 
 pub(crate) fn run(
     options: &CliOptions,
-    ids: &mut SerialIds,
     object: &mut Object,
     dynamic: &Option<DynamicContext>,
 ) -> Result<(), InjectInterpreterError> {
@@ -30,7 +28,7 @@ pub(crate) fn run(
     let section = object
         .sections
         .builder(".interp", DataSection::new(ElfPermissions::R, &interpreter))
-        .create(ids);
+        .create();
 
     object.segments.add(Segment {
         align: 1,

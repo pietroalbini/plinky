@@ -1,18 +1,18 @@
 use crate::passes::deduplicate::Deduplication;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use crate::repr::sections::SectionId;
 use plinky_elf::writer::layout::Layout;
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 
 pub(crate) struct AddressResolver<'a> {
-    layout: &'a Layout<SerialIds>,
+    layout: &'a Layout<SectionId>,
     deduplications: &'a BTreeMap<SectionId, Deduplication>,
 }
 
 impl<'a> AddressResolver<'a> {
     pub(crate) fn new(
-        layout: &'a Layout<SerialIds>,
+        layout: &'a Layout<SectionId>,
         deduplications: &'a BTreeMap<SectionId, Deduplication>,
     ) -> Self {
         Self { layout, deduplications }

@@ -1,13 +1,13 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
-use plinky_elf::ids::serial::{SectionId, SerialIds, SerialSymbolId, StringId};
+use plinky_elf::ids::serial::{SerialIds, SerialSectionId, SerialStringId, SerialSymbolId};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
 
 pub(super) struct SectionGroups {
     loaded_groups: BTreeSet<Interned<String>>,
-    group_section_ids: BTreeSet<SectionId>,
+    group_section_ids: BTreeSet<SerialSectionId>,
 }
 
 impl SectionGroups {
@@ -18,23 +18,19 @@ impl SectionGroups {
     pub(super) fn for_object(&mut self) -> SectionGroupsForObject<'_> {
         SectionGroupsForObject { parent: self, remove_sections: BTreeSet::new() }
     }
-
-    pub(super) fn is_section_a_group_definition(&self, id: SectionId) -> bool {
-        self.group_section_ids.contains(&id)
-    }
 }
 
 pub(super) struct SectionGroupsForObject<'a> {
     parent: &'a mut SectionGroups,
-    remove_sections: BTreeSet<SectionId>,
+    remove_sections: BTreeSet<SerialSectionId>,
 }
 
 impl SectionGroupsForObject<'_> {
     pub(super) fn add_group(
         &mut self,
         strings: &Strings,
-        symbol_tables: &[(StringId, ElfSymbolTable<SerialIds>)],
-        id: SectionId,
+        symbol_tables: &[(SerialStringId, ElfSymbolTable<SerialIds>)],
+        id: SerialSectionId,
         group: ElfGroup<SerialIds>,
     ) -> Result<(), SectionGroupsError> {
         // Right now we are only implementing section groups for the x86 snippet of code
@@ -101,8 +97,12 @@ impl SectionGroupsForObject<'_> {
         Ok(())
     }
 
-    pub(super) fn should_skip_section(&self, id: SectionId) -> bool {
+    pub(super) fn should_skip_section(&self, id: SerialSectionId) -> bool {
         self.remove_sections.contains(&id)
+    }
+
+    pub(super) fn is_section_a_group_definition(&self, id: SerialSectionId) -> bool {
+        self.parent.group_section_ids.contains(&id)
     }
 }
 

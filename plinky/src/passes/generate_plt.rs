@@ -1,13 +1,12 @@
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
-use crate::repr::sections::{DataSection, SectionContent};
+use crate::repr::sections::{DataSection, SectionContent, SectionId};
 use crate::repr::symbols::{SymbolId, UpcomingSymbol};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfMachine, ElfPermissions};
 use plinky_utils::ints::Offset;
 use std::collections::BTreeMap;
 
-pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
+pub(crate) fn run(object: &mut Object) {
     let Some(got_plt) = &object.got_plt else { return };
     let got_plt_section = got_plt.id;
 
@@ -17,7 +16,7 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
         return;
     }
 
-    let plt_section = ids.allocate_section_id();
+    let plt_section = object.sections.reserve_placeholder();
     let plt_symbol = object.symbols.add(UpcomingSymbol::Section { section: plt_section }).unwrap();
 
     let output = match object.env.machine {
@@ -28,13 +27,13 @@ pub(crate) fn run(ids: &mut SerialIds, object: &mut Object) {
     let mut data = DataSection::new(ElfPermissions::RX, &output.content);
     data.relocations.extend(output.relocations.into_iter());
 
-    object.sections.builder(".plt", data).create_with_id(plt_section);
+    object.sections.builder(".plt", data).create_in_placeholder(plt_section);
 
     object.plt = Some(Plt { section: plt_section, offsets: output.offsets });
 
     // In some cases, generating the PLT requires adding additional relocations to the .got.plt.
     // Check the arch modules for an explaination on why they need this.
-    match &mut object.sections.get_mut(got_plt_section).unwrap().content {
+    match &mut object.sections.get_mut(got_plt_section).content {
         SectionContent::Data(data_section) => {
             data_section.relocations.extend(output.extra_got_plt_relocations.into_iter());
         }

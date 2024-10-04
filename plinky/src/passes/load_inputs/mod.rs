@@ -22,8 +22,6 @@ mod section_groups;
 mod strings;
 
 pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
-    let shstrtab_id = ids.allocate_section_id();
-
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new().map_err(LoadInputsError::SymbolTableCreationFailed)?;
@@ -63,11 +61,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
                     gnu_stack_section_ignored: false,
                 };
 
-                inject_version::run(ids, &mut object);
-                object
-                    .sections
-                    .builder(".shstrtab", SectionContent::SectionNames)
-                    .create_with_id(shstrtab_id);
+                object.sections.builder(".shstrtab", SectionContent::SectionNames).create();
 
                 merge_elf::merge(
                     &mut object,
@@ -103,8 +97,9 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
 
     match state {
         State::Empty { .. } => Err(LoadInputsError::NoInputFiles),
-        State::WithContent { mut object, section_groups, .. } => {
-            cleanup::run(&mut object, &section_groups);
+        State::WithContent { mut object, .. } => {
+            inject_version::run(&mut object);
+            cleanup::run(&mut object);
             Ok(object)
         }
     }

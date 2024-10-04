@@ -1,5 +1,4 @@
-use crate::repr::sections::UpcomingStringId;
-use plinky_elf::ids::serial::SectionId;
+use crate::repr::sections::{SectionId, UpcomingStringId};
 use plinky_elf::{ElfDynamicFlags, ElfDynamicFlags1};
 use plinky_utils::bitfields::Bitfield;
 

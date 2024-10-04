@@ -1,13 +1,15 @@
 use crate::interner::{intern, Interned};
+use crate::repr::sections::SectionId;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
+use plinky_elf::ids::serial::{SerialIds, SerialSectionId};
 use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
 use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Getters)]
 pub(crate) struct Symbol {
@@ -111,7 +113,7 @@ pub(crate) enum SymbolValue {
 }
 
 #[derive(Debug)]
-pub(crate) enum UpcomingSymbol {
+pub(crate) enum UpcomingSymbol<'a> {
     Null,
     GlobalUnknown {
         name: Interned<String>,
@@ -124,6 +126,7 @@ pub(crate) enum UpcomingSymbol {
         section: SectionId,
     },
     Elf {
+        section_conversion: &'a BTreeMap<SerialSectionId, SectionId>,
         elf: ElfSymbol<SerialIds>,
         resolved_name: Interned<String>,
         span: Interned<ObjectSpan>,
@@ -131,7 +134,7 @@ pub(crate) enum UpcomingSymbol {
     },
 }
 
-impl UpcomingSymbol {
+impl UpcomingSymbol<'_> {
     pub(super) fn create(self, id: SymbolId) -> Result<Symbol, LoadSymbolsError> {
         let visibility = self.visibility()?;
         let name = self.name();
@@ -233,13 +236,14 @@ impl UpcomingSymbol {
             UpcomingSymbol::Section { section } => {
                 SymbolValue::SectionRelative { section: *section, offset: 0i64.into() }
             }
-            UpcomingSymbol::Elf { elf, .. } => match elf.definition {
+            UpcomingSymbol::Elf { section_conversion, elf, .. } => match elf.definition {
                 ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
                 ElfSymbolDefinition::Absolute => SymbolValue::Absolute { value: elf.value.into() },
                 ElfSymbolDefinition::Common => todo!(),
-                ElfSymbolDefinition::Section(section) => {
-                    SymbolValue::SectionRelative { section, offset: (elf.value as i64).into() }
-                }
+                ElfSymbolDefinition::Section(section) => SymbolValue::SectionRelative {
+                    section: *section_conversion.get(&section).expect("missing section conversion"),
+                    offset: (elf.value as i64).into(),
+                },
             },
         }
     }

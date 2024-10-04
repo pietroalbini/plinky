@@ -3,10 +3,10 @@ use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGrou
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
-use crate::repr::sections::{DataSection, UninitializedSection};
+use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds, SerialSymbolId};
+use plinky_elf::ids::serial::{SerialIds, SerialSectionId, SerialSymbolId};
 use plinky_elf::{
     ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
 };
@@ -25,15 +25,18 @@ pub(super) fn merge(
     let mut uninitialized_sections = Vec::new();
     let mut pending_groups = Vec::new();
     let mut relocations = BTreeMap::new();
+    let mut section_placeholders = BTreeMap::new();
     let mut symbol_conversion = BTreeMap::new();
 
     for (section_id, section) in elf.sections.into_iter() {
         match section.content {
             ElfSectionContent::Null => {}
             ElfSectionContent::Program(program) => {
+                section_placeholders.insert(section_id, object.sections.reserve_placeholder());
                 program_sections.push((section_id, section.name, program))
             }
             ElfSectionContent::Uninitialized(uninit) => {
+                section_placeholders.insert(section_id, object.sections.reserve_placeholder());
                 uninitialized_sections.push((section_id, section.name, uninit));
             }
             ElfSectionContent::SymbolTable(table) => {
@@ -85,6 +88,8 @@ pub(super) fn merge(
         let table_name = strings.get(name_id).unwrap_or("<unknown>").to_string();
         merge_symbols(
             &mut object.symbols,
+            &section_groups,
+            &section_placeholders,
             &mut symbol_conversion,
             intern(source.clone()),
             table,
@@ -97,6 +102,8 @@ pub(super) fn merge(
         if section_groups.should_skip_section(id) {
             continue;
         }
+
+        let placeholder = *section_placeholders.get(&id).expect("missing placeholder");
         object
             .sections
             .builder(
@@ -104,13 +111,14 @@ pub(super) fn merge(
                 UninitializedSection { perms: uninit.perms, len: uninit.len.into() },
             )
             .source(source.clone())
-            .create_with_id(id);
+            .create_in_placeholder(placeholder);
     }
 
     for (id, name, program) in program_sections {
         if section_groups.should_skip_section(id) {
             continue;
         }
+        let placeholder = *section_placeholders.get(&id).expect("missing placeholder");
         object
             .sections
             .builder(
@@ -129,13 +137,15 @@ pub(super) fn merge(
                 },
             )
             .source(source.clone())
-            .create_with_id(id);
+            .create_in_placeholder(placeholder);
     }
     Ok(())
 }
 
 fn merge_symbols(
     symbols: &mut Symbols,
+    section_groups: &SectionGroupsForObject<'_>,
+    section_conversion: &BTreeMap<SerialSectionId, SectionId>,
     symbol_conversion: &mut BTreeMap<SerialSymbolId, SymbolId>,
     span: Interned<ObjectSpan>,
     table: ElfSymbolTable<SerialIds>,
@@ -170,8 +180,24 @@ fn merge_symbols(
             continue;
         }
 
+        // GNU AS generates symbols for each section group, pointing to the SHT_GROUP. This is not
+        // really useful, as nothing can refer to that section and the SHT_GROUP wouldn't be loaded
+        // in memory anyway. To avoid the linker crashing when it sees a symbol to the section that
+        // wasn't loaded, we ignore all symbols pointing to a SHT_GROUP.
+        if let ElfSymbolDefinition::Section(section) = &elf_symbol.definition {
+            if section_groups.is_section_a_group_definition(*section) {
+                continue;
+            }
+        }
+
         let id = symbols
-            .add(UpcomingSymbol::Elf { elf: elf_symbol, resolved_name, span, stt_file })
+            .add(UpcomingSymbol::Elf {
+                section_conversion,
+                elf: elf_symbol,
+                resolved_name,
+                span,
+                stt_file,
+            })
             .map_err(|err| MergeElfError::AddSymbolFailed {
                 symbol: resolved_name,
                 section: section.into(),
@@ -196,7 +222,7 @@ pub(crate) enum MergeElfError {
     UnsupportedDynamicSection,
     #[display("failed to fetch section name for section {id:?}")]
     MissingSectionName {
-        id: SectionId,
+        id: SerialSectionId,
         #[source]
         err: MissingStringError,
     },

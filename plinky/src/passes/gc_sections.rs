@@ -1,9 +1,8 @@
 use crate::repr::object::Object;
-use crate::repr::sections::SectionContent;
+use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable};
 use crate::repr::symbols::{SymbolId, SymbolValue};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::SectionId;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
@@ -50,9 +49,8 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     let all_sections = object.sections.iter().map(|s| s.id).collect::<Vec<_>>();
     for section_id in all_sections {
         if !visitor.to_save.contains(&section_id) {
-            if let Some(removed) = object.sections.remove(section_id, Some(&mut object.symbols)) {
-                removed_sections.push(RemovedSection { id: section_id, source: removed.source });
-            }
+            let removed = object.sections.remove(section_id, Some(&mut object.symbols));
+            removed_sections.push(RemovedSection { id: section_id, source: removed.source });
         }
     }
     removed_sections
@@ -81,21 +79,20 @@ impl Visitor {
     fn process(&mut self, object: &Object) {
         while let Some(section_id) = self.queue.pop_first() {
             self.to_save.insert(section_id);
-            if let Some(section) = object.sections.get(section_id) {
-                match &section.content {
-                    SectionContent::Data(data) => {
-                        for relocation in &data.relocations {
-                            self.add(relocation.symbol);
-                        }
+
+            match &object.sections.get(section_id).content {
+                SectionContent::Data(data) => {
+                    for relocation in &data.relocations {
+                        self.add(relocation.symbol);
                     }
-                    SectionContent::Uninitialized(_) => {}
-                    SectionContent::Strings(_) => {}
-                    SectionContent::Symbols(_) => {}
-                    SectionContent::SysvHash(_) => {}
-                    SectionContent::Relocations(_) => {}
-                    SectionContent::Dynamic(_) => {}
-                    SectionContent::SectionNames => {}
                 }
+                SectionContent::Uninitialized(_) => {}
+                SectionContent::Strings(_) => {}
+                SectionContent::Symbols(_) => {}
+                SectionContent::SysvHash(_) => {}
+                SectionContent::Relocations(_) => {}
+                SectionContent::Dynamic(_) => {}
+                SectionContent::SectionNames => {}
             }
         }
     }

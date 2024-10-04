@@ -4,14 +4,13 @@ use crate::debug_print::utils::permissions;
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{
-    DataSection, DynamicSection, RelocationsSection, Section, SectionContent, StringsSection,
-    SymbolsSection, SysvHashSection, UninitializedSection,
+    DataSection, DynamicSection, RelocationsSection, Section, SectionContent, SectionId,
+    StringsSection, SymbolsSection, SysvHashSection, UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::ElfDeduplication;
 
@@ -19,7 +18,7 @@ pub(super) fn render_object(
     message: &str,
     filter: &ObjectsFilter,
     object: &Object,
-    layout: Option<&Layout<SerialIds>>,
+    layout: Option<&Layout<SectionId>>,
 ) -> Diagnostic {
     let names = Names::new(object);
 
@@ -61,7 +60,7 @@ fn render_env(object: &Object) -> Text {
 
 fn render_section(
     names: &Names,
-    layout: Option<&Layout<SerialIds>>,
+    layout: Option<&Layout<SectionId>>,
     section: &Section,
 ) -> Box<dyn Widget> {
     match &section.content {
@@ -82,7 +81,7 @@ fn render_section(
 
 fn render_data_section(
     names: &Names,
-    layout: Option<&Layout<SerialIds>>,
+    layout: Option<&Layout<SectionId>>,
     section: &Section,
     data: &DataSection,
 ) -> Box<dyn Widget> {
@@ -134,7 +133,7 @@ fn render_relocations(names: &Names, title: &str, relocations: &[Relocation]) ->
 
 fn render_uninitialized_section(
     names: &Names,
-    layout: Option<&Layout<SerialIds>>,
+    layout: Option<&Layout<SectionId>>,
     section: &Section,
     uninit: &UninitializedSection,
 ) -> Box<dyn Widget> {
@@ -191,12 +190,18 @@ fn render_symbols<'a>(
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),
         };
-        table.add_row([names.symbol(symbol.id()), type_, &symbol.span().to_string(), visibility, &value]);
+        table.add_row([
+            names.symbol(symbol.id()),
+            type_,
+            &symbol.span().to_string(),
+            visibility,
+            &value,
+        ]);
     }
     Some(table)
 }
 
-fn render_layout(layout: Option<&Layout<SerialIds>>, id: SectionId) -> Option<Text> {
+fn render_layout(layout: Option<&Layout<SectionId>>, id: SectionId) -> Option<Text> {
     layout.map(|layout| match &layout.metadata_of_section(&id).memory {
         Some(mem) => Text::new(format!("address: {}", mem.address)),
         None => Text::new("not allocated in the resulting memory"),

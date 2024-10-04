@@ -2,10 +2,9 @@ use crate::cli::Mode;
 use crate::interner::{intern, Interned};
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
-use crate::repr::sections::{Section, SectionContent};
+use crate::repr::sections::{Section, SectionContent, SectionId};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::SymbolVisibility;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{
     Layout, LayoutDetailsHash, LayoutDetailsProvider, LayoutError, LayoutPartsGroup, Part,
 };
@@ -13,7 +12,7 @@ use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeSet;
 
-pub(crate) fn run(object: &Object) -> Result<Layout<SerialIds>, LayoutError> {
+pub(crate) fn run(object: &Object) -> Result<Layout<SectionId>, LayoutError> {
     let base_address: Address = match object.mode {
         Mode::PositionDependent => 0x400000u64.into(),
         Mode::PositionIndependent => 0u64.into(),
@@ -25,15 +24,14 @@ pub(crate) fn run(object: &Object) -> Result<Layout<SerialIds>, LayoutError> {
 
 macro_rules! cast_section {
     ($self:expr, $id:expr, $variant:ident) => {
-        match $self.sections.get(*$id).map(|s| &s.content) {
-            Some(SectionContent::$variant(inner)) => inner,
-            Some(_) => panic!("section {:?} is of the wrong type", $id),
-            None => panic!("section {:?} is missing", $id),
+        match &$self.sections.get(*$id).content {
+            SectionContent::$variant(inner) => inner,
+            _ => panic!("section {:?} is of the wrong type", $id),
         }
     };
 }
 
-impl LayoutDetailsProvider<SerialIds> for Object {
+impl LayoutDetailsProvider<SectionId> for Object {
     fn class(&self) -> ElfClass {
         self.env.class
     }
@@ -55,32 +53,30 @@ impl LayoutDetailsProvider<SerialIds> for Object {
     }
 
     fn string_table_len(&self, id: &SectionId) -> usize {
-        let strings: Box<dyn Iterator<Item = Interned<String>>> = match self
-            .sections
-            .get(*id)
-            .map(|s| &s.content)
-        {
-            Some(SectionContent::Strings(strings)) => {
-                // Local symbols also have a STT_FILE entry for every file.
-                let file_names = self
-                    .symbols
-                    .iter(strings.symbol_names_view())
-                    .filter(|s| matches!(s.visibility(), SymbolVisibility::Local))
-                    .filter_map(|s| s.stt_file())
-                    .collect::<BTreeSet<_>>();
-
-                Box::new(
-                    self.symbols
+        let strings: Box<dyn Iterator<Item = Interned<String>>> =
+            match &self.sections.get(*id).content {
+                SectionContent::Strings(strings) => {
+                    // Local symbols also have a STT_FILE entry for every file.
+                    let file_names = self
+                        .symbols
                         .iter(strings.symbol_names_view())
-                        .map(|s| s.name())
-                        .chain(file_names.into_iter())
-                        .chain(strings.iter_custom_strings().map(|(_id, string)| intern(string))),
-                )
-            }
-            Some(SectionContent::SectionNames) => Box::new(self.sections.iter().map(|s| s.name)),
-            Some(_) => panic!("section {id:?} is of the wrong type"),
-            None => panic!("section {id:?} is missing"),
-        };
+                        .filter(|s| matches!(s.visibility(), SymbolVisibility::Local))
+                        .filter_map(|s| s.stt_file())
+                        .collect::<BTreeSet<_>>();
+
+                    Box::new(
+                        self.symbols
+                            .iter(strings.symbol_names_view())
+                            .map(|s| s.name())
+                            .chain(file_names.into_iter())
+                            .chain(
+                                strings.iter_custom_strings().map(|(_id, string)| intern(string)),
+                            ),
+                    )
+                }
+                SectionContent::SectionNames => Box::new(self.sections.iter().map(|s| s.name)),
+                _ => panic!("section {id:?} is of the wrong type"),
+            };
 
         strings
             .map(|s| s.resolve().len() + 1 /* null byte */)
@@ -135,7 +131,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
         Ok(result)
     }
 
-    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<SerialIds>>, LayoutError> {
+    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<SectionId>>, LayoutError> {
         let mut result = Vec::new();
         for (_id, segment) in self.segments.iter() {
             match &segment.type_ {
@@ -156,9 +152,7 @@ impl LayoutDetailsProvider<SerialIds> for Object {
                     .map(|c| match c {
                         SegmentContent::ProgramHeader => Part::ProgramHeaders,
                         SegmentContent::ElfHeader => Part::Header,
-                        SegmentContent::Section(id) => {
-                            part_for_section(self.sections.get(*id).unwrap())
-                        }
+                        SegmentContent::Section(id) => part_for_section(self.sections.get(*id)),
                     })
                     .collect(),
             };

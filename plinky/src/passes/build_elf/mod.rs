@@ -14,11 +14,10 @@ use crate::passes::build_elf::strings::{create_strings, BuiltStringsTable};
 use crate::passes::build_elf::symbols::{create_symbols, BuiltSymbolsTable};
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::repr::object::Object;
-use crate::repr::sections::SectionContent;
+use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::segments::SegmentType;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
@@ -33,7 +32,7 @@ type SectionConversion = BTreeMap<SectionId, BuiltElfSectionId>;
 
 pub(crate) fn run(
     object: Object,
-    layout: &Layout<SerialIds>,
+    layout: &Layout<SectionId>,
     resolver: &AddressResolver<'_>,
 ) -> Result<(ElfObject<BuiltElfIds>, SectionConversion), ElfBuilderError> {
     let mut ids = BuiltElfIds::new();
@@ -53,7 +52,7 @@ pub(crate) fn run(
 
 struct ElfBuilder<'a> {
     object: Object,
-    layout: &'a Layout<SerialIds>,
+    layout: &'a Layout<SectionId>,
     resolver: &'a AddressResolver<'a>,
     ids: BuiltElfIds,
 

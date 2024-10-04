@@ -3,30 +3,38 @@ use crate::repr::relocations::Relocation;
 use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::Getters;
 use plinky_utils::ints::Length;
-use std::collections::BTreeMap;
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Debug)]
 pub(crate) struct Sections {
-    inner: BTreeMap<SectionId, Section>,
-    names_of_removed_sections: BTreeMap<SectionId, Interned<String>>,
+    inner: VecDeque<SectionSlot>,
 }
 
 impl Sections {
     pub(crate) fn new() -> Self {
-        Self { inner: BTreeMap::new(), names_of_removed_sections: BTreeMap::new() }
+        Self { inner: VecDeque::new() }
     }
 
-    pub(crate) fn get(&self, id: SectionId) -> Option<&Section> {
-        self.inner.get(&id)
+    pub(crate) fn get(&self, id: SectionId) -> &Section {
+        match self.inner.get(id.0) {
+            Some(SectionSlot::Present(section)) => section,
+            Some(SectionSlot::Removed(removed)) => panic!("section {} was removed", removed.name),
+            Some(SectionSlot::Placeholder) => panic!("section is a placeholder"),
+            None => panic!("missing section"),
+        }
     }
 
-    pub(crate) fn get_mut(&mut self, id: SectionId) -> Option<&mut Section> {
-        self.inner.get_mut(&id)
+    pub(crate) fn get_mut(&mut self, id: SectionId) -> &mut Section {
+        match self.inner.get_mut(id.0) {
+            Some(SectionSlot::Present(section)) => section,
+            Some(SectionSlot::Removed(removed)) => panic!("section {} was removed", removed.name),
+            Some(SectionSlot::Placeholder) => panic!("section is a placeholder"),
+            None => panic!("missing section"),
+        }
     }
 
     pub(crate) fn builder<'a>(
@@ -42,13 +50,34 @@ impl Sections {
         }
     }
 
+    pub(crate) fn reserve_placeholder(&mut self) -> SectionId {
+        let id = SectionId(self.inner.len());
+        self.inner.push_back(SectionSlot::Placeholder);
+        id
+    }
+
     pub(crate) fn remove(
         &mut self,
         id: SectionId,
         purge_symbols_from: Option<&mut Symbols>,
-    ) -> Option<Section> {
-        let removed_section = self.inner.remove(&id)?;
-        self.names_of_removed_sections.insert(id, removed_section.name);
+    ) -> Section {
+        let old = match self.inner.get_mut(id.0) {
+            Some(SectionSlot::Present(section)) => {
+                let name = section.name;
+                let SectionSlot::Present(old) = std::mem::replace(
+                    &mut self.inner[id.0],
+                    SectionSlot::Removed(RemovedSection { id, name }),
+                ) else {
+                    unreachable!()
+                };
+                old
+            }
+            Some(SectionSlot::Removed(section)) => {
+                panic!("section {} was already removed", section.name)
+            }
+            Some(SectionSlot::Placeholder) => panic!("section is a placeholder"),
+            None => panic!("missing section"),
+        };
 
         if let Some(symbols) = purge_symbols_from {
             let mut symbols_to_remove = Vec::new();
@@ -56,7 +85,7 @@ impl Sections {
                 let SymbolValue::SectionRelative { section, .. } = symbol.value() else {
                     continue;
                 };
-                if section == removed_section.id {
+                if section == id {
                     symbols_to_remove.push(symbol.id());
                 }
             }
@@ -65,29 +94,48 @@ impl Sections {
             }
         }
 
-        Some(removed_section)
+        old
     }
 
     pub(crate) fn pop_first(&mut self) -> Option<Section> {
-        self.inner.pop_first().map(|(_id, section)| section)
+        loop {
+            match self.inner.pop_front() {
+                Some(SectionSlot::Present(section)) => return Some(section),
+                Some(SectionSlot::Removed(_)) => continue,
+                Some(SectionSlot::Placeholder) => continue,
+                None => return None,
+            }
+        }
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Section> {
-        self.inner.values()
+        self.inner.iter().filter_map(|slot| match slot {
+            SectionSlot::Present(section) => Some(section),
+            SectionSlot::Removed(_) => None,
+            SectionSlot::Placeholder => None,
+        })
     }
 
     pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut Section> {
-        self.inner.values_mut()
+        self.inner.iter_mut().filter_map(|slot| match slot {
+            SectionSlot::Present(section) => Some(section),
+            SectionSlot::Removed(_) => None,
+            SectionSlot::Placeholder => None,
+        })
     }
 
     pub(crate) fn names_of_removed_sections(
         &self,
     ) -> impl Iterator<Item = (SectionId, Interned<String>)> + '_ {
-        self.names_of_removed_sections.iter().map(|(k, v)| (*k, *v))
+        self.inner.iter().filter_map(|slot| match slot {
+            SectionSlot::Present(_) => None,
+            SectionSlot::Removed(removed) => Some((removed.id, removed.name)),
+            SectionSlot::Placeholder => None,
+        })
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.inner.len()
+        self.inner.iter().filter(|slot| matches!(slot, SectionSlot::Present(_))).count()
     }
 }
 
@@ -105,28 +153,48 @@ impl SectionBuilder<'_> {
         self
     }
 
-    pub(crate) fn create(self, ids: &mut SerialIds) -> SectionId {
-        let id = ids.allocate_section_id();
-        self.create_with_id(id);
+    pub(crate) fn create(self) -> SectionId {
+        let id = SectionId(self.parent.inner.len());
+        self.parent.inner.push_back(SectionSlot::Present(Section {
+            id,
+            name: self.name,
+            source: self.source,
+            content: self.content,
+            _prevent_creation: (),
+        }));
         id
     }
 
-    pub(crate) fn create_with_id(self, id: SectionId) {
-        // Avoid stale data if the section was removed and then added again.
-        self.parent.names_of_removed_sections.remove(&id);
-
-        self.parent.inner.insert(
-            id,
-            Section {
-                id,
-                name: self.name,
-                source: self.source,
-                content: self.content,
-                _prevent_creation: (),
-            },
-        );
+    pub(crate) fn create_in_placeholder(self, placeholder: SectionId) -> SectionId {
+        match self.parent.inner.get_mut(placeholder.0) {
+            Some(SectionSlot::Present(_)) => panic!("a section already exists at this ID"),
+            Some(SectionSlot::Removed(_)) => {
+                panic!("a section with this ID was previously removed")
+            }
+            Some(slot @ SectionSlot::Placeholder) => {
+                *slot = SectionSlot::Present(Section {
+                    id: placeholder,
+                    name: self.name,
+                    source: self.source,
+                    content: self.content,
+                    _prevent_creation: (),
+                });
+                placeholder
+            }
+            None => panic!("missing placeholder"),
+        }
     }
 }
+
+#[derive(Debug)]
+enum SectionSlot {
+    Present(Section),
+    Removed(RemovedSection),
+    Placeholder,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct SectionId(usize);
 
 #[derive(Debug)]
 pub(crate) struct Section {
@@ -297,3 +365,9 @@ from!(impl From<SymbolsSection> for SectionContent::Symbols);
 from!(impl From<SysvHashSection> for SectionContent::SysvHash);
 from!(impl From<RelocationsSection> for SectionContent::Relocations);
 from!(impl From<DynamicSection> for SectionContent::Dynamic);
+
+#[derive(Debug)]
+struct RemovedSection {
+    id: SectionId,
+    name: Interned<String>,
+}

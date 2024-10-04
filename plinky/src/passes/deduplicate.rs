@@ -1,8 +1,7 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
-use crate::repr::sections::{DataSection, SectionContent};
+use crate::repr::sections::{DataSection, SectionContent, SectionId};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
@@ -11,7 +10,6 @@ use std::num::NonZeroU64;
 
 pub(crate) fn run(
     object: &mut Object,
-    ids: &mut SerialIds,
 ) -> Result<BTreeMap<SectionId, Deduplication>, DeduplicationError> {
     let mut groups: BTreeMap<_, Vec<_>> = BTreeMap::new();
     for section in object.sections.iter() {
@@ -40,7 +38,7 @@ pub(crate) fn run(
     let mut deduplications = BTreeMap::new();
     for ((name, perms, split_rule), section_ids) in groups {
         if section_ids.len() > 1 {
-            deduplicate(ids, &mut deduplications, object, name, perms, split_rule, &section_ids)
+            deduplicate(&mut deduplications, object, name, perms, split_rule, &section_ids)
                 .map_err(|kind| DeduplicationError { section_name: name, kind })?;
         }
     }
@@ -49,7 +47,6 @@ pub(crate) fn run(
 }
 
 fn deduplicate(
-    ids: &mut SerialIds,
     deduplications: &mut BTreeMap<SectionId, Deduplication>,
     object: &mut Object,
     name: Interned<String>,
@@ -57,14 +54,14 @@ fn deduplicate(
     split_rule: SplitRule,
     section_ids: &[SectionId],
 ) -> Result<(), DeduplicationErrorKind> {
-    let merged_id = ids.allocate_section_id();
+    let merged_id = object.sections.reserve_placeholder();
     let mut merged = Vec::new();
     let mut seen = BTreeMap::new();
     let mut sections_to_remove = Vec::new();
     let mut source = None;
 
     for &section_id in section_ids {
-        let section = object.sections.get(section_id).expect("missing section passed");
+        let section = object.sections.get(section_id);
         let SectionContent::Data(part) = &section.content else {
             unreachable!("non-data section reached here");
         };
@@ -117,7 +114,7 @@ fn deduplicate(
             },
         )
         .source(source.expect("no deduplicated sections"))
-        .create_with_id(merged_id);
+        .create_in_placeholder(merged_id);
 
     for id in sections_to_remove {
         object.sections.remove(id, None);

@@ -4,7 +4,6 @@ mod part;
 pub use self::details_provider::*;
 pub use self::part::*;
 
-use crate::ids::ElfIds;
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
     RawSectionHeader, RawSymbol,
@@ -19,14 +18,14 @@ use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-pub struct Layout<I: ElfIds> {
-    parts: Vec<Part<I::SectionId>>,
-    metadata: BTreeMap<Part<I::SectionId>, PartMetadata>,
+pub struct Layout<S> {
+    parts: Vec<Part<S>>,
+    metadata: BTreeMap<Part<S>, PartMetadata>,
 }
 
-impl<I: ElfIds> Layout<I> {
+impl<S: Eq + Ord + Clone> Layout<S> {
     pub fn new(
-        details: &dyn LayoutDetailsProvider<I>,
+        details: &dyn LayoutDetailsProvider<S>,
         base_memory_address: Option<Address>,
     ) -> Result<Self, LayoutError> {
         let builder = LayoutBuilder {
@@ -38,15 +37,15 @@ impl<I: ElfIds> Layout<I> {
         builder.build()
     }
 
-    pub fn parts(&self) -> &[Part<I::SectionId>] {
+    pub fn parts(&self) -> &[Part<S>] {
         &self.parts
     }
 
-    pub fn metadata(&self, part: &Part<I::SectionId>) -> &PartMetadata {
+    pub fn metadata(&self, part: &Part<S>) -> &PartMetadata {
         self.metadata.get(part).unwrap()
     }
 
-    pub fn metadata_of_section(&self, id: &I::SectionId) -> &PartMetadata {
+    pub fn metadata_of_section(&self, id: &S) -> &PartMetadata {
         self.metadata
             .iter()
             .filter(|(key, _)| key.section_id() == Some(id))
@@ -55,7 +54,7 @@ impl<I: ElfIds> Layout<I> {
             .unwrap()
     }
 
-    pub fn convert_ids<T: ElfIds>(self, map: &BTreeMap<I::SectionId, T::SectionId>) -> Layout<T> {
+    pub fn convert_ids<T: Clone + Ord + Eq>(self, map: &BTreeMap<S, T>) -> Layout<T> {
         Layout {
             parts: self.parts.into_iter().map(|p| p.convert_ids(map)).collect(),
             metadata: self.metadata.into_iter().map(|(k, v)| (k.convert_ids(map), v)).collect(),
@@ -63,15 +62,15 @@ impl<I: ElfIds> Layout<I> {
     }
 }
 
-struct LayoutBuilder<'a, I: ElfIds> {
-    details: &'a dyn LayoutDetailsProvider<I>,
-    layout: Layout<I>,
+struct LayoutBuilder<'a, S> {
+    details: &'a dyn LayoutDetailsProvider<S>,
+    layout: Layout<S>,
     current_offset: Offset,
     current_memory_address: Option<Address>,
 }
 
-impl<I: ElfIds> LayoutBuilder<'_, I> {
-    fn build(mut self) -> Result<Layout<I>, LayoutError> {
+impl<S: Ord + Eq + Clone> LayoutBuilder<'_, S> {
+    fn build(mut self) -> Result<Layout<S>, LayoutError> {
         let provided_groups = self.details.parts_groups()?;
         let part_to_provided_group = provided_groups
             .iter()
@@ -124,11 +123,7 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
         Ok(self.layout)
     }
 
-    fn add_part(
-        &mut self,
-        part: Part<I::SectionId>,
-        add_in_memory: bool,
-    ) -> Result<(), LayoutError> {
+    fn add_part(&mut self, part: Part<S>, add_in_memory: bool) -> Result<(), LayoutError> {
         let len = part_len(self.details, &part);
         self.layout.parts.push(part.clone());
 
@@ -176,10 +171,7 @@ impl<I: ElfIds> LayoutBuilder<'_, I> {
     }
 }
 
-fn part_len<I: ElfIds>(
-    details: &dyn LayoutDetailsProvider<I>,
-    part: &Part<I::SectionId>,
-) -> Length {
+fn part_len<S>(details: &dyn LayoutDetailsProvider<S>, part: &Part<S>) -> Length {
     let class = details.class();
     match part {
         Part::Header => RawIdentification::size(class) + RawHeader::size(class),

@@ -1,9 +1,8 @@
 use crate::interner::Interned;
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfStringId};
 use crate::passes::build_elf::{ElfBuilder, StringsTableBuilder};
-use crate::repr::sections::{StringsSection, UpcomingStringId};
+use crate::repr::sections::{SectionId, StringsSection, UpcomingStringId};
 use crate::repr::symbols::{SymbolId, SymbolVisibility};
-use plinky_elf::ids::serial::SectionId;
 use plinky_elf::ElfSectionContent;
 use std::collections::{BTreeMap, BTreeSet};
 

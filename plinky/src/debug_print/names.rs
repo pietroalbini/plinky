@@ -1,7 +1,7 @@
 use crate::repr::object::Object;
+use crate::repr::sections::SectionId;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{SymbolId, SymbolValue};
-use plinky_elf::ids::serial::SectionId;
 use plinky_utils::ints::ExtractNumber;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
@@ -22,19 +22,16 @@ impl Names {
                 .map(|(id, name)| (id, name.resolve().to_string())),
         );
 
-        let symbols =
-            calculate_names(object.symbols.iter(&AllSymbols).map(|symbol| {
-                let name = match (symbol.name().resolve().as_str(), symbol.value()) {
-                    ("", SymbolValue::SectionRelative { section, offset })
-                        if offset.extract() == 0 =>
-                    {
-                        format!("<section {}>", sections[&section])
-                    }
-                    ("", _) => "<empty>".to_string(),
-                    (name, _) => name.to_string(),
-                };
-                (symbol.id(), name)
-            }));
+        let symbols = calculate_names(object.symbols.iter(&AllSymbols).map(|symbol| {
+            let name = match (symbol.name().resolve().as_str(), symbol.value()) {
+                ("", SymbolValue::SectionRelative { section, offset }) if offset.extract() == 0 => {
+                    format!("<section {}>", sections[&section])
+                }
+                ("", _) => "<empty>".to_string(),
+                (name, _) => name.to_string(),
+            };
+            (symbol.id(), name)
+        }));
 
         Names { sections, symbols }
     }

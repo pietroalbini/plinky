@@ -29,7 +29,7 @@ where
     I::StringId: StringIdGetters<I>,
 {
     writer: WriteCounter<'a>,
-    layout: Layout<I>,
+    layout: Layout<I::SectionId>,
     object: &'a ElfObject<I>,
 }
 
@@ -41,7 +41,7 @@ where
     pub fn new(
         writer: &'a mut dyn Write,
         object: &'a ElfObject<I>,
-        layout: Layout<I>,
+        layout: Layout<I::SectionId>,
     ) -> Result<Self, WriteError<I>> {
         Ok(Self { writer: WriteCounter::new(writer), layout, object })
     }

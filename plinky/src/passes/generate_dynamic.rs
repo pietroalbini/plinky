@@ -3,12 +3,11 @@ use crate::interner::intern;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::sections::{
-    DynamicSection, SectionContent, StringsSection, SymbolsSection, SysvHashSection,
+    DynamicSection, SectionContent, SectionId, StringsSection, SymbolsSection, SysvHashSection
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, SymbolValue, UpcomingSymbol};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::ElfPermissions;
 use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::Offset;
@@ -17,7 +16,6 @@ use plinky_utils::raw_types::RawTypeAsPointerSize;
 pub(crate) fn run(
     options: &CliOptions,
     object: &mut Object,
-    ids: &mut SerialIds,
 ) -> Result<Option<DynamicContext>, GenerateDynamicError> {
     match object.mode {
         Mode::PositionDependent => return Ok(None),
@@ -38,7 +36,7 @@ pub(crate) fn run(
 
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {
-            let id = object.sections.builder(name, content).create(ids);
+            let id = object.sections.builder(name, content).create();
             segment_content.push(SegmentContent::Section(id));
             object.dynamic_entries.add(entry(id));
             id
@@ -53,7 +51,7 @@ pub(crate) fn run(
 
     create(".hash", SysvHashSection::new(DynamicSymbolTable, dynsym).into(), DynamicEntry::Hash);
 
-    let dynamic = object.sections.builder(".dynamic", DynamicSection::new(dynstr)).create(ids);
+    let dynamic = object.sections.builder(".dynamic", DynamicSection::new(dynstr)).create();
     segment_content.push(SegmentContent::Section(dynamic));
 
     let dynamic_segment = object.segments.add(Segment {

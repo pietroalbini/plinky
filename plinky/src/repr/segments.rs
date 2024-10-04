@@ -1,6 +1,6 @@
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::writer::layout::{Layout, Part, PartMetadata};
 use plinky_elf::ElfPermissions;
+use crate::repr::sections::SectionId;
 
 #[derive(Debug)]
 pub(crate) struct Segments {
@@ -43,7 +43,7 @@ pub(crate) struct Segment {
 }
 
 impl Segment {
-    pub(crate) fn layout(&self, layout: &Layout<SerialIds>) -> PartMetadata {
+    pub(crate) fn layout(&self, layout: &Layout<SectionId>) -> PartMetadata {
         let mut content = self.content.iter();
         let Some(first) = content.next() else { return PartMetadata::EMPTY };
 
@@ -77,7 +77,7 @@ pub(crate) enum SegmentContent {
 }
 
 impl SegmentContent {
-    fn layout(&self, layout: &Layout<SerialIds>) -> PartMetadata {
+    fn layout(&self, layout: &Layout<SectionId>) -> PartMetadata {
         match self {
             SegmentContent::ProgramHeader => layout.metadata(&Part::ProgramHeaders).clone(),
             SegmentContent::ElfHeader => layout.metadata(&Part::Header).clone(),

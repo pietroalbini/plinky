@@ -1,8 +1,7 @@
 use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId, BuiltElfSymbolId};
 use crate::passes::build_elf::strings::BuiltStringsTable;
-use crate::repr::sections::SymbolsSection;
+use crate::repr::sections::{SectionId, SymbolsSection};
 use crate::repr::symbols::{Symbol, SymbolId, SymbolType, SymbolValue, SymbolVisibility, Symbols};
-use plinky_elf::ids::serial::SectionId;
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,

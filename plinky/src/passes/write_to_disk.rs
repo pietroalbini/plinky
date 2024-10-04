@@ -1,4 +1,4 @@
-use crate::passes::build_elf::ids::BuiltElfIds;
+use crate::passes::build_elf::ids::{BuiltElfIds, BuiltElfSectionId};
 use plinky_elf::errors::WriteError;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 pub(crate) fn run(
     object: ElfObject<BuiltElfIds>,
-    layout: Layout<BuiltElfIds>,
+    layout: Layout<BuiltElfSectionId>,
     dest: &Path,
 ) -> Result<(), WriteToDiskError> {
     let mut file = BufWriter::new(

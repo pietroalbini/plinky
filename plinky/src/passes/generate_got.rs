@@ -4,11 +4,10 @@ use crate::passes::generate_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::relocations::{NeedsGot, Relocation, RelocationType};
-use crate::repr::sections::{DataSection, RelocationsSection, SectionContent};
+use crate::repr::sections::{DataSection, RelocationsSection, SectionContent, SectionId};
 use crate::repr::segments::SegmentContent;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, SymbolValue, UpcomingSymbol};
-use plinky_elf::ids::serial::{SectionId, SerialIds};
 use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
@@ -16,7 +15,6 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn generate_got(
     options: &CliOptions,
-    ids: &mut SerialIds,
     object: &mut Object,
     dynamic_context: &Option<DynamicContext>,
 ) -> Result<(), GenerateGotError> {
@@ -52,7 +50,6 @@ pub(crate) fn generate_got(
 
     if got_needed {
         object.got = Some(build_got(
-            ids,
             object,
             dynamic_context,
             &mut got_symbols.iter().copied(),
@@ -69,7 +66,6 @@ pub(crate) fn generate_got(
 
     if got_plt_needed {
         let mut got_plt = build_got(
-            ids,
             object,
             dynamic_context,
             &mut got_plt_symbols.iter().copied(),
@@ -103,7 +99,6 @@ pub(crate) fn generate_got(
 }
 
 fn build_got(
-    ids: &mut SerialIds,
     object: &mut Object,
     dynamic_context: &Option<DynamicContext>,
     symbols: &mut dyn Iterator<Item = SymbolId>,
@@ -113,7 +108,7 @@ fn build_got(
     let mut relocations = Vec::new();
     let mut offsets = BTreeMap::new();
 
-    let id = ids.allocate_section_id();
+    let id = object.sections.reserve_placeholder();
     let placeholder: &[u8] = match object.env.class {
         ElfClass::Elf32 => &[0; 4],
         ElfClass::Elf64 => &[0; 8],
@@ -173,7 +168,7 @@ fn build_got(
                         config.rela_section_name,
                         RelocationsSection::new(id, dynamic.dynsym(), relocations),
                     )
-                    .create(ids);
+                    .create();
                 object
                     .segments
                     .get_mut(dynamic.segment())
@@ -192,7 +187,7 @@ fn build_got(
         }
     };
 
-    object.sections.builder(config.section_name, data).create_with_id(id);
+    object.sections.builder(config.section_name, data).create_in_placeholder(id);
     Ok(GOT { id, offsets, symbol: None, resolved_at_runtime })
 }
 

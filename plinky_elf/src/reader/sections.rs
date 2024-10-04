@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId, Ids};
+use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSectionHeader, RawSymbol};
 use crate::reader::notes::read_notes;
 use crate::reader::ReadCursor;
@@ -20,7 +20,7 @@ pub(super) fn read_sections(
     count: u16,
     size: u16,
     section_names_table: ElfSectionId,
-) -> Result<BTreeMap<ElfSectionId, ElfSection<Ids>>, LoadError> {
+) -> Result<BTreeMap<ElfSectionId, ElfSection>, LoadError> {
     if offset == 0 {
         return Ok(BTreeMap::new());
     }
@@ -42,7 +42,7 @@ fn read_section(
     cursor: &mut ReadCursor<'_>,
     section_names_table: ElfSectionId,
     current_section: ElfSectionId,
-) -> Result<ElfSection<Ids>, LoadError> {
+) -> Result<ElfSection, LoadError> {
     let header: RawSectionHeader = cursor.read_raw().map_err(|e| {
         LoadError::FailedToParseSectionHeader { idx: current_section.index, inner: Box::new(e) }
     })?;
@@ -202,7 +202,7 @@ enum SectionType {
     Unknown(u32),
 }
 
-fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent<Ids>, LoadError> {
+fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent, LoadError> {
     let mut strings = BTreeMap::new();
     let mut offset: usize = 0;
     while offset < raw_content.len() {
@@ -227,7 +227,7 @@ fn read_symbol_table(
     strings_table: ElfSectionId,
     current_section: ElfSectionId,
     dynsym: bool,
-) -> Result<ElfSectionContent<Ids>, LoadError> {
+) -> Result<ElfSectionContent, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -245,7 +245,7 @@ fn read_symbol_table(
 fn read_symbol(
     cursor: &mut ReadCursor<'_>,
     strings_table: ElfSectionId,
-) -> Result<ElfSymbol<Ids>, LoadError> {
+) -> Result<ElfSymbol, LoadError> {
     let symbol: RawSymbol = cursor.read_raw()?;
     Ok(ElfSymbol {
         name: ElfStringId { section: strings_table, offset: symbol.name_offset },
@@ -289,7 +289,7 @@ fn read_relocations_table(
     symbol_table: ElfSectionId,
     applies_to_section: ElfSectionId,
     rela: bool,
-) -> Result<ElfSectionContent<Ids>, LoadError> {
+) -> Result<ElfSectionContent, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -309,7 +309,7 @@ fn read_relocation(
     cursor: &mut ReadCursor<'_>,
     symbol_table: ElfSectionId,
     rela: bool,
-) -> Result<ElfRelocation<Ids>, LoadError> {
+) -> Result<ElfRelocation, LoadError> {
     let (offset, info, addend) = if rela {
         let raw: RawRela = cursor.read_raw()?;
         (raw.offset, raw.info, Some(raw.addend))
@@ -401,7 +401,7 @@ fn read_group(
     header: &RawSectionHeader,
     cursor: &mut ReadCursor<'_>,
     raw_content: &[u8],
-) -> Result<ElfGroup<Ids>, LoadError> {
+) -> Result<ElfGroup, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -422,7 +422,7 @@ fn read_hash(
     header: &RawSectionHeader,
     raw_content: &[u8],
     cursor: &mut ReadCursor,
-) -> Result<ElfHash<Ids>, LoadError> {
+) -> Result<ElfHash, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -445,7 +445,7 @@ fn read_dynamic(
     header: &RawSectionHeader,
     raw_content: &[u8],
     cursor: &mut ReadCursor,
-) -> Result<ElfDynamic<Ids>, LoadError> {
+) -> Result<ElfDynamic, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 

@@ -1,22 +1,22 @@
-use crate::ids::ElfIds;
+use crate::ids::ElfSectionId;
 use crate::writer::layout::Part;
 use crate::writer::LayoutError;
 use crate::{ElfClass, ElfObject, ElfSection, ElfSectionContent, ElfSegmentType};
 
-pub trait LayoutDetailsProvider<S> {
+pub trait LayoutDetailsProvider<S: Copy> {
     fn class(&self) -> ElfClass;
 
     fn sections_count(&self) -> usize;
     fn segments_count(&self) -> usize;
 
-    fn program_section_len(&self, id: &S) -> usize;
-    fn uninitialized_section_len(&self, id: &S) -> usize;
-    fn string_table_len(&self, id: &S) -> usize;
-    fn symbols_in_table_count(&self, id: &S) -> usize;
-    fn sections_in_group_count(&self, id: &S) -> usize;
-    fn dynamic_directives_count(&self, id: &S) -> usize;
-    fn relocations_in_table_count(&self, id: &S) -> usize;
-    fn hash_details(&self, id: &S) -> LayoutDetailsHash;
+    fn program_section_len(&self, id: S) -> usize;
+    fn uninitialized_section_len(&self, id: S) -> usize;
+    fn string_table_len(&self, id: S) -> usize;
+    fn symbols_in_table_count(&self, id: S) -> usize;
+    fn sections_in_group_count(&self, id: S) -> usize;
+    fn dynamic_directives_count(&self, id: S) -> usize;
+    fn relocations_in_table_count(&self, id: S) -> usize;
+    fn hash_details(&self, id: S) -> LayoutDetailsHash;
 
     fn parts_for_sections(&self) -> Result<Vec<Part<S>>, LayoutError>;
     fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<S>>, LayoutError>;
@@ -42,7 +42,7 @@ macro_rules! cast_section {
     };
 }
 
-impl<I: ElfIds> LayoutDetailsProvider<I::SectionId> for ElfObject<I> {
+impl LayoutDetailsProvider<ElfSectionId> for ElfObject {
     fn class(&self) -> ElfClass {
         self.env.class
     }
@@ -55,40 +55,40 @@ impl<I: ElfIds> LayoutDetailsProvider<I::SectionId> for ElfObject<I> {
         self.segments.len()
     }
 
-    fn program_section_len(&self, id: &I::SectionId) -> usize {
+    fn program_section_len(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, Program).raw.len()
     }
 
-    fn uninitialized_section_len(&self, id: &I::SectionId) -> usize {
+    fn uninitialized_section_len(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, Uninitialized).len as _
     }
 
-    fn string_table_len(&self, id: &I::SectionId) -> usize {
+    fn string_table_len(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, StringTable).len()
     }
 
-    fn symbols_in_table_count(&self, id: &I::SectionId) -> usize {
+    fn symbols_in_table_count(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, SymbolTable).symbols.len()
     }
 
-    fn sections_in_group_count(&self, id: &I::SectionId) -> usize {
+    fn sections_in_group_count(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, Group).sections.len()
     }
 
-    fn dynamic_directives_count(&self, id: &I::SectionId) -> usize {
+    fn dynamic_directives_count(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, Dynamic).directives.len()
     }
 
-    fn relocations_in_table_count(&self, id: &I::SectionId) -> usize {
+    fn relocations_in_table_count(&self, id: ElfSectionId) -> usize {
         cast_section!(self, id, RelocationsTable).relocations.len()
     }
 
-    fn hash_details(&self, id: &I::SectionId) -> LayoutDetailsHash {
+    fn hash_details(&self, id: ElfSectionId) -> LayoutDetailsHash {
         let hash = cast_section!(self, id, Hash);
         LayoutDetailsHash { buckets: hash.buckets.len(), chain: hash.chain.len() }
     }
 
-    fn parts_for_sections(&self) -> Result<Vec<Part<I::SectionId>>, LayoutError> {
+    fn parts_for_sections(&self) -> Result<Vec<Part<ElfSectionId>>, LayoutError> {
         let mut result = Vec::new();
 
         result.push(Part::Header);
@@ -96,13 +96,13 @@ impl<I: ElfIds> LayoutDetailsProvider<I::SectionId> for ElfObject<I> {
         result.push(Part::SectionHeaders);
 
         for (id, section) in &self.sections {
-            let Some(part) = part_for_section(id, section)? else { continue };
+            let Some(part) = part_for_section(*id, section)? else { continue };
             result.push(part);
         }
         Ok(result)
     }
 
-    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<I::SectionId>>, LayoutError> {
+    fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<ElfSectionId>>, LayoutError> {
         let mut groups = Vec::new();
         for segment in &self.segments {
             match &segment.type_ {
@@ -123,7 +123,7 @@ impl<I: ElfIds> LayoutDetailsProvider<I::SectionId> for ElfObject<I> {
                 if section.memory_address == 0 || !range.contains(&section.memory_address) {
                     continue;
                 }
-                let Some(part) = part_for_section(id, section)? else { continue };
+                let Some(part) = part_for_section(*id, section)? else { continue };
                 group.parts.push(part);
             }
             if !group.parts.is_empty() {
@@ -134,10 +134,10 @@ impl<I: ElfIds> LayoutDetailsProvider<I::SectionId> for ElfObject<I> {
     }
 }
 
-fn part_for_section<I: ElfIds>(
-    id: &I::SectionId,
-    section: &ElfSection<I>,
-) -> Result<Option<Part<I::SectionId>>, LayoutError> {
+fn part_for_section(
+    id: ElfSectionId,
+    section: &ElfSection,
+) -> Result<Option<Part<ElfSectionId>>, LayoutError> {
     Ok(Some(match &section.content {
         ElfSectionContent::Null => return Ok(None),
         ElfSectionContent::Program(_) => Part::ProgramSection(id.clone()),

@@ -1,4 +1,4 @@
-use crate::ids::ElfIds;
+use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::writer::LayoutError;
 use crate::ElfABI;
 use plinky_macros::{Display, Error};
@@ -71,7 +71,7 @@ pub enum LoadError {
 }
 
 #[derive(Debug, Error, Display)]
-pub enum WriteError<I: ElfIds> {
+pub enum WriteError {
     #[transparent]
     IO(std::io::Error),
     #[display("failed to write data")]
@@ -83,17 +83,17 @@ pub enum WriteError<I: ElfIds> {
     #[display("different symbols point to different string tables for their name")]
     InconsistentSymbolNamesTableId,
     #[display("missing symbol table {symbol_table:?} for relocations table {relocations_table:?}")]
-    MissingSymbolTableForRelocations { symbol_table: I::SectionId, relocations_table: I::SectionId },
+    MissingSymbolTableForRelocations { symbol_table: ElfSectionId, relocations_table: ElfSectionId },
     #[display("missing symbol {symbol_id:?} for relocation {relocation_idx} in table {relocations_table:?}")]
     MissingSymbolInRelocation {
-        symbol_id: I::SymbolId,
-        relocations_table: I::SectionId,
+        symbol_id: ElfSymbolId,
+        relocations_table: ElfSectionId,
         relocation_idx: usize,
     },
     #[display("group {group:?}'s symbol table {symbol_table:?} is not actually a symbol table")]
-    WrongSectionTypeForGroupSymbolTable { group: I::SectionId, symbol_table: I::SectionId },
+    WrongSectionTypeForGroupSymbolTable { group: ElfSectionId, symbol_table: ElfSectionId },
     #[display("group {group:?}'s signature {signature:?} is missing")]
-    MissingGroupSignature { group: I::SectionId, signature: I::SymbolId },
+    MissingGroupSignature { group: ElfSectionId, signature: ElfSymbolId },
     #[display("value {value} in the dynamic table does not fit")]
     DynamicValueDoesNotFit { value: u64 },
     #[display("failed to calculate the resulting ELF layout")]

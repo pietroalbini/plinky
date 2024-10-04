@@ -2,7 +2,7 @@ use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::SectionId;
 use crate::repr::symbols::SymbolId;
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use plinky_elf::ids::{ElfSectionId, ElfSymbolId, Ids};
+use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
     ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
 };
@@ -18,7 +18,7 @@ pub(super) fn create_rela<'a>(
     symbol_table: ElfSectionId,
     symbol_conversion: &BTreeMap<SymbolId, ElfSymbolId>,
     resolver: &AddressResolver<'_>,
-) -> Result<ElfSectionContent<Ids>, RelaCreationError> {
+) -> Result<ElfSectionContent, RelaCreationError> {
     let mut elf_relocations = Vec::new();
     for relocation in relocations {
         elf_relocations.push(ElfRelocation {

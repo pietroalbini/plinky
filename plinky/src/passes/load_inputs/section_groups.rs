@@ -1,6 +1,6 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
-use plinky_elf::ids::{ElfSectionId, ElfStringId, ElfSymbolId, Ids};
+use plinky_elf::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
@@ -33,9 +33,9 @@ impl SectionGroupsForObject<'_> {
     pub(super) fn add_group(
         &mut self,
         strings: &Strings,
-        symbol_tables: &[(ElfStringId, ElfSymbolTable<Ids>)],
+        symbol_tables: &[(ElfStringId, ElfSymbolTable)],
         id: ElfSectionId,
-        group: ElfGroup<Ids>,
+        group: ElfGroup,
     ) -> Result<(), SectionGroupsError> {
         // Right now we are only implementing section groups for the x86 snippet of code
         // used to determine the current instruction pointer (__x86.get_pc_thunk.bx). That
@@ -76,7 +76,7 @@ impl SectionGroupsForObject<'_> {
 
     pub(super) fn filter_symbol_table(
         &self,
-        table: &mut ElfSymbolTable<Ids>,
+        table: &mut ElfSymbolTable,
     ) -> Result<(), SectionGroupsError> {
         // If the group is already loaded in another object file, mark each symbol pointing to it
         // as undefined, so that the rest of the linker will resolve the symbol to the retained

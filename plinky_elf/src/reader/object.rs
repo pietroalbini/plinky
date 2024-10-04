@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::ids::{ElfSectionId, Ids};
+use crate::ids::ElfSectionId;
 use crate::raw::{RawHeader, RawIdentification};
 use crate::reader::program_header::read_program_header;
 use crate::reader::sections::read_sections;
@@ -7,7 +7,7 @@ use crate::reader::ReadCursor;
 use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfObject, ElfType};
 use std::num::NonZeroU64;
 
-pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Ids>, LoadError> {
+pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject, LoadError> {
     let identification: RawIdentification = cursor.read_raw()?;
     if identification.magic != [0x7F, b'E', b'L', b'F'] {
         return Err(LoadError::BadMagic(identification.magic));
@@ -69,7 +69,7 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Ids>,
         }
     }
 
-    Ok(ElfObject::<Ids> {
+    Ok(ElfObject {
         env: ElfEnvironment { class, endian, abi, machine },
         type_,
         entry: NonZeroU64::new(header.entry),

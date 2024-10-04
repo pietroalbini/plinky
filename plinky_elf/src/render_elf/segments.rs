@@ -1,9 +1,8 @@
-use crate::ids::ElfIds;
 use crate::render_elf::utils::render_perms;
 use crate::{ElfObject, ElfSegmentType};
 use plinky_diagnostics::widgets::{Table, Text, Widget};
 
-pub(super) fn render_segments<I: ElfIds>(object: &ElfObject<I>) -> Box<dyn Widget> {
+pub(super) fn render_segments(object: &ElfObject) -> Box<dyn Widget> {
     if object.segments.is_empty() {
         return Box::new(Text::new("No segments in the ELF file."));
     }

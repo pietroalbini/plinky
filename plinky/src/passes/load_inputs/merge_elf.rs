@@ -6,7 +6,7 @@ use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::{ElfSectionId, ElfSymbolId, Ids};
+use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
     ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
 };
@@ -18,7 +18,7 @@ pub(super) fn merge(
     strings: &mut Strings,
     mut section_groups: SectionGroupsForObject<'_>,
     source: ObjectSpan,
-    elf: ElfObject<Ids>,
+    elf: ElfObject,
 ) -> Result<(), MergeElfError> {
     let mut symbol_tables = Vec::new();
     let mut program_sections = Vec::new();
@@ -148,7 +148,7 @@ fn merge_symbols(
     section_conversion: &BTreeMap<ElfSectionId, SectionId>,
     symbol_conversion: &mut BTreeMap<ElfSymbolId, SymbolId>,
     span: Interned<ObjectSpan>,
-    table: ElfSymbolTable<Ids>,
+    table: ElfSymbolTable,
     strings: &Strings,
     section: &str,
 ) -> Result<(), MergeElfError> {

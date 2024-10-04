@@ -1,11 +1,11 @@
 use crate::repr::symbols::Symbol;
-use plinky_elf::ids::{ElfSectionId, Ids};
+use plinky_elf::ids::ElfSectionId;
 use plinky_elf::{ElfHash, ElfSectionContent};
 
 pub(super) fn create_sysv_hash<'a>(
     symbols: impl Iterator<Item = &'a Symbol>,
     symbol_table: ElfSectionId,
-) -> ElfSectionContent<Ids> {
+) -> ElfSectionContent {
     let names = symbols.map(|sym| sym.name()).collect::<Vec<_>>();
 
     let mut buckets = vec![0; num_buckets(names.len())];

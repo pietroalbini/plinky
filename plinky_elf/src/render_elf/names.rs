@@ -1,22 +1,22 @@
-use crate::ids::ElfIds;
+use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::render_elf::utils::resolve_string;
 use crate::{ElfObject, ElfSectionContent, ElfSymbolDefinition};
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 
-pub(super) struct Names<'a, I: ElfIds> {
-    sections: HashMap<&'a I::SectionId, String>,
-    symbols: HashMap<&'a I::SymbolId, String>,
+pub(super) struct Names {
+    sections: HashMap<ElfSectionId, String>,
+    symbols: HashMap<ElfSymbolId, String>,
 }
 
-impl<'a, I: ElfIds> Names<'a, I> {
-    pub(super) fn new(object: &'a ElfObject<I>) -> Self {
+impl Names {
+    pub(super) fn new(object: &ElfObject) -> Self {
         let sections = calculate_names(object.sections.iter().map(|(id, section)| {
-            let mut name = resolve_string(object, &section.name).to_string();
+            let mut name = resolve_string(object, section.name).to_string();
             if name.is_empty() {
                 name = "<empty>".to_string();
             }
-            (id, name)
+            (*id, name)
         }));
 
         let symbols = calculate_names(
@@ -29,7 +29,7 @@ impl<'a, I: ElfIds> Names<'a, I> {
                 })
                 .flat_map(|symbols| symbols.symbols.iter())
                 .map(|(id, symbol)| {
-                    let mut string = resolve_string(object, &symbol.name).to_string();
+                    let mut string = resolve_string(object, symbol.name).to_string();
                     if string.is_empty() {
                         string = match (&symbol.definition, symbol.value) {
                             (ElfSymbolDefinition::Section(section), 0) => {
@@ -38,19 +38,19 @@ impl<'a, I: ElfIds> Names<'a, I> {
                             _ => "<empty>".to_string(),
                         };
                     }
-                    (id, string)
+                    (*id, string)
                 }),
         );
 
         Names { sections, symbols }
     }
 
-    pub(super) fn section(&self, id: &I::SectionId) -> &str {
-        &self.sections[id]
+    pub(super) fn section(&self, id: ElfSectionId) -> &str {
+        &self.sections[&id]
     }
 
-    pub(super) fn symbol(&self, id: &I::SymbolId) -> &str {
-        &self.symbols[id]
+    pub(super) fn symbol(&self, id: ElfSymbolId) -> &str {
+        &self.symbols[&id]
     }
 }
 

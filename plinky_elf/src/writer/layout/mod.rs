@@ -23,7 +23,7 @@ pub struct Layout<S> {
     metadata: BTreeMap<Part<S>, PartMetadata>,
 }
 
-impl<S: Eq + Ord + Clone> Layout<S> {
+impl<S: Eq + Ord + Clone + Copy> Layout<S> {
     pub fn new(
         details: &dyn LayoutDetailsProvider<S>,
         base_memory_address: Option<Address>,
@@ -69,7 +69,7 @@ struct LayoutBuilder<'a, S> {
     current_memory_address: Option<Address>,
 }
 
-impl<S: Ord + Eq + Clone> LayoutBuilder<'_, S> {
+impl<S: Ord + Eq + Clone + Copy> LayoutBuilder<'_, S> {
     fn build(mut self) -> Result<Layout<S>, LayoutError> {
         let provided_groups = self.details.parts_groups()?;
         let part_to_provided_group = provided_groups
@@ -124,7 +124,7 @@ impl<S: Ord + Eq + Clone> LayoutBuilder<'_, S> {
     }
 
     fn add_part(&mut self, part: Part<S>, add_in_memory: bool) -> Result<(), LayoutError> {
-        let len = part_len(self.details, &part);
+        let len = part_len(self.details, part);
         self.layout.parts.push(part.clone());
 
         let memory = if add_in_memory {
@@ -171,7 +171,7 @@ impl<S: Ord + Eq + Clone> LayoutBuilder<'_, S> {
     }
 }
 
-fn part_len<S>(details: &dyn LayoutDetailsProvider<S>, part: &Part<S>) -> Length {
+fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> Length {
     let class = details.class();
     match part {
         Part::Header => RawIdentification::size(class) + RawHeader::size(class),
@@ -201,7 +201,7 @@ fn part_len<S>(details: &dyn LayoutDetailsProvider<S>, part: &Part<S>) -> Length
             <u64 as RawTypeAsPointerSize>::size(class) * 2 * details.dynamic_directives_count(id)
         }
 
-        Part::Padding { len, .. } => *len,
+        Part::Padding { len, .. } => len,
     }
     .into()
 }

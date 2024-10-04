@@ -3,7 +3,7 @@ use plinky_utils::ints::{Address, Length, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Part<S> {
     Header,
     SectionHeaders,
@@ -70,7 +70,7 @@ impl<S> Part<S> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct PaddingId(u64);
 
 impl PaddingId {

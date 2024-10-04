@@ -3,7 +3,7 @@ mod string_table;
 pub use self::string_table::ElfStringTable;
 
 use crate::errors::LoadError;
-use crate::ids::{ElfIds, Ids};
+use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use crate::reader::{read_object, ReadCursor};
 use crate::ReadSeek;
@@ -14,15 +14,15 @@ use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 #[derive(Debug)]
-pub struct ElfObject<I: ElfIds> {
+pub struct ElfObject {
     pub env: ElfEnvironment,
     pub type_: ElfType,
     pub entry: Option<NonZeroU64>,
-    pub sections: BTreeMap<I::SectionId, ElfSection<I>>,
+    pub sections: BTreeMap<ElfSectionId, ElfSection>,
     pub segments: Vec<ElfSegment>,
 }
 
-impl ElfObject<Ids> {
+impl ElfObject {
     pub fn load(reader: &mut dyn ReadSeek) -> Result<Self, LoadError> {
         // Default to elf32 LE for the header, it will be switched automatically.
         let mut cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
@@ -86,29 +86,29 @@ pub enum ElfMachine {
 }
 
 #[derive(Debug)]
-pub struct ElfSection<I: ElfIds> {
-    pub name: I::StringId,
+pub struct ElfSection {
+    pub name: ElfStringId,
     pub memory_address: u64,
     pub part_of_group: bool,
-    pub content: ElfSectionContent<I>,
+    pub content: ElfSectionContent,
 }
 
 #[derive(Debug)]
-pub enum ElfSectionContent<I: ElfIds> {
+pub enum ElfSectionContent {
     Null,
     Program(ElfProgramSection),
     Uninitialized(ElfUninitializedSection),
-    SymbolTable(ElfSymbolTable<I>),
+    SymbolTable(ElfSymbolTable),
     StringTable(ElfStringTable),
-    RelocationsTable(ElfRelocationsTable<I>),
+    RelocationsTable(ElfRelocationsTable),
     Note(ElfNotesTable),
-    Group(ElfGroup<I>),
-    Hash(ElfHash<I>),
-    Dynamic(ElfDynamic<I>),
+    Group(ElfGroup),
+    Hash(ElfHash),
+    Dynamic(ElfDynamic),
     Unknown(ElfUnknownSection),
 }
 
-impl<I: ElfIds> ElfSectionContent<I> {
+impl ElfSectionContent {
     pub fn content_size(&self, bits: ElfClass) -> usize {
         match self {
             ElfSectionContent::Null => 0,
@@ -190,18 +190,18 @@ pub struct ElfUnknownSection {
 }
 
 #[derive(Debug)]
-pub struct ElfSymbolTable<I: ElfIds> {
+pub struct ElfSymbolTable {
     pub dynsym: bool,
-    pub symbols: BTreeMap<I::SymbolId, ElfSymbol<I>>,
+    pub symbols: BTreeMap<ElfSymbolId, ElfSymbol>,
 }
 
 #[derive(Debug)]
-pub struct ElfSymbol<I: ElfIds> {
-    pub name: I::StringId,
+pub struct ElfSymbol {
+    pub name: ElfStringId,
     pub binding: ElfSymbolBinding,
     pub type_: ElfSymbolType,
     pub visibility: ElfSymbolVisibility,
-    pub definition: ElfSymbolDefinition<I>,
+    pub definition: ElfSymbolDefinition,
     pub value: u64,
     pub size: u64,
 }
@@ -235,24 +235,24 @@ pub enum ElfSymbolVisibility {
 }
 
 #[derive(Debug)]
-pub enum ElfSymbolDefinition<I: ElfIds> {
+pub enum ElfSymbolDefinition {
     Undefined,
     Absolute,
     Common,
-    Section(I::SectionId),
+    Section(ElfSectionId),
 }
 
 #[derive(Debug)]
-pub struct ElfRelocationsTable<I: ElfIds> {
-    pub symbol_table: I::SectionId,
-    pub applies_to_section: I::SectionId,
-    pub relocations: Vec<ElfRelocation<I>>,
+pub struct ElfRelocationsTable {
+    pub symbol_table: ElfSectionId,
+    pub applies_to_section: ElfSectionId,
+    pub relocations: Vec<ElfRelocation>,
 }
 
 #[derive(Debug)]
-pub struct ElfRelocation<I: ElfIds> {
+pub struct ElfRelocation {
     pub offset: u64,
-    pub symbol: I::SymbolId,
+    pub symbol: ElfSymbolId,
     pub relocation_type: ElfRelocationType,
     pub addend: Option<i64>,
 }
@@ -324,23 +324,23 @@ pub enum ElfRelocationType {
 }
 
 #[derive(Debug)]
-pub struct ElfGroup<I: ElfIds> {
-    pub symbol_table: I::SectionId,
-    pub signature: I::SymbolId,
-    pub sections: Vec<I::SectionId>,
+pub struct ElfGroup {
+    pub symbol_table: ElfSectionId,
+    pub signature: ElfSymbolId,
+    pub sections: Vec<ElfSectionId>,
     pub comdat: bool,
 }
 
 #[derive(Debug)]
-pub struct ElfHash<I: ElfIds> {
-    pub symbol_table: I::SectionId,
+pub struct ElfHash {
+    pub symbol_table: ElfSectionId,
     pub buckets: Vec<u32>,
     pub chain: Vec<u32>,
 }
 
 #[derive(Debug)]
-pub struct ElfDynamic<I: ElfIds> {
-    pub string_table: I::SectionId,
+pub struct ElfDynamic {
+    pub string_table: ElfSectionId,
     pub directives: Vec<ElfDynamicDirective>,
 }
 

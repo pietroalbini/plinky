@@ -4,7 +4,7 @@ mod write_counter;
 pub(crate) use self::layout::LayoutError;
 
 use crate::errors::WriteError;
-use crate::ids::{ElfIds, StringIdGetters};
+use crate::ids::ElfSectionId;
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader,
     RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
@@ -23,30 +23,22 @@ use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
 
-pub struct Writer<'a, I>
-where
-    I: ElfIds,
-    I::StringId: StringIdGetters<I>,
-{
+pub struct Writer<'a> {
     writer: WriteCounter<'a>,
-    layout: Layout<I::SectionId>,
-    object: &'a ElfObject<I>,
+    layout: Layout<ElfSectionId>,
+    object: &'a ElfObject,
 }
 
-impl<'a, I> Writer<'a, I>
-where
-    I: ElfIds,
-    I::StringId: StringIdGetters<I>,
-{
+impl<'a> Writer<'a> {
     pub fn new(
         writer: &'a mut dyn Write,
-        object: &'a ElfObject<I>,
-        layout: Layout<I::SectionId>,
-    ) -> Result<Self, WriteError<I>> {
+        object: &'a ElfObject,
+        layout: Layout<ElfSectionId>,
+    ) -> Result<Self, WriteError> {
         Ok(Self { writer: WriteCounter::new(writer), layout, object })
     }
 
-    pub fn write(mut self) -> Result<(), WriteError<I>> {
+    pub fn write(mut self) -> Result<(), WriteError> {
         let parts = self.layout.parts().to_vec();
         for part in &parts {
             let expected_len = self
@@ -58,7 +50,7 @@ where
                 .unwrap_or(0);
             self.writer.counter = 0;
 
-            match part {
+            match *part {
                 Part::Header => {
                     self.write_identification()?;
                     self.write_header()?;
@@ -85,7 +77,7 @@ where
         Ok(())
     }
 
-    fn write_identification(&mut self) -> Result<(), WriteError<I>> {
+    fn write_identification(&mut self) -> Result<(), WriteError> {
         self.write_raw(RawIdentification {
             magic: [0x7F, b'E', b'L', b'F'],
             class: match self.object.env.class {
@@ -106,7 +98,7 @@ where
         })
     }
 
-    fn write_header(&mut self) -> Result<(), WriteError<I>> {
+    fn write_header(&mut self) -> Result<(), WriteError> {
         self.write_raw(RawHeader {
             type_: match self.object.type_ {
                 ElfType::Relocatable => 1,
@@ -147,7 +139,7 @@ where
         })
     }
 
-    fn write_section_headers(&mut self) -> Result<(), WriteError<I>> {
+    fn write_section_headers(&mut self) -> Result<(), WriteError> {
         for (id, section) in &self.object.sections {
             let type_ = match &section.content {
                 ElfSectionContent::Null => {
@@ -157,7 +149,7 @@ where
 
                 ElfSectionContent::Uninitialized(uninit) => {
                     self.write_raw(RawSectionHeader {
-                        name_offset: section.name.offset(),
+                        name_offset: section.name.offset,
                         type_: 8,
                         flags: self.perms_to_section_flags(&uninit.perms),
                         memory_address: section.memory_address,
@@ -219,7 +211,7 @@ where
 
             let metadata = self.layout.metadata_of_section(id).file.as_ref().unwrap();
             self.write_raw(RawSectionHeader {
-                name_offset: section.name.offset(),
+                name_offset: section.name.offset,
                 type_,
                 flags,
                 memory_address: section.memory_address,
@@ -230,20 +222,20 @@ where
                         let mut strings = None;
                         for symbol in table.symbols.values() {
                             match strings {
-                                Some(existing) if existing == symbol.name.section() => {}
+                                Some(existing) if existing == symbol.name.section => {}
                                 Some(_) => return Err(WriteError::InconsistentSymbolNamesTableId),
-                                None => strings = Some(symbol.name.section()),
+                                None => strings = Some(symbol.name.section),
                             }
                         }
                         self.section_idx(strings.expect("no symbols in table")) as _
                     }
                     ElfSectionContent::RelocationsTable(table) => {
-                        self.section_idx(&table.symbol_table) as _
+                        self.section_idx(table.symbol_table) as _
                     }
-                    ElfSectionContent::Hash(hash) => self.section_idx(&hash.symbol_table) as _,
-                    ElfSectionContent::Group(group) => self.section_idx(&group.symbol_table) as _,
+                    ElfSectionContent::Hash(hash) => self.section_idx(hash.symbol_table) as _,
+                    ElfSectionContent::Group(group) => self.section_idx(group.symbol_table) as _,
                     ElfSectionContent::Dynamic(dynamic) => {
-                        self.section_idx(&dynamic.string_table) as _
+                        self.section_idx(dynamic.string_table) as _
                     }
                     _ => 0,
                 },
@@ -256,7 +248,7 @@ where
                         .unwrap_or(table.symbols.len())
                         as _,
                     ElfSectionContent::RelocationsTable(table) => {
-                        self.section_idx(&table.applies_to_section) as _
+                        self.section_idx(table.applies_to_section) as _
                     }
                     ElfSectionContent::Group(group) => {
                         let ElfSectionContent::SymbolTable(symbol_table) =
@@ -305,7 +297,7 @@ where
         Ok(())
     }
 
-    fn write_program_headers(&mut self) -> Result<(), WriteError<I>> {
+    fn write_program_headers(&mut self) -> Result<(), WriteError> {
         for segment in &self.object.segments {
             self.write_raw(RawProgramHeader {
                 type_: match segment.type_ {
@@ -335,8 +327,8 @@ where
         Ok(())
     }
 
-    fn write_string_table(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
-        let ElfSectionContent::StringTable(table) = &self.object.sections.get(id).unwrap().content
+    fn write_string_table(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::StringTable(table) = &self.object.sections.get(&id).unwrap().content
         else {
             panic!("section {id:?} is not a string table");
         };
@@ -348,8 +340,8 @@ where
         Ok(())
     }
 
-    fn write_program_section(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
-        let ElfSectionContent::Program(program) = &self.object.sections.get(id).unwrap().content
+    fn write_program_section(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::Program(program) = &self.object.sections.get(&id).unwrap().content
         else {
             panic!("section {id:?} is not a program section");
         };
@@ -357,8 +349,8 @@ where
         Ok(())
     }
 
-    fn write_symbol_table(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
-        let ElfSectionContent::SymbolTable(table) = &self.object.sections.get(id).unwrap().content
+    fn write_symbol_table(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::SymbolTable(table) = &self.object.sections.get(&id).unwrap().content
         else {
             panic!("section {id:?} is not a symbol table")
         };
@@ -380,7 +372,7 @@ where
                 ElfSymbolType::Unknown(other) => other & 0xF,
             };
             self.write_raw(RawSymbol {
-                name_offset: symbol.name.offset(),
+                name_offset: symbol.name.offset,
                 info,
                 other: match &symbol.visibility {
                     ElfSymbolVisibility::Default => 0,
@@ -394,7 +386,7 @@ where
                     ElfSymbolDefinition::Undefined => 0x0000,
                     ElfSymbolDefinition::Absolute => 0xFFF1,
                     ElfSymbolDefinition::Common => 0xFFF2,
-                    ElfSymbolDefinition::Section(id) => self.section_idx(id) as _,
+                    ElfSymbolDefinition::Section(id) => self.section_idx(*id) as _,
                 },
                 value: symbol.value,
                 size: symbol.size,
@@ -404,13 +396,9 @@ where
         Ok(())
     }
 
-    fn write_relocations_table(
-        &mut self,
-        id: &I::SectionId,
-        rela: bool,
-    ) -> Result<(), WriteError<I>> {
+    fn write_relocations_table(&mut self, id: ElfSectionId, rela: bool) -> Result<(), WriteError> {
         let ElfSectionContent::RelocationsTable(table) =
-            &self.object.sections.get(id).unwrap().content
+            &self.object.sections.get(&id).unwrap().content
         else {
             panic!("section {id:?} is not a relocation table")
         };
@@ -516,19 +504,20 @@ where
         Ok(())
     }
 
-    fn write_group(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
-        let ElfSectionContent::Group(group) = &self.object.sections.get(id).unwrap().content else {
+    fn write_group(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::Group(group) = &self.object.sections.get(&id).unwrap().content
+        else {
             panic!("section {id:?} is not a group");
         };
         self.write_raw(RawGroupFlags { comdat: group.comdat })?;
         for section in &group.sections {
-            self.write_raw(self.section_idx(section) as u32)?;
+            self.write_raw(self.section_idx(*section) as u32)?;
         }
         Ok(())
     }
 
-    fn write_hash(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
-        let ElfSectionContent::Hash(hash) = &self.object.sections.get(id).unwrap().content else {
+    fn write_hash(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::Hash(hash) = &self.object.sections.get(&id).unwrap().content else {
             panic!("section {id:?} is not a hash");
         };
         self.write_raw(RawHashHeader {
@@ -544,8 +533,8 @@ where
         Ok(())
     }
 
-    fn write_dynamic(&mut self, id: &I::SectionId) -> Result<(), WriteError<I>> {
-        let ElfSectionContent::Dynamic(dynamic) = &self.object.sections.get(id).unwrap().content
+    fn write_dynamic(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::Dynamic(dynamic) = &self.object.sections.get(&id).unwrap().content
         else {
             panic!("section {id:?} is not a dynamic section");
         };
@@ -615,7 +604,7 @@ where
         Ok(())
     }
 
-    fn write_padding(&mut self, part: &Part<I::SectionId>) -> Result<(), WriteError<I>> {
+    fn write_padding(&mut self, part: &Part<ElfSectionId>) -> Result<(), WriteError> {
         let metadata = self.layout.metadata(part);
         let len = metadata.file.as_ref().expect("padding must be present in the file").len.extract()
             as usize;
@@ -624,7 +613,7 @@ where
         Ok(())
     }
 
-    fn find_section_names_string_table(&self) -> Result<u16, WriteError<I>> {
+    fn find_section_names_string_table(&self) -> Result<u16, WriteError> {
         let section_ids_to_indices = self
             .object
             .sections
@@ -636,9 +625,9 @@ where
         let mut string_table_section_id = None;
         for section in self.object.sections.values() {
             match &string_table_section_id {
-                Some(existing_id) if section.name.section() == existing_id => {}
+                Some(existing_id) if section.name.section == *existing_id => {}
                 Some(_) => return Err(WriteError::InconsistentSectionNamesTableId),
-                None => string_table_section_id = Some(section.name.section().clone()),
+                None => string_table_section_id = Some(section.name.section.clone()),
             }
         }
 
@@ -648,8 +637,8 @@ where
             .ok_or(WriteError::MissingSectionNamesTable)
     }
 
-    fn section_idx(&self, id: &I::SectionId) -> usize {
-        self.object.sections.keys().position(|k| k == id).expect("inconsistent section id")
+    fn section_idx(&self, id: ElfSectionId) -> usize {
+        self.object.sections.keys().position(|k| *k == id).expect("inconsistent section id")
     }
 
     fn perms_to_section_flags(&self, perms: &ElfPermissions) -> RawSectionHeaderFlags {
@@ -665,7 +654,7 @@ where
         T::size(self.object.env.class) as _
     }
 
-    fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError<I>> {
+    fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError> {
         value.write(self.object.env.class, self.object.env.endian, &mut self.writer)?;
         Ok(())
     }

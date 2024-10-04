@@ -13,7 +13,6 @@ use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::ids::Ids;
 use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
@@ -83,7 +82,7 @@ pub(crate) trait LinkerCallbacks {
 
     fn on_relocations_applied(&self, _object: &Object, _layout: &Layout<SectionId>) {}
 
-    fn on_elf_built(&self, _elf: &ElfObject<Ids>) {}
+    fn on_elf_built(&self, _elf: &ElfObject) {}
 }
 
 #[derive(Debug, Display, Error)]

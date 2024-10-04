@@ -3,7 +3,6 @@ use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
-use plinky_elf::ids::Ids;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use std::collections::{HashSet, VecDeque};
@@ -11,7 +10,7 @@ use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::{Path, PathBuf};
 
-type ObjectItem = (ObjectSpan, ElfObject<Ids>);
+type ObjectItem = (ObjectSpan, ElfObject);
 
 pub(super) struct ObjectsReader<'a> {
     remaining_files: &'a [PathBuf],

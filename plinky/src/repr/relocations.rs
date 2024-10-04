@@ -1,5 +1,5 @@
 use crate::repr::symbols::SymbolId;
-use plinky_elf::ids::{ElfSymbolId, Ids};
+use plinky_elf::ids::ElfSymbolId;
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
@@ -59,7 +59,7 @@ pub(crate) struct Relocation {
 
 impl Relocation {
     pub(crate) fn from_elf(
-        elf: ElfRelocation<Ids>,
+        elf: ElfRelocation,
         conversion: &BTreeMap<ElfSymbolId, SymbolId>,
     ) -> Result<Self, UnsupportedRelocationType> {
         Ok(Relocation {

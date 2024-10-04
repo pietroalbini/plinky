@@ -16,7 +16,7 @@ use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::segments::SegmentType;
 use crate::repr::symbols::{ResolveSymbolError, ResolvedSymbol};
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::ids::{ElfSectionId, ElfStringId, Ids};
+use plinky_elf::ids::{ElfSectionId, ElfStringId};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
     ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
@@ -33,7 +33,7 @@ pub(crate) fn run(
     object: Object,
     layout: &Layout<SectionId>,
     resolver: &AddressResolver<'_>,
-) -> Result<(ElfObject<Ids>, SectionConversion), ElfBuilderError> {
+) -> Result<(ElfObject, SectionConversion), ElfBuilderError> {
     let builder = ElfBuilder {
         section_zero_id: ElfSectionId { index: 0 },
         section_ids: BTreeMap::new(),
@@ -60,7 +60,7 @@ struct ElfBuilder<'a> {
 }
 
 impl<'a> ElfBuilder<'a> {
-    fn build(mut self) -> Result<(ElfObject<Ids>, SectionConversion), ElfBuilderError> {
+    fn build(mut self) -> Result<(ElfObject, SectionConversion), ElfBuilderError> {
         // Precalculate section IDs, to avoid circular dependencies.
         for (index, section) in self.object.sections.iter().enumerate() {
             // The +1 is due to the zero section.
@@ -134,9 +134,7 @@ impl<'a> ElfBuilder<'a> {
         }
     }
 
-    fn prepare_sections(
-        &mut self,
-    ) -> Result<BTreeMap<ElfSectionId, ElfSection<Ids>>, ElfBuilderError> {
+    fn prepare_sections(&mut self) -> Result<BTreeMap<ElfSectionId, ElfSection>, ElfBuilderError> {
         // Prepare section names ahead of time.
         let mut section_names = StringsTableBuilder::new(
             *self
@@ -301,7 +299,7 @@ impl StringsTableBuilder {
         ElfStringId { section: self.id, offset }
     }
 
-    fn into_elf(self) -> ElfSectionContent<Ids> {
+    fn into_elf(self) -> ElfSectionContent {
         ElfSectionContent::StringTable(ElfStringTable::new(self.strings))
     }
 }

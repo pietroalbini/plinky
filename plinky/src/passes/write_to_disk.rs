@@ -1,5 +1,5 @@
 use plinky_elf::errors::WriteError;
-use plinky_elf::ids::{ElfSectionId, Ids};
+use plinky_elf::ids::ElfSectionId;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
@@ -10,7 +10,7 @@ use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn run(
-    object: ElfObject<Ids>,
+    object: ElfObject,
     layout: Layout<ElfSectionId>,
     dest: &Path,
 ) -> Result<(), WriteToDiskError> {
@@ -31,7 +31,7 @@ pub(crate) fn run(
 #[derive(Debug, Error)]
 pub(crate) enum WriteToDiskError {
     FileCreation(PathBuf, #[source] std::io::Error),
-    WriteFailed(PathBuf, #[source] WriteError<Ids>),
+    WriteFailed(PathBuf, #[source] WriteError),
     PermissionSetFailed(PathBuf, #[source] std::io::Error),
 }
 

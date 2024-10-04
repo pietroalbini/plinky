@@ -1,4 +1,4 @@
-use crate::ids::{ElfIds, StringIdGetters};
+use crate::ids::ElfStringId;
 use crate::{ElfObject, ElfPermissions, ElfSectionContent};
 use plinky_diagnostics::widgets::Widget;
 use plinky_diagnostics::WidgetWriter;
@@ -18,12 +18,12 @@ pub(super) fn render_perms(perms: &ElfPermissions) -> String {
     }
 }
 
-pub(super) fn resolve_string<'a, I: ElfIds>(object: &'a ElfObject<I>, id: &I::StringId) -> &'a str {
-    let table = object.sections.get(id.section()).expect("invalid string section id");
+pub(super) fn resolve_string<'a>(object: &'a ElfObject, id: ElfStringId) -> &'a str {
+    let table = object.sections.get(&id.section).expect("invalid string section id");
     let ElfSectionContent::StringTable(table) = &table.content else {
         panic!("string section id is not a string table");
     };
-    table.get(id.offset()).expect("missing string")
+    table.get(id.offset).expect("missing string")
 }
 
 pub(super) struct MultipleWidgets(pub(super) Vec<Box<dyn Widget>>);

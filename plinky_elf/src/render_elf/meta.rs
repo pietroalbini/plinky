@@ -1,8 +1,7 @@
-use crate::ids::ElfIds;
 use crate::{ElfABI, ElfClass, ElfEndian, ElfMachine, ElfObject, ElfType};
 use plinky_diagnostics::widgets::{Table, Widget};
 
-pub(super) fn render_meta<I: ElfIds>(object: &ElfObject<I>) -> impl Widget {
+pub(super) fn render_meta(object: &ElfObject) -> impl Widget {
     let mut table = Table::new();
     table.set_title("Metadata:");
     table.add_row([

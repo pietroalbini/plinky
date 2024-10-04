@@ -1,4 +1,4 @@
-use plinky_elf::ids::{ElfSectionId, ElfStringId, StringIdGetters};
+use plinky_elf::ids::{ElfSectionId, ElfStringId};
 use plinky_elf::ElfStringTable;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -19,8 +19,8 @@ impl Strings {
 
     pub(super) fn get(&self, id: ElfStringId) -> Result<&str, MissingStringError> {
         self.tables
-            .get(id.section())
-            .and_then(|table| table.get(id.offset()))
+            .get(&id.section)
+            .and_then(|table| table.get(id.offset))
             .ok_or(MissingStringError(id))
     }
 }

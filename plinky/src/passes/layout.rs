@@ -24,7 +24,7 @@ pub(crate) fn run(object: &Object) -> Result<Layout<SectionId>, LayoutError> {
 
 macro_rules! cast_section {
     ($self:expr, $id:expr, $variant:ident) => {
-        match &$self.sections.get(*$id).content {
+        match &$self.sections.get($id).content {
             SectionContent::$variant(inner) => inner,
             _ => panic!("section {:?} is of the wrong type", $id),
         }
@@ -44,17 +44,17 @@ impl LayoutDetailsProvider<SectionId> for Object {
         self.segments.len()
     }
 
-    fn program_section_len(&self, id: &SectionId) -> usize {
+    fn program_section_len(&self, id: SectionId) -> usize {
         cast_section!(self, id, Data).bytes.len()
     }
 
-    fn uninitialized_section_len(&self, id: &SectionId) -> usize {
+    fn uninitialized_section_len(&self, id: SectionId) -> usize {
         cast_section!(self, id, Uninitialized).len.extract() as _
     }
 
-    fn string_table_len(&self, id: &SectionId) -> usize {
+    fn string_table_len(&self, id: SectionId) -> usize {
         let strings: Box<dyn Iterator<Item = Interned<String>>> =
-            match &self.sections.get(*id).content {
+            match &self.sections.get(id).content {
                 SectionContent::Strings(strings) => {
                     // Local symbols also have a STT_FILE entry for every file.
                     let file_names = self
@@ -84,7 +84,7 @@ impl LayoutDetailsProvider<SectionId> for Object {
             .sum::<usize>()
     }
 
-    fn symbols_in_table_count(&self, id: &SectionId) -> usize {
+    fn symbols_in_table_count(&self, id: SectionId) -> usize {
         let symbols = cast_section!(self, id, Symbols);
         let symbols_count = self.symbols.iter(&*symbols.view).count();
 
@@ -100,19 +100,19 @@ impl LayoutDetailsProvider<SectionId> for Object {
         symbols_count + files_count
     }
 
-    fn sections_in_group_count(&self, _id: &SectionId) -> usize {
+    fn sections_in_group_count(&self, _id: SectionId) -> usize {
         unimplemented!();
     }
 
-    fn dynamic_directives_count(&self, _id: &SectionId) -> usize {
+    fn dynamic_directives_count(&self, _id: SectionId) -> usize {
         self.dynamic_entries.iter().map(|d| d.directives_count()).sum::<usize>() + 1
     }
 
-    fn relocations_in_table_count(&self, id: &SectionId) -> usize {
+    fn relocations_in_table_count(&self, id: SectionId) -> usize {
         cast_section!(self, id, Relocations).relocations().len()
     }
 
-    fn hash_details(&self, id: &SectionId) -> LayoutDetailsHash {
+    fn hash_details(&self, id: SectionId) -> LayoutDetailsHash {
         let hash = cast_section!(self, id, SysvHash);
         let symbols_count = self.symbols.iter(&*hash.view).count();
         LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }

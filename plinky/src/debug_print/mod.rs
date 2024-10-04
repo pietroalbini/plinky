@@ -15,7 +15,6 @@ use crate::passes::gc_sections::RemovedSection;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ids::Ids;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::ElfObject;
 use std::collections::{BTreeMap, BTreeSet};
@@ -63,7 +62,7 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_elf_built(&self, elf: &ElfObject<Ids>) {
+    fn on_elf_built(&self, elf: &ElfObject) {
         for print in &self.print {
             if let DebugPrint::FinalElf(filters) = print {
                 render(

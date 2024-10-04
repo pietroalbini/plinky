@@ -1,7 +1,7 @@
 use crate::passes::build_elf::strings::BuiltStringsTable;
 use crate::repr::sections::{SectionId, SymbolsSection};
 use crate::repr::symbols::{Symbol, SymbolId, SymbolType, SymbolValue, SymbolVisibility, Symbols};
-use plinky_elf::ids::{ElfSectionId, ElfSymbolId, Ids};
+use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
     ElfSymbolType, ElfSymbolVisibility,
@@ -81,7 +81,7 @@ pub(super) fn create_symbols(
 }
 
 pub(super) struct BuiltSymbolsTable {
-    pub(super) elf: Option<ElfSectionContent<Ids>>,
+    pub(super) elf: Option<ElfSectionContent>,
     pub(super) conversion: BTreeMap<SymbolId, ElfSymbolId>,
 }
 
@@ -90,7 +90,7 @@ struct Converter<'a> {
     index: u32,
     section_ids: &'a BTreeMap<SectionId, ElfSectionId>,
     strings: &'a BuiltStringsTable,
-    symbols: BTreeMap<ElfSymbolId, ElfSymbol<Ids>>,
+    symbols: BTreeMap<ElfSymbolId, ElfSymbol>,
     conversion: BTreeMap<SymbolId, ElfSymbolId>,
 }
 

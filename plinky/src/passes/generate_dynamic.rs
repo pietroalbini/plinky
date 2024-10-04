@@ -3,7 +3,7 @@ use crate::interner::intern;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::sections::{
-    DynamicSection, SectionContent, SectionId, StringsSection, SymbolsSection, SysvHashSection
+    DynamicSection, SectionContent, SectionId, StringsSection, SymbolsSection, SysvHashSection,
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;

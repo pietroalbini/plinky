@@ -133,7 +133,6 @@ fn render_section_relocs<I: ElfIds>(
     let intro = Text::new(format!(
         "symbol table:       {}\n\
          applies to section: {}",
-
         names.section(&relocs.symbol_table),
         names.section(&relocs.applies_to_section),
     ));
@@ -158,10 +157,7 @@ fn render_section_relocs<I: ElfIds>(
     vec![Box::new(intro), Box::new(table)]
 }
 
-fn render_section_group<I: ElfIds>(
-    names: &Names<I>,
-    group: &ElfGroup<I>,
-) -> Vec<Box<dyn Widget>> {
+fn render_section_group<I: ElfIds>(names: &Names<I>, group: &ElfGroup<I>) -> Vec<Box<dyn Widget>> {
     let mut info = "group | ".to_string();
     if group.comdat {
         info.push_str("COMDAT | ");

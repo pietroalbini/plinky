@@ -1,4 +1,5 @@
 use plinky_elf::errors::WriteError;
+use plinky_elf::ids::{ElfSectionId, Ids};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
@@ -7,7 +8,6 @@ use std::fs::{File, Permissions};
 use std::io::BufWriter;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
-use plinky_elf::ids::{ElfSectionId, Ids};
 
 pub(crate) fn run(
     object: ElfObject<Ids>,

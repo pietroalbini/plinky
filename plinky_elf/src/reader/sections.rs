@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::ids::{Ids, ElfSectionId, ElfStringId, ElfSymbolId};
+use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId, Ids};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSectionHeader, RawSymbol};
 use crate::reader::notes::read_notes;
 use crate::reader::ReadCursor;

@@ -1,14 +1,14 @@
 pub use crate::render_elf::filters::{RenderElfFilters, RenderElfFiltersParseError};
 
 use crate::ids::ElfIds;
+use crate::render_elf::names::Names;
 use crate::render_elf::utils::{resolve_string, MultipleWidgets};
 use crate::ElfObject;
 use plinky_diagnostics::widgets::Widget;
-use crate::render_elf::names::Names;
 
-mod names;
 mod filters;
 mod meta;
+mod names;
 mod sections;
 mod segments;
 mod utils;

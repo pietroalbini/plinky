@@ -1,9 +1,9 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
+use plinky_elf::ids::{ElfSectionId, ElfStringId, ElfSymbolId, Ids};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
-use plinky_elf::ids::{ElfSectionId, ElfStringId, ElfSymbolId, Ids};
 
 pub(super) struct SectionGroups {
     loaded_groups: BTreeSet<Interned<String>>,
@@ -15,7 +15,11 @@ impl SectionGroups {
     }
 
     pub(super) fn for_object(&mut self) -> SectionGroupsForObject<'_> {
-        SectionGroupsForObject { parent: self, remove_sections: BTreeSet::new(), group_section_ids: BTreeSet::new() }
+        SectionGroupsForObject {
+            parent: self,
+            remove_sections: BTreeSet::new(),
+            group_section_ids: BTreeSet::new(),
+        }
     }
 }
 

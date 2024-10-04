@@ -30,7 +30,7 @@ pub struct ElfSectionId {
     pub index: u32,
 }
 
-impl std::fmt::Debug  for ElfSectionId {
+impl std::fmt::Debug for ElfSectionId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "section#{}", self.index)
     }

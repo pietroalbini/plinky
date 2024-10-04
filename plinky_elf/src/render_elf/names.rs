@@ -11,18 +11,13 @@ pub(super) struct Names<'a, I: ElfIds> {
 
 impl<'a, I: ElfIds> Names<'a, I> {
     pub(super) fn new(object: &'a ElfObject<I>) -> Self {
-        let sections = calculate_names(
-            object
-                .sections
-                .iter()
-                .map(|(id, section)| {
-                    let mut name = resolve_string(object, &section.name).to_string();
-                    if name.is_empty() {
-                        name = "<empty>".to_string();
-                    }
-                    (id, name)
-                }),
-        );
+        let sections = calculate_names(object.sections.iter().map(|(id, section)| {
+            let mut name = resolve_string(object, &section.name).to_string();
+            if name.is_empty() {
+                name = "<empty>".to_string();
+            }
+            (id, name)
+        }));
 
         let symbols = calculate_names(
             object

@@ -8,5 +8,5 @@ pub mod render_elf;
 mod types;
 pub mod writer;
 
-pub use self::types::*;
 pub use self::reader::ReadSeek;
+pub use self::types::*;

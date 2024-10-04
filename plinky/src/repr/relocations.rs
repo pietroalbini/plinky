@@ -1,9 +1,9 @@
 use crate::repr::symbols::SymbolId;
+use plinky_elf::ids::{ElfSymbolId, Ids};
 use plinky_elf::{ElfRelocation, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
 use std::collections::BTreeMap;
-use plinky_elf::ids::{ElfSymbolId, Ids};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RelocationType {

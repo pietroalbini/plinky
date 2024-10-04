@@ -1,8 +1,4 @@
-pub mod convert;
 pub mod serial;
-
-pub use convert::convert;
-pub use convert::{ConvertibleElfIds, IdConversionMap};
 
 use std::fmt::Debug;
 use std::hash::Hash;

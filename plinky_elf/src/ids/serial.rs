@@ -7,8 +7,6 @@ macro_rules! new_serial_ids {
             type StringId = $string_vis:vis $string_ty:ident;
         }
     ) => {
-        use $crate::ids::convert::IdConversionMap;
-        use $crate::ids::convert::ConvertibleElfIds;
         use $crate::ids::{ElfIds, ReprIdGetters, StringIdGetters};
         use $crate::{ElfObject, ElfSectionContent};
 
@@ -77,42 +75,6 @@ macro_rules! new_serial_ids {
             type SectionId = $section_ty;
             type SymbolId = $symbol_ty;
             type StringId = $string_ty;
-        }
-
-        impl<F> ConvertibleElfIds<F> for $ids_ty
-        where
-            F: ElfIds,
-            F::StringId: StringIdGetters<F>,
-        {
-            fn create_conversion_map(
-                &mut self,
-                object: &ElfObject<F>,
-                string_ids: &[F::StringId],
-            ) -> IdConversionMap<F, Self> {
-                let mut map = IdConversionMap::<F, Self>::new();
-
-                for (old_id, section) in &object.sections {
-                    map.section_ids.insert(old_id.clone(), self.allocate_section_id());
-
-                    if let ElfSectionContent::SymbolTable(table) = &section.content {
-                        for id in table.symbols.keys() {
-                            map.symbol_ids.insert(id.clone(), self.allocate_symbol_id());
-                        }
-                    }
-                }
-
-                for string_id in string_ids {
-                    map.string_ids.insert(
-                        string_id.clone(),
-                        $string_ty::new(
-                            *map.section_ids.get(string_id.section()).expect("missing section"),
-                            string_id.offset(),
-                        ),
-                    );
-                }
-
-                map
-            }
         }
 
         impl $ids_ty {

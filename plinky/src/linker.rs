@@ -14,7 +14,6 @@ use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
@@ -24,9 +23,7 @@ pub(crate) fn link_driver(
     options: &CliOptions,
     callbacks: &dyn LinkerCallbacks,
 ) -> Result<(), LinkerError> {
-    let mut ids = SerialIds::new();
-
-    let mut object = passes::load_inputs::run(options, &mut ids)?;
+    let mut object = passes::load_inputs::run(options)?;
     passes::inject_symbol_table::run(&mut object);
     passes::inject_gnu_stack::run(&mut object);
     callbacks.on_inputs_loaded(&object);

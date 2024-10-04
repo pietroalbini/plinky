@@ -3,9 +3,9 @@ mod string_table;
 pub use self::string_table::ElfStringTable;
 
 use crate::errors::LoadError;
-use crate::ids::{convert, ConvertibleElfIds, ElfIds};
+use crate::ids::{ElfIds, Ids};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
-use crate::reader::{read_object, PendingIds, ReadCursor};
+use crate::reader::{read_object, ReadCursor};
 use crate::ReadSeek;
 use plinky_macros::Bitfield;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
@@ -22,15 +22,11 @@ pub struct ElfObject<I: ElfIds> {
     pub segments: Vec<ElfSegment>,
 }
 
-impl<I: ElfIds> ElfObject<I> {
-    pub fn load(reader: &mut dyn ReadSeek, ids: &mut I) -> Result<Self, LoadError>
-    where
-        I: ConvertibleElfIds<PendingIds>,
-    {
+impl ElfObject<Ids> {
+    pub fn load(reader: &mut dyn ReadSeek) -> Result<Self, LoadError> {
         // Default to elf32 LE for the header, it will be switched automatically.
         let mut cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
-        let object = read_object(&mut cursor)?;
-        Ok(convert(ids, object))
+        read_object(&mut cursor)
     }
 }
 

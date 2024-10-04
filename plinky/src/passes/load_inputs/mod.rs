@@ -10,7 +10,6 @@ use crate::repr::sections::{SectionContent, Sections};
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{LoadSymbolsError, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::ElfEnvironment;
 use plinky_macros::{Display, Error};
 
@@ -21,7 +20,7 @@ mod read_objects;
 mod section_groups;
 mod strings;
 
-pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, LoadInputsError> {
+pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.inputs);
 
     let mut empty_symbols = Symbols::new().map_err(LoadInputsError::SymbolTableCreationFailed)?;
@@ -42,7 +41,7 @@ pub(crate) fn run(options: &CliOptions, ids: &mut SerialIds) -> Result<Object, L
             State::Empty { symbols, .. } => symbols,
             State::WithContent { object, .. } => &object.symbols,
         };
-        let Some((source, elf)) = reader.next_object(ids, symbols)? else { break };
+        let Some((source, elf)) = reader.next_object(symbols)? else { break };
 
         state = match state {
             State::Empty { symbols, mut section_groups, mut strings } => {

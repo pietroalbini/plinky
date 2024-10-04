@@ -1,37 +1,37 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
-use plinky_elf::ids::serial::{SerialIds, SerialSectionId, SerialStringId, SerialSymbolId};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
+use plinky_elf::ids::{ElfSectionId, ElfStringId, ElfSymbolId, Ids};
 
 pub(super) struct SectionGroups {
     loaded_groups: BTreeSet<Interned<String>>,
-    group_section_ids: BTreeSet<SerialSectionId>,
 }
 
 impl SectionGroups {
     pub(super) fn new() -> Self {
-        Self { loaded_groups: BTreeSet::new(), group_section_ids: BTreeSet::new() }
+        Self { loaded_groups: BTreeSet::new() }
     }
 
     pub(super) fn for_object(&mut self) -> SectionGroupsForObject<'_> {
-        SectionGroupsForObject { parent: self, remove_sections: BTreeSet::new() }
+        SectionGroupsForObject { parent: self, remove_sections: BTreeSet::new(), group_section_ids: BTreeSet::new() }
     }
 }
 
 pub(super) struct SectionGroupsForObject<'a> {
     parent: &'a mut SectionGroups,
-    remove_sections: BTreeSet<SerialSectionId>,
+    remove_sections: BTreeSet<ElfSectionId>,
+    group_section_ids: BTreeSet<ElfSectionId>,
 }
 
 impl SectionGroupsForObject<'_> {
     pub(super) fn add_group(
         &mut self,
         strings: &Strings,
-        symbol_tables: &[(SerialStringId, ElfSymbolTable<SerialIds>)],
-        id: SerialSectionId,
-        group: ElfGroup<SerialIds>,
+        symbol_tables: &[(ElfStringId, ElfSymbolTable<Ids>)],
+        id: ElfSectionId,
+        group: ElfGroup<Ids>,
     ) -> Result<(), SectionGroupsError> {
         // Right now we are only implementing section groups for the x86 snippet of code
         // used to determine the current instruction pointer (__x86.get_pc_thunk.bx). That
@@ -62,18 +62,17 @@ impl SectionGroupsForObject<'_> {
                 .map_err(SectionGroupsError::MissingSignatureString)?,
         );
 
+        self.group_section_ids.insert(id);
         if !self.parent.loaded_groups.insert(signature) {
             self.remove_sections.insert(section_id);
         }
-
-        self.parent.group_section_ids.insert(id);
 
         Ok(())
     }
 
     pub(super) fn filter_symbol_table(
         &self,
-        table: &mut ElfSymbolTable<SerialIds>,
+        table: &mut ElfSymbolTable<Ids>,
     ) -> Result<(), SectionGroupsError> {
         // If the group is already loaded in another object file, mark each symbol pointing to it
         // as undefined, so that the rest of the linker will resolve the symbol to the retained
@@ -97,12 +96,12 @@ impl SectionGroupsForObject<'_> {
         Ok(())
     }
 
-    pub(super) fn should_skip_section(&self, id: SerialSectionId) -> bool {
+    pub(super) fn should_skip_section(&self, id: ElfSectionId) -> bool {
         self.remove_sections.contains(&id)
     }
 
-    pub(super) fn is_section_a_group_definition(&self, id: SerialSectionId) -> bool {
-        self.parent.group_section_ids.contains(&id)
+    pub(super) fn is_section_a_group_definition(&self, id: ElfSectionId) -> bool {
+        self.group_section_ids.contains(&id)
     }
 }
 
@@ -113,9 +112,9 @@ pub(crate) enum SectionGroupsError {
     #[display("only section groups with a single section are supported")]
     MultipleSections,
     #[display("group signature {f0:?} is not present in any symbol table")]
-    MissingSignatureSymbol(SerialSymbolId),
+    MissingSignatureSymbol(ElfSymbolId),
     #[display("symbol {f0:?} points inside a section group but is not global")]
-    NonGlobalSymbolInGroup(SerialSymbolId),
+    NonGlobalSymbolInGroup(ElfSymbolId),
     #[display("missing group signature")]
     MissingSignatureString(#[source] MissingStringError),
 }

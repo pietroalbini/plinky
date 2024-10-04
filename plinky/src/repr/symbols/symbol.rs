@@ -3,7 +3,7 @@ use crate::repr::sections::SectionId;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SerialIds, SerialSectionId};
+use plinky_elf::ids::{ElfSectionId, Ids};
 use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
 };
@@ -126,8 +126,8 @@ pub(crate) enum UpcomingSymbol<'a> {
         section: SectionId,
     },
     Elf {
-        section_conversion: &'a BTreeMap<SerialSectionId, SectionId>,
-        elf: ElfSymbol<SerialIds>,
+        section_conversion: &'a BTreeMap<ElfSectionId, SectionId>,
+        elf: ElfSymbol<Ids>,
         resolved_name: Interned<String>,
         span: Interned<ObjectSpan>,
         stt_file: Option<Interned<String>>,

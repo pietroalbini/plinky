@@ -1,5 +1,4 @@
 use anyhow::{bail, Error};
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
 use plinky_elf::ElfObject;
@@ -71,8 +70,7 @@ impl ReadStep {
         let dest = ctx.dest.join(ctx.step_name).join("roundtrip").join(file.file_name().unwrap());
         std::fs::create_dir_all(dest.parent().unwrap())?;
 
-        let mut ids = SerialIds::new();
-        let object = ElfObject::load(&mut BufReader::new(File::open(file)?), &mut ids)?;
+        let object = ElfObject::load(&mut BufReader::new(File::open(file)?))?;
         Writer::new(
             &mut BufWriter::new(File::create_new(&dest)?),
             &object,

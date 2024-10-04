@@ -1,8 +1,8 @@
-use super::{PendingStringId, PendingSymbolId};
 use crate::errors::LoadError;
+use crate::ids::{Ids, ElfSectionId, ElfStringId, ElfSymbolId};
 use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSectionHeader, RawSymbol};
 use crate::reader::notes::read_notes;
-use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
+use crate::reader::ReadCursor;
 use crate::{
     ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
     ElfGroup, ElfHash, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocation,
@@ -19,8 +19,8 @@ pub(super) fn read_sections(
     offset: u64,
     count: u16,
     size: u16,
-    section_names_table: PendingSectionId,
-) -> Result<BTreeMap<PendingSectionId, ElfSection<PendingIds>>, LoadError> {
+    section_names_table: ElfSectionId,
+) -> Result<BTreeMap<ElfSectionId, ElfSection<Ids>>, LoadError> {
     if offset == 0 {
         return Ok(BTreeMap::new());
     }
@@ -29,8 +29,8 @@ pub(super) fn read_sections(
     for idx in 0..count {
         cursor.seek_to(offset + (size as u64 * idx as u64))?;
         sections.insert(
-            PendingSectionId(idx as _),
-            read_section(cursor, section_names_table, PendingSectionId(idx as _))
+            ElfSectionId { index: idx.into() },
+            read_section(cursor, section_names_table, ElfSectionId { index: idx.into() })
                 .map_err(|inner| LoadError::FailedToParseSection { idx, inner: Box::new(inner) })?,
         );
     }
@@ -40,11 +40,11 @@ pub(super) fn read_sections(
 
 fn read_section(
     cursor: &mut ReadCursor<'_>,
-    section_names_table: PendingSectionId,
-    current_section: PendingSectionId,
-) -> Result<ElfSection<PendingIds>, LoadError> {
+    section_names_table: ElfSectionId,
+    current_section: ElfSectionId,
+) -> Result<ElfSection<Ids>, LoadError> {
     let header: RawSectionHeader = cursor.read_raw().map_err(|e| {
-        LoadError::FailedToParseSectionHeader { idx: current_section.0, inner: Box::new(e) }
+        LoadError::FailedToParseSectionHeader { idx: current_section.index, inner: Box::new(e) }
     })?;
 
     let ty = match header.type_ {
@@ -68,7 +68,7 @@ fn read_section(
     // though, as for example GCC emits it while NASM doesn't. To catch unknown uses of the flag,
     // we error out if the flag is set for a non-relocation section.
     if header.flags.info_link && !matches!(ty, SectionType::Relocations { .. }) {
-        return Err(LoadError::UnsupportedInfoLinkFlag(current_section.0));
+        return Err(LoadError::UnsupportedInfoLinkFlag(current_section.index));
     }
 
     if header.flags.strings {
@@ -77,7 +77,7 @@ fn read_section(
         // if this happens, to avoid malformed programs being emitted.
         if header.entries_size != 1 {
             return Err(LoadError::UnsupportedStringsWithSizeNotOne {
-                section_idx: current_section.0,
+                section_idx: current_section.index,
                 size: header.entries_size,
             });
         }
@@ -85,7 +85,7 @@ fn read_section(
         // redundantly applied to string tables. Error out for now, if a valid use is found the
         // linker will need to be updated to handle it.
         if !(header.flags.merge || matches!(ty, SectionType::StringTable)) {
-            return Err(LoadError::UnexpectedStringsFlag { section_idx: current_section.0 });
+            return Err(LoadError::UnexpectedStringsFlag { section_idx: current_section.index });
         }
     }
 
@@ -95,7 +95,7 @@ fn read_section(
         match NonZeroU64::new(header.entries_size) {
             None => {
                 return Err(LoadError::FixedSizeChunksMergeWithZeroLenChunks {
-                    section_idx: current_section.0,
+                    section_idx: current_section.index,
                 })
             }
             Some(size) => Some(ElfDeduplication::FixedSizeChunks { size }),
@@ -117,7 +117,13 @@ fn read_section(
         }),
         SectionType::SymbolTable { dynsym } => {
             let raw = read_section_raw_content(&header, cursor)?;
-            read_symbol_table(cursor, &raw, PendingSectionId(header.link), current_section, dynsym)?
+            read_symbol_table(
+                cursor,
+                &raw,
+                ElfSectionId { index: header.link },
+                current_section,
+                dynsym,
+            )?
         }
         SectionType::StringTable => read_string_table(&read_section_raw_content(&header, cursor)?)?,
         SectionType::Relocations { rela } => {
@@ -125,8 +131,8 @@ fn read_section(
             read_relocations_table(
                 cursor,
                 &raw,
-                PendingSectionId(header.link),
-                PendingSectionId(header.info),
+                ElfSectionId { index: header.link },
+                ElfSectionId { index: header.info },
                 rela,
             )?
         }
@@ -161,11 +167,13 @@ fn read_section(
     };
 
     if deduplication.is_some() {
-        return Err(LoadError::MergeFlagOnUnsupportedSection { section_idx: current_section.0 });
+        return Err(LoadError::MergeFlagOnUnsupportedSection {
+            section_idx: current_section.index,
+        });
     }
 
     Ok(ElfSection {
-        name: PendingStringId(section_names_table, header.name_offset),
+        name: ElfStringId { section: section_names_table, offset: header.name_offset },
         memory_address: header.memory_address,
         part_of_group: header.flags.group,
         content,
@@ -194,7 +202,7 @@ enum SectionType {
     Unknown(u32),
 }
 
-fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent<PendingIds>, LoadError> {
+fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent<Ids>, LoadError> {
     let mut strings = BTreeMap::new();
     let mut offset: usize = 0;
     while offset < raw_content.len() {
@@ -216,17 +224,17 @@ fn read_string_table(raw_content: &[u8]) -> Result<ElfSectionContent<PendingIds>
 fn read_symbol_table(
     cursor: &mut ReadCursor<'_>,
     raw_content: &[u8],
-    strings_table: PendingSectionId,
-    current_section: PendingSectionId,
+    strings_table: ElfSectionId,
+    current_section: ElfSectionId,
     dynsym: bool,
-) -> Result<ElfSectionContent<PendingIds>, LoadError> {
+) -> Result<ElfSectionContent<Ids>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
     let mut symbols = BTreeMap::new();
     while cursor.current_position()? != raw_content.len() as u64 {
         symbols.insert(
-            PendingSymbolId(current_section, symbols.len() as _),
+            ElfSymbolId { section: current_section, index: symbols.len() as _ },
             read_symbol(&mut cursor, strings_table)?,
         );
     }
@@ -236,11 +244,11 @@ fn read_symbol_table(
 
 fn read_symbol(
     cursor: &mut ReadCursor<'_>,
-    strings_table: PendingSectionId,
-) -> Result<ElfSymbol<PendingIds>, LoadError> {
+    strings_table: ElfSectionId,
+) -> Result<ElfSymbol<Ids>, LoadError> {
     let symbol: RawSymbol = cursor.read_raw()?;
     Ok(ElfSymbol {
-        name: PendingStringId(strings_table, symbol.name_offset),
+        name: ElfStringId { section: strings_table, offset: symbol.name_offset },
         binding: match (symbol.info & 0b11110000) >> 4 {
             0 => ElfSymbolBinding::Local,
             1 => ElfSymbolBinding::Global,
@@ -268,7 +276,7 @@ fn read_symbol(
             0x0000 => ElfSymbolDefinition::Undefined, // SHN_UNDEF
             0xFFF1 => ElfSymbolDefinition::Absolute,  // SHN_ABS
             0xFFF2 => ElfSymbolDefinition::Common,    // SHN_COMMON
-            other => ElfSymbolDefinition::Section(PendingSectionId(other as _)),
+            other => ElfSymbolDefinition::Section(ElfSectionId { index: other as _ }),
         },
         value: symbol.value,
         size: symbol.size,
@@ -278,10 +286,10 @@ fn read_symbol(
 fn read_relocations_table(
     cursor: &mut ReadCursor<'_>,
     raw_content: &[u8],
-    symbol_table: PendingSectionId,
-    applies_to_section: PendingSectionId,
+    symbol_table: ElfSectionId,
+    applies_to_section: ElfSectionId,
     rela: bool,
-) -> Result<ElfSectionContent<PendingIds>, LoadError> {
+) -> Result<ElfSectionContent<Ids>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -299,9 +307,9 @@ fn read_relocations_table(
 
 fn read_relocation(
     cursor: &mut ReadCursor<'_>,
-    symbol_table: PendingSectionId,
+    symbol_table: ElfSectionId,
     rela: bool,
-) -> Result<ElfRelocation<PendingIds>, LoadError> {
+) -> Result<ElfRelocation<Ids>, LoadError> {
     let (offset, info, addend) = if rela {
         let raw: RawRela = cursor.read_raw()?;
         (raw.offset, raw.info, Some(raw.addend))
@@ -383,7 +391,7 @@ fn read_relocation(
 
     Ok(ElfRelocation {
         offset,
-        symbol: PendingSymbolId(symbol_table, symbol),
+        symbol: ElfSymbolId { section: symbol_table, index: symbol },
         relocation_type,
         addend,
     })
@@ -393,18 +401,18 @@ fn read_group(
     header: &RawSectionHeader,
     cursor: &mut ReadCursor<'_>,
     raw_content: &[u8],
-) -> Result<ElfGroup<PendingIds>, LoadError> {
+) -> Result<ElfGroup<Ids>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
-    let symbol_table = PendingSectionId(header.link);
-    let signature = PendingSymbolId(symbol_table, header.info);
+    let symbol_table = ElfSectionId { index: header.link };
+    let signature = ElfSymbolId { section: symbol_table, index: header.info };
 
     let flags: RawGroupFlags = cursor.read_raw()?;
 
     let mut sections = Vec::new();
     while cursor.current_position()? < raw_content.len() as u64 {
-        sections.push(PendingSectionId(cursor.read_raw::<u32>()?));
+        sections.push(ElfSectionId { index: cursor.read_raw::<u32>()? });
     }
 
     Ok(ElfGroup { symbol_table, signature, sections, comdat: flags.comdat })
@@ -414,13 +422,13 @@ fn read_hash(
     header: &RawSectionHeader,
     raw_content: &[u8],
     cursor: &mut ReadCursor,
-) -> Result<ElfHash<PendingIds>, LoadError> {
+) -> Result<ElfHash<Ids>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
     let hash_header: RawHashHeader = cursor.read_raw()?;
     let mut hash = ElfHash {
-        symbol_table: PendingSectionId(header.link),
+        symbol_table: ElfSectionId { index: header.link },
         buckets: Vec::with_capacity(hash_header.bucket_count as _),
         chain: Vec::with_capacity(hash_header.chain_count as _),
     };
@@ -437,7 +445,7 @@ fn read_dynamic(
     header: &RawSectionHeader,
     raw_content: &[u8],
     cursor: &mut ReadCursor,
-) -> Result<ElfDynamic<PendingIds>, LoadError> {
+) -> Result<ElfDynamic<Ids>, LoadError> {
     let mut inner = std::io::Cursor::new(raw_content);
     let mut cursor = cursor.duplicate(&mut inner);
 
@@ -494,5 +502,5 @@ fn read_dynamic(
         });
     }
 
-    Ok(ElfDynamic { string_table: PendingSectionId(header.link), directives })
+    Ok(ElfDynamic { string_table: ElfSectionId { index: header.link }, directives })
 }

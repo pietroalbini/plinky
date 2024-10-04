@@ -3,7 +3,7 @@ use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
-use plinky_elf::ids::serial::SerialIds;
+use plinky_elf::ids::Ids;
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use std::collections::{HashSet, VecDeque};
@@ -11,7 +11,7 @@ use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::{Path, PathBuf};
 
-type ObjectItem = (ObjectSpan, ElfObject<SerialIds>);
+type ObjectItem = (ObjectSpan, ElfObject<Ids>);
 
 pub(super) struct ObjectsReader<'a> {
     remaining_files: &'a [PathBuf],
@@ -25,11 +25,10 @@ impl<'a> ObjectsReader<'a> {
 
     pub(super) fn next_object(
         &mut self,
-        ids: &mut SerialIds,
         symbols: &Symbols,
     ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         loop {
-            if let Some(result) = self.next_from_archive(ids, symbols)? {
+            if let Some(result) = self.next_from_archive(symbols)? {
                 return Ok(Some(result));
             }
 
@@ -46,7 +45,7 @@ impl<'a> ObjectsReader<'a> {
                 FileType::Elf => {
                     return Ok(Some((
                         ObjectSpan::new_file(path),
-                        ElfObject::load(&mut r, ids)
+                        ElfObject::load(&mut r)
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     )))
                 }
@@ -62,12 +61,11 @@ impl<'a> ObjectsReader<'a> {
 
     fn next_from_archive(
         &mut self,
-        ids: &mut SerialIds,
         symbols: &Symbols,
     ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         let Some(pending_archive) = &mut self.current_archive else { return Ok(None) };
         match pending_archive.next(symbols)? {
-            Some(file) => match ElfObject::load(&mut Cursor::new(file.content), ids) {
+            Some(file) => match ElfObject::load(&mut Cursor::new(file.content)) {
                 Ok(object) => Ok(Some((
                     ObjectSpan::new_archive_member(&pending_archive.path, file.name),
                     object,

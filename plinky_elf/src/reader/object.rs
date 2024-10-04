@@ -1,12 +1,13 @@
 use crate::errors::LoadError;
+use crate::ids::{Ids, ElfSectionId};
 use crate::raw::{RawHeader, RawIdentification};
 use crate::reader::program_header::read_program_header;
 use crate::reader::sections::read_sections;
-use crate::reader::{PendingIds, PendingSectionId, ReadCursor};
+use crate::reader::ReadCursor;
 use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfObject, ElfType};
 use std::num::NonZeroU64;
 
-pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<PendingIds>, LoadError> {
+pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Ids>, LoadError> {
     let identification: RawIdentification = cursor.read_raw()?;
     if identification.magic != [0x7F, b'E', b'L', b'F'] {
         return Err(LoadError::BadMagic(identification.magic));
@@ -55,7 +56,7 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
         header.section_headers_offset,
         header.section_header_count,
         header.section_header_size,
-        PendingSectionId(header.section_names_table_index as _),
+        ElfSectionId { index: header.section_names_table_index.into() },
     )?;
 
     let mut segments = Vec::new();
@@ -68,7 +69,7 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject<Pendi
         }
     }
 
-    Ok(ElfObject::<PendingIds> {
+    Ok(ElfObject::<Ids> {
         env: ElfEnvironment { class, endian, abi, machine },
         type_,
         entry: NonZeroU64::new(header.entry),

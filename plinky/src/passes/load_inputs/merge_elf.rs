@@ -6,7 +6,7 @@ use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ids::serial::{SerialIds, SerialSectionId, SerialSymbolId};
+use plinky_elf::ids::{ElfSectionId, ElfSymbolId, Ids};
 use plinky_elf::{
     ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
 };
@@ -18,7 +18,7 @@ pub(super) fn merge(
     strings: &mut Strings,
     mut section_groups: SectionGroupsForObject<'_>,
     source: ObjectSpan,
-    elf: ElfObject<SerialIds>,
+    elf: ElfObject<Ids>,
 ) -> Result<(), MergeElfError> {
     let mut symbol_tables = Vec::new();
     let mut program_sections = Vec::new();
@@ -145,10 +145,10 @@ pub(super) fn merge(
 fn merge_symbols(
     symbols: &mut Symbols,
     section_groups: &SectionGroupsForObject<'_>,
-    section_conversion: &BTreeMap<SerialSectionId, SectionId>,
-    symbol_conversion: &mut BTreeMap<SerialSymbolId, SymbolId>,
+    section_conversion: &BTreeMap<ElfSectionId, SectionId>,
+    symbol_conversion: &mut BTreeMap<ElfSymbolId, SymbolId>,
     span: Interned<ObjectSpan>,
-    table: ElfSymbolTable<SerialIds>,
+    table: ElfSymbolTable<Ids>,
     strings: &Strings,
     section: &str,
 ) -> Result<(), MergeElfError> {
@@ -222,12 +222,12 @@ pub(crate) enum MergeElfError {
     UnsupportedDynamicSection,
     #[display("failed to fetch section name for section {id:?}")]
     MissingSectionName {
-        id: SerialSectionId,
+        id: ElfSectionId,
         #[source]
         err: MissingStringError,
     },
     #[display("missing name for symbol {symbol:?} in section {section}")]
-    MissingSymbolName { symbol: SerialSymbolId, section: String },
+    MissingSymbolName { symbol: ElfSymbolId, section: String },
     #[display("failed to add symbol {symbol} in section {section}")]
     AddSymbolFailed {
         symbol: Interned<String>,

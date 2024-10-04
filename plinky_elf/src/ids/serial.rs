@@ -134,11 +134,3 @@ macro_rules! new_serial_ids {
         }
     };
 }
-
-new_serial_ids! {
-    pub SerialIds {
-        type SectionId = pub SerialSectionId;
-        type SymbolId = pub SerialSymbolId;
-        type StringId = pub SerialStringId;
-    }
-}

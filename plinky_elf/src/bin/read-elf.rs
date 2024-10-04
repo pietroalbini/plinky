@@ -1,5 +1,4 @@
 use plinky_diagnostics::widgets::Widget;
-use plinky_elf::ids::serial::SerialIds;
 use plinky_elf::render_elf::RenderElfFilters;
 use plinky_elf::ElfObject;
 use std::error::Error;
@@ -13,7 +12,7 @@ fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
     };
 
     let mut file = File::open(path)?;
-    let object = ElfObject::load(&mut file, &mut SerialIds::new())?;
+    let object = ElfObject::load(&mut file)?;
 
     println!("{}", plinky_elf::render_elf::render(&object, &filters).render_to_string());
 

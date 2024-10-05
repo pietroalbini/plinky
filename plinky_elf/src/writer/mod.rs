@@ -227,16 +227,12 @@ impl<'a> Writer<'a> {
                                 None => strings = Some(symbol.name.section),
                             }
                         }
-                        self.section_idx(strings.expect("no symbols in table")) as _
+                        strings.expect("no symbols in table").index
                     }
-                    ElfSectionContent::RelocationsTable(table) => {
-                        self.section_idx(table.symbol_table) as _
-                    }
-                    ElfSectionContent::Hash(hash) => self.section_idx(hash.symbol_table) as _,
-                    ElfSectionContent::Group(group) => self.section_idx(group.symbol_table) as _,
-                    ElfSectionContent::Dynamic(dynamic) => {
-                        self.section_idx(dynamic.string_table) as _
-                    }
+                    ElfSectionContent::RelocationsTable(table) => table.symbol_table.index,
+                    ElfSectionContent::Hash(hash) => hash.symbol_table.index,
+                    ElfSectionContent::Group(group) => group.symbol_table.index,
+                    ElfSectionContent::Dynamic(dynamic) => dynamic.string_table.index,
                     _ => 0,
                 },
                 info: match &section.content {
@@ -247,9 +243,7 @@ impl<'a> Writer<'a> {
                         .position(|s| s.binding != ElfSymbolBinding::Local)
                         .unwrap_or(table.symbols.len())
                         as _,
-                    ElfSectionContent::RelocationsTable(table) => {
-                        self.section_idx(table.applies_to_section) as _
-                    }
+                    ElfSectionContent::RelocationsTable(table) => table.applies_to_section.index,
                     ElfSectionContent::Group(group) => {
                         let ElfSectionContent::SymbolTable(symbol_table) =
                             &self.object.sections.get(&group.symbol_table).unwrap().content
@@ -386,7 +380,7 @@ impl<'a> Writer<'a> {
                     ElfSymbolDefinition::Undefined => 0x0000,
                     ElfSymbolDefinition::Absolute => 0xFFF1,
                     ElfSymbolDefinition::Common => 0xFFF2,
-                    ElfSymbolDefinition::Section(id) => self.section_idx(*id) as _,
+                    ElfSymbolDefinition::Section(id) => id.index as _,
                 },
                 value: symbol.value,
                 size: symbol.size,
@@ -403,20 +397,7 @@ impl<'a> Writer<'a> {
             panic!("section {id:?} is not a relocation table")
         };
 
-        let ElfSectionContent::SymbolTable(symbol_table) = &self
-            .object
-            .sections
-            .get(&table.symbol_table)
-            .ok_or_else(|| WriteError::MissingSymbolTableForRelocations {
-                symbol_table: table.symbol_table.clone(),
-                relocations_table: id.clone(),
-            })?
-            .content
-        else {
-            panic!("section {id:?} is not a symbol table")
-        };
-
-        for (idx, relocation) in table.relocations.iter().enumerate() {
+        for relocation in &table.relocations {
             let relocation_type = match relocation.relocation_type {
                 ElfRelocationType::X86_None => 0,
                 ElfRelocationType::X86_32 => 1,
@@ -477,14 +458,7 @@ impl<'a> Writer<'a> {
                 ElfRelocationType::X86_64_Code_6_GOTPC32_TLSDesc => 51,
                 ElfRelocationType::Unknown(other) => other as u64,
             };
-            let symbol =
-                symbol_table.symbols.keys().position(|id| *id == relocation.symbol).ok_or_else(
-                    || WriteError::MissingSymbolInRelocation {
-                        symbol_id: relocation.symbol.clone(),
-                        relocations_table: id.clone(),
-                        relocation_idx: idx,
-                    },
-                )? as u64;
+            let symbol = relocation.symbol.index as u64;
             let info = match self.object.env.class {
                 ElfClass::Elf32 => relocation_type | (symbol << 8),
                 ElfClass::Elf64 => relocation_type | (symbol << 32),
@@ -511,7 +485,7 @@ impl<'a> Writer<'a> {
         };
         self.write_raw(RawGroupFlags { comdat: group.comdat })?;
         for section in &group.sections {
-            self.write_raw(self.section_idx(*section) as u32)?;
+            self.write_raw(section.index)?;
         }
         Ok(())
     }
@@ -635,10 +609,6 @@ impl<'a> Writer<'a> {
             .and_then(|id| section_ids_to_indices.get(&id))
             .copied()
             .ok_or(WriteError::MissingSectionNamesTable)
-    }
-
-    fn section_idx(&self, id: ElfSectionId) -> usize {
-        self.object.sections.keys().position(|k| *k == id).expect("inconsistent section id")
     }
 
     fn perms_to_section_flags(&self, perms: &ElfPermissions) -> RawSectionHeaderFlags {

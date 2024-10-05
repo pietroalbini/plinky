@@ -1,34 +1,31 @@
 use crate::errors::LoadError;
-use crate::ids::{ElfSectionId, ElfSymbolId};
+use crate::ids::ElfSymbolId;
 use crate::raw::{RawRel, RawRela};
+use crate::reader::sections::SectionReader;
 use crate::reader::ReadCursor;
 use crate::{ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent};
 
 pub(super) fn read(
-    cursor: &mut ReadCursor<'_>,
-    raw_content: &[u8],
-    symbol_table: ElfSectionId,
-    applies_to_section: ElfSectionId,
+    reader: &mut SectionReader<'_, '_>,
     rela: bool,
 ) -> Result<ElfSectionContent, LoadError> {
-    let mut inner = std::io::Cursor::new(raw_content);
-    let mut cursor = cursor.duplicate(&mut inner);
+    let mut cursor = reader.content_cursor()?;
 
     let mut relocations = Vec::new();
-    while cursor.current_position()? != raw_content.len() as u64 {
-        relocations.push(read_relocation(&mut cursor, symbol_table, rela)?);
+    while cursor.current_position()? != reader.content_len() as u64 {
+        relocations.push(read_relocation(reader, &mut cursor, rela)?);
     }
 
     Ok(ElfSectionContent::RelocationsTable(ElfRelocationsTable {
-        symbol_table,
-        applies_to_section,
+        symbol_table: reader.section_link(),
+        applies_to_section: reader.section_info(),
         relocations,
     }))
 }
 
 fn read_relocation(
+    reader: &mut SectionReader<'_, '_>,
     cursor: &mut ReadCursor<'_>,
-    symbol_table: ElfSectionId,
     rela: bool,
 ) -> Result<ElfRelocation, LoadError> {
     let (offset, info, addend) = if rela {
@@ -112,7 +109,7 @@ fn read_relocation(
 
     Ok(ElfRelocation {
         offset,
-        symbol: ElfSymbolId { section: symbol_table, index: symbol },
+        symbol: ElfSymbolId { section: reader.section_link(), index: symbol },
         relocation_type,
         addend,
     })

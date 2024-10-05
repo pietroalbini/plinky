@@ -1,20 +1,13 @@
 use crate::errors::LoadError;
-use crate::ids::ElfSectionId;
-use crate::raw::RawSectionHeader;
-use crate::reader::ReadCursor;
+use crate::reader::sections::SectionReader;
 use crate::{
     ElfClass, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
     ElfPLTRelocationsMode, ElfSectionContent,
 };
 use plinky_utils::bitfields::Bitfield;
 
-pub(super) fn read(
-    header: &RawSectionHeader,
-    raw_content: &[u8],
-    cursor: &mut ReadCursor,
-) -> Result<ElfSectionContent, LoadError> {
-    let mut inner = std::io::Cursor::new(raw_content);
-    let mut cursor = cursor.duplicate(&mut inner);
+pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
+    let mut cursor = reader.content_cursor()?;
 
     let mut directives = Vec::new();
     let mut stop = false;
@@ -69,8 +62,5 @@ pub(super) fn read(
         });
     }
 
-    Ok(ElfSectionContent::Dynamic(ElfDynamic {
-        string_table: ElfSectionId { index: header.link },
-        directives,
-    }))
+    Ok(ElfSectionContent::Dynamic(ElfDynamic { string_table: reader.section_link(), directives }))
 }

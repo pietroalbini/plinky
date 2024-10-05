@@ -1,8 +1,11 @@
 use crate::errors::LoadError;
+use crate::reader::sections::SectionReader;
 use crate::{ElfSectionContent, ElfStringTable};
 use std::collections::BTreeMap;
 
-pub(super) fn read(raw_content: &[u8]) -> Result<ElfSectionContent, LoadError> {
+pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
+    let raw_content = reader.content()?;
+
     let mut strings = BTreeMap::new();
     let mut offset: usize = 0;
     while offset < raw_content.len() {

@@ -1,17 +1,14 @@
 use crate::errors::LoadError;
 use crate::raw::RawNoteHeader;
+use crate::reader::sections::SectionReader;
 use crate::reader::ReadCursor;
 use crate::{ElfNote, ElfNotesTable, ElfSectionContent, ElfUnknownNote};
 
-pub(super) fn read(
-    cursor: &mut ReadCursor<'_>,
-    raw_content: &[u8],
-) -> Result<ElfSectionContent, LoadError> {
-    let mut inner = std::io::Cursor::new(raw_content);
-    let mut cursor = cursor.duplicate(&mut inner);
+pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
+    let mut cursor = reader.content_cursor()?;
 
     let mut notes = Vec::new();
-    while cursor.current_position()? != raw_content.len() as u64 {
+    while cursor.current_position()? != reader.content_len() as u64 {
         notes.push(read_note(&mut cursor)?);
     }
 

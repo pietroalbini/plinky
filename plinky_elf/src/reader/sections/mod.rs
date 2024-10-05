@@ -2,18 +2,18 @@ mod dynamic;
 mod group;
 mod hash;
 mod notes;
+mod program;
 mod relocations_table;
 mod string_table;
 mod symbol_table;
+mod uninit;
+mod unknown;
 
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfStringId};
 use crate::raw::RawSectionHeader;
 use crate::reader::ReadCursor;
-use crate::{
-    ElfDeduplication, ElfPermissions, ElfProgramSection, ElfSection, ElfSectionContent,
-    ElfUninitializedSection, ElfUnknownSection,
-};
+use crate::{ElfDeduplication, ElfPermissions, ElfSection, ElfSectionContent};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -92,90 +92,32 @@ fn read_section(
         }
     }
 
-    let mut deduplication = if header.flags.merge && header.flags.strings {
-        Some(ElfDeduplication::ZeroTerminatedStrings)
-    } else if header.flags.merge {
-        match NonZeroU64::new(header.entries_size) {
-            None => {
-                return Err(LoadError::FixedSizeChunksMergeWithZeroLenChunks {
-                    section_idx: current_section.index,
-                })
-            }
-            Some(size) => Some(ElfDeduplication::FixedSizeChunks { size }),
+    let mut reader = SectionReader { header: &header, cursor, section_id: current_section };
+
+    // Ensure the deduplication flags are only applied to program sections.
+    match (ty, reader.deduplication_flag()) {
+        (SectionType::Program, _) => {}
+        (_, Err(_) | Ok(ElfDeduplication::Disabled)) => {}
+        _ => {
+            return Err(LoadError::MergeFlagOnUnsupportedSection {
+                section_idx: current_section.index,
+            });
         }
-    } else {
-        None
-    };
+    }
 
     let content = match ty {
         SectionType::Null => ElfSectionContent::Null,
-        SectionType::Program => ElfSectionContent::Program(ElfProgramSection {
-            perms: ElfPermissions {
-                read: header.flags.alloc,
-                write: header.flags.write,
-                execute: header.flags.exec,
-            },
-            deduplication: deduplication.take().unwrap_or(ElfDeduplication::Disabled),
-            raw: read_section_raw_content(&header, cursor)?,
-        }),
-        SectionType::SymbolTable { dynsym } => {
-            let raw = read_section_raw_content(&header, cursor)?;
-            symbol_table::read(
-                cursor,
-                &raw,
-                ElfSectionId { index: header.link },
-                current_section,
-                dynsym,
-            )?
-        }
-        SectionType::StringTable => {
-            string_table::read(&read_section_raw_content(&header, cursor)?)?
-        }
-        SectionType::Relocations { rela } => {
-            let raw = read_section_raw_content(&header, cursor)?;
-            relocations_table::read(
-                cursor,
-                &raw,
-                ElfSectionId { index: header.link },
-                ElfSectionId { index: header.info },
-                rela,
-            )?
-        }
-        SectionType::Note => {
-            let raw = read_section_raw_content(&header, cursor)?;
-            notes::read(cursor, &raw)?
-        }
-        SectionType::Uninit => ElfSectionContent::Uninitialized(ElfUninitializedSection {
-            perms: ElfPermissions {
-                read: header.flags.alloc,
-                write: header.flags.write,
-                execute: header.flags.exec,
-            },
-            len: header.size,
-        }),
-        SectionType::Group => {
-            let raw = read_section_raw_content(&header, cursor)?;
-            group::read(&header, cursor, &raw)?
-        }
-        SectionType::Hash => {
-            let raw = read_section_raw_content(&header, cursor)?;
-            hash::read(&header, &raw, cursor)?
-        }
-        SectionType::Dynamic => {
-            let raw = read_section_raw_content(&header, cursor)?;
-            dynamic::read(&header, &raw, cursor)?
-        }
-        SectionType::Unknown(other) => ElfSectionContent::Unknown(ElfUnknownSection {
-            id: other,
-            raw: read_section_raw_content(&header, cursor)?,
-        }),
+        SectionType::Program => program::read(&mut reader)?,
+        SectionType::SymbolTable { dynsym } => symbol_table::read(&mut reader, dynsym)?,
+        SectionType::StringTable => string_table::read(&mut reader)?,
+        SectionType::Relocations { rela } => relocations_table::read(&mut reader, rela)?,
+        SectionType::Note => notes::read(&mut reader)?,
+        SectionType::Uninit => uninit::read(&mut reader)?,
+        SectionType::Group => group::read(&mut reader)?,
+        SectionType::Hash => hash::read(&mut reader)?,
+        SectionType::Dynamic => dynamic::read(&mut reader)?,
+        SectionType::Unknown(other) => unknown::read(&mut reader, other)?,
     };
-
-    if deduplication.is_some() {
-        return Err(LoadError::MergeFlagOnUnsupportedSection {
-            section_idx: current_section.index,
-        });
-    }
 
     Ok(ElfSection {
         name: ElfStringId { section: section_names_table, offset: header.name_offset },
@@ -185,14 +127,7 @@ fn read_section(
     })
 }
 
-fn read_section_raw_content(
-    header: &RawSectionHeader,
-    cursor: &mut ReadCursor<'_>,
-) -> Result<Vec<u8>, LoadError> {
-    cursor.seek_to(header.offset)?;
-    cursor.read_vec(header.size)
-}
-
+#[derive(Clone, Copy)]
 enum SectionType {
     Null,
     Program,
@@ -205,4 +140,59 @@ enum SectionType {
     Hash,
     Dynamic,
     Unknown(u32),
+}
+
+struct SectionReader<'a, 'b> {
+    header: &'a RawSectionHeader,
+    cursor: &'a mut ReadCursor<'b>,
+    section_id: ElfSectionId,
+}
+
+impl SectionReader<'_, '_> {
+    fn content(&mut self) -> Result<Vec<u8>, LoadError> {
+        self.cursor.seek_to(self.header.offset)?;
+        self.cursor.read_vec(self.header.size)
+    }
+
+    fn content_cursor(&mut self) -> Result<ReadCursor<'static>, LoadError> {
+        let reader = std::io::Cursor::new(self.content()?);
+        Ok(ReadCursor::new_owned(Box::new(reader), self.cursor.class, self.cursor.endian))
+    }
+
+    fn content_len(&self) -> u64 {
+        self.header.size
+    }
+
+    fn section_link(&self) -> ElfSectionId {
+        ElfSectionId { index: self.header.link }
+    }
+
+    fn section_info(&self) -> ElfSectionId {
+        ElfSectionId { index: self.header.info }
+    }
+
+    fn permissions(&self) -> ElfPermissions {
+        ElfPermissions {
+            read: self.header.flags.alloc,
+            write: self.header.flags.write,
+            execute: self.header.flags.exec,
+        }
+    }
+
+    fn deduplication_flag(&self) -> Result<ElfDeduplication, LoadError> {
+        if self.header.flags.merge && self.header.flags.strings {
+            Ok(ElfDeduplication::ZeroTerminatedStrings)
+        } else if self.header.flags.merge {
+            match NonZeroU64::new(self.header.entries_size) {
+                None => {
+                    return Err(LoadError::FixedSizeChunksMergeWithZeroLenChunks {
+                        section_idx: self.section_id.index,
+                    });
+                }
+                Some(size) => Ok(ElfDeduplication::FixedSizeChunks { size }),
+            }
+        } else {
+            Ok(ElfDeduplication::Disabled)
+        }
+    }
 }

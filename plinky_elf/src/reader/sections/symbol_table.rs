@@ -1,6 +1,7 @@
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use crate::raw::RawSymbol;
+use crate::reader::sections::SectionReader;
 use crate::reader::ReadCursor;
 use crate::{
     ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
@@ -9,20 +10,16 @@ use crate::{
 use std::collections::BTreeMap;
 
 pub(super) fn read(
-    cursor: &mut ReadCursor<'_>,
-    raw_content: &[u8],
-    strings_table: ElfSectionId,
-    current_section: ElfSectionId,
+    reader: &mut SectionReader<'_, '_>,
     dynsym: bool,
 ) -> Result<ElfSectionContent, LoadError> {
-    let mut inner = std::io::Cursor::new(raw_content);
-    let mut cursor = cursor.duplicate(&mut inner);
+    let mut cursor = reader.content_cursor()?;
 
     let mut symbols = BTreeMap::new();
-    while cursor.current_position()? != raw_content.len() as u64 {
+    while cursor.current_position()? != reader.content_len() {
         symbols.insert(
-            ElfSymbolId { section: current_section, index: symbols.len() as _ },
-            read_symbol(&mut cursor, strings_table)?,
+            ElfSymbolId { section: reader.section_id, index: symbols.len() as _ },
+            read_symbol(reader, &mut cursor)?,
         );
     }
 
@@ -30,12 +27,12 @@ pub(super) fn read(
 }
 
 fn read_symbol(
+    reader: &mut SectionReader<'_, '_>,
     cursor: &mut ReadCursor<'_>,
-    strings_table: ElfSectionId,
 ) -> Result<ElfSymbol, LoadError> {
     let symbol: RawSymbol = cursor.read_raw()?;
     Ok(ElfSymbol {
-        name: ElfStringId { section: strings_table, offset: symbol.name_offset },
+        name: ElfStringId { section: reader.section_link(), offset: symbol.name_offset },
         binding: match (symbol.info & 0b11110000) >> 4 {
             0 => ElfSymbolBinding::Local,
             1 => ElfSymbolBinding::Global,

@@ -1,20 +1,14 @@
 use crate::errors::LoadError;
-use crate::ids::ElfSectionId;
-use crate::raw::{RawHashHeader, RawSectionHeader};
-use crate::reader::ReadCursor;
+use crate::raw::RawHashHeader;
+use crate::reader::sections::SectionReader;
 use crate::{ElfHash, ElfSectionContent};
 
-pub(super) fn read(
-    header: &RawSectionHeader,
-    raw_content: &[u8],
-    cursor: &mut ReadCursor,
-) -> Result<ElfSectionContent, LoadError> {
-    let mut inner = std::io::Cursor::new(raw_content);
-    let mut cursor = cursor.duplicate(&mut inner);
+pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
+    let mut cursor = reader.content_cursor()?;
 
     let hash_header: RawHashHeader = cursor.read_raw()?;
     let mut hash = ElfHash {
-        symbol_table: ElfSectionId { index: header.link },
+        symbol_table: reader.section_link(),
         buckets: Vec::with_capacity(hash_header.bucket_count as _),
         chain: Vec::with_capacity(hash_header.chain_count as _),
     };

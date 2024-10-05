@@ -4,24 +4,28 @@ use plinky_utils::raw_types::RawType;
 use std::io::{Read, Seek, SeekFrom};
 
 pub(crate) struct ReadCursor<'a> {
-    reader: &'a mut dyn ReadSeek,
+    reader: InnerReader<'a>,
     pub(crate) class: ElfClass,
     pub(crate) endian: ElfEndian,
 }
 
 impl<'a> ReadCursor<'a> {
     pub(crate) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass, endian: ElfEndian) -> Self {
-        Self { reader, class, endian }
+        Self { reader: InnerReader::Borrowed(reader), class, endian }
+    }
+
+    pub(crate) fn new_owned(reader: Box<dyn ReadSeek>, class: ElfClass, endian: ElfEndian) -> Self {
+        Self { reader: InnerReader::Owned(reader), class, endian }
     }
 
     pub(super) fn seek_to(&mut self, position: u64) -> Result<(), LoadError> {
-        self.reader.seek(SeekFrom::Start(position))?;
+        self.reader.get().seek(SeekFrom::Start(position))?;
         Ok(())
     }
 
     pub(super) fn read_vec(&mut self, size: u64) -> Result<Vec<u8>, LoadError> {
         let mut contents = vec![0; size as _];
-        self.reader.read_exact(&mut contents)?;
+        self.reader.get().read_exact(&mut contents)?;
         Ok(contents)
     }
 
@@ -35,25 +39,32 @@ impl<'a> ReadCursor<'a> {
             return Ok(());
         }
         let bytes_to_pad = align - current % align;
-        self.reader.seek(SeekFrom::Current(bytes_to_pad as _))?;
+        self.reader.get().seek(SeekFrom::Current(bytes_to_pad as _))?;
         Ok(())
     }
 
     pub(super) fn current_position(&mut self) -> Result<u64, LoadError> {
-        Ok(self.reader.stream_position()?)
-    }
-
-    pub(super) fn duplicate<'new>(
-        &mut self,
-        new_reader: &'new mut dyn ReadSeek,
-    ) -> ReadCursor<'new> {
-        ReadCursor { reader: new_reader, class: self.class, endian: self.endian }
+        Ok(self.reader.get().stream_position()?)
     }
 }
 
 impl std::io::Read for ReadCursor<'_> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.reader.read(buf)
+        self.reader.get().read(buf)
+    }
+}
+
+enum InnerReader<'a> {
+    Borrowed(&'a mut dyn ReadSeek),
+    Owned(Box<dyn ReadSeek>),
+}
+
+impl<'a> InnerReader<'a> {
+    fn get(&mut self) -> &mut dyn ReadSeek {
+        match self {
+            InnerReader::Borrowed(borrowed) => borrowed,
+            InnerReader::Owned(owned) => &mut *owned,
+        }
     }
 }
 

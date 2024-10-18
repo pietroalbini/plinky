@@ -4,6 +4,7 @@ mod part;
 pub use self::details_provider::*;
 pub use self::part::*;
 
+use crate::raw::RawNoteHeader;
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
     RawSectionHeader, RawSymbol,
@@ -194,6 +195,20 @@ fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> L
                 + hash.chain * u32::size(class)
         }
 
+        Part::Note(id) => {
+            let align = |value| if value % 4 == 0 { value } else { value + 4 - value % 4 };
+
+            details
+                .note_details(id)
+                .iter()
+                .map(|note| {
+                    RawNoteHeader::size(class)
+                        + align(note.name_len + 1 /* Null terminator */)
+                        + align(note.value_len)
+                })
+                .sum()
+        }
+
         Part::Group(id) => {
             RawGroupFlags::size(class) + u32::size(class) * details.sections_in_group_count(id)
         }
@@ -210,8 +225,6 @@ fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> L
 pub enum LayoutError {
     #[display("relocation section mixing rel and rela")]
     MixedRelRela,
-    #[display("writing notes is not supported yet")]
-    WritingNotesUnsupported,
     #[display("unkown section encountered while calculating the layout")]
     UnknownSection,
     #[display("the linker output is too large")]

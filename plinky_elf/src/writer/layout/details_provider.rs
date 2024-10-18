@@ -17,6 +17,7 @@ pub trait LayoutDetailsProvider<S: Copy> {
     fn dynamic_directives_count(&self, id: S) -> usize;
     fn relocations_in_table_count(&self, id: S) -> usize;
     fn hash_details(&self, id: S) -> LayoutDetailsHash;
+    fn note_details(&self, id: S) -> Vec<LayoutDetailsNote>;
 
     fn parts_for_sections(&self) -> Result<Vec<Part<S>>, LayoutError>;
     fn parts_groups(&self) -> Result<Vec<LayoutPartsGroup<S>>, LayoutError>;
@@ -25,6 +26,11 @@ pub trait LayoutDetailsProvider<S: Copy> {
 pub struct LayoutDetailsHash {
     pub buckets: usize,
     pub chain: usize,
+}
+
+pub struct LayoutDetailsNote {
+    pub name_len: usize,
+    pub value_len: usize,
 }
 
 pub struct LayoutPartsGroup<S> {
@@ -86,6 +92,17 @@ impl LayoutDetailsProvider<ElfSectionId> for ElfObject {
     fn hash_details(&self, id: ElfSectionId) -> LayoutDetailsHash {
         let hash = cast_section!(self, id, Hash);
         LayoutDetailsHash { buckets: hash.buckets.len(), chain: hash.chain.len() }
+    }
+
+    fn note_details(&self, id: ElfSectionId) -> Vec<LayoutDetailsNote> {
+        cast_section!(self, id, Note)
+            .notes
+            .iter()
+            .map(|note| LayoutDetailsNote {
+                name_len: note.name().len(),
+                value_len: note.value_len(),
+            })
+            .collect()
     }
 
     fn parts_for_sections(&self) -> Result<Vec<Part<ElfSectionId>>, LayoutError> {
@@ -165,9 +182,7 @@ fn part_for_section(
         ElfSectionContent::Hash(_) => Part::Hash(id.clone()),
         ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),
 
-        ElfSectionContent::Note(_) => {
-            return Err(LayoutError::WritingNotesUnsupported);
-        }
+        ElfSectionContent::Note(_) => Part::Note(id.clone()),
         ElfSectionContent::Unknown(_) => {
             return Err(LayoutError::UnknownSection);
         }

@@ -6,16 +6,17 @@ pub(crate) use self::layout::LayoutError;
 use crate::errors::WriteError;
 use crate::ids::ElfSectionId;
 use crate::raw::{
-    RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawProgramHeader,
-    RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader, RawSectionHeaderFlags, RawSymbol,
+    RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawNoteHeader,
+    RawProgramHeader, RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader,
+    RawSectionHeaderFlags, RawSymbol,
 };
 use crate::writer::layout::{Layout, Part};
 use crate::writer::write_counter::WriteCounter;
 use crate::{
-    ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfObject,
-    ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType, ElfSectionContent,
-    ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
-    ElfSymbolVisibility, ElfType,
+    ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfNote,
+    ElfObject, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType,
+    ElfSectionContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfSymbolVisibility, ElfType,
 };
 use plinky_utils::bitfields::Bitfield;
 use plinky_utils::ints::ExtractNumber;
@@ -66,6 +67,7 @@ impl<'a> Writer<'a> {
                 Part::Group(id) => self.write_group(id)?,
                 Part::Hash(id) => self.write_hash(id)?,
                 Part::Dynamic(id) => self.write_dynamic(id)?,
+                Part::Note(id) => self.write_notes(id)?,
                 Part::Padding { .. } => self.write_padding(part)?,
             }
 
@@ -169,7 +171,7 @@ impl<'a> Writer<'a> {
                 ElfSectionContent::StringTable(_) => 3,
                 ElfSectionContent::Hash(_) => 5,
                 ElfSectionContent::Dynamic(_) => 6,
-                ElfSectionContent::Note(_) => todo!(),
+                ElfSectionContent::Note(_) => 7,
                 ElfSectionContent::Unknown(_) => panic!("unknown section"),
                 ElfSectionContent::RelocationsTable(_) => self
                     .layout
@@ -303,7 +305,7 @@ impl<'a> Writer<'a> {
                     ElfSegmentType::ProgramHeaderTable => 6,
                     ElfSegmentType::GnuStack => 0x6474e551,
                     ElfSegmentType::GnuRelro => 0x6474e552,
-                    ElfSegmentType::Unknown(_) => panic!("unknown segment"),
+                    ElfSegmentType::Unknown(id) => id,
                 },
                 file_offset: segment.file_offset,
                 virtual_address: segment.virtual_address,
@@ -575,6 +577,39 @@ impl<'a> Writer<'a> {
             }
         }
 
+        Ok(())
+    }
+
+    fn write_notes(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let ElfSectionContent::Note(notes) = &self.object.sections.get(&id).unwrap().content else {
+            panic!("section {id:?} is not a note section");
+        };
+
+        let pad = |this: &mut Self, size| {
+            if size % 4 != 0 {
+                this.writer.write_all(&vec![0; 4 - size as usize % 4])
+            } else {
+                Ok(())
+            }
+        };
+
+        for note in &notes.notes {
+            let name = note.name();
+            let name_size = u32::try_from(name.len()).map_err(|_| WriteError::NoteTooLong)? + 1;
+            let value_size: u32 =
+                note.value_len().try_into().map_err(|_| WriteError::NoteTooLong)?;
+
+            self.write_raw(RawNoteHeader { name_size, value_size, type_: note.type_() })?;
+
+            self.writer.write_all(name.as_bytes())?;
+            self.writer.write_all(&[0])?;
+            pad(self, name_size)?;
+
+            match note {
+                ElfNote::Unknown(unknown) => self.writer.write_all(&unknown.value)?,
+            }
+            pad(self, value_size)?;
+        }
         Ok(())
     }
 

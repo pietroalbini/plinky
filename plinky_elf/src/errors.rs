@@ -90,6 +90,8 @@ pub enum WriteError {
     MissingGroupSignature { group: ElfSectionId, signature: ElfSymbolId },
     #[display("value {value} in the dynamic table does not fit")]
     DynamicValueDoesNotFit { value: u64 },
+    #[display("note is too long")]
+    NoteTooLong,
     #[display("failed to calculate the resulting ELF layout")]
     LayoutError(#[from] LayoutError),
 }

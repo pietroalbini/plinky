@@ -6,7 +6,7 @@ use crate::repr::sections::{Section, SectionContent, SectionId};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::SymbolVisibility;
 use plinky_elf::writer::layout::{
-    Layout, LayoutDetailsHash, LayoutDetailsProvider, LayoutError, LayoutPartsGroup, Part,
+    Layout, LayoutDetailsHash, LayoutDetailsNote, LayoutDetailsProvider, LayoutError, LayoutPartsGroup, Part
 };
 use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -116,6 +116,10 @@ impl LayoutDetailsProvider<SectionId> for Object {
         let hash = cast_section!(self, id, SysvHash);
         let symbols_count = self.symbols.iter(&*hash.view).count();
         LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }
+    }
+
+    fn note_details(&self, _id: SectionId) -> Vec<LayoutDetailsNote> {
+        unimplemented!();
     }
 
     fn parts_for_sections(&self) -> Result<Vec<Part<SectionId>>, LayoutError> {

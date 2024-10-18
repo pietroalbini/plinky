@@ -176,6 +176,26 @@ pub enum ElfNote {
     Unknown(ElfUnknownNote),
 }
 
+impl ElfNote {
+    pub fn name(&self) -> &str {
+        match self {
+            ElfNote::Unknown(unknown) => &unknown.name,
+        }
+    }
+
+    pub fn type_(&self) -> u32 {
+        match self {
+            ElfNote::Unknown(unknown) => unknown.type_,
+        }
+    }
+
+    pub fn value_len(&self) -> usize {
+        match self {
+            ElfNote::Unknown(unknown) => unknown.value.len(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ElfUnknownNote {
     pub name: String,

@@ -36,7 +36,8 @@ pub(super) fn render_layout(
                 | Part::Rel(id)
                 | Part::Rela(id)
                 | Part::Group(id)
-                | Part::Dynamic(id) => names.section(*id).into(),
+                | Part::Dynamic(id)
+                | Part::Note(id) => names.section(*id).into(),
             },
             meta.file.as_ref().map(|m| m.offset.to_string()).unwrap_or_else(|| "-".into()),
             meta.file.as_ref().map(|m| m.len.to_string()).unwrap_or_else(|| "-".into()),

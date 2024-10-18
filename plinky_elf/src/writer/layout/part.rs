@@ -17,6 +17,7 @@ pub enum Part<S> {
     Rela(S),
     Group(S),
     Dynamic(S),
+    Note(S),
     Padding { id: PaddingId, len: usize },
 }
 
@@ -35,6 +36,7 @@ impl<S> Part<S> {
             Part::Rela(id) => Some(id),
             Part::Group(id) => Some(id),
             Part::Dynamic(id) => Some(id),
+            Part::Note(id) => Some(id),
             Part::Padding { .. } => None,
         }
     }
@@ -58,6 +60,7 @@ impl<S> Part<S> {
             Part::Rela(id) => Part::Rela(c(id)),
             Part::Group(id) => Part::Group(c(id)),
             Part::Dynamic(id) => Part::Dynamic(c(id)),
+            Part::Note(id) => Part::Note(c(id)),
             Part::Padding { id, len } => Part::Padding { id, len },
         }
     }

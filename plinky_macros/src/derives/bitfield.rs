@@ -103,30 +103,30 @@ fn bitfield_fn_write(fields: &Fields) -> TokenStream {
 }
 
 fn display_fn_fmt(fields: &Fields) -> TokenStream {
-    let comma = quote! { f.write_str(", ")?; };
-
     let mut writes = Vec::new();
     match fields {
         Fields::None => {}
         Fields::TupleLike(fields) => {
             for (idx, bit) in fields.iter().enumerate() {
-                if idx != 0 {
-                    writes.push(comma.clone());
-                }
                 writes.push(quote! {
                     if self.#{ literal(idx) } {
+                        if !first {
+                            f.write_str(", ")?;
+                        }
+                        first = false;
                         f.write_str(stringify!(#bit))?;
                     }
                 });
             }
         }
         Fields::StructLike(fields) => {
-            for (idx, (name, _)) in fields.iter().enumerate() {
-                if idx != 0 {
-                    writes.push(comma.clone());
-                }
+            for (name, _) in fields.iter() {
                 writes.push(quote! {
                     if self.#name {
+                        if !first {
+                            f.write_str(", ")?;
+                        }
+                        first = false;
                         f.write_str(stringify!(#name))?;
                     }
                 })
@@ -136,6 +136,7 @@ fn display_fn_fmt(fields: &Fields) -> TokenStream {
 
     quote! {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            let mut first = true;
             #writes
             Ok(())
         }

@@ -29,6 +29,7 @@ pub(super) fn render_segments(object: &ElfObject) -> Box<dyn Widget> {
                 ElfSegmentType::ProgramHeaderTable => "Program header table".into(),
                 ElfSegmentType::GnuStack => "GNU stack".into(),
                 ElfSegmentType::GnuRelro => "GNU relocations read-only".into(),
+                ElfSegmentType::GnuProperty => "GNU property".into(),
                 ElfSegmentType::Unknown(id) => format!("<unknown: {id:#x}>"),
             },
             render_perms(&segment.perms),

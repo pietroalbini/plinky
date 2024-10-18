@@ -59,6 +59,7 @@ pub(super) fn merge(
             ElfSectionContent::Note(table) => {
                 for note in table.notes {
                     match note {
+                        ElfNote::GnuProperties(_) => todo!(),
                         ElfNote::Unknown(unknown) => {
                             return Err(MergeElfError::UnsupportedUnknownNote {
                                 name: unknown.name,

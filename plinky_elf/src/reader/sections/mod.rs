@@ -155,8 +155,13 @@ impl SectionReader<'_, '_> {
     }
 
     fn content_cursor(&mut self) -> Result<ReadCursor<'static>, LoadError> {
-        let reader = std::io::Cursor::new(self.content()?);
-        Ok(ReadCursor::new_owned(Box::new(reader), self.cursor.class, self.cursor.endian))
+        let content = self.content()?;
+        Ok(self.cursor_for(content))
+    }
+
+    fn cursor_for(&self, data: Vec<u8>) -> ReadCursor<'static> {
+        let reader = std::io::Cursor::new(data);
+        ReadCursor::new_owned(Box::new(reader), self.cursor.class, self.cursor.endian)
     }
 
     fn content_len(&self) -> u64 {

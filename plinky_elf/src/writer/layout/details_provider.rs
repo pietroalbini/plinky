@@ -100,7 +100,7 @@ impl LayoutDetailsProvider<ElfSectionId> for ElfObject {
             .iter()
             .map(|note| LayoutDetailsNote {
                 name_len: note.name().len(),
-                value_len: note.value_len(),
+                value_len: note.value_len(self.env.class),
             })
             .collect()
     }
@@ -130,6 +130,7 @@ impl LayoutDetailsProvider<ElfSectionId> for ElfObject {
                 ElfSegmentType::Note => continue,
                 ElfSegmentType::GnuStack => continue,
                 ElfSegmentType::GnuRelro => continue,
+                ElfSegmentType::GnuProperty => continue,
                 ElfSegmentType::Null => continue,
                 ElfSegmentType::Unknown(_) => continue,
             };

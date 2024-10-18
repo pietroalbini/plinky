@@ -13,10 +13,10 @@ use crate::raw::{
 use crate::writer::layout::{Layout, Part};
 use crate::writer::write_counter::WriteCounter;
 use crate::{
-    ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfMachine, ElfNote,
-    ElfObject, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection, ElfRelocationType,
-    ElfSectionContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfSymbolVisibility, ElfType,
+    ElfABI, ElfClass, ElfDeduplication, ElfDynamicDirective, ElfEndian, ElfGnuProperty, ElfMachine,
+    ElfNote, ElfObject, ElfPLTRelocationsMode, ElfPermissions, ElfProgramSection,
+    ElfRelocationType, ElfSectionContent, ElfSegmentType, ElfSymbolBinding, ElfSymbolDefinition,
+    ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility, ElfType,
 };
 use plinky_utils::bitfields::Bitfield;
 use plinky_utils::ints::ExtractNumber;
@@ -305,6 +305,7 @@ impl<'a> Writer<'a> {
                     ElfSegmentType::ProgramHeaderTable => 6,
                     ElfSegmentType::GnuStack => 0x6474e551,
                     ElfSegmentType::GnuRelro => 0x6474e552,
+                    ElfSegmentType::GnuProperty => 0x6474e553,
                     ElfSegmentType::Unknown(id) => id,
                 },
                 file_offset: segment.file_offset,
@@ -596,8 +597,10 @@ impl<'a> Writer<'a> {
         for note in &notes.notes {
             let name = note.name();
             let name_size = u32::try_from(name.len()).map_err(|_| WriteError::NoteTooLong)? + 1;
-            let value_size: u32 =
-                note.value_len().try_into().map_err(|_| WriteError::NoteTooLong)?;
+            let value_size: u32 = note
+                .value_len(self.object.env.class)
+                .try_into()
+                .map_err(|_| WriteError::NoteTooLong)?;
 
             self.write_raw(RawNoteHeader { name_size, value_size, type_: note.type_() })?;
 
@@ -607,6 +610,32 @@ impl<'a> Writer<'a> {
 
             match note {
                 ElfNote::Unknown(unknown) => self.writer.write_all(&unknown.value)?,
+                ElfNote::GnuProperties(properties) => {
+                    let align_to = match self.object.env.class {
+                        ElfClass::Elf32 => 4,
+                        ElfClass::Elf64 => 8,
+                    };
+                    for property in properties {
+                        let tmp;
+                        let (type_, data): (u32, &[u8]) = match property {
+                            ElfGnuProperty::X86Features2Used(features2) => {
+                                tmp = Bitfield::write(features2).to_le_bytes();
+                                (0xc0010001, &tmp)
+                            }
+                            ElfGnuProperty::X86IsaUsed(isa) => {
+                                tmp = Bitfield::write(isa).to_le_bytes();
+                                (0xc0010002, &tmp)
+                            }
+                            ElfGnuProperty::Unknown(unknown) => (unknown.type_, &unknown.data),
+                        };
+                        self.write_raw(type_)?;
+                        self.write_raw(data.len() as u32)?;
+                        self.writer.write_all(data)?;
+                        if data.len() % align_to != 0 {
+                            self.writer.write_all(&vec![0; align_to - data.len() % align_to])?;
+                        }
+                    }
+                }
             }
             pad(self, value_size)?;
         }

@@ -2,10 +2,10 @@ use crate::ids::ElfSectionId;
 use crate::render_elf::names::Names;
 use crate::render_elf::utils::render_perms;
 use crate::{
-    ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGroup, ElfHash, ElfNote, ElfNotesTable,
-    ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelocationsTable, ElfSection,
-    ElfSectionContent, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection,
+    ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGnuProperty, ElfGroup, ElfHash, ElfNote,
+    ElfNotesTable, ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelocationsTable,
+    ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition,
+    ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
@@ -205,7 +205,7 @@ fn render_section_hash(names: &Names, object: &ElfObject, hash: &ElfHash) -> Vec
 }
 
 fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
-    let mut output = Vec::new();
+    let mut output: Vec<Box<dyn Widget>> = Vec::new();
 
     for note in &notes.notes {
         match note {
@@ -216,7 +216,27 @@ fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
                         unknown.name, unknown.type_
                     ))
                     .add(HexDump::new(unknown.value.as_slice())),
-            ) as Box<dyn Widget>),
+            )),
+            ElfNote::GnuProperties(properties) => {
+                let mut table = Table::new();
+                for property in properties {
+                    match property {
+                        ElfGnuProperty::X86Features2Used(features2) => {
+                            table.add_row(["x86 features (2) used".into(), features2.to_string()]);
+                        }
+                        ElfGnuProperty::X86IsaUsed(isa) => {
+                            table.add_row(["x86 ISA used".into(), isa.to_string()]);
+                        }
+                        ElfGnuProperty::Unknown(unknown) => {
+                            table.add_row([
+                                format!("Unknown (type {:#x})", unknown.type_),
+                                format!("{:?}", unknown.data),
+                            ]);
+                        }
+                    }
+                }
+                output.push(Box::new(WidgetGroup::new().name("GNU properties").add(table)));
+            }
         }
     }
 

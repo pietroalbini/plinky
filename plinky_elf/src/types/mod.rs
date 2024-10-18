@@ -173,27 +173,97 @@ pub struct ElfNotesTable {
 
 #[derive(Debug)]
 pub enum ElfNote {
+    GnuProperties(Vec<ElfGnuProperty>),
     Unknown(ElfUnknownNote),
 }
 
 impl ElfNote {
     pub fn name(&self) -> &str {
         match self {
+            ElfNote::GnuProperties(_) => "GNU",
             ElfNote::Unknown(unknown) => &unknown.name,
         }
     }
 
     pub fn type_(&self) -> u32 {
         match self {
+            ElfNote::GnuProperties(_) => 5,
             ElfNote::Unknown(unknown) => unknown.type_,
         }
     }
 
-    pub fn value_len(&self) -> usize {
+    pub fn value_len(&self, class: ElfClass) -> usize {
         match self {
+            ElfNote::GnuProperties(properties) => properties
+                .iter()
+                .map(|p| {
+                    let mut len = u32::size(class) * 2 + p.value_len(class);
+                    let align_to = match class {
+                        ElfClass::Elf32 => 4,
+                        ElfClass::Elf64 => 8,
+                    };
+                    if len % align_to != 0 {
+                        len += align_to - len % align_to;
+                    }
+                    len
+                })
+                .sum(),
             ElfNote::Unknown(unknown) => unknown.value.len(),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum ElfGnuProperty {
+    X86Features2Used(ElfX86Features2),
+    X86IsaUsed(ElfX86Isa),
+    Unknown(ElfUnknownGnuProperty),
+}
+
+impl ElfGnuProperty {
+    fn value_len(&self, class: ElfClass) -> usize {
+        match self {
+            ElfGnuProperty::X86Features2Used(_) => ElfX86Features2::size(class),
+            ElfGnuProperty::X86IsaUsed(_) => ElfX86Isa::size(class),
+            ElfGnuProperty::Unknown(unknown) => unknown.data.len(),
+        }
+    }
+}
+
+#[derive(Debug, Bitfield)]
+#[bitfield_repr(u32)]
+#[bitfield_display_comma_separated]
+// Defined as GNU_PROPERTY_X86_ISA_1_$name
+pub struct ElfX86Isa {
+    pub baseline: bool,
+    pub v2: bool,
+    pub v3: bool,
+    pub v4: bool,
+}
+
+#[derive(Debug, Bitfield)]
+#[bitfield_repr(u32)]
+#[bitfield_display_comma_separated]
+// Defined as GNU_PROPERTY_X86_FEATURE_2_$name
+pub struct ElfX86Features2 {
+    pub x86: bool,
+    pub x87: bool,
+    pub mmx: bool,
+    pub xmm: bool,
+    pub ymm: bool,
+    pub zmm: bool,
+    pub fxsr: bool,
+    pub xsave: bool,
+    pub xsaveopt: bool,
+    pub xsavec: bool,
+    pub tmm: bool,
+    pub mask: bool,
+}
+
+#[derive(Debug)]
+pub struct ElfUnknownGnuProperty {
+    pub type_: u32,
+    pub data: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -442,6 +512,7 @@ pub enum ElfSegmentType {
     Note,
     GnuStack,
     GnuRelro,
+    GnuProperty,
     Null,
     Unknown(u32),
 }

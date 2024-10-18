@@ -4,7 +4,7 @@ source: plinky_test_harness/src/utils.rs
 reading ELF exited with exit status: 0
 
 === stdout ===
-section .hash (address: 0x114)
+section .hash (address: 0x154)
  │
  │  Hash table for .dynsym
  │
@@ -31,7 +31,7 @@ section .hash (address: 0x114)
  │  ╰───────────┴───────────────────╯
  ┴
 
-section .dynsym (address: 0x164)
+section .dynsym (address: 0x1a4)
  │
  │    Dynamic symbol table:
  │  ╭───────────┬─────────┬──────────┬────────────┬────────────┬────────┬──────╮

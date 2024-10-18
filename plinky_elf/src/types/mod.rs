@@ -389,6 +389,8 @@ pub struct ElfDynamicFlags {
 #[bitfield_repr(u64)]
 #[bitfield_display_comma_separated]
 pub struct ElfDynamicFlags1 {
+    #[bit(0)]
+    pub now: bool,
     #[bit(27)]
     pub pie: bool,
 }

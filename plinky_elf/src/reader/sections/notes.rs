@@ -20,10 +20,10 @@ fn read_note(cursor: &mut ReadCursor<'_>) -> Result<ElfNote, LoadError> {
 
     let mut name_bytes = cursor.read_vec(header.name_size as _)?;
     name_bytes.pop(); // Zero-terminated string
-    cursor.align_with_padding(8)?;
+    cursor.align_with_padding(4)?;
 
     let value = cursor.read_vec(header.value_size as _)?;
-    cursor.align_with_padding(8)?;
+    cursor.align_with_padding(4)?;
 
     Ok(ElfNote::Unknown(ElfUnknownNote {
         name: String::from_utf8(name_bytes)?,

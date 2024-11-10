@@ -7,11 +7,18 @@ pub(crate) struct ObjectsFilter {
     sections: SectionsFilter,
     pub(super) symbols: bool,
     pub(super) dynamic: bool,
+    pub(super) inputs: bool,
 }
 
 impl ObjectsFilter {
     pub(crate) fn all() -> Self {
-        ObjectsFilter { env: true, sections: SectionsFilter::All, symbols: true, dynamic: true }
+        ObjectsFilter {
+            env: true,
+            sections: SectionsFilter::All,
+            symbols: true,
+            dynamic: true,
+            inputs: true,
+        }
     }
 
     pub(crate) fn parse(raw: &str) -> Result<Self, ObjectsFilterParseError> {
@@ -20,6 +27,7 @@ impl ObjectsFilter {
             sections: SectionsFilter::None,
             symbols: false,
             dynamic: false,
+            inputs: false,
         };
 
         for part in FilterPart::parse_iter(raw) {
@@ -27,6 +35,7 @@ impl ObjectsFilter {
                 FilterPart::Special("env") => filter.env = true,
                 FilterPart::Special("symbols") => filter.symbols = true,
                 FilterPart::Special("dynamic") => filter.dynamic = true,
+                FilterPart::Special("inputs") => filter.inputs = true,
                 FilterPart::Special("sections") => match &filter.sections {
                     SectionsFilter::Some(_) => {
                         return Err(ObjectsFilterParseError::CantMixSectionFilters)

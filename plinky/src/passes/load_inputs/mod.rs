@@ -47,6 +47,7 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
             State::Empty { symbols, mut section_groups, mut strings } => {
                 let mut object = Object {
                     env: elf.env,
+                    inputs: Vec::new(),
                     sections: Sections::new(),
                     segments: Segments::new(),
                     symbols,

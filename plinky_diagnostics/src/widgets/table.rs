@@ -64,6 +64,10 @@ impl Table {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        matches!(self.state, TableState::Empty)
+    }
+
     fn render_horizontal_border(
         &self,
         writer: &mut WidgetWriter,

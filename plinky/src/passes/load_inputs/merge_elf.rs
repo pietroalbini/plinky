@@ -1,14 +1,15 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
-use crate::repr::object::Object;
+use crate::repr::object::{Input, Object};
 use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
-    ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfGnuProperty, ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -27,6 +28,9 @@ pub(super) fn merge(
     let mut relocations = BTreeMap::new();
     let mut section_placeholders = BTreeMap::new();
     let mut symbol_conversion = BTreeMap::new();
+
+    let mut x86_isa_used = None;
+    let mut x86_features_2_used = None;
 
     for (section_id, section) in elf.sections.into_iter() {
         match section.content {
@@ -59,7 +63,22 @@ pub(super) fn merge(
             ElfSectionContent::Note(table) => {
                 for note in table.notes {
                     match note {
-                        ElfNote::GnuProperties(_) => todo!(),
+                        ElfNote::GnuProperties(properties) => {
+                            for property in properties {
+                                // TODO: error if multiple GNU properties are present.
+                                match property {
+                                    ElfGnuProperty::X86Features2Used(val) => {
+                                        x86_features_2_used = Some(val)
+                                    }
+                                    ElfGnuProperty::X86IsaUsed(val) => x86_isa_used = Some(val),
+                                    ElfGnuProperty::Unknown(unknown) => {
+                                        return Err(MergeElfError::UnsupportedUnknownGnuProperty {
+                                            type_: unknown.type_,
+                                        });
+                                    }
+                                }
+                            }
+                        }
                         ElfNote::Unknown(unknown) => {
                             return Err(MergeElfError::UnsupportedUnknownNote {
                                 name: unknown.name,
@@ -140,6 +159,9 @@ pub(super) fn merge(
             .source(source.clone())
             .create_in_placeholder(placeholder);
     }
+
+    object.inputs.push(Input { span: source, x86_isa_used, x86_features_2_used });
+
     Ok(())
 }
 
@@ -213,6 +235,8 @@ fn merge_symbols(
 pub(crate) enum MergeElfError {
     #[display("unsupported note with name {name} and type {type_}")]
     UnsupportedUnknownNote { name: String, type_: u32 },
+    #[display("unsupported GNU property with type {type_}")]
+    UnsupportedUnknownGnuProperty { type_: u32 },
     #[display("unknown section with type {id:#x?} is not supported")]
     UnsupportedUnknownSection { id: u32 },
     #[transparent]

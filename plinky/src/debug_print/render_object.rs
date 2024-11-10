@@ -45,6 +45,7 @@ pub(super) fn render_object(
                 .then(|| render_symbols(object, &names, "Dynamic symbols:", &DynamicSymbolTable))
                 .flatten(),
         )
+        .add_iter(filter.inputs.then(|| render_inputs(object)))
 }
 
 fn render_env(object: &Object) -> Text {
@@ -281,6 +282,31 @@ fn render_dynamic_section(
 
 fn render_section_names_section(names: &Names, section: &Section) -> Box<dyn Widget> {
     Box::new(section_widget(names, section, "section names").add(Text::new("section names")))
+}
+
+fn render_inputs(object: &Object) -> Box<dyn Widget> {
+    let mut result: Vec<Box<dyn Widget>> = Vec::new();
+
+    for input in &object.inputs {
+        let title = input.span.to_string();
+        let mut table = Table::new();
+        table.set_title(title.clone());
+
+        if let Some(isa) = &input.x86_isa_used {
+            table.add_row(["X86 ISA used".to_string(), isa.to_string()]);
+        }
+        if let Some(features2) = &input.x86_features_2_used {
+            table.add_row(["x86 features 2 used".to_string(), features2.to_string()]);
+        }
+
+        if table.is_empty() {
+            result.push(Box::new(Text::new(title)));
+        } else {
+            result.push(Box::new(table));
+        }
+    }
+
+    Box::new(WidgetGroup::new().name("inputs").add_iter(result.into_iter()))
 }
 
 fn section_widget(names: &Names, section: &Section, kind: &str) -> WidgetGroup {

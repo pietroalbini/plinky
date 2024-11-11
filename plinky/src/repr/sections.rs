@@ -334,6 +334,10 @@ impl RelocationsSection {
     pub(crate) fn relocations(&self) -> &[Relocation] {
         &self.relocations
     }
+
+    pub(crate) fn relocations_mut(&mut self) -> &mut [Relocation] {
+        &mut self.relocations
+    }
 }
 
 #[derive(Debug, Getters)]

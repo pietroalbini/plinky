@@ -6,6 +6,12 @@ use plinky_utils::ints::Offset;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RelocationMode {
+    Rel,
+    Rela,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RelocationType {
     Absolute32,
     AbsoluteSigned32,
@@ -79,7 +85,7 @@ pub(crate) struct Relocation {
     pub(crate) type_: RelocationType,
     pub(crate) symbol: SymbolId,
     pub(crate) offset: Offset,
-    pub(crate) addend: Option<Offset>,
+    pub(crate) addend: RelocationAddend,
 }
 
 impl Relocation {
@@ -91,7 +97,7 @@ impl Relocation {
             type_: elf.relocation_type.try_into()?,
             symbol: *conversion.get(&elf.symbol).unwrap(),
             offset: (elf.offset as i64).into(),
-            addend: None,
+            addend: RelocationAddend::Inline,
         })
     }
 
@@ -103,8 +109,20 @@ impl Relocation {
             type_: elf.relocation_type.try_into()?,
             symbol: *conversion.get(&elf.symbol).unwrap(),
             offset: (elf.offset as i64).into(),
-            addend: Some(elf.addend.into()),
+            addend: RelocationAddend::Explicit(elf.addend.into()),
         })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum RelocationAddend {
+    Inline,
+    Explicit(Offset),
+}
+
+impl From<Offset> for RelocationAddend {
+    fn from(value: Offset) -> Self {
+        RelocationAddend::Explicit(value)
     }
 }
 

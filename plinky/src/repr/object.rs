@@ -6,7 +6,8 @@ use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{SymbolId, Symbols};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::{ElfEnvironment, ElfX86Features2, ElfX86Isa};
+use plinky_elf::{ElfEnvironment, ElfMachine, ElfX86Features2, ElfX86Isa};
+use crate::repr::relocations::RelocationMode;
 
 #[derive(Debug)]
 pub(crate) struct Object {
@@ -23,6 +24,15 @@ pub(crate) struct Object {
     pub(crate) mode: Mode,
     pub(crate) executable_stack: bool,
     pub(crate) gnu_stack_section_ignored: bool,
+}
+
+impl Object {
+    pub(crate) fn relocation_mode(&self) -> RelocationMode {
+        match self.env.machine {
+            ElfMachine::X86 => RelocationMode::Rel,
+            ElfMachine::X86_64 => RelocationMode::Rela,
+        }
+    }
 }
 
 #[derive(Debug)]

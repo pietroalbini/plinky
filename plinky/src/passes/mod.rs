@@ -17,3 +17,4 @@ pub(crate) mod mark_shared_library_symbols;
 pub(crate) mod relocate;
 pub(crate) mod replace_section_relative_symbols;
 pub(crate) mod write_to_disk;
+pub(crate) mod convert_relocation_modes;

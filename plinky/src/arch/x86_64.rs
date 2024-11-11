@@ -58,7 +58,7 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltAr
                 type_: RelocationType::Absolute32,
                 symbol: plt_symbol,
                 offset: *got_offset,
-                addend: Some(lazy_jump_target),
+                addend: lazy_jump_target.into(),
             });
         }
 

@@ -17,6 +17,7 @@ use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
+use crate::passes::convert_relocation_modes::ConvertRelocationModesError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -56,6 +57,7 @@ pub(crate) fn link_driver(
     passes::relocate::run(&mut object, &resolver)?;
     callbacks.on_relocations_applied(&object, &layout);
 
+    passes::convert_relocation_modes::run(&mut object)?;
     passes::replace_section_relative_symbols::replace(&mut object, &resolver)?;
 
     let (elf, conversion_map) = passes::build_elf::run(object, &layout, &resolver)?;
@@ -101,6 +103,8 @@ pub(crate) enum LinkerError {
     RelocationFailed(RelocationError),
     #[transparent]
     LayoutError(LayoutError),
+    #[transparent]
+    ConvertRelocationModes(ConvertRelocationModesError),
     #[transparent]
     ElfBuildFailed(ElfBuilderError),
     #[transparent]

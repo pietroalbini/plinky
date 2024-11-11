@@ -3,7 +3,7 @@ use crate::interner::intern;
 use crate::passes::generate_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
-use crate::repr::relocations::{NeedsGot, Relocation, RelocationType};
+use crate::repr::relocations::{NeedsGot, Relocation, RelocationMode, RelocationType};
 use crate::repr::sections::{DataSection, RelocationsSection, SectionContent, SectionId};
 use crate::repr::segments::SegmentContent;
 use crate::repr::symbols::views::AllSymbols;
@@ -55,11 +55,14 @@ pub(crate) fn generate_got(
             &mut got_symbols.iter().copied(),
             GotConfig {
                 section_name: ".got",
-                rela_section_name: ".rela.got",
+                reloc_section_name: match object.relocation_mode() {
+                    RelocationMode::Rel => ".rel.got",
+                    RelocationMode::Rela => ".rela.got",
+                },
                 inside_relro: options.read_only_got,
                 add_prelude: false,
                 relocation_type: RelocationType::FillGotSlot,
-                dynamic_entry: |_got_plt, rela| DynamicEntry::GotRela(rela),
+                dynamic_entry: |_got_plt, reloc| DynamicEntry::GotReloc(reloc),
             },
         )?);
     }
@@ -71,11 +74,14 @@ pub(crate) fn generate_got(
             &mut got_plt_symbols.iter().copied(),
             GotConfig {
                 section_name: ".got.plt",
-                rela_section_name: ".rela.plt",
+                reloc_section_name: match object.relocation_mode() {
+                    RelocationMode::Rel => ".rel.plt",
+                    RelocationMode::Rela => ".rela.plt",
+                },
                 inside_relro: options.read_only_got_plt,
                 add_prelude: true,
                 relocation_type: RelocationType::FillGotPltSlot,
-                dynamic_entry: |got_plt, rela| DynamicEntry::Plt { got_plt, rela },
+                dynamic_entry: |got_plt, reloc| DynamicEntry::Plt { got_plt, reloc },
             },
         )?;
 
@@ -127,7 +133,7 @@ fn build_got(
                 type_: RelocationType::Absolute32,
                 symbol: dynamic.dynamic_symbol(),
                 offset: 0.into(),
-                addend: Some(0.into()),
+                addend: Offset::from(0).into(),
             });
         }
     }
@@ -141,7 +147,7 @@ fn build_got(
             type_: config.relocation_type,
             symbol,
             offset,
-            addend: Some(0.into()),
+            addend: Offset::from(0).into(),
         });
         offsets.insert(symbol, offset);
     }
@@ -162,10 +168,10 @@ fn build_got(
                     object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
                 }
 
-                let rela = object
+                let reloc = object
                     .sections
                     .builder(
-                        config.rela_section_name,
+                        config.reloc_section_name,
                         RelocationsSection::new(id, dynamic.dynsym(), relocations),
                     )
                     .create();
@@ -173,8 +179,8 @@ fn build_got(
                     .segments
                     .get_mut(dynamic.segment())
                     .content
-                    .push(SegmentContent::Section(rela));
-                object.dynamic_entries.add((config.dynamic_entry)(id, rela));
+                    .push(SegmentContent::Section(reloc));
+                object.dynamic_entries.add((config.dynamic_entry)(id, reloc));
 
                 true
             } else {
@@ -193,7 +199,7 @@ fn build_got(
 
 struct GotConfig {
     section_name: &'static str,
-    rela_section_name: &'static str,
+    reloc_section_name: &'static str,
     inside_relro: bool,
     add_prelude: bool,
     relocation_type: RelocationType,

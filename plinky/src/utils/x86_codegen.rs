@@ -1,4 +1,4 @@
-use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::relocations::{Relocation, RelocationAddend, RelocationType};
 use crate::repr::symbols::SymbolId;
 use plinky_utils::ints::Offset;
 
@@ -80,7 +80,9 @@ impl X86Codegen {
                     //
                     // To ensure everything works correctly, we have to adjust the addend to
                     // account for the difference in starting points.
-                    let addend = relocation.addend.as_mut().expect("addend must be present");
+                    let RelocationAddend::Explicit(addend) = &mut relocation.addend else {
+                        panic!("relocation addends must be explicit");
+                    };
                     *addend = addend.add(relocation_offset.add(end_offset.neg()).unwrap()).unwrap();
 
                     self.relocations.push(relocation);
@@ -134,7 +136,7 @@ impl X86Codegen {
                 // encode the instruction, depending on the relocation type.
                 let offset = self.offset();
                 self.relocations_to_add
-                    .push((offset, Relocation { type_, symbol, offset, addend: Some(addend) }));
+                    .push((offset, Relocation { type_, symbol, offset, addend: addend.into() }));
 
                 // Placeholder, as it will be relocated later.
                 0i32.to_le_bytes()
@@ -237,7 +239,7 @@ mod tests {
                 type_: RelocationType::Absolute32,
                 symbol,
                 offset: 6_i64.into(),
-                addend: Some(42_i64.into())
+                addend: RelocationAddend::Explicit(42_i64.into())
             }],
             codegen.relocations.as_slice()
         );
@@ -260,7 +262,7 @@ mod tests {
                     type_: RelocationType::Absolute32,
                     symbol,
                     offset: 6_i64.into(),
-                    addend: Some(42_i64.into())
+                    addend: RelocationAddend::Explicit(42_i64.into())
                 },
                 Relocation {
                     type_: RelocationType::Relative32,
@@ -268,7 +270,7 @@ mod tests {
                     offset: 11_i64.into(),
                     // This is less than 42 intentionally, as it needs to account for the
                     // instruction pointer being further ahead.
-                    addend: Some(38_i64.into()),
+                    addend: RelocationAddend::Explicit(38_i64.into()),
                 },
             ],
             codegen.relocations.as_slice()

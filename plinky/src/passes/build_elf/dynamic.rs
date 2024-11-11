@@ -1,7 +1,8 @@
 use crate::passes::build_elf::ElfBuilder;
 use crate::repr::dynamic_entries::DynamicEntry;
+use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::{DynamicSection, SectionId};
-use plinky_elf::raw::{RawRela, RawSymbol};
+use plinky_elf::raw::{RawRel, RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
 use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPLTRelocationsMode, ElfSectionContent};
 use plinky_utils::ints::ExtractNumber;
@@ -56,23 +57,40 @@ pub(super) fn build_dynamic_section(
                 let mem = layout(builder, id, "sysv hash");
                 directives.push(ElfDynamicDirective::Hash { address: mem.address.extract() });
             }
-            DynamicEntry::GotRela(id) => {
+            DynamicEntry::GotReloc(id) => {
                 let mem = layout(builder, id, "got relocations table");
-                directives.push(ElfDynamicDirective::Rela { address: mem.address.extract() });
-                directives.push(ElfDynamicDirective::RelaSize { bytes: mem.len.extract() });
-                directives
-                    .push(ElfDynamicDirective::RelaEntrySize { bytes: RawRela::size(bits) as _ });
+                match builder.object.relocation_mode() {
+                    RelocationMode::Rel => {
+                        directives
+                            .push(ElfDynamicDirective::Rel { address: mem.address.extract() });
+                        directives.push(ElfDynamicDirective::RelSize { bytes: mem.len.extract() });
+                        directives.push(ElfDynamicDirective::RelEntrySize {
+                            bytes: RawRel::size(bits) as _,
+                        });
+                    }
+                    RelocationMode::Rela => {
+                        directives
+                            .push(ElfDynamicDirective::Rela { address: mem.address.extract() });
+                        directives.push(ElfDynamicDirective::RelaSize { bytes: mem.len.extract() });
+                        directives.push(ElfDynamicDirective::RelaEntrySize {
+                            bytes: RawRela::size(bits) as _,
+                        });
+                    }
+                }
             }
-            DynamicEntry::Plt { got_plt, rela } => {
-                let got_plt_mem = layout(builder, got_plt, "got.plt relocations table");
-                let rela_mem = layout(builder, rela, "rela.plt relocations table");
+            DynamicEntry::Plt { got_plt, reloc } => {
+                let got_plt_mem = layout(builder, got_plt, "got.plt");
+                let reloc_mem = layout(builder, reloc, "got.plt's relocations table");
                 directives
-                    .push(ElfDynamicDirective::JumpRel { address: rela_mem.address.extract() });
+                    .push(ElfDynamicDirective::JumpRel { address: reloc_mem.address.extract() });
                 directives.push(ElfDynamicDirective::PLTRelocationsSize {
-                    bytes: rela_mem.len.extract(),
+                    bytes: reloc_mem.len.extract(),
                 });
                 directives.push(ElfDynamicDirective::PTLRelocationsMode {
-                    mode: ElfPLTRelocationsMode::Rela,
+                    mode: match builder.object.relocation_mode() {
+                        RelocationMode::Rel => ElfPLTRelocationsMode::Rel,
+                        RelocationMode::Rela => ElfPLTRelocationsMode::Rela,
+                    },
                 });
                 directives
                     .push(ElfDynamicDirective::PLTGOT { address: got_plt_mem.address.extract() });

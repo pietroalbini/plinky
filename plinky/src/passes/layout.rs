@@ -2,11 +2,13 @@ use crate::cli::Mode;
 use crate::interner::{intern, Interned};
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
+use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::{Section, SectionContent, SectionId};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::SymbolVisibility;
 use plinky_elf::writer::layout::{
-    Layout, LayoutDetailsHash, LayoutDetailsNote, LayoutDetailsProvider, LayoutError, LayoutPartsGroup, Part
+    Layout, LayoutDetailsHash, LayoutDetailsNote, LayoutDetailsProvider, LayoutError,
+    LayoutPartsGroup, Part,
 };
 use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -130,7 +132,7 @@ impl LayoutDetailsProvider<SectionId> for Object {
         result.push(Part::SectionHeaders);
 
         for section in self.sections.iter() {
-            result.push(part_for_section(section));
+            result.push(part_for_section(self, section));
         }
         Ok(result)
     }
@@ -156,7 +158,7 @@ impl LayoutDetailsProvider<SectionId> for Object {
                     .map(|c| match c {
                         SegmentContent::ProgramHeader => Part::ProgramHeaders,
                         SegmentContent::ElfHeader => Part::Header,
-                        SegmentContent::Section(id) => part_for_section(self.sections.get(*id)),
+                        SegmentContent::Section(id) => part_for_section(self, self.sections.get(*id)),
                     })
                     .collect(),
             };
@@ -168,14 +170,17 @@ impl LayoutDetailsProvider<SectionId> for Object {
     }
 }
 
-fn part_for_section(section: &Section) -> Part<SectionId> {
+fn part_for_section(object: &Object, section: &Section) -> Part<SectionId> {
     match &section.content {
         SectionContent::Data(_) => Part::ProgramSection(section.id),
         SectionContent::Uninitialized(_) => Part::UninitializedSection(section.id),
         SectionContent::Strings(_) => Part::StringTable(section.id),
         SectionContent::Symbols(_) => Part::SymbolTable(section.id),
         SectionContent::SysvHash(_) => Part::Hash(section.id),
-        SectionContent::Relocations(_) => Part::Rela(section.id),
+        SectionContent::Relocations(_) => match object.relocation_mode() {
+            RelocationMode::Rel => Part::Rel(section.id),
+            RelocationMode::Rela => Part::Rela(section.id),
+        },
         SectionContent::Dynamic(_) => Part::Dynamic(section.id),
         SectionContent::SectionNames => Part::StringTable(section.id),
     }

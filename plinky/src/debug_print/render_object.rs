@@ -2,7 +2,7 @@ use crate::debug_print::filters::ObjectsFilter;
 use crate::debug_print::names::Names;
 use crate::debug_print::utils::permissions;
 use crate::repr::object::Object;
-use crate::repr::relocations::Relocation;
+use crate::repr::relocations::{Relocation, RelocationAddend};
 use crate::repr::sections::{
     DataSection, DynamicSection, RelocationsSection, Section, SectionContent, SectionId,
     StringsSection, SymbolsSection, SysvHashSection, UninitializedSection,
@@ -126,7 +126,10 @@ fn render_relocations(names: &Names, title: &str, relocations: &[Relocation]) ->
             format!("{:?}", relocation.type_),
             names.symbol(relocation.symbol).into(),
             format!("{}", relocation.offset),
-            relocation.addend.map(|a| format!("{a}")).unwrap_or_else(String::new),
+            match &relocation.addend {
+                RelocationAddend::Inline => "<inline>".into(),
+                RelocationAddend::Explicit(offset) => offset.to_string(),
+            },
         ])
     }
     Box::new(table)

@@ -1,5 +1,5 @@
 use crate::passes::relocate::RelocationErrorInner;
-use crate::repr::relocations::Relocation;
+use crate::repr::relocations::{Relocation, RelocationAddend};
 use plinky_utils::ints::{ExtractNumber, Offset, OutOfBoundsError};
 
 pub(super) struct ByteEditor<'a> {
@@ -10,8 +10,8 @@ pub(super) struct ByteEditor<'a> {
 impl ByteEditor<'_> {
     pub(super) fn addend_32(&self) -> Result<Offset, RelocationErrorInner> {
         match self.relocation.addend {
-            Some(addend) => Ok(addend.into()),
-            None => Ok(i32::from_le_bytes(self.read()?).into()),
+            RelocationAddend::Explicit(addend) => Ok(addend.into()),
+            RelocationAddend::Inline => Ok(i32::from_le_bytes(self.read()?).into()),
         }
     }
 

@@ -7,7 +7,7 @@ pub(crate) mod sysv_hash;
 use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::dynamic::build_dynamic_section;
-use crate::passes::build_elf::relocations::{create_rela, RelaCreationError};
+use crate::passes::build_elf::relocations::{create_relocations, RelaCreationError};
 use crate::passes::build_elf::strings::{create_strings, BuiltStringsTable};
 use crate::passes::build_elf::symbols::{create_symbols, BuiltSymbolsTable};
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
@@ -207,7 +207,8 @@ impl<'a> ElfBuilder<'a> {
                     *self.section_ids.get(&sysv.symbols).unwrap(),
                 ),
 
-                SectionContent::Relocations(relocations) => create_rela(
+                SectionContent::Relocations(relocations) => create_relocations(
+                    self.object.relocation_mode(),
                     relocations.section(),
                     relocations.relocations().into_iter(),
                     self.object.env.class,

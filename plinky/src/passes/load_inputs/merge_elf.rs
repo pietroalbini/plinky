@@ -8,8 +8,8 @@ use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
-    ElfGnuProperty, ElfNote, ElfObject, ElfSectionContent, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType,
+    ElfGnuProperty, ElfNote, ElfObject, ElfRel, ElfRela, ElfSectionContent, ElfSymbolDefinition,
+    ElfSymbolTable, ElfSymbolType,
 };
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -50,8 +50,17 @@ pub(super) fn merge(
                 symbol_tables.push((section.name, table))
             }
             ElfSectionContent::StringTable(table) => strings.load_table(section_id, table),
-            ElfSectionContent::RelocationsTable(table) => {
-                relocations.insert(table.applies_to_section, table.relocations);
+            ElfSectionContent::Rel(table) => {
+                relocations.insert(
+                    table.applies_to_section,
+                    table.relocations.into_iter().map(EitherRelocation::Rel).collect::<Vec<_>>(),
+                );
+            }
+            ElfSectionContent::Rela(table) => {
+                relocations.insert(
+                    table.applies_to_section,
+                    table.relocations.into_iter().map(EitherRelocation::Rela).collect::<Vec<_>>(),
+                );
             }
             ElfSectionContent::Group(group) => pending_groups.push((section_id, group)),
             ElfSectionContent::Hash(_) => {
@@ -151,7 +160,14 @@ pub(super) fn merge(
                         .remove(&id)
                         .unwrap_or_default()
                         .into_iter()
-                        .map(|rel| Relocation::from_elf(rel, &symbol_conversion))
+                        .map(|either| match either {
+                            EitherRelocation::Rel(rel) => {
+                                Relocation::from_elf_rel(rel, &symbol_conversion)
+                            }
+                            EitherRelocation::Rela(rela) => {
+                                Relocation::from_elf_rela(rela, &symbol_conversion)
+                            }
+                        })
                         .collect::<Result<_, _>>()?,
                     inside_relro: false,
                 },
@@ -229,6 +245,11 @@ fn merge_symbols(
         symbol_conversion.insert(symbol_id, id);
     }
     Ok(())
+}
+
+enum EitherRelocation {
+    Rel(ElfRel),
+    Rela(ElfRela),
 }
 
 #[derive(Debug, Error, Display)]

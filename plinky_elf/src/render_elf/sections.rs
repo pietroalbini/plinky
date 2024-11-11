@@ -3,7 +3,7 @@ use crate::render_elf::names::Names;
 use crate::render_elf::utils::render_perms;
 use crate::{
     ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGnuProperty, ElfGroup, ElfHash, ElfNote,
-    ElfNotesTable, ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelocationsTable,
+    ElfNotesTable, ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelTable, ElfRelaTable,
     ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition,
     ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection,
 };
@@ -21,7 +21,8 @@ pub(super) fn render_section(
         ElfSectionContent::Uninitialized(uninit) => render_section_uninit(uninit),
         ElfSectionContent::SymbolTable(symbols) => render_section_symbols(names, symbols),
         ElfSectionContent::StringTable(strings) => render_section_strings(strings),
-        ElfSectionContent::RelocationsTable(relocs) => render_section_relocs(names, relocs),
+        ElfSectionContent::Rel(rel) => render_section_rel(names, rel),
+        ElfSectionContent::Rela(rela) => render_section_rela(names, rela),
         ElfSectionContent::Group(group) => render_section_group(names, group),
         ElfSectionContent::Hash(hash) => render_section_hash(names, object, hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
@@ -123,22 +124,44 @@ fn render_section_strings(strings: &ElfStringTable) -> Vec<Box<dyn Widget>> {
     vec![Box::new(table)]
 }
 
-fn render_section_relocs(names: &Names, relocs: &ElfRelocationsTable) -> Vec<Box<dyn Widget>> {
+fn render_section_rel(names: &Names, rel: &ElfRelTable) -> Vec<Box<dyn Widget>> {
     let intro = Text::new(format!(
         "symbol table:       {}\n\
          applies to section: {}",
-        names.section(relocs.symbol_table),
-        names.section(relocs.applies_to_section),
+        names.section(rel.symbol_table),
+        names.section(rel.applies_to_section),
+    ));
+
+    let mut table = Table::new();
+    table.set_title("Relocations:");
+    table.add_row(["Type", "Symbol", "Offset"]);
+    for relocation in &rel.relocations {
+        table.add_row([
+            format!("{:?}", relocation.relocation_type),
+            names.symbol(relocation.symbol).to_string(),
+            format!("{:#x}", relocation.offset),
+        ]);
+    }
+
+    vec![Box::new(intro), Box::new(table)]
+}
+
+fn render_section_rela(names: &Names, rela: &ElfRelaTable) -> Vec<Box<dyn Widget>> {
+    let intro = Text::new(format!(
+        "symbol table:       {}\n\
+         applies to section: {}",
+        names.section(rela.symbol_table),
+        names.section(rela.applies_to_section),
     ));
 
     let mut table = Table::new();
     table.set_title("Relocations:");
     table.add_row(["Type", "Symbol", "Offset", "Addend"]);
-    for relocation in &relocs.relocations {
-        let addend = match relocation.addend {
-            Some(num @ 0..) => format!("{:#x}", num),
-            Some(num) => format!("-{:#x}", num.abs()),
-            None => "-".into(),
+    for relocation in &rela.relocations {
+        let addend = if relocation.addend >= 0 {
+            format!("{:#x}", relocation.addend)
+        } else {
+            format!("-{:#x}", relocation.addend.abs())
         };
         table.add_row([
             format!("{:?}", relocation.relocation_type),

@@ -55,12 +55,12 @@ fn read_section(
         1 => SectionType::Program,
         2 => SectionType::SymbolTable { dynsym: false },
         3 => SectionType::StringTable,
-        4 => SectionType::Relocations { rela: true },
+        4 => SectionType::Rela,
         5 => SectionType::Hash,
         6 => SectionType::Dynamic,
         7 => SectionType::Note,
         8 => SectionType::Uninit,
-        9 => SectionType::Relocations { rela: false },
+        9 => SectionType::Rel,
         11 => SectionType::SymbolTable { dynsym: true },
         17 => SectionType::Group,
         other => SectionType::Unknown(other),
@@ -70,7 +70,7 @@ fn read_section(
     // which only makes sense for relocations. The flag doesn't actually seem to be required
     // though, as for example GCC emits it while NASM doesn't. To catch unknown uses of the flag,
     // we error out if the flag is set for a non-relocation section.
-    if header.flags.info_link && !matches!(ty, SectionType::Relocations { .. }) {
+    if header.flags.info_link && !matches!(ty, SectionType::Rel | SectionType::Rela) {
         return Err(LoadError::UnsupportedInfoLinkFlag(current_section.index));
     }
 
@@ -110,7 +110,8 @@ fn read_section(
         SectionType::Program => program::read(&mut reader)?,
         SectionType::SymbolTable { dynsym } => symbol_table::read(&mut reader, dynsym)?,
         SectionType::StringTable => string_table::read(&mut reader)?,
-        SectionType::Relocations { rela } => relocations_table::read(&mut reader, rela)?,
+        SectionType::Rel => relocations_table::read_rel(&mut reader)?,
+        SectionType::Rela => relocations_table::read_rela(&mut reader)?,
         SectionType::Note => notes::read(&mut reader)?,
         SectionType::Uninit => uninit::read(&mut reader)?,
         SectionType::Group => group::read(&mut reader)?,
@@ -133,7 +134,8 @@ enum SectionType {
     Program,
     SymbolTable { dynsym: bool },
     StringTable,
-    Relocations { rela: bool },
+    Rel,
+    Rela,
     Note,
     Uninit,
     Group,

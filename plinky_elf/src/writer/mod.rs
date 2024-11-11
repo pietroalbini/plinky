@@ -4,7 +4,7 @@ mod write_counter;
 pub(crate) use self::layout::LayoutError;
 
 use crate::errors::WriteError;
-use crate::ids::ElfSectionId;
+use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawNoteHeader,
     RawProgramHeader, RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader,
@@ -23,6 +23,16 @@ use plinky_utils::ints::ExtractNumber;
 use plinky_utils::raw_types::{RawPadding, RawType};
 use std::collections::BTreeMap;
 use std::io::Write;
+
+macro_rules! cast_section {
+    ($self:ident, $id:ident, $variant:ident) => {{
+        let ElfSectionContent::$variant(b) = &$self.object.sections.get(&$id).unwrap().content
+        else {
+            panic!("section {:?} is not of type {}", $id, stringify!($variant));
+        };
+        b
+    }};
+}
 
 pub struct Writer<'a> {
     writer: WriteCounter<'a>,
@@ -62,8 +72,8 @@ impl<'a> Writer<'a> {
                 Part::UninitializedSection(_) => {}
                 Part::StringTable(id) => self.write_string_table(id)?,
                 Part::SymbolTable(id) => self.write_symbol_table(id)?,
-                Part::Rela(id) => self.write_relocations_table(id, true)?,
-                Part::Rel(id) => self.write_relocations_table(id, false)?,
+                Part::Rela(id) => self.write_rela_table(id)?,
+                Part::Rel(id) => self.write_rel_table(id)?,
                 Part::Group(id) => self.write_group(id)?,
                 Part::Hash(id) => self.write_hash(id)?,
                 Part::Dynamic(id) => self.write_dynamic(id)?,
@@ -169,21 +179,12 @@ impl<'a> Writer<'a> {
                 ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: false, .. }) => 2,
                 ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym: true, .. }) => 11,
                 ElfSectionContent::StringTable(_) => 3,
+                ElfSectionContent::Rela(_) => 4,
                 ElfSectionContent::Hash(_) => 5,
                 ElfSectionContent::Dynamic(_) => 6,
                 ElfSectionContent::Note(_) => 7,
+                ElfSectionContent::Rel(_) => 9,
                 ElfSectionContent::Unknown(_) => panic!("unknown section"),
-                ElfSectionContent::RelocationsTable(_) => self
-                    .layout
-                    .parts()
-                    .iter()
-                    .filter_map(|part| match part {
-                        Part::Rel(part_id) if part_id == id => Some(9),
-                        Part::Rela(part_id) if part_id == id => Some(4),
-                        _ => None,
-                    })
-                    .next()
-                    .expect("relocations table not in layout"),
                 ElfSectionContent::Group(_) => 17,
             };
 
@@ -202,7 +203,7 @@ impl<'a> Writer<'a> {
                     }
                     flags
                 }
-                ElfSectionContent::RelocationsTable(_) => {
+                ElfSectionContent::Rel(_) | ElfSectionContent::Rela(_) => {
                     RawSectionHeaderFlags { info_link: true, ..RawSectionHeaderFlags::zero() }
                 }
                 _ => RawSectionHeaderFlags::zero(),
@@ -231,7 +232,8 @@ impl<'a> Writer<'a> {
                         }
                         strings.expect("no symbols in table").index
                     }
-                    ElfSectionContent::RelocationsTable(table) => table.symbol_table.index,
+                    ElfSectionContent::Rel(rel) => rel.symbol_table.index,
+                    ElfSectionContent::Rela(rela) => rela.symbol_table.index,
                     ElfSectionContent::Hash(hash) => hash.symbol_table.index,
                     ElfSectionContent::Group(group) => group.symbol_table.index,
                     ElfSectionContent::Dynamic(dynamic) => dynamic.string_table.index,
@@ -245,7 +247,8 @@ impl<'a> Writer<'a> {
                         .position(|s| s.binding != ElfSymbolBinding::Local)
                         .unwrap_or(table.symbols.len())
                         as _,
-                    ElfSectionContent::RelocationsTable(table) => table.applies_to_section.index,
+                    ElfSectionContent::Rel(rel) => rel.applies_to_section.index,
+                    ElfSectionContent::Rela(rela) => rela.applies_to_section.index,
                     ElfSectionContent::Group(group) => {
                         let ElfSectionContent::SymbolTable(symbol_table) =
                             &self.object.sections.get(&group.symbol_table).unwrap().content
@@ -279,13 +282,8 @@ impl<'a> Writer<'a> {
                     ElfSectionContent::SymbolTable(_) => {
                         RawSymbol::size(self.object.env.class) as _
                     }
-                    ElfSectionContent::RelocationsTable(r) => {
-                        if r.relocations.first().map(|f| f.addend.is_some()).unwrap_or(false) {
-                            RawRela::size(self.object.env.class) as _
-                        } else {
-                            RawRel::size(self.object.env.class) as _
-                        }
-                    }
+                    ElfSectionContent::Rel(_) => RawRel::size(self.object.env.class) as _,
+                    ElfSectionContent::Rela(_) => RawRela::size(self.object.env.class) as _,
                     _ => 0,
                 },
             })?;
@@ -325,12 +323,7 @@ impl<'a> Writer<'a> {
     }
 
     fn write_string_table(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::StringTable(table) = &self.object.sections.get(&id).unwrap().content
-        else {
-            panic!("section {id:?} is not a string table");
-        };
-
-        for string in table.all() {
+        for string in cast_section!(self, id, StringTable).all() {
             self.writer.write_all(string.as_bytes())?;
             self.writer.write_all(b"\0")?;
         }
@@ -338,20 +331,12 @@ impl<'a> Writer<'a> {
     }
 
     fn write_program_section(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::Program(program) = &self.object.sections.get(&id).unwrap().content
-        else {
-            panic!("section {id:?} is not a program section");
-        };
-        self.writer.write_all(&program.raw)?;
+        self.writer.write_all(&cast_section!(self, id, Program).raw)?;
         Ok(())
     }
 
     fn write_symbol_table(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::SymbolTable(table) = &self.object.sections.get(&id).unwrap().content
-        else {
-            panic!("section {id:?} is not a symbol table")
-        };
-
+        let table = cast_section!(self, id, SymbolTable);
         for symbol in table.symbols.values() {
             let mut info = 0;
             info |= match symbol.binding {
@@ -393,99 +378,100 @@ impl<'a> Writer<'a> {
         Ok(())
     }
 
-    fn write_relocations_table(&mut self, id: ElfSectionId, rela: bool) -> Result<(), WriteError> {
-        let ElfSectionContent::RelocationsTable(table) =
-            &self.object.sections.get(&id).unwrap().content
-        else {
-            panic!("section {id:?} is not a relocation table")
-        };
-
-        for relocation in &table.relocations {
-            let relocation_type = match relocation.relocation_type {
-                ElfRelocationType::X86_None => 0,
-                ElfRelocationType::X86_32 => 1,
-                ElfRelocationType::X86_PC32 => 2,
-                ElfRelocationType::X86_GOT32 => 3,
-                ElfRelocationType::X86_PLT32 => 4,
-                ElfRelocationType::X86_COPY => 5,
-                ElfRelocationType::X86_GlobDat => 6,
-                ElfRelocationType::X86_JumpSlot => 7,
-                ElfRelocationType::X86_Relative => 8,
-                ElfRelocationType::X86_GOTOff => 9,
-                ElfRelocationType::X86_GOTPC => 10,
-                ElfRelocationType::X86_GOT32X => 11,
-                ElfRelocationType::X86_64_None => 0,
-                ElfRelocationType::X86_64_64 => 1,
-                ElfRelocationType::X86_64_PC32 => 2,
-                ElfRelocationType::X86_64_GOT32 => 3,
-                ElfRelocationType::X86_64_PLT32 => 4,
-                ElfRelocationType::X86_64_Copy => 5,
-                ElfRelocationType::X86_64_GlobDat => 6,
-                ElfRelocationType::X86_64_JumpSlot => 7,
-                ElfRelocationType::X86_64_Relative => 8,
-                ElfRelocationType::X86_64_GOTPCRel => 9,
-                ElfRelocationType::X86_64_32 => 10,
-                ElfRelocationType::X86_64_32S => 11,
-                ElfRelocationType::X86_64_16 => 12,
-                ElfRelocationType::X86_64_PC16 => 13,
-                ElfRelocationType::X86_64_8 => 14,
-                ElfRelocationType::X86_64_PC8 => 15,
-                ElfRelocationType::X86_64_DTPMod64 => 16,
-                ElfRelocationType::X86_64_DTPOff64 => 17,
-                ElfRelocationType::X86_64_TPOff64 => 18,
-                ElfRelocationType::X86_64_TLSGD => 19,
-                ElfRelocationType::X86_64_TLSLD => 20,
-                ElfRelocationType::X86_64_DTPOff32 => 21,
-                ElfRelocationType::X86_64_GOTTPOff => 22,
-                ElfRelocationType::X86_64_TPOff32 => 23,
-                ElfRelocationType::X86_64_PC64 => 24,
-                ElfRelocationType::X86_64_GOTOff64 => 25,
-                ElfRelocationType::X86_64_GOTPC32 => 26,
-                ElfRelocationType::X86_64_Size32 => 32,
-                ElfRelocationType::X86_64_Size64 => 33,
-                ElfRelocationType::X86_64_GOTPC32_TLSDesc => 34,
-                ElfRelocationType::X86_64_TLSDescCall => 35,
-                ElfRelocationType::X86_64_TLSDesc => 36,
-                ElfRelocationType::X86_64_IRelative => 37,
-                ElfRelocationType::X86_64_IRelative64 => 38,
-                ElfRelocationType::X86_64_GOTPCRelX => 41,
-                ElfRelocationType::X86_64_Rex_GOTPCRelX => 42,
-                ElfRelocationType::X86_64_Code_4_GOTPCRelX => 43,
-                ElfRelocationType::X86_64_Code_4_GOTPCOff => 44,
-                ElfRelocationType::X86_64_Code_4_GOTPC32_TLSDesc => 45,
-                ElfRelocationType::X86_64_Code_5_GOTPCRelX => 46,
-                ElfRelocationType::X86_64_Code_5_GOTPCOff => 47,
-                ElfRelocationType::X86_64_Code_5_GOTPC32_TLSDesc => 48,
-                ElfRelocationType::X86_64_Code_6_GOTPCRelX => 49,
-                ElfRelocationType::X86_64_Code_6_GOTPCOff => 50,
-                ElfRelocationType::X86_64_Code_6_GOTPC32_TLSDesc => 51,
-                ElfRelocationType::Unknown(other) => other as u64,
-            };
-            let symbol = relocation.symbol.index as u64;
-            let info = match self.object.env.class {
-                ElfClass::Elf32 => relocation_type | (symbol << 8),
-                ElfClass::Elf64 => relocation_type | (symbol << 32),
-            };
-
-            if rela {
-                self.write_raw(RawRela {
-                    offset: relocation.offset,
-                    info,
-                    addend: relocation.addend.expect("rela relocation without addend"),
-                })?;
-            } else {
-                self.write_raw(RawRel { offset: relocation.offset, info })?;
-            }
+    fn write_rel_table(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let rel = cast_section!(self, id, Rel);
+        for relocation in &rel.relocations {
+            self.write_raw(RawRel {
+                offset: relocation.offset,
+                info: self.relocation_type_to_info(relocation.relocation_type, relocation.symbol),
+            })?;
         }
-
         Ok(())
     }
 
-    fn write_group(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::Group(group) = &self.object.sections.get(&id).unwrap().content
-        else {
-            panic!("section {id:?} is not a group");
+    fn write_rela_table(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let rela = cast_section!(self, id, Rela);
+        for relocation in &rela.relocations {
+            self.write_raw(RawRela {
+                offset: relocation.offset,
+                info: self.relocation_type_to_info(relocation.relocation_type, relocation.symbol),
+                addend: relocation.addend,
+            })?;
+        }
+        Ok(())
+    }
+
+    fn relocation_type_to_info(&self, type_: ElfRelocationType, symbol: ElfSymbolId) -> u64 {
+        let raw_type = match type_ {
+            ElfRelocationType::X86_None => 0,
+            ElfRelocationType::X86_32 => 1,
+            ElfRelocationType::X86_PC32 => 2,
+            ElfRelocationType::X86_GOT32 => 3,
+            ElfRelocationType::X86_PLT32 => 4,
+            ElfRelocationType::X86_COPY => 5,
+            ElfRelocationType::X86_GlobDat => 6,
+            ElfRelocationType::X86_JumpSlot => 7,
+            ElfRelocationType::X86_Relative => 8,
+            ElfRelocationType::X86_GOTOff => 9,
+            ElfRelocationType::X86_GOTPC => 10,
+            ElfRelocationType::X86_GOT32X => 11,
+            ElfRelocationType::X86_64_None => 0,
+            ElfRelocationType::X86_64_64 => 1,
+            ElfRelocationType::X86_64_PC32 => 2,
+            ElfRelocationType::X86_64_GOT32 => 3,
+            ElfRelocationType::X86_64_PLT32 => 4,
+            ElfRelocationType::X86_64_Copy => 5,
+            ElfRelocationType::X86_64_GlobDat => 6,
+            ElfRelocationType::X86_64_JumpSlot => 7,
+            ElfRelocationType::X86_64_Relative => 8,
+            ElfRelocationType::X86_64_GOTPCRel => 9,
+            ElfRelocationType::X86_64_32 => 10,
+            ElfRelocationType::X86_64_32S => 11,
+            ElfRelocationType::X86_64_16 => 12,
+            ElfRelocationType::X86_64_PC16 => 13,
+            ElfRelocationType::X86_64_8 => 14,
+            ElfRelocationType::X86_64_PC8 => 15,
+            ElfRelocationType::X86_64_DTPMod64 => 16,
+            ElfRelocationType::X86_64_DTPOff64 => 17,
+            ElfRelocationType::X86_64_TPOff64 => 18,
+            ElfRelocationType::X86_64_TLSGD => 19,
+            ElfRelocationType::X86_64_TLSLD => 20,
+            ElfRelocationType::X86_64_DTPOff32 => 21,
+            ElfRelocationType::X86_64_GOTTPOff => 22,
+            ElfRelocationType::X86_64_TPOff32 => 23,
+            ElfRelocationType::X86_64_PC64 => 24,
+            ElfRelocationType::X86_64_GOTOff64 => 25,
+            ElfRelocationType::X86_64_GOTPC32 => 26,
+            ElfRelocationType::X86_64_Size32 => 32,
+            ElfRelocationType::X86_64_Size64 => 33,
+            ElfRelocationType::X86_64_GOTPC32_TLSDesc => 34,
+            ElfRelocationType::X86_64_TLSDescCall => 35,
+            ElfRelocationType::X86_64_TLSDesc => 36,
+            ElfRelocationType::X86_64_IRelative => 37,
+            ElfRelocationType::X86_64_IRelative64 => 38,
+            ElfRelocationType::X86_64_GOTPCRelX => 41,
+            ElfRelocationType::X86_64_Rex_GOTPCRelX => 42,
+            ElfRelocationType::X86_64_Code_4_GOTPCRelX => 43,
+            ElfRelocationType::X86_64_Code_4_GOTPCOff => 44,
+            ElfRelocationType::X86_64_Code_4_GOTPC32_TLSDesc => 45,
+            ElfRelocationType::X86_64_Code_5_GOTPCRelX => 46,
+            ElfRelocationType::X86_64_Code_5_GOTPCOff => 47,
+            ElfRelocationType::X86_64_Code_5_GOTPC32_TLSDesc => 48,
+            ElfRelocationType::X86_64_Code_6_GOTPCRelX => 49,
+            ElfRelocationType::X86_64_Code_6_GOTPCOff => 50,
+            ElfRelocationType::X86_64_Code_6_GOTPC32_TLSDesc => 51,
+            ElfRelocationType::Unknown(other) => other as u64,
         };
+
+        let symbol = symbol.index as u64;
+        match self.object.env.class {
+            ElfClass::Elf32 => raw_type | (symbol << 8),
+            ElfClass::Elf64 => raw_type | (symbol << 32),
+        }
+    }
+
+    fn write_group(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let group = cast_section!(self, id, Group);
         self.write_raw(RawGroupFlags { comdat: group.comdat })?;
         for section in &group.sections {
             self.write_raw(section.index)?;
@@ -494,9 +480,7 @@ impl<'a> Writer<'a> {
     }
 
     fn write_hash(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::Hash(hash) = &self.object.sections.get(&id).unwrap().content else {
-            panic!("section {id:?} is not a hash");
-        };
+        let hash = cast_section!(self, id, Hash);
         self.write_raw(RawHashHeader {
             bucket_count: hash.buckets.len().try_into().expect("too many buckets"),
             chain_count: hash.chain.len().try_into().expect("too many chain elements"),
@@ -511,11 +495,7 @@ impl<'a> Writer<'a> {
     }
 
     fn write_dynamic(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::Dynamic(dynamic) = &self.object.sections.get(&id).unwrap().content
-        else {
-            panic!("section {id:?} is not a dynamic section");
-        };
-
+        let dynamic = cast_section!(self, id, Dynamic);
         for directive in &dynamic.directives {
             let (tag, value) = match directive {
                 ElfDynamicDirective::Null => (0, 0),
@@ -582,10 +562,7 @@ impl<'a> Writer<'a> {
     }
 
     fn write_notes(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
-        let ElfSectionContent::Note(notes) = &self.object.sections.get(&id).unwrap().content else {
-            panic!("section {id:?} is not a note section");
-        };
-
+        let notes = cast_section!(self, id, Note);
         let pad = |this: &mut Self, size| {
             if size % 4 != 0 {
                 this.writer.write_all(&vec![0; 4 - size as usize % 4])

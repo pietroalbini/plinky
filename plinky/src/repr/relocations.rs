@@ -1,6 +1,6 @@
 use crate::repr::symbols::SymbolId;
 use plinky_elf::ids::ElfSymbolId;
-use plinky_elf::{ElfRelocation, ElfRelocationType};
+use plinky_elf::{ElfRel, ElfRela, ElfRelocationType};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
 use std::collections::BTreeMap;
@@ -43,6 +43,31 @@ impl RelocationType {
     }
 }
 
+impl TryFrom<ElfRelocationType> for RelocationType {
+    type Error = UnsupportedRelocationType;
+
+    fn try_from(value: ElfRelocationType) -> Result<Self, Self::Error> {
+        Ok(match value {
+            ElfRelocationType::X86_32 => RelocationType::Absolute32,
+            ElfRelocationType::X86_PC32 => RelocationType::Relative32,
+            ElfRelocationType::X86_PLT32 => RelocationType::PLT32,
+            ElfRelocationType::X86_GOTPC => RelocationType::GOTLocationRelative32,
+            ElfRelocationType::X86_GOTOff => RelocationType::OffsetFromGOT32,
+            ElfRelocationType::X86_GOT32 => RelocationType::GOTIndex32,
+            ElfRelocationType::X86_GOT32X => RelocationType::GOTIndex32,
+
+            ElfRelocationType::X86_64_32 => RelocationType::Absolute32,
+            ElfRelocationType::X86_64_32S => RelocationType::AbsoluteSigned32,
+            ElfRelocationType::X86_64_PC32 => RelocationType::Relative32,
+            ElfRelocationType::X86_64_PLT32 => RelocationType::PLT32,
+            ElfRelocationType::X86_64_GOTPCRel => RelocationType::GOTRelative32,
+            ElfRelocationType::X86_64_GOTPCRelX => RelocationType::GOTRelative32,
+
+            elf_type => return Err(UnsupportedRelocationType { elf_type }),
+        })
+    }
+}
+
 pub(crate) enum NeedsGot {
     None,
     Got,
@@ -58,32 +83,27 @@ pub(crate) struct Relocation {
 }
 
 impl Relocation {
-    pub(crate) fn from_elf(
-        elf: ElfRelocation,
+    pub(crate) fn from_elf_rel(
+        elf: ElfRel,
         conversion: &BTreeMap<ElfSymbolId, SymbolId>,
     ) -> Result<Self, UnsupportedRelocationType> {
         Ok(Relocation {
-            type_: match elf.relocation_type {
-                ElfRelocationType::X86_32 => RelocationType::Absolute32,
-                ElfRelocationType::X86_PC32 => RelocationType::Relative32,
-                ElfRelocationType::X86_PLT32 => RelocationType::PLT32,
-                ElfRelocationType::X86_GOTPC => RelocationType::GOTLocationRelative32,
-                ElfRelocationType::X86_GOTOff => RelocationType::OffsetFromGOT32,
-                ElfRelocationType::X86_GOT32 => RelocationType::GOTIndex32,
-                ElfRelocationType::X86_GOT32X => RelocationType::GOTIndex32,
-
-                ElfRelocationType::X86_64_32 => RelocationType::Absolute32,
-                ElfRelocationType::X86_64_32S => RelocationType::AbsoluteSigned32,
-                ElfRelocationType::X86_64_PC32 => RelocationType::Relative32,
-                ElfRelocationType::X86_64_PLT32 => RelocationType::PLT32,
-                ElfRelocationType::X86_64_GOTPCRel => RelocationType::GOTRelative32,
-                ElfRelocationType::X86_64_GOTPCRelX => RelocationType::GOTRelative32,
-
-                elf_type => return Err(UnsupportedRelocationType { elf_type }),
-            },
+            type_: elf.relocation_type.try_into()?,
             symbol: *conversion.get(&elf.symbol).unwrap(),
             offset: (elf.offset as i64).into(),
-            addend: elf.addend.map(|a| a.into()),
+            addend: None,
+        })
+    }
+
+    pub(crate) fn from_elf_rela(
+        elf: ElfRela,
+        conversion: &BTreeMap<ElfSymbolId, SymbolId>,
+    ) -> Result<Self, UnsupportedRelocationType> {
+        Ok(Relocation {
+            type_: elf.relocation_type.try_into()?,
+            symbol: *conversion.get(&elf.symbol).unwrap(),
+            offset: (elf.offset as i64).into(),
+            addend: Some(elf.addend.into()),
         })
     }
 }

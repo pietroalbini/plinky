@@ -3,9 +3,7 @@ use crate::repr::sections::SectionId;
 use crate::repr::symbols::SymbolId;
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
-use plinky_elf::{
-    ElfClass, ElfRelocation, ElfRelocationType, ElfRelocationsTable, ElfSectionContent,
-};
+use plinky_elf::{ElfClass, ElfRela, ElfRelaTable, ElfRelocationType, ElfSectionContent};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
@@ -21,15 +19,15 @@ pub(super) fn create_rela<'a>(
 ) -> Result<ElfSectionContent, RelaCreationError> {
     let mut elf_relocations = Vec::new();
     for relocation in relocations {
-        elf_relocations.push(ElfRelocation {
+        elf_relocations.push(ElfRela {
             offset: resolver.address(section, relocation.offset)?.1.extract(),
             symbol: *symbol_conversion.get(&relocation.symbol).unwrap(),
             relocation_type: convert_relocation_type(class, relocation.type_),
-            addend: relocation.addend.map(|off| off.extract()),
+            addend: relocation.addend.expect("TODO").extract(),
         });
     }
 
-    Ok(ElfSectionContent::RelocationsTable(ElfRelocationsTable {
+    Ok(ElfSectionContent::Rela(ElfRelaTable {
         symbol_table,
         applies_to_section,
         relocations: elf_relocations,

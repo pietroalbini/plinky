@@ -86,7 +86,12 @@ impl LayoutDetailsProvider<ElfSectionId> for ElfObject {
     }
 
     fn relocations_in_table_count(&self, id: ElfSectionId) -> usize {
-        cast_section!(self, id, RelocationsTable).relocations.len()
+        match self.sections.get(&id).map(|s| &s.content) {
+            Some(ElfSectionContent::Rel(rel)) => rel.relocations.len(),
+            Some(ElfSectionContent::Rela(rela)) => rela.relocations.len(),
+            Some(_) => panic!("section {id:?} is of the wrong type"),
+            None => panic!("missing section {id:?}"),
+        }
     }
 
     fn hash_details(&self, id: ElfSectionId) -> LayoutDetailsHash {
@@ -162,23 +167,8 @@ fn part_for_section(
         ElfSectionContent::Uninitialized(_) => Part::UninitializedSection(id.clone()),
         ElfSectionContent::SymbolTable(_) => Part::SymbolTable(id.clone()),
         ElfSectionContent::StringTable(_) => Part::StringTable(id.clone()),
-
-        ElfSectionContent::RelocationsTable(table) => {
-            let mut rela = None;
-            for relocation in &table.relocations {
-                match rela {
-                    Some(rela) if rela == relocation.addend.is_some() => {}
-                    Some(_) => return Err(LayoutError::MixedRelRela),
-                    None => rela = Some(relocation.addend.is_some()),
-                }
-            }
-            let rela = rela.unwrap_or(false);
-            if rela {
-                Part::Rela(id.clone())
-            } else {
-                Part::Rel(id.clone())
-            }
-        }
+        ElfSectionContent::Rel(_) => Part::Rel(id.clone()),
+        ElfSectionContent::Rela(_) => Part::Rela(id.clone()),
         ElfSectionContent::Group(_) => Part::Group(id.clone()),
         ElfSectionContent::Hash(_) => Part::Hash(id.clone()),
         ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),

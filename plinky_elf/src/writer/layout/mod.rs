@@ -223,8 +223,6 @@ fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> L
 
 #[derive(Debug, Error, Display)]
 pub enum LayoutError {
-    #[display("relocation section mixing rel and rela")]
-    MixedRelRela,
     #[display("unkown section encountered while calculating the layout")]
     UnknownSection,
     #[display("the linker output is too large")]

@@ -100,7 +100,8 @@ pub enum ElfSectionContent {
     Uninitialized(ElfUninitializedSection),
     SymbolTable(ElfSymbolTable),
     StringTable(ElfStringTable),
-    RelocationsTable(ElfRelocationsTable),
+    Rel(ElfRelTable),
+    Rela(ElfRelaTable),
     Note(ElfNotesTable),
     Group(ElfGroup),
     Hash(ElfHash),
@@ -116,18 +117,8 @@ impl ElfSectionContent {
             ElfSectionContent::Uninitialized(u) => u.len as usize,
             ElfSectionContent::SymbolTable(s) => RawSymbol::size(bits) * s.symbols.len(),
             ElfSectionContent::StringTable(s) => s.len(),
-            ElfSectionContent::RelocationsTable(r) => {
-                let mut rel = 0;
-                let mut rela = 0;
-                for one in &r.relocations {
-                    if one.addend.is_some() {
-                        rela += 1;
-                    } else {
-                        rel += 1;
-                    }
-                }
-                RawRel::size(bits) * rel + RawRela::size(bits) * rela
-            }
+            ElfSectionContent::Rel(r) => RawRel::size(bits) * r.relocations.len(),
+            ElfSectionContent::Rela(r) => RawRela::size(bits) * r.relocations.len(),
             ElfSectionContent::Group(g) => {
                 RawGroupFlags::size(bits) + u32::size(bits) * g.sections.len()
             }
@@ -333,18 +324,32 @@ pub enum ElfSymbolDefinition {
 }
 
 #[derive(Debug)]
-pub struct ElfRelocationsTable {
+pub struct ElfRelTable {
     pub symbol_table: ElfSectionId,
     pub applies_to_section: ElfSectionId,
-    pub relocations: Vec<ElfRelocation>,
+    pub relocations: Vec<ElfRel>,
 }
 
 #[derive(Debug)]
-pub struct ElfRelocation {
+pub struct ElfRelaTable {
+    pub symbol_table: ElfSectionId,
+    pub applies_to_section: ElfSectionId,
+    pub relocations: Vec<ElfRela>,
+}
+
+#[derive(Debug)]
+pub struct ElfRel {
     pub offset: u64,
     pub symbol: ElfSymbolId,
     pub relocation_type: ElfRelocationType,
-    pub addend: Option<i64>,
+}
+
+#[derive(Debug)]
+pub struct ElfRela {
+    pub offset: u64,
+    pub symbol: ElfSymbolId,
+    pub relocation_type: ElfRelocationType,
+    pub addend: i64,
 }
 
 #[derive(Debug, Clone, Copy)]

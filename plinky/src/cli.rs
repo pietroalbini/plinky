@@ -192,10 +192,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         },
 
         dynamic_linker: match (mode, dynamic_linker) {
-            (Mode::PositionDependent | Mode::SharedLibrary, None) => DynamicLinker::Unsupported,
-            (Mode::PositionDependent | Mode::SharedLibrary, Some(_)) => {
-                return Err(CliError::UnsupportedCustomDynamicLinker);
-            }
+            (Mode::PositionDependent | Mode::SharedLibrary, _) => DynamicLinker::Unsupported,
             (Mode::PositionIndependent, None) => DynamicLinker::PlatformDefault,
             (Mode::PositionIndependent, Some(custom)) => DynamicLinker::Custom(custom.into()),
         },
@@ -273,8 +270,6 @@ pub(crate) enum CliError {
     RelroOnlyForPie,
     #[display("-z now is only supported in PIE mode")]
     NowOnlyForPie,
-    #[display("this mode does not support custom dynamic linkers")]
-    UnsupportedCustomDynamicLinker,
     #[display("setting the shared object name is only supported when building shared objects")]
     UnsupportedSharedObjectName,
 }
@@ -651,7 +646,11 @@ mod tests {
     #[test]
     fn test_dynamic_linker_static() {
         assert_eq!(
-            Err(CliError::UnsupportedCustomDynamicLinker),
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                dynamic_linker: DynamicLinker::Unsupported,
+                ..default_options_static()
+            }),
             parse(["foo", "--dynamic-linker=bar"].into_iter())
         );
     }
@@ -659,7 +658,11 @@ mod tests {
     #[test]
     fn test_dynamic_linker_shared() {
         assert_eq!(
-            Err(CliError::UnsupportedCustomDynamicLinker),
+            Ok(CliOptions {
+                inputs: vec!["foo".into()],
+                dynamic_linker: DynamicLinker::Unsupported,
+                ..default_options_shared()
+            }),
             parse(["foo", "--dynamic-linker=bar", "-shared"].into_iter())
         );
     }

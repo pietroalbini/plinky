@@ -1,4 +1,4 @@
-use anyhow::{bail, Error};
+use anyhow::{anyhow, bail, Error};
 use plinky_test_harness::template::{Template, TemplateContext, TemplateContextGetters, Value};
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};
@@ -64,6 +64,18 @@ impl PlinkyStep {
         for debug_print in &self.debug_print {
             command.args(["--debug-print", debug_print]);
         }
+
+        // In NixOS, the default linker is just a stub that errors out (since you are not supposed
+        // to use dynamicly linked programs built outside of Nix). We thus need to set the correct
+        // linker for it, which is provided by flake.nix through the environment variable.
+        let dynamic_linker_var = match &ctx.arch {
+            plinky_test_harness::Arch::X86 => "PLINKY_TEST_DYNAMIC_LINKER_32",
+            plinky_test_harness::Arch::X86_64 => "PLINKY_TEST_DYNAMIC_LINKER_64",
+        };
+        command.arg("--dynamic-linker").arg(
+            std::env::var_os(dynamic_linker_var)
+                .ok_or_else(|| anyhow!("missing environment variable {dynamic_linker_var}"))?,
+        );
 
         runner.run("linking", &mut command)
     }

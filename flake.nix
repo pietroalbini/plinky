@@ -9,7 +9,9 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = nixpkgs.legacyPackages."${system}";
+        pkgs32 = nixpkgs.legacyPackages."i686-linux";
+        pkgs64 = nixpkgs.legacyPackages."x86_64-linux";
       in
       {
         devShells.default = pkgs.mkShellNoCC {
@@ -17,15 +19,17 @@
             pkgs.rustup
             pkgs.cargo-insta
             pkgs.gcc14
-            pkgs.glibc_multi.dev
           ];
 
-          PLINKY_TEST_DYNAMIC_LINKER_32 = "${pkgs.glibc_multi}/lib/32/ld-linux.so.2";
-          PLINKY_TEST_DYNAMIC_LINKER_64 = "${pkgs.glibc_multi}/lib/ld-linux-x86-64.so.2";
+          PLINKY_TEST_DYNAMIC_LINKER_32 = "${pkgs32.glibc}/lib/ld-linux.so.2";
+          PLINKY_TEST_DYNAMIC_LINKER_64 = "${pkgs64.glibc}/lib/ld-linux-x86-64.so.2";
 
-          # Prevent nix from messing with the test suite.
           shellHook = ''
+            # Prevent nix from messing with the test suite.
             unset NIX_LDFLAGS NIX_HARDENING_ENABLE
+
+            # Put the test files inside of the target dir to keep them inside of the dev shell.
+            export TMPDIR="$(git rev-parse --show-toplevel)/target/tmp"
           '';
         };
       }

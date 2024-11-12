@@ -189,7 +189,7 @@ debug print: object after relocations are applied
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ ff b3 04 00 00 00 ff a3 08 00 00 00 90 90 90 90 │ ................ │
  │   │  │ ff a3 0c 00 00 00 68 00 00 00 00 e9 e0 ff ff ff │ ......h......... │
- │   │  │ ff a3 10 00 00 00 68 01 00 00 00 e9 d0 ff ff ff │ ......h......... │
+ │   │  │ ff a3 10 00 00 00 68 08 00 00 00 e9 d0 ff ff ff │ ......h......... │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
@@ -396,10 +396,9 @@ debug print: built elf
 
 ==============
 
-running exited with exit status: 127
+running exited with exit status: 0
 
 === stdout ===
 Hello world
 
-=== stderr ===
-Inconsistency detected by ld.so: dl-runtime.c: 63: _dl_fixup: Assertion `ELFW(R_TYPE)(reloc->r_info) == ELF_MACHINE_JMP_SLOT' failed!
+no stderr present

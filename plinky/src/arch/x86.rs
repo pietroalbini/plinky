@@ -1,14 +1,17 @@
 use crate::passes::generate_got::GOT;
 use crate::passes::generate_plt::GeneratePltArchOutput;
-use crate::repr::relocations::{Relocation, RelocationType};
+use crate::repr::relocations::{Relocation, RelocationMode, RelocationType};
 use crate::repr::symbols::SymbolId;
 use crate::utils::x86_codegen::{
     X86Arch, X86Codegen, X86Instruction::*, X86Reference::*, X86Value,
 };
 use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
+use crate::repr::object::Object;
+use plinky_elf::raw::{RawRel, RawRela};
+use plinky_utils::raw_types::RawType;
 
-pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltArchOutput {
+pub(crate) fn generate_plt(object: &Object, got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltArchOutput {
     let mut codegen = X86Codegen::new(X86Arch::X86);
 
     let plt_reloc = X86Value::Relocation {
@@ -26,6 +29,11 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltAr
     // Ensure alignment.
     debug_assert!(codegen.len() % 16 == 0);
 
+    let reloc_size = match object.relocation_mode() {
+        RelocationMode::Rel => RawRel::size(object.env.class),
+        RelocationMode::Rela => RawRela::size(object.env.class),
+    };
+
     let mut extra_got_plt_relocations = Vec::new();
     let mut offsets = BTreeMap::new();
     for (idx, (symbol, got_offset)) in got_plt.offsets.iter().enumerate() {
@@ -33,7 +41,7 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltAr
 
         codegen.encode(JumpReference(EbxPlus(v(got_offset.extract().try_into().unwrap()))));
         let lazy_jump_target = codegen.current_offset();
-        codegen.encode(PushImmediate(X86Value::Known(idx as _)));
+        codegen.encode(PushImmediate(X86Value::Known((idx * reloc_size) as _)));
         codegen.encode(JumpRelative(plt_reloc));
 
         // When relocations are resolved at runtime (and the dynamic linker is involved), it's

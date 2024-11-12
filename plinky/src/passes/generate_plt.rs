@@ -20,7 +20,7 @@ pub(crate) fn run(object: &mut Object) {
     let plt_symbol = object.symbols.add(UpcomingSymbol::Section { section: plt_section }).unwrap();
 
     let output = match object.env.machine {
-        ElfMachine::X86 => crate::arch::x86::generate_plt(got_plt, plt_symbol),
+        ElfMachine::X86 => crate::arch::x86::generate_plt(object, got_plt, plt_symbol),
         ElfMachine::X86_64 => crate::arch::x86_64::generate_plt(got_plt, plt_symbol),
     };
 

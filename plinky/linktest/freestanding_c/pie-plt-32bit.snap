@@ -396,8 +396,10 @@ debug print: built elf
 
 ==============
 
-running exited with signal: 11 (SIGSEGV) (core dumped)
+running exited with exit status: 127
 
-no stdout present
+=== stdout ===
+Hello world
 
-no stderr present
+=== stderr ===
+Inconsistency detected by ld.so: dl-runtime.c: 63: _dl_fixup: Assertion `ELFW(R_TYPE)(reloc->r_info) == ELF_MACHINE_JMP_SLOT' failed!

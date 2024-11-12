@@ -36,20 +36,25 @@ pub(crate) fn run(object: &mut Object) -> Result<(), ConvertRelocationModesError
         for relocation in relocations.relocations_mut() {
             match (&relocation.addend, expected_mode) {
                 (RelocationAddend::Inline, RelocationMode::Rela) => {
-                    let addend_bytes = *addend_slice(&mut applies_to.bytes, relocation.offset);
-                    relocation.addend = RelocationAddend::Explicit(match endian {
-                        ElfEndian::Little => i32::from_le_bytes(addend_bytes).into(),
-                    });
+                    if relocation.type_.uses_addend() {
+                        let addend_bytes = *addend_slice(&mut applies_to.bytes, relocation.offset);
+                        relocation.addend = RelocationAddend::Explicit(match endian {
+                            ElfEndian::Little => i32::from_le_bytes(addend_bytes).into(),
+                        });
+                    } else {
+                        relocation.addend = RelocationAddend::Explicit(0.into());
+                    }
                 }
 
                 (RelocationAddend::Explicit(addend), RelocationMode::Rel) => {
-                    let addend: i32 = addend.extract().try_into().map_err(|_| {
-                        ConvertRelocationModesError::RelAddendMustBe32Bit(addend.extract())
-                    })?;
-
-                    *addend_slice(&mut applies_to.bytes, relocation.offset) = match endian {
-                        ElfEndian::Little => addend.to_le_bytes(),
-                    };
+                    if relocation.type_.uses_addend() {
+                        let addend: i32 = addend.extract().try_into().map_err(|_| {
+                            ConvertRelocationModesError::RelAddendMustBe32Bit(addend.extract())
+                        })?;
+                        *addend_slice(&mut applies_to.bytes, relocation.offset) = match endian {
+                            ElfEndian::Little => addend.to_le_bytes(),
+                        };
+                    }
                     relocation.addend = RelocationAddend::Inline;
                 }
 

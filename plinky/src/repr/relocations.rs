@@ -47,6 +47,21 @@ impl RelocationType {
             _ => self.needs_got_entry(),
         }
     }
+
+    pub(crate) fn uses_addend(&self) -> bool {
+        match self {
+            RelocationType::Absolute32 => true,
+            RelocationType::AbsoluteSigned32 => true,
+            RelocationType::Relative32 => true,
+            RelocationType::PLT32 => true,
+            RelocationType::GOTRelative32 => true,
+            RelocationType::GOTIndex32 => true,
+            RelocationType::GOTLocationRelative32 => true,
+            RelocationType::OffsetFromGOT32 => true,
+            RelocationType::FillGotSlot => false,
+            RelocationType::FillGotPltSlot => false,
+        }
+    }
 }
 
 impl TryFrom<ElfRelocationType> for RelocationType {

@@ -9,8 +9,9 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
     let parsed = Parser::new(tokens).parse_struct()?;
 
     let fields = generate_fields(&parsed)?;
+    let mut impls = Vec::new();
 
-    let bitfield_impl = generate_impl_for(
+    impls.push(generate_impl_for(
         &Item::Struct(parsed.clone()),
         Some("plinky_utils::bitfields::Bitfield"),
         quote! {
@@ -18,24 +19,22 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
             #{ bitfield_fn_read(&fields) }
             #{ bitfield_fn_write(&fields) }
         },
-    );
+    ));
 
-    let display_impl = if let Some(attr) = parsed.attrs.get("bitfield_display_comma_separated")? {
+    if let Some(attr) = parsed.attrs.get("bitfield_display_comma_separated")? {
         attr.must_be_empty()?;
 
-        Some(generate_impl_for(
+        impls.push(generate_impl_for(
             &Item::Struct(parsed.clone()),
             Some("std::fmt::Display"),
             display_fn_fmt(&fields),
-        ))
-    } else {
-        None
+        ));
     };
 
-    Ok(quote! {
-        #bitfield_impl
-        #display_impl
-    })
+    impls.push(generate_binop_impl(&parsed, "std::ops::BitOr", "bitor"));
+    impls.push(generate_binop_impl(&parsed, "std::ops::BitAnd", "bitand"));
+
+    Ok(quote! { #impls })
 }
 
 fn bitfield_type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
@@ -165,6 +164,27 @@ fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
                 .collect::<Result<_, _>>()?,
         ),
     })
+}
+
+fn generate_binop_impl(struct_: &Struct, op: &str, method: &str) -> TokenStream {
+    let trait_for = format!("{op}<Self>");
+    let op: TokenStream = op.parse().unwrap();
+    let method: TokenStream = method.parse().unwrap();
+    generate_impl_for(
+        &Item::Struct(struct_.clone()),
+        Some(&trait_for),
+        quote! {
+            type Output = Self;
+
+            fn #method(self, other: Self) -> Self {
+                let self_repr = plinky_utils::bitfields::Bitfield::write(&self);
+                let other_repr = plinky_utils::bitfields::Bitfield::write(&other);
+                plinky_utils::bitfields::Bitfield::read(
+                    #op::#method(self_repr, other_repr)
+                ).unwrap()
+            }
+        },
+    )
 }
 
 struct BitCalculator {

@@ -73,8 +73,10 @@ pub(super) fn render_layout(
                 SegmentType::Uninitialized => "uninit".into(),
                 SegmentType::Dynamic => "dynamic".into(),
                 SegmentType::Interpreter => "interpreter".into(),
+                SegmentType::Notes => "notes".into(),
                 SegmentType::GnuStack => "GNU stack".into(),
                 SegmentType::GnuRelro => "GNU relro".into(),
+                SegmentType::GnuProperty => "GNU property".into(),
             },
             segment.perms.to_string(),
             segment

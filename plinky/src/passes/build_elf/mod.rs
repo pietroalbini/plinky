@@ -19,8 +19,8 @@ use crate::utils::address_resolver::AddressResolver;
 use plinky_elf::ids::{ElfSectionId, ElfStringId};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::{
-    ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment, ElfSegmentType,
-    ElfStringTable, ElfType, ElfUninitializedSection,
+    ElfNotesTable, ElfObject, ElfProgramSection, ElfSection, ElfSectionContent, ElfSegment,
+    ElfSegmentType, ElfStringTable, ElfType, ElfUninitializedSection,
 };
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, ExtractNumber};
@@ -224,6 +224,10 @@ impl<'a> ElfBuilder<'a> {
 
                 SectionContent::Dynamic(dynamic) => build_dynamic_section(self, dynamic),
 
+                SectionContent::Notes(notes) => {
+                    ElfSectionContent::Note(ElfNotesTable { notes: notes.notes.clone() })
+                }
+
                 SectionContent::SectionNames => section_names
                     .take()
                     .ok_or(ElfBuilderError::MoreThanOneSectionNamesSection)?
@@ -263,6 +267,8 @@ impl<'a> ElfBuilder<'a> {
                     SegmentType::Uninitialized => ElfSegmentType::Load,
                     SegmentType::GnuStack => ElfSegmentType::GnuStack,
                     SegmentType::GnuRelro => ElfSegmentType::GnuRelro,
+                    SegmentType::GnuProperty => ElfSegmentType::GnuProperty,
+                    SegmentType::Notes => ElfSegmentType::Note,
                 },
                 perms: segment.perms,
                 align: segment.align,

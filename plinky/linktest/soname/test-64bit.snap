@@ -21,7 +21,7 @@ debug print: object after relocations are applied
 
 debug print: built elf
  │
- │  section .dynstr (address: 0x158)
+ │  section .dynstr (address: 0x1c8)
  │   │
  │   │    Strings table:
  │   │  ╭─────┬───────────╮
@@ -35,7 +35,7 @@ debug print: built elf
  │   │  ╰─────┴───────────╯
  │   ┴
  │
- │  section .dynamic (address: 0x1001b6)
+ │  section .dynamic (address: 0x100226)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -44,15 +44,15 @@ debug print: built elf
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ Shared object name      │ offset 1 in the string table │
  │   │  ├─────────────────────────┼──────────────────────────────┤
- │   │  │ String table            │ address 0x158                │
+ │   │  │ String table            │ address 0x1c8                │
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ String table size       │ 18 bytes                     │
  │   │  ├─────────────────────────┼──────────────────────────────┤
- │   │  │ Symbol table            │ address 0x16a                │
+ │   │  │ Symbol table            │ address 0x1da                │
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ Symbol table entry size │ 24 bytes                     │
  │   │  ├─────────────────────────┼──────────────────────────────┤
- │   │  │ Hash table              │ address 0x19a                │
+ │   │  │ Hash table              │ address 0x20a                │
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ Null                    │ -                            │
  │   │  ╰─────────────────────────┴──────────────────────────────╯

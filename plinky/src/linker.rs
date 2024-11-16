@@ -42,6 +42,8 @@ pub(crate) fn link_driver(
     passes::generate_plt::run(&mut object);
     passes::inject_interpreter::run(&options, &mut object, &dynamic)?;
 
+    passes::generate_gnu_property::run(&mut object);
+
     passes::exclude_section_symbols_from_tables::remove(&mut object);
     passes::demote_global_hidden_symbols::run(&mut object);
     passes::create_segments::run(&mut object);

@@ -120,8 +120,15 @@ impl LayoutDetailsProvider<SectionId> for Object {
         LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }
     }
 
-    fn note_details(&self, _id: SectionId) -> Vec<LayoutDetailsNote> {
-        unimplemented!();
+    fn note_details(&self, id: SectionId) -> Vec<LayoutDetailsNote> {
+        cast_section!(self, id, Notes)
+            .notes
+            .iter()
+            .map(|note| LayoutDetailsNote {
+                name_len: note.name().len(),
+                value_len: note.value_len(self.env.class),
+            })
+            .collect()
     }
 
     fn parts_for_sections(&self) -> Result<Vec<Part<SectionId>>, LayoutError> {
@@ -145,9 +152,11 @@ impl LayoutDetailsProvider<SectionId> for Object {
                 SegmentType::Interpreter => continue,
                 SegmentType::Program => {}
                 SegmentType::Uninitialized => {}
+                SegmentType::Notes => {}
                 SegmentType::Dynamic => continue,
                 SegmentType::GnuStack => continue,
                 SegmentType::GnuRelro => continue,
+                SegmentType::GnuProperty => continue,
             }
 
             let group = LayoutPartsGroup {
@@ -158,7 +167,9 @@ impl LayoutDetailsProvider<SectionId> for Object {
                     .map(|c| match c {
                         SegmentContent::ProgramHeader => Part::ProgramHeaders,
                         SegmentContent::ElfHeader => Part::Header,
-                        SegmentContent::Section(id) => part_for_section(self, self.sections.get(*id)),
+                        SegmentContent::Section(id) => {
+                            part_for_section(self, self.sections.get(*id))
+                        }
                     })
                     .collect(),
             };
@@ -182,6 +193,7 @@ fn part_for_section(object: &Object, section: &Section) -> Part<SectionId> {
             RelocationMode::Rela => Part::Rela(section.id),
         },
         SectionContent::Dynamic(_) => Part::Dynamic(section.id),
+        SectionContent::Notes(_) => Part::Note(section.id),
         SectionContent::SectionNames => Part::StringTable(section.id),
     }
 }

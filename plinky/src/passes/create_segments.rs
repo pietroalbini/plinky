@@ -1,6 +1,7 @@
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
+use plinky_elf::ElfPermissions;
 use std::collections::{BTreeMap, BTreeSet};
 
 const PAGE_SIZE: u64 = 0x1000;
@@ -26,9 +27,14 @@ pub(crate) fn run(object: &mut Object) {
         if sections_already_in_segments.contains(&section.id) {
             continue;
         }
-        let (type_, perms) = match &section.content {
-            SectionContent::Data(data) => (SegmentType::Program, data.perms),
-            SectionContent::Uninitialized(uninit) => (SegmentType::Uninitialized, uninit.perms),
+        let (type_, perms, align) = match &section.content {
+            SectionContent::Data(data) => (SegmentType::Program, data.perms, PAGE_SIZE),
+            SectionContent::Uninitialized(uninit) => {
+                (SegmentType::Uninitialized, uninit.perms, PAGE_SIZE)
+            }
+            SectionContent::Notes(notes) => {
+                (SegmentType::Notes, ElfPermissions::R, notes.alignment(object.env.class))
+            }
 
             SectionContent::Strings(_)
             | SectionContent::Symbols(_)
@@ -39,13 +45,13 @@ pub(crate) fn run(object: &mut Object) {
         };
         if perms.read || perms.write || perms.execute {
             segments
-                .entry((type_, perms))
+                .entry((type_, perms, align))
                 .or_insert_with(Vec::new)
                 .push(SegmentContent::Section(section.id));
         }
     }
 
-    for ((type_, perms), content) in segments {
-        object.segments.add(Segment { align: PAGE_SIZE, type_, perms, content });
+    for ((type_, perms, align), content) in segments {
+        object.segments.add(Segment { align, type_, perms, content });
     }
 }

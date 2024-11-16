@@ -23,7 +23,7 @@ debug print: built elf
  │  │ Entrypoint │ -             │
  │  ╰────────────┴───────────────╯
  │
- │  section .dynsym (address: 0x19a)
+ │  section .dynsym (address: 0x20a)
  │   │
  │   │    Dynamic symbol table:
  │   │  ╭───────────┬─────────┬──────┬────────────┬────────────┬────────┬──────╮
@@ -37,22 +37,22 @@ debug print: built elf
  │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x1fa)
+ │  section .dynamic (address: 0x26a)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
  │   │  ╭─────────────────────────┬───────────────╮
  │   │  │ Kind                    │ Value         │
  │   │  ├─────────────────────────┼───────────────┤
- │   │  │ String table            │ address 0x190 │
+ │   │  │ String table            │ address 0x200 │
  │   │  ├─────────────────────────┼───────────────┤
  │   │  │ String table size       │ 10 bytes      │
  │   │  ├─────────────────────────┼───────────────┤
- │   │  │ Symbol table            │ address 0x19a │
+ │   │  │ Symbol table            │ address 0x20a │
  │   │  ├─────────────────────────┼───────────────┤
  │   │  │ Symbol table entry size │ 24 bytes      │
  │   │  ├─────────────────────────┼───────────────┤
- │   │  │ Hash table              │ address 0x1e2 │
+ │   │  │ Hash table              │ address 0x252 │
  │   │  ├─────────────────────────┼───────────────┤
  │   │  │ Null                    │ -             │
  │   │  ╰─────────────────────────┴───────────────╯

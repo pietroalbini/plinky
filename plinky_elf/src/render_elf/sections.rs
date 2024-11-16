@@ -228,42 +228,40 @@ fn render_section_hash(names: &Names, object: &ElfObject, hash: &ElfHash) -> Vec
 }
 
 fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
-    let mut output: Vec<Box<dyn Widget>> = Vec::new();
+    notes.notes.iter().map(render_note).collect()
+}
 
-    for note in &notes.notes {
-        match note {
-            ElfNote::Unknown(unknown) => output.push(Box::new(
-                WidgetGroup::new()
-                    .name(format!(
-                        "unknown note with name {} and type {:#x}",
-                        unknown.name, unknown.type_
-                    ))
-                    .add(HexDump::new(unknown.value.as_slice())),
-            )),
-            ElfNote::GnuProperties(properties) => {
-                let mut table = Table::new();
-                for property in properties {
-                    match property {
-                        ElfGnuProperty::X86Features2Used(features2) => {
-                            table.add_row(["x86 features (2) used".into(), features2.to_string()]);
-                        }
-                        ElfGnuProperty::X86IsaUsed(isa) => {
-                            table.add_row(["x86 ISA used".into(), isa.to_string()]);
-                        }
-                        ElfGnuProperty::Unknown(unknown) => {
-                            table.add_row([
-                                format!("Unknown (type {:#x})", unknown.type_),
-                                format!("{:?}", unknown.data),
-                            ]);
-                        }
+pub fn render_note(note: &ElfNote) -> Box<dyn Widget> {
+    match note {
+        ElfNote::Unknown(unknown) => Box::new(
+            WidgetGroup::new()
+                .name(format!(
+                    "unknown note with name {} and type {:#x}",
+                    unknown.name, unknown.type_
+                ))
+                .add(HexDump::new(unknown.value.as_slice())),
+        ),
+        ElfNote::GnuProperties(properties) => {
+            let mut table = Table::new();
+            for property in properties {
+                match property {
+                    ElfGnuProperty::X86Features2Used(features2) => {
+                        table.add_row(["x86 features (2) used".into(), features2.to_string()]);
+                    }
+                    ElfGnuProperty::X86IsaUsed(isa) => {
+                        table.add_row(["x86 ISA used".into(), isa.to_string()]);
+                    }
+                    ElfGnuProperty::Unknown(unknown) => {
+                        table.add_row([
+                            format!("Unknown (type {:#x})", unknown.type_),
+                            format!("{:?}", unknown.data),
+                        ]);
                     }
                 }
-                output.push(Box::new(WidgetGroup::new().name("GNU properties").add(table)));
             }
+            Box::new(WidgetGroup::new().name("GNU properties").add(table))
         }
     }
-
-    output
 }
 
 fn render_section_dynamic(names: &Names, dynamic: &ElfDynamic) -> Vec<Box<dyn Widget>> {

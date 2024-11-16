@@ -3,7 +3,7 @@ use crate::repr::relocations::Relocation;
 use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::{ElfDeduplication, ElfPermissions};
+use plinky_elf::{ElfClass, ElfDeduplication, ElfNote, ElfPermissions};
 use plinky_macros::Getters;
 use plinky_utils::ints::Length;
 use std::collections::VecDeque;
@@ -214,6 +214,7 @@ pub(crate) enum SectionContent {
     SysvHash(SysvHashSection),
     Relocations(RelocationsSection),
     Dynamic(DynamicSection),
+    Notes(NotesSection),
     SectionNames,
 }
 
@@ -352,6 +353,32 @@ impl DynamicSection {
     }
 }
 
+#[derive(Debug)]
+pub(crate) struct NotesSection {
+    pub(crate) notes: Vec<ElfNote>,
+}
+
+impl NotesSection {
+    pub(crate) fn new(notes: Vec<ElfNote>) -> Self {
+        Self { notes }
+    }
+
+    pub(crate) fn alignment(&self, class: ElfClass) -> u64 {
+        let mut align = 1;
+        for note in &self.notes {
+            align = align.max(match note {
+                // GNU properties is the only kind of note requiring an alignment of 8 on x86_64.
+                ElfNote::GnuProperties(_) => match class {
+                    ElfClass::Elf32 => 4,
+                    ElfClass::Elf64 => 8,
+                },
+                _ => 4,
+            });
+        }
+        align
+    }
+}
+
 macro_rules! from {
     (impl From<$from:ident> for $enum:ident::$variant:ident) => {
         impl From<$from> for $enum {
@@ -369,6 +396,7 @@ from!(impl From<SymbolsSection> for SectionContent::Symbols);
 from!(impl From<SysvHashSection> for SectionContent::SysvHash);
 from!(impl From<RelocationsSection> for SectionContent::Relocations);
 from!(impl From<DynamicSection> for SectionContent::Dynamic);
+from!(impl From<NotesSection> for SectionContent::Notes);
 
 #[derive(Debug)]
 struct RemovedSection {

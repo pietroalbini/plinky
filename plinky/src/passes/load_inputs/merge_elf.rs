@@ -1,7 +1,7 @@
 use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
-use crate::repr::object::{Input, Object};
+use crate::repr::object::{GnuProperties, Input, Object};
 use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
@@ -176,7 +176,10 @@ pub(super) fn merge(
             .create_in_placeholder(placeholder);
     }
 
-    object.inputs.push(Input { span: source, x86_isa_used, x86_features_2_used });
+    object.inputs.push(Input {
+        span: source,
+        gnu_properties: GnuProperties { x86_isa_used, x86_features_2_used },
+    });
 
     Ok(())
 }

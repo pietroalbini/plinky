@@ -4,13 +4,14 @@ use crate::debug_print::utils::permissions;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationAddend};
 use crate::repr::sections::{
-    DataSection, DynamicSection, RelocationsSection, Section, SectionContent, SectionId,
-    StringsSection, SymbolsSection, SysvHashSection, UninitializedSection,
+    DataSection, DynamicSection, NotesSection, RelocationsSection, Section, SectionContent,
+    SectionId, StringsSection, SymbolsSection, SysvHashSection, UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
+use plinky_elf::render_elf::render_note;
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::ElfDeduplication;
 
@@ -76,6 +77,7 @@ fn render_section(
             render_relocations_section(names, section, relocations)
         }
         SectionContent::Dynamic(dynamic) => render_dynamic_section(names, section, dynamic),
+        SectionContent::Notes(notes) => render_notes_section(names, section, notes),
         SectionContent::SectionNames => render_section_names_section(names, section),
     }
 }
@@ -283,6 +285,10 @@ fn render_dynamic_section(
     )
 }
 
+fn render_notes_section(names: &Names, section: &Section, notes: &NotesSection) -> Box<dyn Widget> {
+    Box::new(section_widget(names, section, "notes").add_iter(notes.notes.iter().map(render_note)))
+}
+
 fn render_section_names_section(names: &Names, section: &Section) -> Box<dyn Widget> {
     Box::new(section_widget(names, section, "section names").add(Text::new("section names")))
 }
@@ -295,10 +301,10 @@ fn render_inputs(object: &Object) -> Box<dyn Widget> {
         let mut table = Table::new();
         table.set_title(title.clone());
 
-        if let Some(isa) = &input.x86_isa_used {
+        if let Some(isa) = &input.gnu_properties.x86_isa_used {
             table.add_row(["X86 ISA used".to_string(), isa.to_string()]);
         }
-        if let Some(features2) = &input.x86_features_2_used {
+        if let Some(features2) = &input.gnu_properties.x86_features_2_used {
             table.add_row(["x86 features 2 used".to_string(), features2.to_string()]);
         }
 

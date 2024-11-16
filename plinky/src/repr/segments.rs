@@ -67,6 +67,8 @@ pub(crate) enum SegmentType {
     Dynamic,
     GnuStack,
     GnuRelro,
+    GnuProperty,
+    Notes,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

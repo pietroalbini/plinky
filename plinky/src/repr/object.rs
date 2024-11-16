@@ -2,12 +2,12 @@ use crate::cli::Mode;
 use crate::passes::generate_got::GOT;
 use crate::passes::generate_plt::Plt;
 use crate::repr::dynamic_entries::DynamicEntries;
+use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{SymbolId, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfEnvironment, ElfMachine, ElfX86Features2, ElfX86Isa};
-use crate::repr::relocations::RelocationMode;
 
 #[derive(Debug)]
 pub(crate) struct Object {
@@ -38,6 +38,11 @@ impl Object {
 #[derive(Debug)]
 pub(crate) struct Input {
     pub(crate) span: ObjectSpan,
+    pub(crate) gnu_properties: GnuProperties,
+}
+
+#[derive(Debug)]
+pub(crate) struct GnuProperties {
     pub(crate) x86_isa_used: Option<ElfX86Isa>,
     pub(crate) x86_features_2_used: Option<ElfX86Features2>,
 }

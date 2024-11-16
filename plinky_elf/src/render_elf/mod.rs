@@ -12,6 +12,8 @@ mod sections;
 mod segments;
 mod utils;
 
+pub use sections::render_note;
+
 pub fn render(object: &ElfObject, filters: &RenderElfFilters) -> impl Widget {
     let names = Names::new(object);
 

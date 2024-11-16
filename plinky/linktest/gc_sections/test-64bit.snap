@@ -162,6 +162,18 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
+ │  notes section .note.gnu.property in <plinky>
+ │   │
+ │   │  GNU properties
+ │   │   │
+ │   │   │  ╭───────────────────────┬─────╮
+ │   │   │  │ x86 ISA used          │     │
+ │   │   │  ├───────────────────────┼─────┤
+ │   │   │  │ x86 features (2) used │ x86 │
+ │   │   │  ╰───────────────────────┴─────╯
+ │   │   ┴
+ │   ┴
+ │
  │  section .rodata.name (perms: r) in foo.o
  │   │
  │   │  address: 0x400000

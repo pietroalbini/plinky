@@ -6,6 +6,7 @@ pub(crate) mod exclude_section_symbols_from_tables;
 pub(crate) mod gc_sections;
 pub(crate) mod generate_dynamic;
 pub(crate) mod generate_got;
+pub(crate) mod generate_gnu_property;
 pub(crate) mod generate_plt;
 pub(crate) mod inject_gnu_relro;
 pub(crate) mod inject_gnu_stack;

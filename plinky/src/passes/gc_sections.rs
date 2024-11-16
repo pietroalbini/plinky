@@ -92,6 +92,7 @@ impl Visitor {
                 SectionContent::SysvHash(_) => {}
                 SectionContent::Relocations(_) => {}
                 SectionContent::Dynamic(_) => {}
+                SectionContent::Notes(_) => {}
                 SectionContent::SectionNames => {}
             }
         }

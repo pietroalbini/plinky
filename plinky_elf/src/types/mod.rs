@@ -162,7 +162,7 @@ pub struct ElfNotesTable {
     pub notes: Vec<ElfNote>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ElfNote {
     GnuProperties(Vec<ElfGnuProperty>),
     Unknown(ElfUnknownNote),
@@ -204,7 +204,7 @@ impl ElfNote {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ElfGnuProperty {
     X86Features2Used(ElfX86Features2),
     X86IsaUsed(ElfX86Isa),
@@ -221,7 +221,7 @@ impl ElfGnuProperty {
     }
 }
 
-#[derive(Debug, Bitfield)]
+#[derive(Debug, Bitfield, Clone, Copy)]
 #[bitfield_repr(u32)]
 #[bitfield_display_comma_separated]
 // Defined as GNU_PROPERTY_X86_ISA_1_$name
@@ -232,7 +232,7 @@ pub struct ElfX86Isa {
     pub v4: bool,
 }
 
-#[derive(Debug, Bitfield)]
+#[derive(Debug, Bitfield, Clone, Copy)]
 #[bitfield_repr(u32)]
 #[bitfield_display_comma_separated]
 // Defined as GNU_PROPERTY_X86_FEATURE_2_$name
@@ -251,13 +251,13 @@ pub struct ElfX86Features2 {
     pub mask: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ElfUnknownGnuProperty {
     pub type_: u32,
     pub data: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ElfUnknownNote {
     pub name: String,
     pub value: Vec<u8>,

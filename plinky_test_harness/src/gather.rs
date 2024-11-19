@@ -10,20 +10,22 @@ use toml::Value;
 
 pub(crate) fn gather(
     path: &Path,
+    prefix: &str,
     define_steps: DefineStepsFn,
 ) -> Result<Vec<TestDescAndFn>, Error> {
     let mut tests = Vec::new();
 
     for entry in path.read_dir()? {
-        let entry = entry?;
+        let entry = entry?.path();
 
-        let toml = entry.path().join("test.toml");
-        if !toml.is_file() {
-            continue;
+        let toml = entry.join("test.toml");
+        if toml.is_file() {
+            create_tests(&mut tests, prefix, &toml, define_steps)
+                .with_context(|| format!("failed to create tests from {}", toml.display()))?;
+        } else if entry.is_dir() {
+            let prefix = format!("{}{}/", prefix, entry.file_name().unwrap().to_str().unwrap());
+            tests.extend(gather(&entry, &prefix, define_steps)?);
         }
-
-        create_tests(&mut tests, &toml, define_steps)
-            .with_context(|| format!("failed to create tests from {}", toml.display()))?;
     }
 
     Ok(tests)
@@ -31,11 +33,12 @@ pub(crate) fn gather(
 
 fn create_tests(
     tests: &mut Vec<TestDescAndFn>,
+    prefix: &str,
     toml_path: &Path,
     define_steps: DefineStepsFn,
 ) -> Result<(), Error> {
     let source_dir = toml_path.parent().unwrap();
-    let name = source_dir.file_name().unwrap().to_str().unwrap();
+    let name = format!("{}{}", prefix, source_dir.file_name().unwrap().to_str().unwrap());
 
     let raw = std::fs::read_to_string(toml_path)?;
     let toml: Toml = toml::from_str(&raw)?;

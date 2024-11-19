@@ -17,6 +17,6 @@ pub use tests::{Arch, TestContext};
 
 pub fn main(path: &Path, define_steps: DefineStepsFn) {
     let args = std::env::args().collect::<Vec<_>>();
-    let tests = err_str(gather(path, define_steps)).unwrap();
+    let tests = err_str(gather(path, "", define_steps)).unwrap();
     test::test_main(&args, tests, None);
 }

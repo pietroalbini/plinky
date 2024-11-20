@@ -9,7 +9,7 @@ use plinky_elf::{
 };
 use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::{Absolute, Address, Offset, OutOfBoundsError};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Getters)]
 pub(crate) struct Symbol {
@@ -80,6 +80,7 @@ impl Symbol {
                         memory_address: memory_address.offset(offset)?,
                     })
                 }
+                SymbolValue::SectionNotLoaded => Err(ResolveSymbolErrorKind::SectionNotLoaded),
                 SymbolValue::Null => Err(ResolveSymbolErrorKind::Null),
             }
         }
@@ -108,6 +109,7 @@ pub(crate) enum SymbolValue {
     Absolute { value: Absolute },
     SectionRelative { section: SectionId, offset: Offset },
     SectionVirtualAddress { section: SectionId, memory_address: Address },
+    SectionNotLoaded,
     Undefined,
     Null,
 }
@@ -126,6 +128,7 @@ pub(crate) enum UpcomingSymbol<'a> {
         section: SectionId,
     },
     Elf {
+        sections_not_loaded: &'a BTreeSet<ElfSectionId>,
         section_conversion: &'a BTreeMap<ElfSectionId, SectionId>,
         elf: ElfSymbol,
         resolved_name: Interned<String>,
@@ -236,14 +239,24 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::Section { section } => {
                 SymbolValue::SectionRelative { section: *section, offset: 0i64.into() }
             }
-            UpcomingSymbol::Elf { section_conversion, elf, .. } => match elf.definition {
+            UpcomingSymbol::Elf { section_conversion, sections_not_loaded, elf, .. } => match elf
+                .definition
+            {
                 ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
                 ElfSymbolDefinition::Absolute => SymbolValue::Absolute { value: elf.value.into() },
                 ElfSymbolDefinition::Common => todo!(),
-                ElfSymbolDefinition::Section(section) => SymbolValue::SectionRelative {
-                    section: *section_conversion.get(&section).expect("missing section conversion"),
-                    offset: (elf.value as i64).into(),
-                },
+                ElfSymbolDefinition::Section(section) => {
+                    if sections_not_loaded.contains(&section) {
+                        SymbolValue::SectionNotLoaded
+                    } else {
+                        SymbolValue::SectionRelative {
+                            section: *section_conversion
+                                .get(&section)
+                                .expect("missing section conversion"),
+                            offset: (elf.value as i64).into(),
+                        }
+                    }
+                }
             },
         }
     }
@@ -268,6 +281,8 @@ pub(crate) enum ResolveSymbolErrorKind {
     Null,
     #[display("symbol is not defined")]
     Undefined,
+    #[display("the symbol points to a section that was not loaded")]
+    SectionNotLoaded,
     #[transparent]
     Layout(AddressResolutionError),
     #[transparent]

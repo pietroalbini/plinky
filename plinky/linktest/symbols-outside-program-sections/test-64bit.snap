@@ -1,0 +1,23 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │    Symbols:
+ │  ╭─────────┬──────┬──────────┬────────────┬──────────────────────╮
+ │  │ Name    │ Type │ Source   │ Visibility │ Value                │
+ │  ├─────────┼──────┼──────────┼────────────┼──────────────────────┤
+ │  │ <empty> │ none │ <plinky> │ local      │ <null>               │
+ │  ├─────────┼──────┼──────────┼────────────┼──────────────────────┤
+ │  │ _start  │ none │ test.o   │ global     │ .text + 0x0          │
+ │  ├─────────┼──────┼──────────┼────────────┼──────────────────────┤
+ │  │ hello   │ none │ test.o   │ local      │ <section not loaded> │
+ │  ├─────────┼──────┼──────────┼────────────┼──────────────────────┤
+ │  │ world   │ none │ test.o   │ local      │ <section not loaded> │
+ │  ╰─────────┴──────┴──────────┴────────────┴──────────────────────╯
+ ┴

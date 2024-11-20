@@ -12,7 +12,7 @@ use plinky_elf::{
     ElfSymbolTable, ElfSymbolType,
 };
 use plinky_macros::{Display, Error};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn merge(
     object: &mut Object,
@@ -32,7 +32,9 @@ pub(super) fn merge(
     let mut x86_isa_used = None;
     let mut x86_features_2_used = None;
 
+    let mut all_elf_section_ids = Vec::new();
     for (section_id, section) in elf.sections.into_iter() {
+        all_elf_section_ids.push(section_id);
         match section.content {
             ElfSectionContent::Null => {}
             ElfSectionContent::Program(program) => {
@@ -103,6 +105,11 @@ pub(super) fn merge(
         }
     }
 
+    let sections_not_loaded = all_elf_section_ids
+        .into_iter()
+        .filter(|elf_id| !section_placeholders.contains_key(elf_id))
+        .collect::<BTreeSet<_>>();
+
     // This is loaded after the string tables are loaded by the previous iteration, as we need to
     // resolve the signature of section groups.
     for (id, group) in pending_groups {
@@ -119,6 +126,7 @@ pub(super) fn merge(
             &mut object.symbols,
             &section_groups,
             &section_placeholders,
+            &sections_not_loaded,
             &mut symbol_conversion,
             intern(source.clone()),
             table,
@@ -188,6 +196,7 @@ fn merge_symbols(
     symbols: &mut Symbols,
     section_groups: &SectionGroupsForObject<'_>,
     section_conversion: &BTreeMap<ElfSectionId, SectionId>,
+    sections_not_loaded: &BTreeSet<ElfSectionId>,
     symbol_conversion: &mut BTreeMap<ElfSymbolId, SymbolId>,
     span: Interned<ObjectSpan>,
     table: ElfSymbolTable,
@@ -235,6 +244,7 @@ fn merge_symbols(
         let id = symbols
             .add(UpcomingSymbol::Elf {
                 section_conversion,
+                sections_not_loaded,
                 elf: elf_symbol,
                 resolved_name,
                 span,

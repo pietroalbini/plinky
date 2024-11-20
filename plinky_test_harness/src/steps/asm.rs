@@ -6,11 +6,15 @@ use serde::Deserialize;
 use std::process::Command;
 
 #[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(crate) struct AsmStep {
     source: Template,
     arch: Option<Arch>,
     output: Option<Template>,
+    #[serde(default)]
+    auxiliary_files: Vec<Template>,
+    #[serde(default = "default_true")]
+    emit_x86_used: bool,
 }
 
 impl Step for AsmStep {
@@ -27,12 +31,21 @@ impl Step for AsmStep {
         std::fs::create_dir_all(&dest)?;
         std::fs::copy(&source, dest.join(&source_name))?;
 
-        run(Command::new("as")
+        for auxiliary in &self.auxiliary_files {
+            let auxiliary = ctx.maybe_relative_to_src(auxiliary.resolve(&*ctx.template)?);
+            std::fs::copy(&auxiliary, dest.join(file_name(&auxiliary)))?;
+        }
+
+        // We invoke the assembler through the C compiler rather than invoking `as` directly,
+        // because some of the assembly files require the C preprocessor to be exeucted.
+        run(Command::new("cc")
             .current_dir(&dest)
+            .arg("-c")
             .arg(match self.arch.unwrap_or(ctx.arch) {
-                Arch::X86 => "--32",
-                Arch::X86_64 => "--64",
+                Arch::X86 => "-m32",
+                Arch::X86_64 => "-m64",
             })
+            .arg(format!("-Wa,-mx86-used-note={}", if self.emit_x86_used { "yes" } else { "no" }))
             .arg("-o")
             .arg(&dest_name)
             .arg(&source_name))?;
@@ -43,6 +56,10 @@ impl Step for AsmStep {
     }
 
     fn templates(&self) -> Vec<Template> {
-        vec![self.source.clone()]
+        std::iter::once(self.source.clone()).chain(self.auxiliary_files.iter().cloned()).collect()
     }
+}
+
+fn default_true() -> bool {
+    true
 }

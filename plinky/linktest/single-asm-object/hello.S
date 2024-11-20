@@ -8,6 +8,9 @@
     .ascii "Hello world!\n"
     .equ len, $ - msg
 
+#.section .foo
+# .nop
+
 .section .text
 _start:
     /* write(1, "Hello world\n", $len) */

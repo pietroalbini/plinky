@@ -1,0 +1,21 @@
+archs = ["x86", "x86_64"]
+
+[plinky.duplicate_features2_used]
+cmd = ["${asm.duplicate_features2_used}"]
+debug-print = ["loaded-object=@inputs"]
+kind = "link-fail"
+
+[plinky.duplicate_isa_used]
+cmd = ["${asm.duplicate_isa_used}"]
+debug-print = ["loaded-object=@inputs"]
+kind = "link-fail"
+
+[asm.duplicate_features2_used]
+source = "duplicate_features2_used.S"
+auxiliary-files = ["shared.S"]
+emit-x86-used = false
+
+[asm.duplicate_isa_used]
+source = "duplicate_isa_used.S"
+auxiliary-files = ["shared.S"]
+emit-x86-used = false

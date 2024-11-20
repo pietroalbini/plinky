@@ -76,12 +76,19 @@ pub(super) fn merge(
                     match note {
                         ElfNote::GnuProperties(properties) => {
                             for property in properties {
-                                // TODO: error if multiple GNU properties are present.
                                 match property {
                                     ElfGnuProperty::X86Features2Used(val) => {
-                                        x86_features_2_used = Some(val)
+                                        if x86_features_2_used.is_some() {
+                                            return Err(MergeElfError::DuplicateGnuProperty);
+                                        }
+                                        x86_features_2_used = Some(val);
                                     }
-                                    ElfGnuProperty::X86IsaUsed(val) => x86_isa_used = Some(val),
+                                    ElfGnuProperty::X86IsaUsed(val) => {
+                                        if x86_isa_used.is_some() {
+                                            return Err(MergeElfError::DuplicateGnuProperty);
+                                        }
+                                        x86_isa_used = Some(val)
+                                    }
                                     ElfGnuProperty::Unknown(unknown) => {
                                         return Err(MergeElfError::UnsupportedUnknownGnuProperty {
                                             type_: unknown.type_,
@@ -296,4 +303,6 @@ pub(crate) enum MergeElfError {
     },
     #[transparent]
     SectionGroups(SectionGroupsError),
+    #[display("GNU property provided multiple times in the same object")]
+    DuplicateGnuProperty,
 }

@@ -1,0 +1,38 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  inputs
+ │   │
+ │   │    entry_isa_features2.o
+ │   │  ╭─────────────────────┬──────────╮
+ │   │  │ X86 ISA used        │ baseline │
+ │   │  ├─────────────────────┼──────────┤
+ │   │  │ x86 features 2 used │ x86      │
+ │   │  ╰─────────────────────┴──────────╯
+ │   │
+ │   │    isa.o
+ │   │  ╭──────────────┬────╮
+ │   │  │ X86 ISA used │ v2 │
+ │   │  ╰──────────────┴────╯
+ │   ┴
+ ┴
+
+debug print: built elf
+ │
+ │  section .note.gnu.property (address: 0x400008)
+ │   │
+ │   │  GNU properties
+ │   │   │
+ │   │   │  ╭──────────────┬──────────────╮
+ │   │   │  │ x86 ISA used │ baseline, v2 │
+ │   │   │  ╰──────────────┴──────────────╯
+ │   │   ┴
+ │   ┴
+ ┴

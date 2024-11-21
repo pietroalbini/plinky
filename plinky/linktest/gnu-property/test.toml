@@ -1,13 +1,32 @@
 archs = ["x86", "x86_64"]
 
+# Test that ISA_1_USED and FEATURES_2_USED in a single input are propagated to the output.
+[plinky.isa_features2_one_file]
+cmd = ["${asm.entry_isa_features2}"]
+debug-print = ["loaded-object=@inputs", "final-elf=.note.gnu.property"]
+kind = "link-pass"
+
+# Test that ISA_1_USED and FEATURES_2_USED in two inputs are correctly merged.
+[plinky.isa_features2_two_files]
+cmd = ["${asm.entry_isa_features2}", "${asm.isa_features2}"]
+debug-print = ["loaded-object=@inputs", "final-elf=.note.gnu.property"]
+kind = "link-pass"
+
+# Test two files with ISA_1_USED, one of which also has FEATURES_2_USED, and ensure that only
+# ISA_1_USED ends up in the output.
+[plinky.isa_two_files_with_features2_in_one]
+cmd = ["${asm.entry_isa_features2}", "${asm.isa}"]
+debug-print = ["loaded-object=@inputs", "final-elf=.note.gnu.property"]
+kind = "link-pass"
+
+# Test that duplicate FEATURES_2_USED in a single input result in an error.
 [plinky.duplicate_features2_used]
 cmd = ["${asm.duplicate_features2_used}"]
-debug-print = ["loaded-object=@inputs"]
 kind = "link-fail"
 
+# Test that duplicate ISA_1_USED in a single input result in an error.
 [plinky.duplicate_isa_used]
 cmd = ["${asm.duplicate_isa_used}"]
-debug-print = ["loaded-object=@inputs"]
 kind = "link-fail"
 
 [asm.duplicate_features2_used]
@@ -18,4 +37,23 @@ emit-x86-used = false
 [asm.duplicate_isa_used]
 source = "duplicate_isa_used.S"
 auxiliary-files = ["shared.S"]
+emit-x86-used = false
+
+[asm.entry_isa_features2]
+source = "entry_isa_features2.S"
+auxiliary-files = ["shared.S"]
+emit-x86-used = false
+
+[asm.isa_features2]
+source = "isa_features2.S"
+auxiliary-files = ["shared.S"]
+emit-x86-used = false
+
+[asm.isa]
+source = "isa.S"
+auxiliary-files = ["shared.S"]
+emit-x86-used = false
+
+[asm.empty]
+source = "empty.S"
 emit-x86-used = false

@@ -4,8 +4,6 @@ use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use plinky_elf::{ElfGnuProperty, ElfNote, ElfPermissions};
 use std::ops::BitOr;
 
-// TODO: test the merging logic
-
 pub(crate) fn run(object: &mut Object) {
     // There are multiple algorithms to merge properties, depending on the numeric representation
     // of the property type:

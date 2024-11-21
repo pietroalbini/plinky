@@ -3,14 +3,12 @@ use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
-use plinky_elf::{ElfObject, ElfReader};
+use plinky_elf::ElfReader;
 use plinky_macros::{Display, Error};
 use std::collections::{HashSet, VecDeque};
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::{Path, PathBuf};
-
-type ObjectItem = (ObjectSpan, ElfObject);
 
 pub(super) struct ObjectsReader<'a> {
     remaining_files: &'a [PathBuf],
@@ -25,7 +23,7 @@ impl<'a> ObjectsReader<'a> {
     pub(super) fn next_object(
         &mut self,
         symbols: &Symbols,
-    ) -> Result<Option<ObjectItem>, ReadObjectsError> {
+    ) -> Result<Option<NextObject>, ReadObjectsError> {
         loop {
             if let Some(result) = self.next_from_archive(symbols)? {
                 return Ok(Some(result));
@@ -42,12 +40,11 @@ impl<'a> ObjectsReader<'a> {
             );
             match FileType::from_magic_number(path, &mut r)? {
                 FileType::Elf => {
-                    return Ok(Some((
-                        ObjectSpan::new_file(path),
-                        ElfReader::new(&mut r)
-                            .and_then(|r| r.into_object())
+                    return Ok(Some(NextObject {
+                        source: ObjectSpan::new_file(path),
+                        reader: ElfReader::new_owned(Box::new(r))
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
-                    )))
+                    }))
                 }
                 FileType::Ar => {
                     if let Some(archive) = PendingArchive::new(path.clone(), r, symbols)? {
@@ -62,24 +59,20 @@ impl<'a> ObjectsReader<'a> {
     fn next_from_archive(
         &mut self,
         symbols: &Symbols,
-    ) -> Result<Option<ObjectItem>, ReadObjectsError> {
+    ) -> Result<Option<NextObject>, ReadObjectsError> {
         let Some(pending_archive) = &mut self.current_archive else { return Ok(None) };
         match pending_archive.next(symbols)? {
-            Some(file) => {
-                let reader =
-                    ElfReader::new(&mut Cursor::new(file.content)).and_then(|r| r.into_object());
-                match reader {
-                    Ok(object) => Ok(Some((
-                        ObjectSpan::new_archive_member(&pending_archive.path, file.name),
-                        object,
-                    ))),
-                    Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
-                        file.name,
-                        pending_archive.path.clone(),
-                        err,
-                    )),
-                }
-            }
+            Some(file) => match ElfReader::new_owned(Box::new(Cursor::new(file.content))) {
+                Ok(reader) => Ok(Some(NextObject {
+                    source: ObjectSpan::new_archive_member(&pending_archive.path, file.name),
+                    reader,
+                })),
+                Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
+                    file.name,
+                    pending_archive.path.clone(),
+                    err,
+                )),
+            },
             None => {
                 self.current_archive = None;
                 Ok(None)
@@ -185,6 +178,11 @@ impl FileType {
             _ => Err(ReadObjectsError::UnsupportedFileType),
         }
     }
+}
+
+pub(super) struct NextObject {
+    pub(super) reader: ElfReader<'static>,
+    pub(super) source: ObjectSpan,
 }
 
 #[derive(Debug, Error, Display)]

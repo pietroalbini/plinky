@@ -41,12 +41,13 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
             State::Empty { symbols, .. } => symbols,
             State::WithContent { object, .. } => &object.symbols,
         };
-        let Some((source, elf)) = reader.next_object(symbols)? else { break };
+        let Some(next) = reader.next_object(symbols)? else { break };
+        let source = next.source.clone();
 
         state = match state {
             State::Empty { symbols, mut section_groups, mut strings } => {
                 let mut object = Object {
-                    env: elf.env,
+                    env: next.reader.env(),
                     inputs: Vec::new(),
                     sections: Sections::new(),
                     segments: Segments::new(),
@@ -63,33 +64,21 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
 
                 object.sections.builder(".shstrtab", SectionContent::SectionNames).create();
 
-                merge_elf::merge(
-                    &mut object,
-                    &mut strings,
-                    section_groups.for_object(),
-                    source.clone(),
-                    elf,
-                )
-                .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
+                merge_elf::merge(&mut object, &mut strings, section_groups.for_object(), next)
+                    .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
                 State::WithContent { object, strings, section_groups, first_span: source }
             }
             State::WithContent { mut object, mut strings, mut section_groups, first_span } => {
-                if object.env != elf.env {
+                if object.env != next.reader.env() {
                     return Err(LoadInputsError::MismatchedEnv {
                         first_span: first_span.clone(),
                         first_env: object.env,
                         current_span: source,
-                        current_env: elf.env,
+                        current_env: next.reader.env(),
                     });
                 }
-                merge_elf::merge(
-                    &mut object,
-                    &mut strings,
-                    section_groups.for_object(),
-                    source.clone(),
-                    elf,
-                )
-                .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
+                merge_elf::merge(&mut object, &mut strings, section_groups.for_object(), next)
+                    .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
                 State::WithContent { object, strings, section_groups, first_span }
             }
         }

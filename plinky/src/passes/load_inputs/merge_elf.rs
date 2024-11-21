@@ -1,4 +1,5 @@
 use crate::interner::{intern, Interned};
+use crate::passes::load_inputs::read_objects::NextObject;
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::{GnuProperties, Input, Object};
@@ -6,9 +7,10 @@ use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
+use plinky_elf::errors::LoadError;
 use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
-    ElfGnuProperty, ElfNote, ElfObject, ElfRel, ElfRela, ElfSectionContent, ElfSymbolDefinition,
+    ElfGnuProperty, ElfNote, ElfRel, ElfRela, ElfSectionContent, ElfSymbolDefinition,
     ElfSymbolTable, ElfSymbolType,
 };
 use plinky_macros::{Display, Error};
@@ -18,8 +20,7 @@ pub(super) fn merge(
     object: &mut Object,
     strings: &mut Strings,
     mut section_groups: SectionGroupsForObject<'_>,
-    source: ObjectSpan,
-    elf: ElfObject,
+    NextObject { reader, source }: NextObject,
 ) -> Result<(), MergeElfError> {
     let mut symbol_tables = Vec::new();
     let mut program_sections = Vec::new();
@@ -31,6 +32,8 @@ pub(super) fn merge(
 
     let mut x86_isa_used = None;
     let mut x86_features_2_used = None;
+
+    let elf = reader.into_object()?;
 
     let mut all_elf_section_ids = Vec::new();
     for (section_id, section) in elf.sections.into_iter() {
@@ -301,8 +304,10 @@ pub(crate) enum MergeElfError {
         #[source]
         err: LoadSymbolsError,
     },
-    #[transparent]
-    SectionGroups(SectionGroupsError),
     #[display("GNU property provided multiple times in the same object")]
     DuplicateGnuProperty,
+    #[transparent]
+    SectionGroups(SectionGroupsError),
+    #[transparent]
+    Load(LoadError),
 }

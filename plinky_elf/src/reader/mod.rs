@@ -25,12 +25,21 @@ pub struct ElfReader<'src> {
     section_names_table: ElfSectionId,
 }
 
-impl<'src> ElfReader<'src> {
-    pub fn new(reader: &'src mut dyn ReadSeek) -> Result<Self, LoadError> {
+impl ElfReader<'_> {
+    pub fn new<'src>(reader: &'src mut dyn ReadSeek) -> Result<ElfReader<'src>, LoadError> {
         // Default to elf32 LE for the header, it will be switched automatically.
-        let mut cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
-        let header = read_header(&mut cursor)?;
+        let cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
+        Self::new_inner(cursor)
+    }
 
+    pub fn new_owned(reader: Box<dyn ReadSeek>) -> Result<ElfReader<'static>, LoadError> {
+        // Default to elf32 LE for the header, it will be switched automatically.
+        let cursor = ReadCursor::new_owned(reader, ElfClass::Elf32, ElfEndian::Little);
+        Self::new_inner(cursor)
+    }
+
+    fn new_inner<'a>(mut cursor: ReadCursor<'a>) -> Result<ElfReader<'a>, LoadError> {
+        let header = read_header(&mut cursor)?;
         Ok(ElfReader {
             cursor,
             env: header.env,
@@ -44,6 +53,10 @@ impl<'src> ElfReader<'src> {
                 .collect(),
             section_names_table: header.section_names_table,
         })
+    }
+
+    pub fn env(&self) -> ElfEnvironment {
+        self.env
     }
 
     pub fn into_object(mut self) -> Result<ElfObject, LoadError> {

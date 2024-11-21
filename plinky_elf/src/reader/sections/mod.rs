@@ -14,42 +14,25 @@ use crate::ids::{ElfSectionId, ElfStringId};
 use crate::raw::RawSectionHeader;
 use crate::reader::ReadCursor;
 use crate::{ElfDeduplication, ElfPermissions, ElfSection, ElfSectionContent};
-use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(super) fn read_sections(
-    cursor: &mut ReadCursor<'_>,
-    offset: u64,
-    count: u16,
-    size: u16,
-    section_names_table: ElfSectionId,
-) -> Result<BTreeMap<ElfSectionId, ElfSection>, LoadError> {
-    if offset == 0 {
-        return Ok(BTreeMap::new());
-    }
-
-    let mut sections = BTreeMap::new();
-    for idx in 0..count {
-        cursor.seek_to(offset + (size as u64 * idx as u64))?;
-        sections.insert(
-            ElfSectionId { index: idx.into() },
-            read_section(cursor, section_names_table, ElfSectionId { index: idx.into() })
-                .map_err(|inner| LoadError::FailedToParseSection { idx, inner: Box::new(inner) })?,
-        );
-    }
-
-    Ok(sections)
-}
-
-fn read_section(
+pub(super) fn read_section(
     cursor: &mut ReadCursor<'_>,
     section_names_table: ElfSectionId,
     current_section: ElfSectionId,
+    header: RawSectionHeader,
 ) -> Result<ElfSection, LoadError> {
-    let header: RawSectionHeader = cursor.read_raw().map_err(|e| {
-        LoadError::FailedToParseSectionHeader { idx: current_section.index, inner: Box::new(e) }
-    })?;
+    read_section_inner(cursor, section_names_table, current_section, header).map_err(|inner| {
+        LoadError::FailedToParseSection { idx: current_section.index as _, inner: Box::new(inner) }
+    })
+}
 
+fn read_section_inner(
+    cursor: &mut ReadCursor<'_>,
+    section_names_table: ElfSectionId,
+    current_section: ElfSectionId,
+    header: RawSectionHeader,
+) -> Result<ElfSection, LoadError> {
     let ty = match header.type_ {
         0 => SectionType::Null,
         1 => SectionType::Program,

@@ -1,13 +1,13 @@
 use crate::errors::LoadError;
 use crate::ids::ElfSectionId;
-use crate::raw::{RawHeader, RawIdentification};
+use crate::raw::{RawHeader, RawIdentification, RawSectionHeader};
 use crate::reader::program_header::read_program_header;
-use crate::reader::sections::read_sections;
 use crate::reader::ReadCursor;
-use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfObject, ElfType};
+use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfSegment, ElfType};
+use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject, LoadError> {
+pub(crate) fn read_header(cursor: &mut ReadCursor<'_>) -> Result<ReadHeader, LoadError> {
     let identification: RawIdentification = cursor.read_raw()?;
     if identification.magic != [0x7F, b'E', b'L', b'F'] {
         return Err(LoadError::BadMagic(identification.magic));
@@ -51,13 +51,18 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject, Load
         other => return Err(LoadError::BadMachine(other)),
     };
 
-    let sections = read_sections(
-        cursor,
-        header.section_headers_offset,
-        header.section_header_count,
-        header.section_header_size,
-        ElfSectionId { index: header.section_names_table_index.into() },
-    )?;
+    let mut sections = BTreeMap::new();
+    if header.section_headers_offset != 0 {
+        for idx in 0..header.section_header_count {
+            cursor.seek_to(
+                header.section_headers_offset + (header.section_header_size as u64 * idx as u64),
+            )?;
+            let raw: RawSectionHeader = cursor.read_raw().map_err(|e| {
+                LoadError::FailedToParseSectionHeader { idx: idx.into(), inner: Box::new(e) }
+            })?;
+            sections.insert(ElfSectionId { index: idx.into() }, raw);
+        }
+    }
 
     let mut segments = Vec::new();
     if header.program_headers_offset != 0 {
@@ -69,11 +74,21 @@ pub(crate) fn read_object(cursor: &mut ReadCursor<'_>) -> Result<ElfObject, Load
         }
     }
 
-    Ok(ElfObject {
+    Ok(ReadHeader {
         env: ElfEnvironment { class, endian, abi, machine },
         type_,
         entry: NonZeroU64::new(header.entry),
         sections,
         segments,
+        section_names_table: ElfSectionId { index: header.section_names_table_index.into() },
     })
+}
+
+pub(super) struct ReadHeader {
+    pub(super) env: ElfEnvironment,
+    pub(super) type_: ElfType,
+    pub(super) entry: Option<NonZeroU64>,
+    pub(super) segments: Vec<ElfSegment>,
+    pub(super) sections: BTreeMap<ElfSectionId, RawSectionHeader>,
+    pub(super) section_names_table: ElfSectionId,
 }

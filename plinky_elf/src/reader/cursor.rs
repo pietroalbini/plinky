@@ -3,18 +3,18 @@ use crate::{ElfClass, ElfEndian};
 use plinky_utils::raw_types::RawType;
 use std::io::{Read, Seek, SeekFrom};
 
-pub(crate) struct ReadCursor<'a> {
+pub(super) struct ReadCursor<'a> {
     reader: InnerReader<'a>,
-    pub(crate) class: ElfClass,
-    pub(crate) endian: ElfEndian,
+    pub(super) class: ElfClass,
+    pub(super) endian: ElfEndian,
 }
 
 impl<'a> ReadCursor<'a> {
-    pub(crate) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass, endian: ElfEndian) -> Self {
+    pub(super) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass, endian: ElfEndian) -> Self {
         Self { reader: InnerReader::Borrowed(reader), class, endian }
     }
 
-    pub(crate) fn new_owned(reader: Box<dyn ReadSeek>, class: ElfClass, endian: ElfEndian) -> Self {
+    pub(super) fn new_owned(reader: Box<dyn ReadSeek>, class: ElfClass, endian: ElfEndian) -> Self {
         Self { reader: InnerReader::Owned(reader), class, endian }
     }
 

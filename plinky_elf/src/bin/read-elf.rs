@@ -1,6 +1,6 @@
 use plinky_diagnostics::widgets::Widget;
 use plinky_elf::render_elf::RenderElfFilters;
-use plinky_elf::ElfObject;
+use plinky_elf::ElfReader;
 use std::error::Error;
 use std::fs::File;
 
@@ -12,7 +12,7 @@ fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
     };
 
     let mut file = File::open(path)?;
-    let object = ElfObject::load(&mut file)?;
+    let object = ElfReader::new(&mut file)?.into_object()?;
 
     println!("{}", plinky_elf::render_elf::render(&object, &filters).render_to_string());
 

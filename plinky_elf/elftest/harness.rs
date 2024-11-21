@@ -1,7 +1,7 @@
 use anyhow::{bail, Error};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
-use plinky_elf::ElfObject;
+use plinky_elf::ElfReader;
 use plinky_test_harness::template::Template;
 use plinky_test_harness::{Step, TestContext};
 use std::fs::File;
@@ -70,7 +70,7 @@ impl ReadStep {
         let dest = ctx.dest.join(ctx.step_name).join("roundtrip").join(file.file_name().unwrap());
         std::fs::create_dir_all(dest.parent().unwrap())?;
 
-        let object = ElfObject::load(&mut BufReader::new(File::open(file)?))?;
+        let object = ElfReader::new(&mut BufReader::new(File::open(file)?))?.into_object()?;
         Writer::new(
             &mut BufWriter::new(File::create_new(&dest)?),
             &object,

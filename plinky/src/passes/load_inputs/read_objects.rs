@@ -3,7 +3,7 @@ use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::{Diagnostic, ObjectSpan};
 use plinky_elf::errors::LoadError;
-use plinky_elf::ElfObject;
+use plinky_elf::{ElfObject, ElfReader};
 use plinky_macros::{Display, Error};
 use std::collections::{HashSet, VecDeque};
 use std::fs::File;
@@ -44,7 +44,8 @@ impl<'a> ObjectsReader<'a> {
                 FileType::Elf => {
                     return Ok(Some((
                         ObjectSpan::new_file(path),
-                        ElfObject::load(&mut r)
+                        ElfReader::new(&mut r)
+                            .and_then(|r| r.into_object())
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     )))
                 }
@@ -64,17 +65,21 @@ impl<'a> ObjectsReader<'a> {
     ) -> Result<Option<ObjectItem>, ReadObjectsError> {
         let Some(pending_archive) = &mut self.current_archive else { return Ok(None) };
         match pending_archive.next(symbols)? {
-            Some(file) => match ElfObject::load(&mut Cursor::new(file.content)) {
-                Ok(object) => Ok(Some((
-                    ObjectSpan::new_archive_member(&pending_archive.path, file.name),
-                    object,
-                ))),
-                Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
-                    file.name,
-                    pending_archive.path.clone(),
-                    err,
-                )),
-            },
+            Some(file) => {
+                let reader =
+                    ElfReader::new(&mut Cursor::new(file.content)).and_then(|r| r.into_object());
+                match reader {
+                    Ok(object) => Ok(Some((
+                        ObjectSpan::new_archive_member(&pending_archive.path, file.name),
+                        object,
+                    ))),
+                    Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
+                        file.name,
+                        pending_archive.path.clone(),
+                        err,
+                    )),
+                }
+            }
             None => {
                 self.current_archive = None;
                 Ok(None)

@@ -19,6 +19,10 @@
             pkgs.rustup
             pkgs.cargo-insta
             pkgs.gcc14
+
+            # Provide headers for both 32bit and 64bit:
+            pkgs32.glibc.dev
+            pkgs64.glibc.dev
           ];
 
           PLINKY_TEST_DYNAMIC_LINKER_32 = "${pkgs32.glibc}/lib/ld-linux.so.2";

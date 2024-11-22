@@ -353,7 +353,7 @@ impl std::fmt::Display for ErrorSource {
         match self {
             ErrorSource::Type(ty) => write!(f, "{ty}"),
             ErrorSource::StructField { field, struct_ } => {
-                write!(f, "field {field} of struct {struct_}")
+                write!(f, "field \"{field}\" of struct {struct_}")
             }
         }
     }

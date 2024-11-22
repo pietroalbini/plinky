@@ -1,6 +1,6 @@
 #![feature(error_generic_member_access)]
 
-pub mod errors;
+mod errors;
 pub mod ids;
 pub mod raw;
 mod reader;
@@ -10,3 +10,4 @@ pub mod writer;
 
 pub use self::reader::{ReadSeek, ElfReader};
 pub use self::types::*;
+pub use self::errors::*;

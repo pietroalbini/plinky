@@ -7,11 +7,10 @@ use crate::repr::relocations::{Relocation, UnsupportedRelocationType};
 use crate::repr::sections::{DataSection, SectionId, UninitializedSection};
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::errors::LoadError;
 use plinky_elf::ids::{ElfSectionId, ElfSymbolId};
 use plinky_elf::{
     ElfGnuProperty, ElfNote, ElfRel, ElfRela, ElfSectionContent, ElfSymbolDefinition,
-    ElfSymbolTable, ElfSymbolType,
+    ElfSymbolTable, ElfSymbolType, LoadError,
 };
 use plinky_macros::{Display, Error};
 use std::collections::{BTreeMap, BTreeSet};

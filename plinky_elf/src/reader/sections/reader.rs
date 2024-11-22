@@ -8,6 +8,7 @@ pub(crate) struct SectionReader<'a, 'b> {
     pub(crate) parent_cursor: &'a mut ReadCursor<'b>,
     pub(crate) content_len: u64,
     pub(crate) content_start: u64,
+    pub(crate) content_entry_len: u64,
 }
 
 impl SectionReader<'_, '_> {
@@ -24,6 +25,24 @@ impl SectionReader<'_, '_> {
     pub(super) fn cursor_for(&self, data: Vec<u8>) -> ReadCursor<'static> {
         let reader = std::io::Cursor::new(data);
         ReadCursor::new_owned(Box::new(reader), self.parent_cursor.class, self.parent_cursor.endian)
+    }
+
+    pub(super) fn entries(&mut self) -> Result<Vec<ReadCursor<'static>>, LoadError> {
+        if self.content_entry_len == 0 {
+            return Err(LoadError::EntrySizeZero);
+        }
+        if self.content_len % self.content_entry_len != 0 {
+            return Err(LoadError::LenNotMultipleOfEntrySize);
+        }
+
+        self.parent_cursor.seek_to(self.content_start)?;
+        let mut cursors = Vec::new();
+        for _ in 0..(self.content_len / self.content_entry_len) {
+            let entry = self.parent_cursor.read_vec(self.content_entry_len)?;
+            cursors.push(self.cursor_for(entry));
+        }
+
+        Ok(cursors)
     }
 }
 

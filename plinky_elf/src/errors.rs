@@ -72,6 +72,10 @@ pub enum LoadError {
     },
     #[display("misaligned file: parsed until {current:#x}, expected to be at {expected:#x}")]
     MisalignedFile { current: usize, expected: usize },
+    #[display("entry size defined in the section metadata is zero")]
+    EntrySizeZero,
+    #[display("section length is not a multiple of the entry size defined in the section metadata")]
+    LenNotMultipleOfEntrySize,
 }
 
 #[derive(Debug, Error, Display)]

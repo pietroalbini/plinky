@@ -10,10 +10,9 @@ pub(super) fn read_rel(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
 ) -> Result<ElfSectionContent, LoadError> {
-    let mut cursor = reader.content_cursor()?;
 
     let mut relocations = Vec::new();
-    while cursor.current_position()? != reader.content_len as u64 {
+    for mut cursor in reader.entries()? {
         let raw: RawRel = cursor.read_raw()?;
         let (symbol, relocation_type) = symbol_and_relocation_type(reader, meta, raw.info);
         relocations.push(ElfRel { offset: raw.offset, symbol, relocation_type });
@@ -30,10 +29,8 @@ pub(super) fn read_rela(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
 ) -> Result<ElfSectionContent, LoadError> {
-    let mut cursor = reader.content_cursor()?;
-
     let mut relocations = Vec::new();
-    while cursor.current_position()? != reader.content_len as u64 {
+    for mut cursor in reader.entries()? {
         let raw: RawRela = cursor.read_raw()?;
         let (symbol, relocation_type) = symbol_and_relocation_type(reader, meta, raw.info);
         relocations.push(ElfRela {

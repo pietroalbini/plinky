@@ -80,6 +80,7 @@ fn read_section_inner(
         parent_cursor: cursor,
         content_len: header.size,
         content_start: header.offset,
+        content_entry_len: header.entries_size,
     };
     let meta = HeaderMetadata::new(&header, current_section);
 

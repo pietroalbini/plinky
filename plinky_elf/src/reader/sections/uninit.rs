@@ -1,10 +1,13 @@
 use crate::errors::LoadError;
-use crate::reader::sections::SectionReader;
+use crate::reader::sections::{SectionMetadata, SectionReader};
 use crate::{ElfSectionContent, ElfUninitializedSection};
 
-pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
+pub(super) fn read(
+    reader: &mut SectionReader<'_, '_>,
+    meta: &dyn SectionMetadata,
+) -> Result<ElfSectionContent, LoadError> {
     Ok(ElfSectionContent::Uninitialized(ElfUninitializedSection {
-        perms: reader.permissions(),
-        len: reader.header.size,
+        perms: meta.permissions(),
+        len: reader.content_len,
     }))
 }

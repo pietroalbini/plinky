@@ -75,10 +75,15 @@ fn read_section_inner(
         }
     }
 
-    let mut reader = SectionReader { header: &header, cursor, section_id: current_section };
+    let mut reader = SectionReader {
+        parent_cursor: cursor,
+        content_len: header.size,
+        content_start: header.offset,
+    };
+    let meta = HeaderMetadata { header: &header, section_id: current_section };
 
     // Ensure the deduplication flags are only applied to program sections.
-    match (ty, reader.deduplication_flag()) {
+    match (ty, meta.deduplication_flag()) {
         (SectionType::Program, _) => {}
         (_, Err(_) | Ok(ElfDeduplication::Disabled)) => {}
         _ => {
@@ -90,16 +95,16 @@ fn read_section_inner(
 
     let content = match ty {
         SectionType::Null => ElfSectionContent::Null,
-        SectionType::Program => program::read(&mut reader)?,
-        SectionType::SymbolTable { dynsym } => symbol_table::read(&mut reader, dynsym)?,
+        SectionType::Program => program::read(&mut reader, &meta)?,
+        SectionType::SymbolTable { dynsym } => symbol_table::read(&mut reader, &meta, dynsym)?,
         SectionType::StringTable => string_table::read(&mut reader)?,
-        SectionType::Rel => relocations_table::read_rel(&mut reader)?,
-        SectionType::Rela => relocations_table::read_rela(&mut reader)?,
+        SectionType::Rel => relocations_table::read_rel(&mut reader, &meta)?,
+        SectionType::Rela => relocations_table::read_rela(&mut reader, &meta)?,
         SectionType::Note => notes::read(&mut reader)?,
-        SectionType::Uninit => uninit::read(&mut reader)?,
-        SectionType::Group => group::read(&mut reader)?,
-        SectionType::Hash => hash::read(&mut reader)?,
-        SectionType::Dynamic => dynamic::read(&mut reader)?,
+        SectionType::Uninit => uninit::read(&mut reader, &meta)?,
+        SectionType::Group => group::read(&mut reader, &meta)?,
+        SectionType::Hash => hash::read(&mut reader, &meta)?,
+        SectionType::Dynamic => dynamic::read(&mut reader, &meta)?,
         SectionType::Unknown(other) => unknown::read(&mut reader, other)?,
     };
 
@@ -128,15 +133,15 @@ enum SectionType {
 }
 
 struct SectionReader<'a, 'b> {
-    header: &'a RawSectionHeader,
-    cursor: &'a mut ReadCursor<'b>,
-    section_id: ElfSectionId,
+    parent_cursor: &'a mut ReadCursor<'b>,
+    content_len: u64,
+    content_start: u64,
 }
 
 impl SectionReader<'_, '_> {
     fn content(&mut self) -> Result<Vec<u8>, LoadError> {
-        self.cursor.seek_to(self.header.offset)?;
-        self.cursor.read_vec(self.header.size)
+        self.parent_cursor.seek_to(self.content_start)?;
+        self.parent_cursor.read_vec(self.content_len)
     }
 
     fn content_cursor(&mut self) -> Result<ReadCursor<'static>, LoadError> {
@@ -146,11 +151,31 @@ impl SectionReader<'_, '_> {
 
     fn cursor_for(&self, data: Vec<u8>) -> ReadCursor<'static> {
         let reader = std::io::Cursor::new(data);
-        ReadCursor::new_owned(Box::new(reader), self.cursor.class, self.cursor.endian)
+        ReadCursor::new_owned(Box::new(reader), self.parent_cursor.class, self.parent_cursor.endian)
+    }
+}
+
+trait SectionMetadata {
+    fn info_field(&self) -> u32;
+    fn section_id(&self) -> ElfSectionId;
+    fn section_link(&self) -> ElfSectionId;
+    fn section_info(&self) -> ElfSectionId;
+    fn permissions(&self) -> ElfPermissions;
+    fn deduplication_flag(&self) -> Result<ElfDeduplication, LoadError>;
+}
+
+struct HeaderMetadata<'a> {
+    header: &'a RawSectionHeader,
+    section_id: ElfSectionId,
+}
+
+impl SectionMetadata for HeaderMetadata<'_> {
+    fn info_field(&self) -> u32 {
+        self.header.info
     }
 
-    fn content_len(&self) -> u64 {
-        self.header.size
+    fn section_id(&self) -> ElfSectionId {
+        self.section_id
     }
 
     fn section_link(&self) -> ElfSectionId {

@@ -1,6 +1,5 @@
 use crate::errors::LoadError;
 use crate::raw::RawNoteHeader;
-use crate::reader::sections::SectionReader;
 use crate::reader::ReadCursor;
 use crate::{
     ElfClass, ElfGnuProperty, ElfNote, ElfNotesTable, ElfSectionContent, ElfUnknownGnuProperty,
@@ -8,12 +7,13 @@ use crate::{
 };
 use plinky_utils::bitfields::Bitfield;
 use std::error::Error;
+use crate::reader::sections::SectionReader;
 
 pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
     let mut cursor = reader.content_cursor()?;
 
     let mut notes = Vec::new();
-    while cursor.current_position()? != reader.content_len() as u64 {
+    while cursor.current_position()? != reader.content_len as u64 {
         notes.push(read_note(reader, &mut cursor)?);
     }
 

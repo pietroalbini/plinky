@@ -1,7 +1,7 @@
 use crate::errors::LoadError;
-use crate::reader::sections::SectionReader;
 use crate::{ElfSectionContent, ElfStringTable};
 use std::collections::BTreeMap;
+use crate::reader::sections::SectionReader;
 
 pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
     let raw_content = reader.content()?;

@@ -1,6 +1,6 @@
 archs = ["x86", "x86_64"]
 
-[read.read]
+[read-elf.read]
 file = "${ld.hello}"
 filter = "*hash,.dynsym"
 

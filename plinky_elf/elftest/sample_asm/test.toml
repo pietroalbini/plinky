@@ -1,9 +1,9 @@
 archs = ["x86", "x86_64"]
 
-[read.object]
+[read-elf.object]
 file = "${asm.hello}"
 
-[read.linked]
+[read-elf.linked]
 file = "${ld.hello}"
 
 [ld.hello]

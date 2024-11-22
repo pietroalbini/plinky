@@ -11,7 +11,7 @@ use std::process::Command;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-struct ReadStep {
+struct ReadElfStep {
     file: Template,
     #[serde(default = "default_true")]
     roundtrip: bool,
@@ -19,7 +19,7 @@ struct ReadStep {
     filter: Option<String>,
 }
 
-impl Step for ReadStep {
+impl Step for ReadElfStep {
     fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
         insta::allow_duplicates! {
             let file = ctx.maybe_relative_to_src(&self.file.resolve(&*ctx.template)?);
@@ -43,7 +43,7 @@ impl Step for ReadStep {
     }
 }
 
-impl ReadStep {
+impl ReadElfStep {
     fn read(&self, ctx: &TestContext<'_>, file: &Path) -> Result<(), Error> {
         println!("reading {}...", file.display());
 
@@ -88,5 +88,7 @@ fn default_true() -> bool {
 
 fn main() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("elftest");
-    plinky_test_harness::main(&path, |steps| steps.define_builtins()?.define::<ReadStep>("read"));
+    plinky_test_harness::main(&path, |steps| {
+        steps.define_builtins()?.define::<ReadElfStep>("read-elf")
+    });
 }

@@ -1,15 +1,15 @@
 use crate::errors::LoadError;
 use crate::raw::RawNoteHeader;
+use crate::reader::sections::SectionReader;
 use crate::reader::ReadCursor;
 use crate::{
-    ElfClass, ElfGnuProperty, ElfNote, ElfNotesTable, ElfSectionContent, ElfUnknownGnuProperty,
-    ElfUnknownNote, ElfX86Features2, ElfX86Isa,
+    ElfClass, ElfGnuProperty, ElfNote, ElfNotesTable, ElfUnknownGnuProperty, ElfUnknownNote,
+    ElfX86Features2, ElfX86Isa,
 };
 use plinky_utils::bitfields::Bitfield;
 use std::error::Error;
-use crate::reader::sections::SectionReader;
 
-pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionContent, LoadError> {
+pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfNotesTable, LoadError> {
     let mut cursor = reader.content_cursor()?;
 
     let mut notes = Vec::new();
@@ -17,7 +17,7 @@ pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfSectionConte
         notes.push(read_note(reader, &mut cursor)?);
     }
 
-    Ok(ElfSectionContent::Note(ElfNotesTable { notes }))
+    Ok(ElfNotesTable { notes })
 }
 
 fn read_note(
@@ -78,7 +78,8 @@ fn read_gnu_property(
             0xc0010001 => {
                 let mut cursor = reader.cursor_for(data);
                 properties.push(ElfGnuProperty::X86Features2Used(
-                    ElfX86Features2::read(cursor.read_raw()?).map_err(LoadError::X86Features2Used)?,
+                    ElfX86Features2::read(cursor.read_raw()?)
+                        .map_err(LoadError::X86Features2Used)?,
                 ));
             }
             // GNU_PROPERTY_X86_ISA_USED

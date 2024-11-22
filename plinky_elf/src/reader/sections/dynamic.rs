@@ -2,14 +2,14 @@ use crate::errors::LoadError;
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{
     ElfClass, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
-    ElfPLTRelocationsMode, ElfSectionContent,
+    ElfPLTRelocationsMode,
 };
 use plinky_utils::bitfields::Bitfield;
 
 pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
-) -> Result<ElfSectionContent, LoadError> {
+) -> Result<ElfDynamic, LoadError> {
     let mut cursor = reader.content_cursor()?;
 
     let mut directives = Vec::new();
@@ -65,5 +65,5 @@ pub(super) fn read(
         });
     }
 
-    Ok(ElfSectionContent::Dynamic(ElfDynamic { string_table: meta.section_link(), directives }))
+    Ok(ElfDynamic { string_table: meta.section_link(), directives })
 }

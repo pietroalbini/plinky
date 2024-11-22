@@ -97,17 +97,27 @@ fn read_section_inner(
 
     let content = match ty {
         SectionType::Null => ElfSectionContent::Null,
-        SectionType::Program => program::read(&mut reader, &meta)?,
-        SectionType::SymbolTable { dynsym } => symbol_table::read(&mut reader, &meta, dynsym)?,
-        SectionType::StringTable => string_table::read(&mut reader)?,
-        SectionType::Rel => relocations_table::read_rel(&mut reader, &meta)?,
-        SectionType::Rela => relocations_table::read_rela(&mut reader, &meta)?,
-        SectionType::Note => notes::read(&mut reader)?,
-        SectionType::Uninit => uninit::read(&mut reader, &meta)?,
-        SectionType::Group => group::read(&mut reader, &meta)?,
-        SectionType::Hash => hash::read(&mut reader, &meta)?,
-        SectionType::Dynamic => dynamic::read(&mut reader, &meta)?,
-        SectionType::Unknown(other) => unknown::read(&mut reader, other)?,
+        SectionType::Program => ElfSectionContent::Program(program::read(&mut reader, &meta)?),
+        SectionType::SymbolTable { dynsym } => {
+            ElfSectionContent::SymbolTable(symbol_table::read(&mut reader, &meta, dynsym)?)
+        }
+        SectionType::StringTable => {
+            ElfSectionContent::StringTable(string_table::read(&mut reader)?)
+        }
+        SectionType::Rel => {
+            ElfSectionContent::Rel(relocations_table::read_rel(&mut reader, &meta)?)
+        }
+        SectionType::Rela => {
+            ElfSectionContent::Rela(relocations_table::read_rela(&mut reader, &meta)?)
+        }
+        SectionType::Note => ElfSectionContent::Note(notes::read(&mut reader)?),
+        SectionType::Uninit => ElfSectionContent::Uninitialized(uninit::read(&mut reader, &meta)?),
+        SectionType::Group => ElfSectionContent::Group(group::read(&mut reader, &meta)?),
+        SectionType::Hash => ElfSectionContent::Hash(hash::read(&mut reader, &meta)?),
+        SectionType::Dynamic => ElfSectionContent::Dynamic(dynamic::read(&mut reader, &meta)?),
+        SectionType::Unknown(other) => {
+            ElfSectionContent::Unknown(unknown::read(&mut reader, other)?)
+        }
     };
 
     Ok(ElfSection {

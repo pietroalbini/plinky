@@ -4,8 +4,8 @@ use crate::raw::RawSymbol;
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::reader::ReadCursor;
 use crate::{
-    ElfSectionContent, ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfSymbolVisibility,
+    ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
+    ElfSymbolVisibility,
 };
 use std::collections::BTreeMap;
 
@@ -13,7 +13,7 @@ pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
     dynsym: bool,
-) -> Result<ElfSectionContent, LoadError> {
+) -> Result<ElfSymbolTable, LoadError> {
     let mut symbols = BTreeMap::new();
     for cursor in reader.entries()? {
         symbols.insert(
@@ -22,7 +22,7 @@ pub(super) fn read(
         );
     }
 
-    Ok(ElfSectionContent::SymbolTable(ElfSymbolTable { dynsym, symbols }))
+    Ok(ElfSymbolTable { dynsym, symbols })
 }
 
 fn read_symbol(

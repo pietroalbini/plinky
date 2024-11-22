@@ -1,12 +1,12 @@
 use crate::errors::LoadError;
 use crate::raw::RawHashHeader;
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
-use crate::{ElfHash, ElfSectionContent};
+use crate::ElfHash;
 
 pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
-) -> Result<ElfSectionContent, LoadError> {
+) -> Result<ElfHash, LoadError> {
     let mut cursor = reader.content_cursor()?;
 
     let hash_header: RawHashHeader = cursor.read_raw()?;
@@ -21,5 +21,5 @@ pub(super) fn read(
     for _ in 0..hash_header.chain_count {
         hash.chain.push(cursor.read_raw()?);
     }
-    Ok(ElfSectionContent::Hash(hash))
+    Ok(hash)
 }

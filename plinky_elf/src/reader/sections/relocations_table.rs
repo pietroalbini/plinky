@@ -2,15 +2,12 @@ use crate::errors::LoadError;
 use crate::ids::ElfSymbolId;
 use crate::raw::{RawRel, RawRela};
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
-use crate::{
-    ElfClass, ElfRel, ElfRelTable, ElfRela, ElfRelaTable, ElfRelocationType, ElfSectionContent,
-};
+use crate::{ElfClass, ElfRel, ElfRelTable, ElfRela, ElfRelaTable, ElfRelocationType};
 
 pub(super) fn read_rel(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
-) -> Result<ElfSectionContent, LoadError> {
-
+) -> Result<ElfRelTable, LoadError> {
     let mut relocations = Vec::new();
     for mut cursor in reader.entries()? {
         let raw: RawRel = cursor.read_raw()?;
@@ -18,17 +15,17 @@ pub(super) fn read_rel(
         relocations.push(ElfRel { offset: raw.offset, symbol, relocation_type });
     }
 
-    Ok(ElfSectionContent::Rel(ElfRelTable {
+    Ok(ElfRelTable {
         symbol_table: meta.section_link(),
         applies_to_section: meta.section_info(),
         relocations,
-    }))
+    })
 }
 
 pub(super) fn read_rela(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
-) -> Result<ElfSectionContent, LoadError> {
+) -> Result<ElfRelaTable, LoadError> {
     let mut relocations = Vec::new();
     for mut cursor in reader.entries()? {
         let raw: RawRela = cursor.read_raw()?;
@@ -41,11 +38,11 @@ pub(super) fn read_rela(
         });
     }
 
-    Ok(ElfSectionContent::Rela(ElfRelaTable {
+    Ok(ElfRelaTable {
         symbol_table: meta.section_link(),
         applies_to_section: meta.section_info(),
         relocations,
-    }))
+    })
 }
 
 fn symbol_and_relocation_type(

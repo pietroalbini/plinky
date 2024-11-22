@@ -2,12 +2,12 @@ use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::raw::RawGroupFlags;
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
-use crate::{ElfGroup, ElfSectionContent};
+use crate::ElfGroup;
 
 pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
-) -> Result<ElfSectionContent, LoadError> {
+) -> Result<ElfGroup, LoadError> {
     let mut cursor = reader.content_cursor()?;
 
     let symbol_table = meta.section_link();
@@ -20,10 +20,5 @@ pub(super) fn read(
         sections.push(ElfSectionId { index: cursor.read_raw::<u32>()? });
     }
 
-    Ok(ElfSectionContent::Group(ElfGroup {
-        symbol_table,
-        signature,
-        sections,
-        comdat: flags.comdat,
-    }))
+    Ok(ElfGroup { symbol_table, signature, sections, comdat: flags.comdat })
 }

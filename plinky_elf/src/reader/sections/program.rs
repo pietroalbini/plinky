@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::reader::sections::{SectionMetadata, SectionReader};
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{ElfProgramSection, ElfSectionContent};
 
 pub(super) fn read(

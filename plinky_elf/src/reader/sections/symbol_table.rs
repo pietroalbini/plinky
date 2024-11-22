@@ -7,7 +7,7 @@ use crate::{
     ElfSymbolType, ElfSymbolVisibility,
 };
 use std::collections::BTreeMap;
-use crate::reader::sections::{SectionMetadata, SectionReader};
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 
 pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,

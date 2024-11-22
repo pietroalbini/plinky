@@ -1,7 +1,7 @@
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::raw::RawGroupFlags;
-use crate::reader::sections::{SectionMetadata, SectionReader};
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{ElfGroup, ElfSectionContent};
 
 pub(super) fn read(

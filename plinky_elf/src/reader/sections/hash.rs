@@ -1,6 +1,6 @@
 use crate::errors::LoadError;
 use crate::raw::RawHashHeader;
-use crate::reader::sections::{SectionMetadata, SectionReader};
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{ElfHash, ElfSectionContent};
 
 pub(super) fn read(

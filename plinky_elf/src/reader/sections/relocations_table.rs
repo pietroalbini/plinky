@@ -1,7 +1,7 @@
 use crate::errors::LoadError;
 use crate::ids::ElfSymbolId;
 use crate::raw::{RawRel, RawRela};
-use crate::reader::sections::{SectionMetadata, SectionReader};
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{
     ElfClass, ElfRel, ElfRelTable, ElfRela, ElfRelaTable, ElfRelocationType, ElfSectionContent,
 };

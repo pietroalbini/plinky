@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::reader::sections::{SectionMetadata, SectionReader};
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{
     ElfClass, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
     ElfPLTRelocationsMode, ElfSectionContent,

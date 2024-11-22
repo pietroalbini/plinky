@@ -32,7 +32,10 @@ impl SectionReader<'_, '_> {
             return Err(LoadError::EntrySizeZero);
         }
         if self.content_len % self.content_entry_len != 0 {
-            return Err(LoadError::LenNotMultipleOfEntrySize);
+            return Err(LoadError::LenNotMultipleOfEntrySize {
+                len: self.content_len,
+                entry_len: self.content_entry_len,
+            });
         }
 
         self.parent_cursor.seek_to(self.content_start)?;

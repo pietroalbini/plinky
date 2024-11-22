@@ -74,8 +74,11 @@ pub enum LoadError {
     MisalignedFile { current: usize, expected: usize },
     #[display("entry size defined in the section metadata is zero")]
     EntrySizeZero,
-    #[display("section length is not a multiple of the entry size defined in the section metadata")]
-    LenNotMultipleOfEntrySize,
+    #[display("sh_size (value: {len}, hex: {len:#x}) is not a multiple of sh_entsize (value: {entry_len}, hex: {entry_len:#x}) defined in the section header")]
+    LenNotMultipleOfEntrySize {
+        len: u64,
+        entry_len: u64,
+    },
 }
 
 #[derive(Debug, Error, Display)]

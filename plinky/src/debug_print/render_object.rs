@@ -193,6 +193,7 @@ fn render_symbols<'a>(
             SymbolValue::SectionVirtualAddress { section, memory_address } => {
                 format!("{memory_address} (in {})", names.section(section))
             }
+            SymbolValue::ExternallyDefined => "<externally defined>".into(),
             SymbolValue::SectionNotLoaded => "<section not loaded>".into(),
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),

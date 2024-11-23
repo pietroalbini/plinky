@@ -5,7 +5,7 @@ mod program_header;
 mod sections;
 
 pub use self::cursor::ReadSeek;
-pub use self::dynamic::{ElfDynamicReader, ReadDynamicError};
+pub use self::dynamic::{ElfDynamicReader, ReadDynamicError, ElfSymbolInDynamic};
 use crate::errors::LoadError;
 use crate::ids::ElfSectionId;
 use crate::raw::RawSectionHeader;

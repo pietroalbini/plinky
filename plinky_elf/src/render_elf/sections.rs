@@ -4,8 +4,8 @@ use crate::render_elf::utils::render_perms;
 use crate::{
     ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGnuProperty, ElfGroup, ElfHash, ElfNote,
     ElfNotesTable, ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelTable, ElfRelaTable,
-    ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolBinding, ElfSymbolDefinition,
-    ElfSymbolTable, ElfSymbolType, ElfSymbolVisibility, ElfUninitializedSection, ElfUnknownSection,
+    ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolDefinition, ElfSymbolTable,
+    ElfSymbolType, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
@@ -79,12 +79,7 @@ fn render_section_symbols(names: &Names, symbols: &ElfSymbolTable) -> Vec<Box<dy
     for (id, symbol) in &symbols.symbols {
         table.add_row([
             names.symbol(*id).to_string(),
-            match symbol.binding {
-                ElfSymbolBinding::Local => "Local".into(),
-                ElfSymbolBinding::Global => "Global".into(),
-                ElfSymbolBinding::Weak => "Weak".into(),
-                ElfSymbolBinding::Unknown(unknown) => format!("<unknown: {unknown:#x}>"),
-            },
+            symbol.binding.to_string(),
             match symbol.type_ {
                 ElfSymbolType::NoType => "-".into(),
                 ElfSymbolType::Object => "Object".into(),
@@ -93,15 +88,7 @@ fn render_section_symbols(names: &Names, symbols: &ElfSymbolTable) -> Vec<Box<dy
                 ElfSymbolType::File => "File".into(),
                 ElfSymbolType::Unknown(unknown) => format!("<unknown: {unknown:#x}>"),
             },
-            match symbol.visibility {
-                ElfSymbolVisibility::Default => "Default",
-                ElfSymbolVisibility::Hidden => "Hidden",
-                ElfSymbolVisibility::Protected => "Protected",
-                ElfSymbolVisibility::Exported => "Exported",
-                ElfSymbolVisibility::Singleton => "Singleton",
-                ElfSymbolVisibility::Eliminate => "Eliminate",
-            }
-            .into(),
+            symbol.visibility.to_string(),
             match &symbol.definition {
                 ElfSymbolDefinition::Undefined => "Undefined".into(),
                 ElfSymbolDefinition::Absolute => "Absolute".into(),

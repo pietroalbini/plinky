@@ -154,6 +154,7 @@ impl<'a> Relocator<'a> {
         offset: Offset,
     ) -> Result<Absolute, RelocationErrorInner> {
         match self.symbol(rel, offset)? {
+            ResolvedSymbol::ExternallyDefined => todo!(), // TODO: implement this
             ResolvedSymbol::Absolute(absolute) => Ok(absolute),
             ResolvedSymbol::Address { memory_address, .. } => Ok(memory_address.as_absolute()),
         }
@@ -165,6 +166,7 @@ impl<'a> Relocator<'a> {
         offset: Offset,
     ) -> Result<Address, RelocationErrorInner> {
         match self.symbol(rel, offset)? {
+            ResolvedSymbol::ExternallyDefined => todo!(), // TODO: implement this
             ResolvedSymbol::Absolute(_) => {
                 return Err(RelocationErrorInner::RelativeRelocationWithAbsoluteValue);
             }

@@ -4,7 +4,8 @@ use crate::reader::sections::{
     dynamic, string_table, symbol_table, SectionMetadata, SectionReader,
 };
 use crate::{
-    ElfDynamicDirective, ElfReader, ElfSegment, ElfSegmentType, ElfStringTable, LoadError,
+    ElfDynamicDirective, ElfReader, ElfSegment, ElfSegmentType, ElfStringTable, ElfSymbolBinding,
+    ElfSymbolVisibility, LoadError,
 };
 use plinky_macros::{Display, Error};
 
@@ -13,7 +14,7 @@ pub struct ElfDynamicReader<'reader, 'src> {
     dynamic: DynamicSegment,
 
     symbols_count: Option<u32>,
-    symbol_names: Option<Vec<String>>,
+    symbols: Option<Vec<ElfSymbolInDynamic>>,
     strings: Option<ElfStringTable>,
 }
 
@@ -22,17 +23,11 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
         let segment = find_dynamic_segment(&reader.segments)?;
         let dynamic = parse_dynamic_segment(reader, &segment)?;
 
-        Ok(ElfDynamicReader {
-            reader,
-            dynamic,
-            symbols_count: None,
-            strings: None,
-            symbol_names: None,
-        })
+        Ok(ElfDynamicReader { reader, dynamic, symbols_count: None, strings: None, symbols: None })
     }
 
-    pub fn symbol_names(&mut self) -> Result<&[String], ReadDynamicError> {
-        if self.symbol_names.is_none() {
+    pub fn symbols(&mut self) -> Result<&[ElfSymbolInDynamic], ReadDynamicError> {
+        if self.symbols.is_none() {
             let content_entry_len = self.dynamic.symbol_entry_size.get()?;
             let mut reader = SectionReader {
                 content_len: u64::from(self.symbols_count()?) * content_entry_len,
@@ -43,13 +38,17 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
             let symbols = symbol_table::read(&mut reader, &FakeMetadata, true)
                 .map_err(ReadDynamicError::InvalidSymbolTable)?;
 
-            let mut names = Vec::new();
+            let mut result = Vec::new();
             for symbol in symbols.symbols.into_values() {
-                names.push(self.get_string(symbol.name.offset)?.to_string());
+                result.push(ElfSymbolInDynamic {
+                    name: self.get_string(symbol.name.offset)?.to_string(),
+                    visibility: symbol.visibility,
+                    binding: symbol.binding,
+                });
             }
-            self.symbol_names = Some(names);
+            self.symbols = Some(result);
         }
-        Ok(self.symbol_names.as_ref().unwrap())
+        Ok(self.symbols.as_ref().unwrap())
     }
 
     fn symbols_count(&mut self) -> Result<u32, ReadDynamicError> {
@@ -94,6 +93,12 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
         let table = self.strings.as_ref().unwrap();
         table.get(offset).ok_or(ReadDynamicError::MissingString(offset))
     }
+}
+
+pub struct ElfSymbolInDynamic {
+    pub name: String,
+    pub visibility: ElfSymbolVisibility,
+    pub binding: ElfSymbolBinding,
 }
 
 fn find_dynamic_segment(segments: &[ElfSegment]) -> Result<ElfSegment, ReadDynamicError> {

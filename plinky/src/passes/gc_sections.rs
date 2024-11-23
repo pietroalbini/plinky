@@ -13,6 +13,7 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
             .filter_map(|symbol| match symbol.value() {
                 SymbolValue::SectionRelative { section, .. } => Some((symbol.id(), section)),
                 SymbolValue::SectionVirtualAddress { section, .. } => Some((symbol.id(), section)),
+                SymbolValue::ExternallyDefined => None,
                 SymbolValue::SectionNotLoaded => None,
                 SymbolValue::Absolute { .. } => None,
                 SymbolValue::Undefined => None,

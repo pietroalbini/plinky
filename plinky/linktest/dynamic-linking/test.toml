@@ -1,0 +1,24 @@
+archs = ["x86", "x86_64"]
+
+[plinky.no-pie]
+cmd = ["${asm.entry}", "${ld.impl}"]
+debug-print = ["loaded-object=@symbols,.text"]
+kind = "run-pass"
+run-env = { LD_LIBRARY_PATH = "." }
+
+[plinky.pie]
+cmd = ["${asm.entry}", "${ld.impl}", "-pie"]
+debug-print = ["loaded-object=@symbols,.text"]
+kind = "run-pass"
+run-env = { LD_LIBRARY_PATH = "." }
+
+[asm.entry]
+source = "entry.S"
+
+[asm.impl]
+source = "impl.${arch}.S"
+
+[ld.impl]
+output = "libimpl.so"
+content = ["${asm.impl}"]
+shared-library = true

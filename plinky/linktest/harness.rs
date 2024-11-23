@@ -3,6 +3,7 @@ use plinky_test_harness::template::{Template, TemplateContext, TemplateContextGe
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::iter::once;
 use std::path::Path;
 use std::process::Command;
@@ -14,6 +15,8 @@ struct PlinkyStep {
     kind: Template,
     #[serde(default)]
     debug_print: Vec<String>,
+    #[serde(default)]
+    run_env: BTreeMap<String, String>,
 }
 
 impl Step for PlinkyStep {
@@ -90,6 +93,9 @@ impl PlinkyStep {
 
         let mut command = Command::new(dest.join("a.out"));
         command.current_dir(&dest);
+        for (key, value) in &self.run_env {
+            command.env(key, value);
+        }
 
         runner.run("running", &mut command)
     }

@@ -80,6 +80,7 @@ impl Symbol {
                         memory_address: memory_address.offset(offset)?,
                     })
                 }
+                SymbolValue::ExternallyDefined => Ok(ResolvedSymbol::ExternallyDefined),
                 SymbolValue::SectionNotLoaded => Err(ResolveSymbolErrorKind::SectionNotLoaded),
                 SymbolValue::Null => Err(ResolveSymbolErrorKind::Null),
             }
@@ -110,6 +111,7 @@ pub(crate) enum SymbolValue {
     SectionRelative { section: SectionId, offset: Offset },
     SectionVirtualAddress { section: SectionId, memory_address: Address },
     SectionNotLoaded,
+    ExternallyDefined,
     Undefined,
     Null,
 }
@@ -126,6 +128,12 @@ pub(crate) enum UpcomingSymbol<'a> {
     },
     Section {
         section: SectionId,
+    },
+    ExternallyDefined {
+        name: Interned<String>,
+        span: Interned<ObjectSpan>,
+        visibility: ElfSymbolVisibility,
+        binding: ElfSymbolBinding,
     },
     Elf {
         sections_not_loaded: &'a BTreeSet<ElfSectionId>,
@@ -151,9 +159,8 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::Null => {}
             UpcomingSymbol::GlobalUnknown { .. } => {}
             UpcomingSymbol::GlobalHidden { .. } => {}
-            UpcomingSymbol::Section { .. } => {
-                type_ = SymbolType::Section;
-            }
+            UpcomingSymbol::ExternallyDefined { span: new_span, .. } => span = Some(*new_span),
+            UpcomingSymbol::Section { .. } => type_ = SymbolType::Section,
             UpcomingSymbol::Elf { elf, span: new_span, stt_file: new_stt_file, .. } => {
                 type_ = match elf.type_ {
                     ElfSymbolType::NoType => SymbolType::NoType,
@@ -191,6 +198,7 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::GlobalUnknown { name } => *name,
             UpcomingSymbol::GlobalHidden { name, .. } => *name,
             UpcomingSymbol::Section { .. } => intern(""),
+            UpcomingSymbol::ExternallyDefined { name, .. } => *name,
             UpcomingSymbol::Elf { resolved_name, .. } => *resolved_name,
         }
     }
@@ -205,14 +213,15 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::GlobalHidden { .. } => {
                 SymbolVisibility::Global { weak: false, hidden: true }
             }
-            UpcomingSymbol::Elf { elf, .. } => {
-                let hidden = match elf.visibility {
+            UpcomingSymbol::Elf { elf: ElfSymbol { visibility, binding, .. }, .. }
+            | UpcomingSymbol::ExternallyDefined { visibility, binding, .. } => {
+                let hidden = match visibility {
                     ElfSymbolVisibility::Default => false,
                     ElfSymbolVisibility::Hidden => true,
-                    other => return Err(LoadSymbolsError::UnsupportedVisibility(other)),
+                    other => return Err(LoadSymbolsError::UnsupportedVisibility(*other)),
                 };
 
-                match (&elf.binding, hidden) {
+                match (binding, hidden) {
                     (ElfSymbolBinding::Local, false) => SymbolVisibility::Local,
                     (ElfSymbolBinding::Local, true) => {
                         return Err(LoadSymbolsError::LocalHiddenSymbol);
@@ -239,6 +248,7 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::Section { section } => {
                 SymbolValue::SectionRelative { section: *section, offset: 0i64.into() }
             }
+            UpcomingSymbol::ExternallyDefined { .. } => SymbolValue::ExternallyDefined,
             UpcomingSymbol::Elf { section_conversion, sections_not_loaded, elf, .. } => match elf
                 .definition
             {
@@ -263,6 +273,7 @@ impl UpcomingSymbol<'_> {
 }
 
 pub(crate) enum ResolvedSymbol {
+    ExternallyDefined,
     Absolute(Absolute),
     Address { section: SectionId, memory_address: Address },
 }

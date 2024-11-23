@@ -16,12 +16,10 @@ fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
 
     let mut symbols = Table::new();
     symbols.set_title("Dynamic symbols:");
-    for name in dynamic.symbol_names()? {
-        if name.is_empty() {
-            symbols.add_row(["<empty name>"]);
-        } else {
-            symbols.add_row([name]);
-        }
+    symbols.add_row(["Name", "Visibility", "Binding"]);
+    for symbol in dynamic.symbols()? {
+        let name = if symbol.name.is_empty() { "<empty name>" } else { symbol.name.as_str() };
+        symbols.add_row([name.into(), symbol.visibility.to_string(), symbol.binding.to_string()]);
     }
 
     println!("{}", symbols.render_to_string());

@@ -39,6 +39,7 @@ pub(super) fn run(object: &mut Object) {
         .iter(&AllSymbols)
         .filter_map(|symbol| match symbol.value() {
             SymbolValue::Absolute { .. }
+            | SymbolValue::ExternallyDefined
             | SymbolValue::SectionNotLoaded
             | SymbolValue::Undefined
             | SymbolValue::Null => None,

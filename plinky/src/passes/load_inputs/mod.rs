@@ -1,8 +1,9 @@
 use crate::cli::CliOptions;
 use crate::interner::intern;
-use crate::passes::load_inputs::merge_elf::MergeElfError;
-use crate::passes::load_inputs::read_objects::{ObjectsReader, ReadObjectsError};
-use crate::passes::load_inputs::section_groups::SectionGroups;
+use crate::passes::load_inputs::merge_elf::{merge_elf, MergeElfError};
+use crate::passes::load_inputs::read_objects::{NextObject, ObjectsReader, ReadObjectsError};
+use crate::passes::load_inputs::section_groups::{SectionGroups, SectionGroupsForObject};
+use crate::passes::load_inputs::shared_objects::{load_shared_object, SharedObjectError};
 use crate::passes::load_inputs::strings::Strings;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;
@@ -10,7 +11,7 @@ use crate::repr::sections::{SectionContent, Sections};
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{LoadSymbolsError, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::ElfEnvironment;
+use plinky_elf::{ElfEnvironment, LoadError};
 use plinky_macros::{Display, Error};
 
 mod cleanup;
@@ -18,6 +19,7 @@ mod inject_version;
 mod merge_elf;
 mod read_objects;
 mod section_groups;
+mod shared_objects;
 mod strings;
 
 pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
@@ -64,8 +66,7 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
 
                 object.sections.builder(".shstrtab", SectionContent::SectionNames).create();
 
-                merge_elf::merge(&mut object, &mut strings, section_groups.for_object(), next)
-                    .map_err(|e| LoadInputsError::MergeFailed(source.clone(), e))?;
+                load_object(&mut object, &mut strings, section_groups.for_object(), next)?;
                 State::WithContent { object, strings, section_groups, first_span: source }
             }
             State::WithContent { mut object, mut strings, mut section_groups, first_span } => {
@@ -77,8 +78,7 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
                         current_env: next.reader.env(),
                     });
                 }
-                merge_elf::merge(&mut object, &mut strings, section_groups.for_object(), next)
-                    .map_err(|e| LoadInputsError::MergeFailed(source, e))?;
+                load_object(&mut object, &mut strings, section_groups.for_object(), next)?;
                 State::WithContent { object, strings, section_groups, first_span }
             }
         }
@@ -91,6 +91,29 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
             cleanup::run(&mut object);
             Ok(object)
         }
+    }
+}
+
+fn load_object(
+    object: &mut Object,
+    strings: &mut Strings,
+    section_groups: SectionGroupsForObject<'_>,
+    NextObject { mut reader, source }: NextObject,
+) -> Result<(), LoadInputsError> {
+    match reader.type_() {
+        plinky_elf::ElfType::Relocatable => {
+            let elf = reader
+                .into_object()
+                .map_err(|e| LoadInputsError::ParseFailed(source.clone(), e))?;
+            merge_elf(object, strings, section_groups, elf, source.clone())
+                .map_err(|e| LoadInputsError::MergeFailed(source, e))
+        }
+        plinky_elf::ElfType::SharedObject => {
+            load_shared_object(object, &mut reader, source.clone())
+                .map_err(|e| LoadInputsError::SharedLoadFailed(source, e))
+        }
+        plinky_elf::ElfType::Executable => Err(LoadInputsError::ExecutableUnsupported(source)),
+        plinky_elf::ElfType::Core => Err(LoadInputsError::CoreUnsupported(source)),
     }
 }
 
@@ -112,12 +135,20 @@ enum State {
 pub(crate) enum LoadInputsError {
     #[display("no input files were provided")]
     NoInputFiles,
+    #[display("core dump {f0} is not supported as linker input")]
+    CoreUnsupported(ObjectSpan),
+    #[display("executable {f0} is not supported as linker input")]
+    ExecutableUnsupported(ObjectSpan),
     #[display("failed to add the entry point as an unknown symbol")]
     EntryInsertionFailed(#[source] LoadSymbolsError),
     #[transparent]
     ReadFailed(ReadObjectsError),
+    #[display("failed to parse {f0}")]
+    ParseFailed(ObjectSpan, #[source] LoadError),
     #[display("failed to include the ELF file {f0}")]
     MergeFailed(ObjectSpan, #[source] MergeElfError),
+    #[display("failed to load the shared object {f0}")]
+    SharedLoadFailed(ObjectSpan, #[source] SharedObjectError),
     #[display("failed to create the symbol table")]
     SymbolTableCreationFailed(#[source] LoadSymbolsError),
     #[display("environment of {first_span} is {first_env:?}, while environment of {current_span} is {current_env:?}")]

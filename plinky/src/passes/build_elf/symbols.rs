@@ -129,6 +129,7 @@ impl Converter<'_> {
                     SymbolValue::SectionVirtualAddress { section, .. } => {
                         ElfSymbolDefinition::Section(*self.section_ids.get(&section).unwrap())
                     }
+                    SymbolValue::ExternallyDefined => ElfSymbolDefinition::Undefined,
                     SymbolValue::SectionNotLoaded => ElfSymbolDefinition::Undefined,
                     SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
                     SymbolValue::Null => ElfSymbolDefinition::Undefined,
@@ -141,6 +142,7 @@ impl Converter<'_> {
                     SymbolValue::SectionVirtualAddress { memory_address, .. } => {
                         memory_address.extract()
                     }
+                    SymbolValue::ExternallyDefined => 0,
                     SymbolValue::SectionNotLoaded => 0,
                     SymbolValue::Undefined => 0,
                     SymbolValue::Null => 0,

@@ -276,12 +276,23 @@ pub struct ElfSymbol {
     pub size: u64,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ElfSymbolBinding {
     Local,
     Global,
     Weak,
     Unknown(u8),
+}
+
+impl std::fmt::Display for ElfSymbolBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            ElfSymbolBinding::Local => "Local",
+            ElfSymbolBinding::Global => "Global",
+            ElfSymbolBinding::Weak => "Weak",
+            ElfSymbolBinding::Unknown(unknown) => return write!(f, "<unknown: {unknown:#x}>"),
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -302,6 +313,19 @@ pub enum ElfSymbolVisibility {
     Exported,
     Singleton,
     Eliminate,
+}
+
+impl std::fmt::Display for ElfSymbolVisibility {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            ElfSymbolVisibility::Default => "Default",
+            ElfSymbolVisibility::Hidden => "Hidden",
+            ElfSymbolVisibility::Protected => "Protected",
+            ElfSymbolVisibility::Exported => "Exported",
+            ElfSymbolVisibility::Singleton => "Singleton",
+            ElfSymbolVisibility::Eliminate => "Eliminate",
+        })
+    }
 }
 
 #[derive(Debug)]

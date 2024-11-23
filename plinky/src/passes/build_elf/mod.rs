@@ -122,6 +122,9 @@ impl<'a> ElfBuilder<'a> {
             ResolvedSymbol::Absolute(_) => {
                 Err(ElfBuilderError::EntryPointNotAnAddress(symbol.name()))
             }
+            ResolvedSymbol::ExternallyDefined => {
+                Err(ElfBuilderError::EntryPointExternallyDefined(symbol.name()))
+            }
             ResolvedSymbol::Address { memory_address, .. } => Ok(Some(
                 NonZeroU64::new(
                     memory_address
@@ -317,6 +320,8 @@ pub(crate) enum ElfBuilderError {
     EntryPointResolution(#[source] ResolveSymbolError),
     #[display("entry point symbol {f0} is not an address")]
     EntryPointNotAnAddress(Interned<String>),
+    #[display("entry point symbol {f0} is defined in a shared library")]
+    EntryPointExternallyDefined(Interned<String>),
     #[display("the entry point is zero")]
     EntrypointIsZero(Interned<String>),
     #[display("the entry point address {f0} is out of bounds")]

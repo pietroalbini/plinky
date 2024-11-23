@@ -32,6 +32,7 @@ impl DynamicEntries {
 
 #[derive(Debug)]
 pub(crate) enum DynamicEntry {
+    Needed(UpcomingStringId),
     SharedObjectName(UpcomingStringId),
     StringTable(SectionId),
     SymbolTable(SectionId),
@@ -45,6 +46,7 @@ pub(crate) enum DynamicEntry {
 impl DynamicEntry {
     pub(crate) fn directives_count(&self) -> usize {
         match self {
+            DynamicEntry::Needed(_) => 1,
             DynamicEntry::SharedObjectName(_) => 1,
             DynamicEntry::StringTable(_) => 2,
             DynamicEntry::SymbolTable(_) => 2,

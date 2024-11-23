@@ -1,5 +1,5 @@
 use crate::interner::intern;
-use crate::repr::object::Object;
+use crate::repr::object::{GnuProperties, Input, Object};
 use crate::repr::symbols::{LoadSymbolsError, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfReader, ReadDynamicError};
@@ -33,6 +33,12 @@ pub(super) fn load_shared_object(
             })
             .map_err(SharedObjectError::AddSymbol)?;
     }
+
+    object.inputs.push(Input {
+        span,
+        shared_object: true,
+        gnu_properties: GnuProperties { x86_isa_used: None, x86_features_2_used: None },
+    });
 
     Ok(())
 }

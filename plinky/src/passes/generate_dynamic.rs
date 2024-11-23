@@ -33,6 +33,13 @@ pub(crate) fn run(
         let soname_id = dynstr_section.add_custom_string(soname);
         object.dynamic_entries.add(DynamicEntry::SharedObjectName(soname_id));
     }
+    for input in &object.inputs {
+        if input.shared_object {
+            let name = input.span.to_string(); // FIXME: this is wrong
+            let needed_id = dynstr_section.add_custom_string(name);
+            object.dynamic_entries.add(DynamicEntry::Needed(needed_id));
+        }
+    }
 
     let mut create =
         |name: &str, content: SectionContent, entry: fn(SectionId) -> DynamicEntry| -> SectionId {

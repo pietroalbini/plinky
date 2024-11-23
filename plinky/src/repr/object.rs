@@ -8,6 +8,7 @@ use crate::repr::segments::Segments;
 use crate::repr::symbols::{SymbolId, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfEnvironment, ElfMachine, ElfX86Features2, ElfX86Isa};
+use crate::interner::Interned;
 
 #[derive(Debug)]
 pub(crate) struct Object {
@@ -37,7 +38,8 @@ impl Object {
 
 #[derive(Debug)]
 pub(crate) struct Input {
-    pub(crate) span: ObjectSpan,
+    pub(crate) span: Interned<ObjectSpan>,
+    pub(crate) shared_object: bool,
     pub(crate) gnu_properties: GnuProperties,
 }
 

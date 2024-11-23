@@ -1,19 +1,32 @@
 archs = ["x86", "x86_64"]
 
-[plinky.no-pie]
-cmd = ["${asm.entry}", "${ld.impl}"]
-debug-print = ["loaded-object=@symbols,.text"]
+[plinky.no_pie]
+cmd = ["${c.entry_no_pie}", "${ld.impl}"]
+debug-print = [
+    "loaded-object=@symbols,@inputs,.text",
+    "final-elf=.dynamic,.dynstr,.dynsym",
+]
 kind = "run-pass"
 run-env = { LD_LIBRARY_PATH = "." }
 
 [plinky.pie]
-cmd = ["${asm.entry}", "${ld.impl}", "-pie"]
-debug-print = ["loaded-object=@symbols,.text"]
+cmd = ["${c.entry_pie}", "${ld.impl}", "-pie"]
+debug-print = [
+    "loaded-object=@symbols,@inputs,.text",
+    "final-elf=.dynamic,.dynstr,.dynsym",
+]
 kind = "run-pass"
 run-env = { LD_LIBRARY_PATH = "." }
 
-[asm.entry]
-source = "entry.S"
+[c.entry_no_pie]
+source = "entry.c"
+libc = "freestanding"
+relocation = "static"
+
+[c.entry_pie]
+source = "entry.c"
+libc = "freestanding"
+relocation = "pic"
 
 [asm.impl]
 source = "impl.${arch}.S"

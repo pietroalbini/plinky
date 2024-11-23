@@ -7,5 +7,5 @@
 impl:
     /* Exit */
     mov rax, 60
-    mov rbx, 0
+    mov rdi, 0
     syscall

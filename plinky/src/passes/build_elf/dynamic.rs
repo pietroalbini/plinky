@@ -1,7 +1,7 @@
 use crate::passes::build_elf::ElfBuilder;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::relocations::RelocationMode;
-use crate::repr::sections::{DynamicSection, SectionId};
+use crate::repr::sections::{DynamicSection, SectionId, UpcomingStringId};
 use plinky_elf::raw::{RawRel, RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
 use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPLTRelocationsMode, ElfSectionContent};
@@ -26,17 +26,13 @@ pub(super) fn build_dynamic_section(
     for entry in builder.object.dynamic_entries.iter() {
         let old_len = directives.len();
         match entry {
+            DynamicEntry::Needed(string_id) => directives.push(ElfDynamicDirective::Needed {
+                string_table_offset: string_offset(builder, string_table_id, *string_id),
+            }),
+
             DynamicEntry::SharedObjectName(string_id) => {
                 directives.push(ElfDynamicDirective::SharedObjectName {
-                    string_table_offset: builder
-                        .pending_string_tables
-                        .get(&string_table_id.expect("no dynamic string table"))
-                        .expect("dynamic string table not prepared")
-                        .custom_strings
-                        .get(string_id)
-                        .expect("shared object name's string missing")
-                        .offset
-                        .into(),
+                    string_table_offset: string_offset(builder, string_table_id, *string_id),
                 })
             }
             DynamicEntry::StringTable(id) => {
@@ -117,6 +113,18 @@ pub(super) fn build_dynamic_section(
         string_table: *builder.section_ids.get(&dynamic.strings()).unwrap(),
         directives,
     })
+}
+
+fn string_offset(builder: &ElfBuilder, table_id: Option<SectionId>, id: UpcomingStringId) -> u64 {
+    builder
+        .pending_string_tables
+        .get(&table_id.expect("no dynamic string table"))
+        .expect("dynamic string table not prepared")
+        .custom_strings
+        .get(&id)
+        .expect("missing string in the dynamic string table")
+        .offset
+        .into()
 }
 
 fn layout<'a>(builder: &'a ElfBuilder, id: &SectionId, what: &str) -> &'a PartMemory {

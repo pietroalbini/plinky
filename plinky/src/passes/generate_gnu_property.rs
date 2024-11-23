@@ -24,6 +24,11 @@ pub(crate) fn run(object: &mut Object) {
     for input in &object.inputs {
         let GnuProperties { x86_isa_used, x86_features_2_used } = &input.gnu_properties;
 
+        // Do not merge GNU Properties of shared objects.
+        if input.shared_object {
+            continue;
+        }
+
         merged_x86_isa_used.merge(*x86_isa_used);
         merged_x86_features2_used.merge(*x86_features_2_used);
     }

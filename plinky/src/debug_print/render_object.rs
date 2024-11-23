@@ -299,7 +299,11 @@ fn render_inputs(object: &Object) -> Box<dyn Widget> {
     let mut result: Vec<Box<dyn Widget>> = Vec::new();
 
     for input in &object.inputs {
-        let title = input.span.to_string();
+        let mut title = input.span.to_string();
+        if input.shared_object {
+            title.push_str(" (shared object)");
+        }
+
         let mut table = Table::new();
         table.set_title(title.clone());
 

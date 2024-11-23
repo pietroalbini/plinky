@@ -1,16 +1,18 @@
 mod cursor;
+mod dynamic;
 mod header;
 mod program_header;
 mod sections;
 
 pub use self::cursor::ReadSeek;
+pub use self::dynamic::{ElfDynamicReader, ReadDynamicError};
 use crate::errors::LoadError;
 use crate::ids::ElfSectionId;
 use crate::raw::RawSectionHeader;
 use crate::reader::cursor::ReadCursor;
 use crate::reader::header::read_header;
 use crate::reader::sections::read_section;
-use crate::{ElfClass, ElfEndian, ElfEnvironment, ElfObject, ElfSection, ElfSegment, ElfType};
+use crate::{ElfClass, ElfEndian, ElfEnvironment, ElfObject, ElfSegment, ElfType};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -21,12 +23,12 @@ pub struct ElfReader<'src> {
     type_: ElfType,
     entry: Option<NonZeroU64>,
     segments: Vec<ElfSegment>,
-    sections: BTreeMap<ElfSectionId, MaybeSection>,
+    sections: BTreeMap<ElfSectionId, RawSectionHeader>,
     section_names_table: ElfSectionId,
 }
 
-impl ElfReader<'_> {
-    pub fn new<'src>(reader: &'src mut dyn ReadSeek) -> Result<ElfReader<'src>, LoadError> {
+impl<'src> ElfReader<'src> {
+    pub fn new<'a>(reader: &'a mut dyn ReadSeek) -> Result<ElfReader<'a>, LoadError> {
         // Default to elf32 LE for the header, it will be switched automatically.
         let cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
         Self::new_inner(cursor)
@@ -42,16 +44,13 @@ impl ElfReader<'_> {
         let header = read_header(&mut cursor)?;
         Ok(ElfReader {
             cursor,
+
             env: header.env,
             type_: header.type_,
             entry: header.entry,
             segments: header.segments,
-            sections: header
-                .sections
-                .into_iter()
-                .map(|(id, raw)| (id, MaybeSection::Pending(raw)))
-                .collect(),
             section_names_table: header.section_names_table,
+            sections: header.sections,
         })
     }
 
@@ -59,22 +58,19 @@ impl ElfReader<'_> {
         self.env
     }
 
+    pub fn type_(&self) -> ElfType {
+        self.type_
+    }
+
+    pub fn dynamic<'a>(&'a mut self) -> Result<ElfDynamicReader<'a, 'src>, ReadDynamicError> {
+        ElfDynamicReader::new(self)
+    }
+
     pub fn into_object(mut self) -> Result<ElfObject, LoadError> {
         let mut sections = BTreeMap::new();
-        for (id, section) in self.sections.into_iter() {
-            match section {
-                MaybeSection::Pending(raw) => {
-                    sections.insert(
-                        id,
-                        read_section(&mut self.cursor, self.section_names_table, id, raw)?,
-                    );
-                }
-                MaybeSection::Ready(ready) => {
-                    sections.insert(id, ready);
-                }
-            }
+        for (id, raw) in self.sections.into_iter() {
+            sections.insert(id, read_section(&mut self.cursor, self.section_names_table, id, raw)?);
         }
-
         Ok(ElfObject {
             env: self.env,
             type_: self.type_,
@@ -83,10 +79,4 @@ impl ElfReader<'_> {
             sections,
         })
     }
-}
-
-enum MaybeSection {
-    Pending(RawSectionHeader),
-    #[expect(unused)]
-    Ready(ElfSection),
 }

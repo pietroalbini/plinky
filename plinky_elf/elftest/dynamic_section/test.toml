@@ -4,6 +4,9 @@ archs = ["x86", "x86_64"]
 file = "${ld.dynamic}"
 filter = ".dyn*,*plt,@segments"
 
+[read-dynamic.dynamic]
+file = "${ld.dynamic}"
+
 [ld.dynamic]
 output = "dynamic.so"
 content = ["${c.dynamic}"]

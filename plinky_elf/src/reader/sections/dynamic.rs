@@ -10,6 +10,12 @@ pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
 ) -> Result<ElfDynamic, LoadError> {
+    Ok(ElfDynamic { string_table: meta.section_link(), directives: read_directives(reader)? })
+}
+
+pub(crate) fn read_directives(
+    reader: &mut SectionReader<'_, '_>,
+) -> Result<Vec<ElfDynamicDirective>, LoadError> {
     let mut cursor = reader.content_cursor()?;
 
     let mut directives = Vec::new();
@@ -65,5 +71,5 @@ pub(super) fn read(
         });
     }
 
-    Ok(ElfDynamic { string_table: meta.section_link(), directives })
+    Ok(directives)
 }

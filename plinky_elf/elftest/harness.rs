@@ -82,6 +82,39 @@ impl ReadElfStep {
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReadDynamicStep {
+    file: Template,
+}
+
+impl Step for ReadDynamicStep {
+    fn run(&self, ctx: TestContext<'_>) -> Result<(), Error> {
+        let file = ctx.maybe_relative_to_src(&self.file.resolve(&*ctx.template)?);
+        println!("reading {}...", file.display());
+
+        let mut command = Command::new(env!("CARGO_BIN_EXE_read-dynamic"));
+        command.arg(&file);
+
+        let mut runner = ctx.run_and_snapshot();
+        let outcome = runner.run("reading dynamic information", &mut command)?;
+        runner.persist();
+
+        if !outcome {
+            bail!("failed to read the dynamic information in the ELF");
+        }
+        Ok(())
+    }
+
+    fn templates(&self) -> Vec<Template> {
+        vec![self.file.clone()]
+    }
+
+    fn is_leaf(&self) -> bool {
+        true
+    }
+}
+
 fn default_true() -> bool {
     true
 }
@@ -89,6 +122,9 @@ fn default_true() -> bool {
 fn main() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("elftest");
     plinky_test_harness::main(&path, |steps| {
-        steps.define_builtins()?.define::<ReadElfStep>("read-elf")
+        steps
+            .define_builtins()?
+            .define::<ReadElfStep>("read-elf")?
+            .define::<ReadDynamicStep>("read-dynamic")
     });
 }

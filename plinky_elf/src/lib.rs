@@ -8,6 +8,6 @@ pub mod render_elf;
 mod types;
 pub mod writer;
 
-pub use self::reader::{ReadSeek, ElfReader};
-pub use self::types::*;
 pub use self::errors::*;
+pub use self::reader::*;
+pub use self::types::*;

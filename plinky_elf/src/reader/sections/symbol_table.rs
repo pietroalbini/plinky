@@ -9,7 +9,7 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-pub(super) fn read(
+pub(crate) fn read(
     reader: &mut SectionReader<'_, '_>,
     meta: &dyn SectionMetadata,
     dynsym: bool,

@@ -1,19 +1,20 @@
-mod dynamic;
+pub(super) mod dynamic;
 mod group;
 mod hash;
 mod notes;
 mod program;
 mod reader;
 mod relocations_table;
-mod string_table;
-mod symbol_table;
+pub(super) mod string_table;
+pub(super) mod symbol_table;
 mod uninit;
 mod unknown;
 
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfStringId};
 use crate::raw::RawSectionHeader;
-use crate::reader::sections::reader::{HeaderMetadata, SectionMetadata, SectionReader};
+use crate::reader::sections::reader::HeaderMetadata;
+pub(super) use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::reader::ReadCursor;
 use crate::{ElfDeduplication, ElfSection, ElfSectionContent};
 

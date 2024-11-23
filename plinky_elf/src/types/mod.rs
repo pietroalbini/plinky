@@ -486,7 +486,7 @@ pub enum ElfPLTRelocationsMode {
     Unknown(u64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ElfSegment {
     pub type_: ElfSegmentType,
     pub perms: ElfPermissions,

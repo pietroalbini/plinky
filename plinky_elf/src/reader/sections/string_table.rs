@@ -3,7 +3,7 @@ use crate::reader::sections::SectionReader;
 use crate::ElfStringTable;
 use std::collections::BTreeMap;
 
-pub(super) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfStringTable, LoadError> {
+pub(crate) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfStringTable, LoadError> {
     let raw_content = reader.content()?;
 
     let mut strings = BTreeMap::new();

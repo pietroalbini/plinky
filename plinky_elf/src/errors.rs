@@ -79,6 +79,8 @@ pub enum LoadError {
         len: u64,
         entry_len: u64,
     },
+    #[display("no section present at address {f0:#x}")]
+    NoSectionAtAddress(u64),
 }
 
 #[derive(Debug, Error, Display)]

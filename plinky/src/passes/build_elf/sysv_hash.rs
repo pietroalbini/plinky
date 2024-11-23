@@ -70,7 +70,7 @@ pub(crate) fn num_buckets(symbols_count: usize) -> usize {
     ];
 
     for [buckets, elements_num] in GOLD_BUCKETS.array_windows() {
-        if *elements_num <= symbols_count {
+        if *elements_num >= symbols_count {
             return *buckets;
         }
     }

@@ -35,7 +35,7 @@ debug print: built elf
  │   │  ╰─────┴───────────╯
  │   ┴
  │
- │  section .dynamic (address: 0x100226)
+ │  section .dynamic (address: 0x21e)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │

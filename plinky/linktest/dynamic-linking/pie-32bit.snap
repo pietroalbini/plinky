@@ -87,7 +87,7 @@ debug print: built elf
  │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴───────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x1001c2)
+ │  section .dynamic (address: 0x1ba)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -106,13 +106,13 @@ debug print: built elf
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ Hash table              │ address 0x1a6                │
  │   │  ├─────────────────────────┼──────────────────────────────┤
- │   │  │ Jump PLT relocations    │ address 0x100222             │
+ │   │  │ Jump PLT relocations    │ address 0x21a                │
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ PLT relocations size    │ 8 bytes                      │
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ PLT relocations type    │ Relocations                  │
  │   │  ├─────────────────────────┼──────────────────────────────┤
- │   │  │ PLT GOT                 │ address 0x103000             │
+ │   │  │ PLT GOT                 │ address 0x3000               │
  │   │  ├─────────────────────────┼──────────────────────────────┤
  │   │  │ Flags1                  │ pie                          │
  │   │  ├─────────────────────────┼──────────────────────────────┤

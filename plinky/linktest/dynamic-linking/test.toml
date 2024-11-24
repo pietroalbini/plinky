@@ -1,37 +1,35 @@
 archs = ["x86", "x86_64"]
 
-[plinky.no_pie]
-cmd = ["${c.entry_no_pie}", "${ld.impl}"]
-debug-print = [
-    "loaded-object=@symbols,@inputs,.text",
-    "final-elf=.dynamic,.dynstr,.dynsym",
-]
-kind = "run-pass"
-run-env = { LD_LIBRARY_PATH = "." }
+# TODO: test -no-pie (with a no-pic entry point)
+# TODO: test -no-pie (with a pic entry point)
 
 [plinky.pie]
-cmd = ["${c.entry_pie}", "${ld.impl}", "-pie"]
+cmd = ["-pie", "${asm.entry_pic}", "${ld.data}", "${ld.syscalls}"]
+kind = "run-pass"
+run-env = { LD_LIBRARY_PATH = "." }
 debug-print = [
     "loaded-object=@symbols,@inputs,.text",
     "final-elf=.dynamic,.dynstr,.dynsym",
 ]
-kind = "run-pass"
-run-env = { LD_LIBRARY_PATH = "." }
 
-[c.entry_no_pie]
-source = "entry.c"
-libc = "freestanding"
-relocation = "static"
+[asm.entry_pic]
+source = "entry-pic.${arch}.S"
 
-[c.entry_pie]
-source = "entry.c"
-libc = "freestanding"
-relocation = "pic"
-
-[asm.impl]
-source = "impl.${arch}.S"
-
-[ld.impl]
-output = "libimpl.so"
-content = ["${asm.impl}"]
+[ld.data]
+output = "libdata.so"
+content = ["${asm.data}"]
 shared-library = true
+
+[asm.data]
+source = "data.S"
+
+[ld.syscalls]
+output = "libsyscalls.so"
+content = ["${asm.syscall_write}", "${asm.syscall_exit}"]
+shared-library = true
+
+[asm.syscall_exit]
+source = "../_shared/syscall.exit.${arch}.S"
+
+[asm.syscall_write]
+source = "../_shared/syscall.write.${arch}.S"

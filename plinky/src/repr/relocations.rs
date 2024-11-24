@@ -61,6 +61,7 @@ impl TryFrom<ElfRelocationType> for RelocationType {
             ElfRelocationType::X86_64_PLT32 => RelocationType::PLT32,
             ElfRelocationType::X86_64_GOTPCRel => RelocationType::GOTRelative32,
             ElfRelocationType::X86_64_GOTPCRelX => RelocationType::GOTRelative32,
+            ElfRelocationType::X86_64_Rex_GOTPCRelX => RelocationType::GOTRelative32,
 
             elf_type => return Err(UnsupportedRelocationType { elf_type }),
         })

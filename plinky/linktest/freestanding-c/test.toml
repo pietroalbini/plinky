@@ -1,16 +1,16 @@
 archs = ["x86", "x86_64"]
 
 [plinky.static]
-cmd = ["${c.hello_static}", "${asm.syscalls}"]
+cmd = ["${c.hello_static}", "${asm.syscall_write}", "${asm.syscall_exit}"]
 kind = "run-pass"
 
 [plinky.static_got]
-cmd = ["${c.hello_got}", "${asm.syscalls}"]
+cmd = ["${c.hello_got}", "${asm.syscall_write}", "${asm.syscall_exit}"]
 kind = "run-pass"
 debug-print = ["loaded-object=.text", "relocated-object=.text,.got,@symbols"]
 
 [plinky.pie_got]
-cmd = ["${c.hello_got}", "${asm.syscalls}", "-pie"]
+cmd = ["${c.hello_got}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie"]
 kind = "run-pass"
 debug-print = [
     "loaded-object=.text",
@@ -20,12 +20,12 @@ debug-print = [
 ]
 
 [plinky.pie_got_relro]
-cmd = ["${c.hello_got}", "${asm.syscalls}", "-pie", "-zrelro"]
+cmd = ["${c.hello_got}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie", "-zrelro"]
 kind = "run-pass"
 debug-print = ["layout", "final-elf=@segments"]
 
 [plinky.pie_plt]
-cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie"]
+cmd = ["${c.hello_plt}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie"]
 kind = "run-pass"
 debug-print = [
     "loaded-object=.text",
@@ -35,7 +35,7 @@ debug-print = [
 ]
 
 [plinky.pie_plt_now]
-cmd = ["${c.hello_plt}", "${asm.syscalls}", "-pie", "-znow"]
+cmd = ["${c.hello_plt}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie", "-znow"]
 kind = "run-pass"
 debug-print = ["layout", "final-elf=.dynamic,@segments"]
 
@@ -54,6 +54,10 @@ source = "hello.c"
 libc = "freestanding"
 relocation = "pic"
 
-[asm.syscalls]
-output = "syscalls.o"
-source = "syscalls.${arch}.S"
+[asm.syscall_exit]
+output = "syscall.exit.o"
+source = "../_shared/syscall.exit.${arch}.S"
+
+[asm.syscall_write]
+output = "syscall.write.o"
+source = "../_shared/syscall.write.${arch}.S"

@@ -1,8 +1,7 @@
 .intel_syntax noprefix
-.file "syscalls.32bit.S"
+.file "syscalls.write.x86.S"
 
 .global write
-.global exit
 
 .section .text
 write:
@@ -20,8 +19,3 @@ write:
     pop ebx
     pop eax
     ret
-
-exit:
-    mov eax, 1         /* Syscall number (1 = exit) */
-    mov ebx, [esp + 4] /* First argument (code) */
-    int 0x80

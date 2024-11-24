@@ -1,8 +1,7 @@
 .intel_syntax noprefix
-.file "syscalls.64bit.S"
+.file "syscalls.write.x86_64.S"
 
 .global write
-.global exit
 
 .section .text
 write:
@@ -20,8 +19,3 @@ write:
     pop rbx
     pop rax
     ret
-
-exit:
-    mov rax, 60  /* Syscall number (60 = exit) */
-    mov rbx, rdi /* First argument (code) */
-    syscall

@@ -1,58 +1,29 @@
 use crate::cli::CliOptions;
 use crate::interner::intern;
+use crate::passes::analyze_relocations::RelocsAnalysis;
 use crate::passes::generate_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
-use crate::repr::relocations::{NeedsGot, Relocation, RelocationMode, RelocationType};
-use crate::repr::sections::{DataSection, RelocationsSection, SectionContent, SectionId};
+use crate::repr::relocations::{Relocation, RelocationMode, RelocationType};
+use crate::repr::sections::{DataSection, RelocationsSection, SectionId};
 use crate::repr::segments::SegmentContent;
-use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, SymbolValue, UpcomingSymbol};
 use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 pub(crate) fn generate_got(
     options: &CliOptions,
     object: &mut Object,
+    relocs_analysis: &RelocsAnalysis,
     dynamic_context: &Option<DynamicContext>,
 ) -> Result<(), GenerateGotError> {
-    let mut got_needed = false;
-    let mut got_symbols = BTreeSet::new();
-    let mut got_plt_needed = false;
-    let mut got_plt_symbols = BTreeSet::new();
-    for section in object.sections.iter() {
-        let SectionContent::Data(data) = &section.content else {
-            continue;
-        };
-        for relocation in &data.relocations {
-            match relocation.type_.needs_got_entry() {
-                NeedsGot::None => false, // Empty block, false due to insert() returning a bool.
-                NeedsGot::Got => got_symbols.insert(relocation.symbol),
-                NeedsGot::GotPlt => got_plt_symbols.insert(relocation.symbol),
-            };
-
-            // Some relocations (like R_386_GOTOFF) require a GOT to be present even if no entries
-            // in the GOT are actually there. We thus do the check separately, rather than only
-            // emitting the GOT if there are GOT entries.
-            match relocation.type_.needs_got_table() {
-                NeedsGot::None => {}
-                NeedsGot::Got => got_needed = true,
-                NeedsGot::GotPlt => got_plt_needed = true,
-            }
-        }
-    }
-
-    let got_symbol = intern("_GLOBAL_OFFSET_TABLE_");
-    got_plt_needed |=
-        object.symbols.iter(&AllSymbols).filter(|s| s.name() == got_symbol).next().is_some();
-
-    if got_needed {
+    if let Some(plan) = &relocs_analysis.got {
         object.got = Some(build_got(
             object,
             dynamic_context,
-            &mut got_symbols.iter().copied(),
+            &mut plan.symbols.iter().copied(),
             GotConfig {
                 section_name: ".got",
                 reloc_section_name: match object.relocation_mode() {
@@ -67,11 +38,11 @@ pub(crate) fn generate_got(
         )?);
     }
 
-    if got_plt_needed {
+    if let Some(plan) = &relocs_analysis.got_plt {
         let mut got_plt = build_got(
             object,
             dynamic_context,
-            &mut got_plt_symbols.iter().copied(),
+            &mut plan.symbols.iter().copied(),
             GotConfig {
                 section_name: ".got.plt",
                 reloc_section_name: match object.relocation_mode() {

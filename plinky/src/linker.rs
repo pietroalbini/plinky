@@ -1,6 +1,8 @@
 use crate::cli::CliOptions;
 use crate::passes;
+use crate::passes::analyze_relocations::RelocsAnalysis;
 use crate::passes::build_elf::ElfBuilderError;
+use crate::passes::convert_relocation_modes::ConvertRelocationModesError;
 use crate::passes::deduplicate::{Deduplication, DeduplicationError};
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::generate_dynamic::GenerateDynamicError;
@@ -17,7 +19,6 @@ use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
-use crate::passes::convert_relocation_modes::ConvertRelocationModesError;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -37,8 +38,11 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object)?;
 
+    let relocs_analysis = passes::analyze_relocations::run(&object);
+    callbacks.on_relocations_analyzed(&object, &relocs_analysis);
+
     let dynamic = passes::generate_dynamic::run(&options, &mut object)?;
-    passes::generate_got::generate_got(&options, &mut object, &dynamic)?;
+    passes::generate_got::generate_got(&options, &mut object, &relocs_analysis, &dynamic)?;
     passes::generate_plt::run(&mut object);
     passes::inject_interpreter::run(&options, &mut object, &dynamic)?;
 
@@ -75,6 +79,8 @@ pub(crate) trait LinkerCallbacks {
     fn on_inputs_loaded(&self, _object: &Object) {}
 
     fn on_sections_removed_by_gc(&self, _object: &Object, _removed: &[RemovedSection]) {}
+
+    fn on_relocations_analyzed(&self, _object: &Object, _analysis: &RelocsAnalysis) {}
 
     fn on_layout_calculated(
         &self,

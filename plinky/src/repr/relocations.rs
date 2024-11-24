@@ -26,29 +26,6 @@ pub(crate) enum RelocationType {
 }
 
 impl RelocationType {
-    pub(crate) fn needs_got_entry(&self) -> NeedsGot {
-        match self {
-            RelocationType::Absolute32 => NeedsGot::None,
-            RelocationType::AbsoluteSigned32 => NeedsGot::None,
-            RelocationType::Relative32 => NeedsGot::None,
-            RelocationType::PLT32 => NeedsGot::GotPlt,
-            RelocationType::GOTRelative32 => NeedsGot::Got,
-            RelocationType::GOTIndex32 => NeedsGot::Got,
-            RelocationType::GOTLocationRelative32 => NeedsGot::None,
-            RelocationType::OffsetFromGOT32 => NeedsGot::None,
-            RelocationType::FillGotSlot => NeedsGot::None,
-            RelocationType::FillGotPltSlot => NeedsGot::None,
-        }
-    }
-
-    pub(crate) fn needs_got_table(&self) -> NeedsGot {
-        match self {
-            RelocationType::OffsetFromGOT32 => NeedsGot::Got,
-            RelocationType::GOTLocationRelative32 => NeedsGot::Got,
-            _ => self.needs_got_entry(),
-        }
-    }
-
     pub(crate) fn uses_addend(&self) -> bool {
         match self {
             RelocationType::Absolute32 => true,
@@ -88,12 +65,6 @@ impl TryFrom<ElfRelocationType> for RelocationType {
             elf_type => return Err(UnsupportedRelocationType { elf_type }),
         })
     }
-}
-
-pub(crate) enum NeedsGot {
-    None,
-    Got,
-    GotPlt,
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -16,13 +16,12 @@ pub(crate) fn run(object: &Object) -> RelocsAnalysis {
                 NeedsGot::GotPlt => add_got_reloc(&mut analysis.got_plt, relocation),
                 NeedsGot::None => {}
             }
-            // Some relocations (like R_386_GOTOFF) require a GOT to be present even if no entries
-            // in the GOT are actually there. We thus do the check separately, rather than only
-            // emitting the GOT if there are GOT entries.
-            match needs_got_table(relocation.type_) {
-                NeedsGot::Got => ensure_got(&mut analysis.got),
-                NeedsGot::GotPlt => ensure_got(&mut analysis.got_plt),
-                NeedsGot::None => {}
+            // Some relocations (like R_386_GOTOFF or R_386_GOT32) require a .got.plt to be present
+            // even if no PLT entries are actually present. This is because they are relative to
+            // _GLOBAL_OFFSET_TABLE_ symbol, which points at .got.plt on x86 and x86-64. We need to
+            // ensure .got.plt is present if anything references that symbol.
+            if needs_got_symbol(relocation.type_) {
+                ensure_got(&mut analysis.got_plt);
             }
         }
     }
@@ -61,11 +60,18 @@ fn needs_got_entry(type_: RelocationType) -> NeedsGot {
     }
 }
 
-fn needs_got_table(type_: RelocationType) -> NeedsGot {
+fn needs_got_symbol(type_: RelocationType) -> bool {
     match type_ {
-        RelocationType::OffsetFromGOT32 => NeedsGot::Got,
-        RelocationType::GOTLocationRelative32 => NeedsGot::Got,
-        _ => needs_got_entry(type_),
+        RelocationType::GOTIndex32
+        | RelocationType::GOTLocationRelative32
+        | RelocationType::OffsetFromGOT32 => true,
+        RelocationType::Absolute32
+        | RelocationType::AbsoluteSigned32
+        | RelocationType::Relative32
+        | RelocationType::PLT32
+        | RelocationType::GOTRelative32
+        | RelocationType::FillGotSlot
+        | RelocationType::FillGotPltSlot => false,
     }
 }
 

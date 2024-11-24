@@ -20,6 +20,7 @@ pub(crate) fn run(
         symbols: &mut object.symbols,
         env: &object.env,
         got: object.got.as_ref(),
+        got_plt: object.got_plt.as_ref(),
         plt: object.plt.as_ref(),
         resolver,
     };
@@ -37,6 +38,7 @@ pub(crate) fn run(
 struct Relocator<'a> {
     env: &'a ElfEnvironment,
     got: Option<&'a GOT>,
+    got_plt: Option<&'a GOT>,
     plt: Option<&'a Plt>,
     symbols: &'a mut Symbols,
     resolver: &'a AddressResolver<'a>,
@@ -81,7 +83,7 @@ impl<'a> Relocator<'a> {
                 editor.write_i32(symbol.as_offset()?.add(offset.as_offset()?.neg())?)
             }
             RelocationType::GOTRelative32 => {
-                let got = self.got()?;
+                let got = self.got.expect("GOT was not generated with a GOT relocation");
                 let slot = got.offset(relocation.symbol);
                 let section_addr = self.resolver.address(section_id, relocation.offset.into())?.1;
                 let got_addr = self.resolver.address(got.id, 0.into())?.1;
@@ -96,7 +98,7 @@ impl<'a> Relocator<'a> {
                 )
             }
             RelocationType::PLT32 => {
-                let plt = self.plt.ok_or(RelocationErrorInner::PltWithoutPlt)?;
+                let plt = self.plt.expect("PLT was not generated with a PLT relocation");
                 let plt_offset = *plt.offsets.get(&relocation.symbol).unwrap();
                 let section_addr = self.resolver.address(section_id, relocation.offset.into())?.1;
                 let plt_addr = self.resolver.address(plt.section, 0.into())?.1;
@@ -111,9 +113,20 @@ impl<'a> Relocator<'a> {
                 )
             }
             RelocationType::GOTIndex32 => {
-                let slot = self.got()?.offset(relocation.symbol);
+                let got = self.got.expect("GOT was not generated with a GOT relocation");
+                let got_addr = self.resolver.address(got.id, 0.into())?.1;
+                let slot = got.offset(relocation.symbol);
                 let addend = editor.addend_32()?;
-                editor.write_u32(slot.add(addend)?)
+
+                // Here we are doing `.got - _GLOBAL_OFFSET_TABLE_ + slot`, as we need to figure
+                // out the slot relative to the global offset table symbol.
+                editor.write_i32(
+                    got_addr
+                        .as_offset()?
+                        .add(self.got_symbol_addr()?.as_offset()?.neg())?
+                        .add(slot)?
+                        .add(addend)?,
+                )
             }
             RelocationType::FillGotSlot | RelocationType::FillGotPltSlot => {
                 let symbol = self.symbol_as_absolute(relocation, 0.into())?;
@@ -123,21 +136,33 @@ impl<'a> Relocator<'a> {
                 }
             }
             RelocationType::GOTLocationRelative32 => {
-                let got_addr = self.resolver.address(self.got()?.id, 0.into())?.1;
                 let addend = editor.addend_32()?;
                 let offset = self.resolver.address(section_id, relocation.offset.into())?.1;
-                editor.write_i32(got_addr.as_offset()?.add(addend)?.add(offset.as_offset()?.neg())?)
+                editor.write_i32(
+                    self.got_symbol_addr()?
+                        .as_offset()?
+                        .add(addend)?
+                        .add(offset.as_offset()?.neg())?,
+                )
             }
             RelocationType::OffsetFromGOT32 => {
                 let symbol = self.symbol_as_address(relocation, editor.addend_32()?)?;
-                let got_plt = self.resolver.address(self.got()?.id, 0.into())?.1;
-                editor.write_i32(symbol.as_offset()?.add(got_plt.as_offset()?.neg())?)
+                editor
+                    .write_i32(symbol.as_offset()?.add(self.got_symbol_addr()?.as_offset()?.neg())?)
             }
         }
     }
 
-    fn got(&self) -> Result<&GOT, RelocationErrorInner> {
-        self.got.ok_or(RelocationErrorInner::GotRelativeWithoutGot)
+    fn got_symbol_addr(&self) -> Result<Address, RelocationErrorInner> {
+        Ok(self
+            .resolver
+            .address(
+                self.got_plt
+                    .expect("GOT.PLT not generated in a relocation requiring the GOT symbol")
+                    .id,
+                0.into(),
+            )?
+            .1)
     }
 
     fn symbol(
@@ -201,8 +226,4 @@ pub(crate) enum RelocationErrorInner {
     OutOfBoundsAccess { offset: Offset, len: usize, size: usize },
     #[display("relative relocations with absolute values are not supported")]
     RelativeRelocationWithAbsoluteValue,
-    #[display("GOT-relative addressing used without a GOT")]
-    GotRelativeWithoutGot,
-    #[display("PLT relocation used without a PLT")]
-    PltWithoutPlt,
 }

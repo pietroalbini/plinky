@@ -5,6 +5,8 @@
 
 .section .text
 exit:
+    /* Registers are not saved since, well, we exit */
+
     mov rax, 60  /* Syscall number (60 = exit) */
-    mov rbx, rdi /* First argument (code) */
+ /* mov rdi, rdi    First argument (code) */
     syscall

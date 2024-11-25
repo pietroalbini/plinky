@@ -6,16 +6,16 @@
 .section .text
 write:
     push rax
-    push rbx
-    push rcx
+    push rcx /* Register clobbered by the kernel */
+    push r11 /* Register clobbered by the kernel */
 
     mov rax, 1   /* Syscall number (1 = write) */
-    mov rbx, rdi /* First argument (fd) */
-    mov rcx, rsi /* Second argument (string pointer) */
+ /* mov rdi, rdi    First argument (fd) */
+ /* mov rsi, rsi    Second argument (string pointer) */
  /* mov rdx, rdx    Third argument (len) */
     syscall
 
+    pop r11
     pop rcx
-    pop rbx
     pop rax
     ret

@@ -19,7 +19,12 @@ pub(crate) fn run(
     object: &mut Object,
 ) -> Result<Option<DynamicContext>, GenerateDynamicError> {
     match object.mode {
-        Mode::PositionDependent => return Ok(None),
+        Mode::PositionDependent => {
+            // We only need to generate the dynamic section if we don't link to shared objects.
+            if object.inputs.iter().all(|input| !input.shared_object) {
+                return Ok(None);
+            }
+        }
         Mode::PositionIndependent => {}
         Mode::SharedLibrary => {}
     };
@@ -30,8 +35,7 @@ pub(crate) fn run(
     segment_content.push(SegmentContent::ProgramHeader);
 
     match object.mode {
-        Mode::PositionDependent => unreachable!(),
-        Mode::PositionIndependent => {
+        Mode::PositionDependent | Mode::PositionIndependent => {
             let interpreter = add_interpreter(options, object);
             segment_content.push(SegmentContent::Section(interpreter?));
         }
@@ -93,7 +97,7 @@ pub(crate) fn run(
     });
 
     match object.mode {
-        Mode::PositionDependent => unreachable!(),
+        Mode::PositionDependent => {}
         Mode::PositionIndependent => object.dynamic_entries.flags1.pie = true,
         Mode::SharedLibrary => {}
     }

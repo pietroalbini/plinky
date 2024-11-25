@@ -3,7 +3,7 @@ use crate::interner::intern;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::SectionContent;
-use crate::repr::symbols::{MissingGlobalSymbol, SymbolId};
+use crate::repr::symbols::{MissingGlobalSymbol, SymbolId, SymbolValue};
 use std::collections::{btree_map, BTreeMap};
 
 pub(crate) fn run(object: &Object) -> RelocsAnalysis {
@@ -44,7 +44,10 @@ fn ensure_got(got: &mut Option<PlannedGot>) {
 
 fn add_got_reloc(got: &mut Option<PlannedGot>, object: &Object, relocation: &Relocation) {
     let resolved_at = match object.mode {
-        Mode::PositionDependent => ResolvedAt::LinkTime,
+        Mode::PositionDependent => match object.symbols.get(relocation.symbol).value() {
+            SymbolValue::ExternallyDefined => ResolvedAt::RunTime,
+            _ => ResolvedAt::LinkTime,
+        },
         Mode::PositionIndependent | Mode::SharedLibrary => ResolvedAt::RunTime,
     };
 

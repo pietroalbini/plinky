@@ -42,6 +42,7 @@ pub(crate) enum DynamicLinker {
 pub(crate) enum DebugPrint {
     LoadedObject(ObjectsFilter),
     Gc,
+    RelocationsAnalysis,
     RelocatedObject(ObjectsFilter),
     Layout,
     FinalElf(RenderElfFilters),
@@ -141,6 +142,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                     ("relocated-object", Some(filter)) => {
                         DebugPrint::RelocatedObject(ObjectsFilter::parse(filter)?)
                     }
+                    ("relocations-analysis", None) => DebugPrint::RelocationsAnalysis,
                     ("layout", None) => DebugPrint::Layout,
                     ("final-elf", None) => DebugPrint::FinalElf(RenderElfFilters::all()),
                     ("final-elf", Some(filter)) => {

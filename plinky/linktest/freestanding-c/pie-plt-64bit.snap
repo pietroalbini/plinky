@@ -44,6 +44,21 @@ debug print: loaded object
  │   ┴
  ┴
 
+debug print: relocations analysis
+ │
+ │  global offset table .got.plt
+ │   │
+ │   │    Symbols:
+ │   │  ╭───────┬─────────────╮
+ │   │  │ Name  │ Resolved at │
+ │   │  ├───────┼─────────────┤
+ │   │  │ write │ runtime     │
+ │   │  ├───────┼─────────────┤
+ │   │  │ exit  │ runtime     │
+ │   │  ╰───────┴─────────────╯
+ │   ┴
+ ┴
+
 debug print: calculated layout
  │
  │    Layout:

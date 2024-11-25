@@ -7,7 +7,11 @@ kind = "run-pass"
 [plinky.static_got]
 cmd = ["${c.hello_got}", "${asm.syscall_write}", "${asm.syscall_exit}"]
 kind = "run-pass"
-debug-print = ["loaded-object=.text", "relocated-object=.text,.got,@symbols"]
+debug-print = [
+    "loaded-object=.text",
+    "relocations-analysis",
+    "relocated-object=.text,.got,@symbols",
+]
 
 [plinky.pie_got]
 cmd = ["${c.hello_got}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie"]
@@ -15,6 +19,7 @@ kind = "run-pass"
 debug-print = [
     "loaded-object=.text",
     "layout",
+    "relocations-analysis",
     "relocated-object=.text,.got*,.interp,@symbols,@dynamic",
     "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
 ]
@@ -30,6 +35,7 @@ kind = "run-pass"
 debug-print = [
     "loaded-object=.text",
     "layout",
+    "relocations-analysis",
     "relocated-object=.text,.got*,.plt,.interp,@symbols,@dynamic",
     "final-elf=.interp,.dyn*,.rel*,.*hash,@segments,@meta",
 ]

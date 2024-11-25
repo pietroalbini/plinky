@@ -44,6 +44,26 @@ debug print: loaded object
  │   ┴
  ┴
 
+debug print: relocations analysis
+ │
+ │  global offset table .got.plt
+ │   │
+ │   │    Symbols:
+ │   │  ╭───────┬─────────────╮
+ │   │  │ Name  │ Resolved at │
+ │   │  ├───────┼─────────────┤
+ │   │  │ write │ link time   │
+ │   │  ├───────┼─────────────┤
+ │   │  │ exit  │ link time   │
+ │   │  ╰───────┴─────────────╯
+ │   ┴
+ │
+ │  global offset table .got.plt
+ │   │
+ │   │  no symbols within this GOT
+ │   ┴
+ ┴
+
 debug print: object after relocations are applied
  │
  │  section .got (perms: rw) in <plinky>

@@ -3,13 +3,16 @@ mod names;
 mod render_gc;
 mod render_layout;
 mod render_object;
+mod render_relocs_analysis;
 mod utils;
 
 use crate::cli::DebugPrint;
 use crate::debug_print::render_gc::render_gc;
 use crate::debug_print::render_layout::render_layout;
 use crate::debug_print::render_object::render_object;
+use crate::debug_print::render_relocs_analysis::render_relocs_analysis;
 use crate::linker::LinkerCallbacks;
+use crate::passes::analyze_relocations::RelocsAnalysis;
 use crate::passes::deduplicate::Deduplication;
 use crate::passes::gc_sections::RemovedSection;
 use crate::repr::object::Object;
@@ -46,6 +49,12 @@ impl LinkerCallbacks for DebugCallbacks {
     ) {
         if self.print.contains(&DebugPrint::Layout) {
             render(render_layout(object, layout, deduplications));
+        }
+    }
+
+    fn on_relocations_analyzed(&self, object: &Object, analysis: &RelocsAnalysis) {
+        if self.print.contains(&DebugPrint::RelocationsAnalysis) {
+            render(render_relocs_analysis(object, analysis))
         }
     }
 

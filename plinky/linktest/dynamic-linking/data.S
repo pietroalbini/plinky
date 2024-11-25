@@ -9,6 +9,6 @@
     exit_code:
     .long 0
     message:
-    .ascii "Hello world!"
+    .ascii "Hello world!\n"
     message_len:
     .long $ - message

@@ -106,7 +106,7 @@ debug print: relocations analysis
  │   │  ╭───────┬─────────────╮
  │   │  │ Name  │ Resolved at │
  │   │  ├───────┼─────────────┤
- │   │  │ main  │ runtime     │
+ │   │  │ main  │ link time   │
  │   │  ├───────┼─────────────┤
  │   │  │ write │ runtime     │
  │   │  ├───────┼─────────────┤
@@ -117,7 +117,7 @@ debug print: relocations analysis
 
 debug print: built elf
  │
- │  section .dynstr (address: 0x28b)
+ │  section .dynstr (address: 0x400200)
  │   │
  │   │    Strings table:
  │   │  ╭──────┬────────────────╮
@@ -129,43 +129,39 @@ debug print: built elf
  │   │  ├──────┼────────────────┤
  │   │  │ 0x1b │                │
  │   │  ├──────┼────────────────┤
- │   │  │ 0x1c │ main           │
+ │   │  │ 0x1c │ message        │
  │   │  ├──────┼────────────────┤
- │   │  │ 0x21 │ message        │
+ │   │  │ 0x24 │ message_len    │
  │   │  ├──────┼────────────────┤
- │   │  │ 0x29 │ message_len    │
+ │   │  │ 0x30 │ write          │
  │   │  ├──────┼────────────────┤
- │   │  │ 0x35 │ write          │
+ │   │  │ 0x36 │ exit_code      │
  │   │  ├──────┼────────────────┤
- │   │  │ 0x3b │ exit_code      │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x45 │ exit           │
+ │   │  │ 0x40 │ exit           │
  │   │  ╰──────┴────────────────╯
  │   ┴
  │
- │  section .dynsym (address: 0x2d5)
+ │  section .dynsym (address: 0x400245)
  │   │
  │   │    Dynamic symbol table:
- │   │  ╭───────────────┬─────────┬──────┬────────────┬────────────┬────────┬──────╮
- │   │  │ Name          │ Binding │ Type │ Visibility │ Definition │ Value  │ Size │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ <empty>#1     │ Local   │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ main#1        │ Global  │ -    │ Default    │ .text.main │ 0x1005 │ 0x0  │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ message#1     │ Global  │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ message_len#1 │ Global  │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ write#1       │ Global  │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ exit_code#1   │ Global  │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
- │   │  │ exit#1        │ Global  │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  ╰───────────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
+ │   │  ╭───────────────┬─────────┬──────┬────────────┬────────────┬───────┬──────╮
+ │   │  │ Name          │ Binding │ Type │ Visibility │ Definition │ Value │ Size │
+ │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │   │  │ <empty>#1     │ Local   │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │   │  │ message#1     │ Global  │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │   │  │ message_len#1 │ Global  │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │   │  │ write#1       │ Global  │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │   │  │ exit_code#1   │ Global  │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │   │  ├───────────────┼─────────┼──────┼────────────┼────────────┼───────┼──────┤
+ │   │  │ exit#1        │ Global  │ -    │ Default    │ Undefined  │ 0x0   │ 0x0  │
+ │   │  ╰───────────────┴─────────┴──────┴────────────┴────────────┴───────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x3ad)
+ │  section .dynamic (address: 0x400301)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -176,42 +172,71 @@ debug print: built elf
  │   │  ├─────────────────────────┼───────────────────────────────┤
  │   │  │ Needed libraries        │ offset 12 in the string table │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ String table            │ address 0x28b                 │
+ │   │  │ String table            │ address 0x400200              │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ String table size       │ 74 bytes                      │
+ │   │  │ String table size       │ 69 bytes                      │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ Symbol table            │ address 0x2d5                 │
+ │   │  │ Symbol table            │ address 0x400245              │
  │   │  ├─────────────────────────┼───────────────────────────────┤
  │   │  │ Symbol table entry size │ 24 bytes                      │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ Hash table              │ address 0x37d                 │
+ │   │  │ Hash table              │ address 0x4002d5              │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ RelocationsA table      │ address 0x4ad                 │
+ │   │  │ RelocationsA table      │ address 0x4003f1              │
  │   │  ├─────────────────────────┼───────────────────────────────┤
  │   │  │ RelocationsA size       │ 72 bytes                      │
  │   │  ├─────────────────────────┼───────────────────────────────┤
  │   │  │ RelocationsA entry size │ 24 bytes                      │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ Jump PLT relocations    │ address 0x4f5                 │
+ │   │  │ Jump PLT relocations    │ address 0x400439              │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ PLT relocations size    │ 72 bytes                      │
+ │   │  │ PLT relocations size    │ 48 bytes                      │
  │   │  ├─────────────────────────┼───────────────────────────────┤
  │   │  │ PLT relocations type    │ RelocationsA                  │
  │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ PLT GOT                 │ address 0x2018                │
- │   │  ├─────────────────────────┼───────────────────────────────┤
- │   │  │ Flags1                  │ pie                           │
+ │   │  │ PLT GOT                 │ address 0x402018              │
  │   │  ├─────────────────────────┼───────────────────────────────┤
  │   │  │ Null                    │ -                             │
  │   │  ╰─────────────────────────┴───────────────────────────────╯
+ │   ┴
+ │
+ │  section .rela.got (address: 0x4003f1)
+ │   │
+ │   │  symbol table:       .dynsym
+ │   │  applies to section: .got
+ │   │
+ │   │    Relocations:
+ │   │  ╭────────────────┬───────────────┬──────────┬────────╮
+ │   │  │ Type           │ Symbol        │ Offset   │ Addend │
+ │   │  ├────────────────┼───────────────┼──────────┼────────┤
+ │   │  │ X86_64_GlobDat │ message#1     │ 0x402000 │ 0x0    │
+ │   │  ├────────────────┼───────────────┼──────────┼────────┤
+ │   │  │ X86_64_GlobDat │ message_len#1 │ 0x402008 │ 0x0    │
+ │   │  ├────────────────┼───────────────┼──────────┼────────┤
+ │   │  │ X86_64_GlobDat │ exit_code#1   │ 0x402010 │ 0x0    │
+ │   │  ╰────────────────┴───────────────┴──────────┴────────╯
+ │   ┴
+ │
+ │  section .rela.plt (address: 0x400439)
+ │   │
+ │   │  symbol table:       .dynsym
+ │   │  applies to section: .got.plt
+ │   │
+ │   │    Relocations:
+ │   │  ╭─────────────────┬─────────┬──────────┬────────╮
+ │   │  │ Type            │ Symbol  │ Offset   │ Addend │
+ │   │  ├─────────────────┼─────────┼──────────┼────────┤
+ │   │  │ X86_64_JumpSlot │ write#1 │ 0x402038 │ 0x0    │
+ │   │  ├─────────────────┼─────────┼──────────┼────────┤
+ │   │  │ X86_64_JumpSlot │ exit#1  │ 0x402040 │ 0x0    │
+ │   │  ╰─────────────────┴─────────┴──────────┴────────╯
  │   ┴
  ┴
 
 ==============
 
-running exited with exit status: 0
+running exited with signal: 11 (SIGSEGV) (core dumped)
 
-=== stdout ===
-Hello world!
+no stdout present
 
 no stderr present

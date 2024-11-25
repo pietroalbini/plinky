@@ -1,14 +1,15 @@
-use crate::cli::{CliOptions, Mode};
+use crate::cli::{CliOptions, DynamicLinker, Mode};
 use crate::interner::intern;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::sections::{
-    DynamicSection, SectionContent, SectionId, StringsSection, SymbolsSection, SysvHashSection,
+    DataSection, DynamicSection, SectionContent, SectionId, StringsSection, SymbolsSection,
+    SysvHashSection,
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, SymbolValue, UpcomingSymbol};
-use plinky_elf::ElfPermissions;
+use plinky_elf::{ElfClass, ElfPermissions};
 use plinky_macros::{Display, Error, Getters};
 use plinky_utils::ints::Offset;
 use plinky_utils::raw_types::RawTypeAsPointerSize;
@@ -27,6 +28,15 @@ pub(crate) fn run(
 
     segment_content.push(SegmentContent::ElfHeader);
     segment_content.push(SegmentContent::ProgramHeader);
+
+    match object.mode {
+        Mode::PositionDependent => unreachable!(),
+        Mode::PositionIndependent => {
+            let interpreter = add_interpreter(options, object);
+            segment_content.push(SegmentContent::Section(interpreter?));
+        }
+        Mode::SharedLibrary => {}
+    }
 
     let mut dynstr_section = StringsSection::new(DynamicSymbolTable);
     if let Some(soname) = &options.shared_object_name {
@@ -99,6 +109,38 @@ pub(crate) fn run(
     Ok(Some(DynamicContext { dynsym, segment: dynamic_segment, dynamic_symbol }))
 }
 
+fn add_interpreter(
+    options: &CliOptions,
+    object: &mut Object,
+) -> Result<SectionId, GenerateDynamicError> {
+    let mut interpreter: Vec<u8> = match (&options.dynamic_linker, object.env.class) {
+        (DynamicLinker::Custom(linker), _) => linker.as_bytes().into(),
+        (DynamicLinker::PlatformDefault, ElfClass::Elf32) => b"/lib/ld-linux.so.2".into(),
+        (DynamicLinker::PlatformDefault, ElfClass::Elf64) => b"/lib64/ld-linux-x86-64.so.2".into(),
+    };
+
+    // The interpreter needs to be a null-terminated string, so ensure that there are no other byte
+    // zeroes before adding our own at the end.
+    if interpreter.iter().any(|&b| b == 0) {
+        return Err(GenerateDynamicError::NullByteInInterpreter);
+    }
+    interpreter.push(0);
+
+    let section = object
+        .sections
+        .builder(".interp", DataSection::new(ElfPermissions::R, &interpreter))
+        .create();
+
+    object.segments.add(Segment {
+        align: 1,
+        type_: SegmentType::Interpreter,
+        perms: ElfPermissions::R,
+        content: vec![SegmentContent::Section(section)],
+    });
+
+    Ok(section)
+}
+
 #[derive(Debug, Getters)]
 pub(crate) struct DynamicContext {
     #[get]
@@ -113,4 +155,6 @@ pub(crate) struct DynamicContext {
 pub(crate) enum GenerateDynamicError {
     #[display("failed to prepare the _DYNAMIC symbol")]
     DynamicSymbolCreation(#[source] LoadSymbolsError),
+    #[display("the --dynamic-linker flag contained a null byte")]
+    NullByteInInterpreter,
 }

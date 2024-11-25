@@ -7,7 +7,6 @@ use crate::passes::deduplicate::{Deduplication, DeduplicationError};
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::generate_dynamic::GenerateDynamicError;
 use crate::passes::generate_got::GenerateGotError;
-use crate::passes::inject_interpreter::InjectInterpreterError;
 use crate::passes::load_inputs::LoadInputsError;
 use crate::passes::relocate::RelocationError;
 use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
@@ -44,7 +43,6 @@ pub(crate) fn link_driver(
     let dynamic = passes::generate_dynamic::run(&options, &mut object)?;
     passes::generate_got::generate_got(&options, &mut object, &relocs_analysis, &dynamic)?;
     passes::generate_plt::run(&mut object);
-    passes::inject_interpreter::run(&options, &mut object, &dynamic)?;
 
     passes::generate_gnu_property::run(&mut object);
 
@@ -103,8 +101,6 @@ pub(crate) enum LinkerError {
     DeduplicationFailed(DeduplicationError),
     #[transparent]
     Dynamic(GenerateDynamicError),
-    #[transparent]
-    InjectInterpreter(InjectInterpreterError),
     #[display("failed to generate the global offset table")]
     GenerateGot(#[from] GenerateGotError),
     #[transparent]

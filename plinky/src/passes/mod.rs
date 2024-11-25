@@ -12,7 +12,6 @@ pub(crate) mod generate_got;
 pub(crate) mod generate_plt;
 pub(crate) mod inject_gnu_relro;
 pub(crate) mod inject_gnu_stack;
-pub(crate) mod inject_interpreter;
 pub(crate) mod inject_symbol_table;
 pub(crate) mod layout;
 pub(crate) mod load_inputs;

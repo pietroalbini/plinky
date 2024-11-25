@@ -33,7 +33,6 @@ pub(crate) enum Mode {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum DynamicLinker {
-    Unsupported,
     PlatformDefault,
     Custom(String),
 }
@@ -193,10 +192,9 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             Mode::SharedLibrary => None,
         },
 
-        dynamic_linker: match (mode, dynamic_linker) {
-            (Mode::PositionDependent | Mode::SharedLibrary, _) => DynamicLinker::Unsupported,
-            (Mode::PositionIndependent, None) => DynamicLinker::PlatformDefault,
-            (Mode::PositionIndependent, Some(custom)) => DynamicLinker::Custom(custom.into()),
+        dynamic_linker: match dynamic_linker {
+            None => DynamicLinker::PlatformDefault,
+            Some(custom) => DynamicLinker::Custom(custom.into()),
         },
     };
 
@@ -634,7 +632,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dynamic_linker_pie() {
+    fn test_dynamic_linker() {
         assert_eq!(
             Ok(CliOptions {
                 inputs: vec!["foo".into()],
@@ -642,30 +640,6 @@ mod tests {
                 ..default_options_pie()
             }),
             parse(["foo", "--dynamic-linker=bar", "-pie"].into_iter())
-        );
-    }
-
-    #[test]
-    fn test_dynamic_linker_static() {
-        assert_eq!(
-            Ok(CliOptions {
-                inputs: vec!["foo".into()],
-                dynamic_linker: DynamicLinker::Unsupported,
-                ..default_options_static()
-            }),
-            parse(["foo", "--dynamic-linker=bar"].into_iter())
-        );
-    }
-
-    #[test]
-    fn test_dynamic_linker_shared() {
-        assert_eq!(
-            Ok(CliOptions {
-                inputs: vec!["foo".into()],
-                dynamic_linker: DynamicLinker::Unsupported,
-                ..default_options_shared()
-            }),
-            parse(["foo", "--dynamic-linker=bar", "-shared"].into_iter())
         );
     }
 
@@ -862,7 +836,7 @@ mod tests {
             executable_stack: false,
             read_only_got: false,
             read_only_got_plt: false,
-            dynamic_linker: DynamicLinker::Unsupported,
+            dynamic_linker: DynamicLinker::PlatformDefault,
             shared_object_name: None,
             mode: Mode::PositionDependent,
         }

@@ -1,4 +1,5 @@
-use crate::passes::generate_got::GOT;
+use crate::passes::analyze_relocations::ResolvedAt;
+use crate::passes::generate_got::Got;
 use crate::passes::generate_plt::GeneratePltArchOutput;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::symbols::SymbolId;
@@ -8,7 +9,7 @@ use crate::utils::x86_codegen::{
 use plinky_utils::ints::ExtractNumber;
 use std::collections::BTreeMap;
 
-pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltArchOutput {
+pub(crate) fn generate_plt(got_plt: &Got, plt_symbol: SymbolId) -> GeneratePltArchOutput {
     let got_plt_symbol = got_plt.symbol.expect(".got.plt without the symbol");
     let mut codegen = X86Codegen::new(X86Arch::X86_64);
 
@@ -37,10 +38,12 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltAr
 
     let mut extra_got_plt_relocations = Vec::new();
     let mut offsets = BTreeMap::new();
-    for (idx, (symbol, got_offset)) in got_plt.offsets.iter().enumerate() {
+    for (idx, (symbol, got_entry)) in got_plt.entries.iter().enumerate() {
         offsets.insert(*symbol, codegen.current_offset());
 
-        codegen.encode(JumpReference(RipRelativeDisplacement(got_plt_reloc(got_offset.extract()))));
+        codegen.encode(JumpReference(RipRelativeDisplacement(got_plt_reloc(
+            got_entry.offset.extract(),
+        ))));
         let lazy_jump_target = codegen.current_offset();
         codegen.encode(PushImmediate(X86Value::Known(idx as _)));
         codegen.encode(JumpRelative(plt_reloc));
@@ -53,13 +56,14 @@ pub(crate) fn generate_plt(got_plt: &GOT, plt_symbol: SymbolId) -> GeneratePltAr
         // this slot is the address of the second instruction. If eager resolution is enabled, the
         // placeholder will be overridden at startup, while if lazy resolution is enabled it will
         // allow executing the rest of the PLT slot.
-        if got_plt.resolved_at_runtime {
-            extra_got_plt_relocations.push(Relocation {
+        match got_entry.resolved_at {
+            ResolvedAt::RunTime => extra_got_plt_relocations.push(Relocation {
                 type_: RelocationType::Absolute32,
                 symbol: plt_symbol,
-                offset: *got_offset,
+                offset: got_entry.offset,
                 addend: lazy_jump_target.into(),
-            });
+            }),
+            ResolvedAt::LinkTime => {}
         }
 
         // Ensure alignment.

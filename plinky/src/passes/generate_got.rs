@@ -1,6 +1,7 @@
+use super::analyze_relocations::ResolvedAt;
 use crate::cli::CliOptions;
 use crate::interner::intern;
-use crate::passes::analyze_relocations::RelocsAnalysis;
+use crate::passes::analyze_relocations::{PlannedGotSymbol, RelocsAnalysis};
 use crate::passes::generate_dynamic::DynamicContext;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
@@ -23,7 +24,7 @@ pub(crate) fn generate_got(
         object.got = Some(build_got(
             object,
             dynamic_context,
-            &mut plan.symbols.iter().copied(),
+            &mut plan.symbols(),
             GotConfig {
                 section_name: ".got",
                 reloc_section_name: match object.relocation_mode() {
@@ -42,7 +43,7 @@ pub(crate) fn generate_got(
         let mut got_plt = build_got(
             object,
             dynamic_context,
-            &mut plan.symbols.iter().copied(),
+            &mut plan.symbols(),
             GotConfig {
                 section_name: ".got.plt",
                 reloc_section_name: match object.relocation_mode() {
@@ -78,12 +79,13 @@ pub(crate) fn generate_got(
 fn build_got(
     object: &mut Object,
     dynamic_context: &Option<DynamicContext>,
-    symbols: &mut dyn Iterator<Item = SymbolId>,
+    symbols: &mut dyn Iterator<Item = &PlannedGotSymbol>,
     config: GotConfig,
-) -> Result<GOT, GenerateGotError> {
+) -> Result<Got, GenerateGotError> {
     let mut buf = Vec::new();
-    let mut relocations = Vec::new();
-    let mut offsets = BTreeMap::new();
+    let mut entries = BTreeMap::new();
+    let mut link_time_relocs = Vec::new();
+    let mut run_time_relocs = Vec::new();
 
     let id = object.sections.reserve_placeholder();
     let placeholder: &[u8] = match object.env.class {
@@ -94,13 +96,14 @@ fn build_got(
     // The psABI for x86-64 states that the first entry in the .got.plt must point to the _DYNAMIC
     // symbol (resolved at link time), and it must be followed by two other entries reserved for
     // the use of the dynamic linker.
-    let mut prelude_relocation = None;
     if config.add_prelude {
         if let Some(dynamic) = dynamic_context {
             for _ in 0..3 {
                 buf.extend_from_slice(placeholder);
             }
-            prelude_relocation = Some(Relocation {
+            // The relocation for the _DYNAMIC symbol in the prelude must always be resolved at
+            // link time, so we unconditionally add it in the relocations applied by the linker.
+            link_time_relocs.push(Relocation {
                 type_: RelocationType::Absolute32,
                 symbol: dynamic.dynamic_symbol(),
                 offset: 0.into(),
@@ -114,58 +117,52 @@ fn build_got(
             Offset::from(i64::try_from(buf.len()).map_err(|_| GenerateGotError::TooLarge)?);
 
         buf.extend_from_slice(placeholder);
-        relocations.push(Relocation {
+        entries.insert(symbol.id, GotEntry {
+            offset,
+            resolved_at: symbol.resolved_at,
+        });
+
+        let reloc = Relocation {
             type_: config.relocation_type,
-            symbol,
+            symbol: symbol.id,
             offset,
             addend: Offset::from(0).into(),
-        });
-        offsets.insert(symbol, offset);
+        };
+        match symbol.resolved_at {
+            ResolvedAt::LinkTime => link_time_relocs.push(reloc),
+            ResolvedAt::RunTime => run_time_relocs.push(reloc),
+        }
     }
 
     let mut data = DataSection::new(ElfPermissions::RW, &buf);
     data.inside_relro = config.inside_relro;
 
-    // The relocation for the _DYNAMIC symbol in the prelude must always be resolved at link time,
-    // so we unconditionally add it in the relocations applied by the linker.
-    if let Some(relocation) = prelude_relocation {
-        data.relocations.push(relocation);
+    // These relocations will later be applied by Plinky's relocator.
+    data.relocations.extend(link_time_relocs.into_iter());
+
+    // These relocations will be applied by the dynamic linker.
+    if !run_time_relocs.is_empty() {
+        let Some(dynamic) = dynamic_context else {
+            panic!("there are GOT entries to resolve at runtime without a dynamic section");
+        };
+
+        for relocation in &run_time_relocs {
+            object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
+        }
+
+        let reloc = object
+            .sections
+            .builder(
+                config.reloc_section_name,
+                RelocationsSection::new(id, dynamic.dynsym(), run_time_relocs),
+            )
+            .create();
+        object.segments.get_mut(dynamic.segment()).content.push(SegmentContent::Section(reloc));
+        object.dynamic_entries.add((config.dynamic_entry)(id, reloc));
     }
 
-    let resolved_at_runtime = match dynamic_context {
-        Some(dynamic) => {
-            if !relocations.is_empty() {
-                for relocation in &relocations {
-                    object.symbols.get_mut(relocation.symbol).mark_needed_by_dynamic();
-                }
-
-                let reloc = object
-                    .sections
-                    .builder(
-                        config.reloc_section_name,
-                        RelocationsSection::new(id, dynamic.dynsym(), relocations),
-                    )
-                    .create();
-                object
-                    .segments
-                    .get_mut(dynamic.segment())
-                    .content
-                    .push(SegmentContent::Section(reloc));
-                object.dynamic_entries.add((config.dynamic_entry)(id, reloc));
-
-                true
-            } else {
-                false
-            }
-        }
-        None => {
-            data.relocations.extend(relocations.into_iter());
-            false
-        }
-    };
-
     object.sections.builder(config.section_name, data).create_in_placeholder(id);
-    Ok(GOT { id, offsets, symbol: None, resolved_at_runtime })
+    Ok(Got { id, entries, symbol: None })
 }
 
 struct GotConfig {
@@ -178,20 +175,25 @@ struct GotConfig {
 }
 
 #[derive(Debug)]
-pub(crate) struct GOT {
+pub(crate) struct Got {
     pub(crate) id: SectionId,
-    pub(crate) offsets: BTreeMap<SymbolId, Offset>,
+    pub(crate) entries: BTreeMap<SymbolId, GotEntry>,
     pub(crate) symbol: Option<SymbolId>,
-    pub(crate) resolved_at_runtime: bool,
 }
 
-impl GOT {
+impl Got {
     pub(crate) fn offset(&self, symbol: SymbolId) -> Offset {
-        match self.offsets.get(&symbol) {
-            Some(offset) => *offset,
+        match self.entries.get(&symbol) {
+            Some(entry) => entry.offset,
             None => panic!("did not generate a got entry for {symbol:?}"),
         }
     }
+}
+
+#[derive(Debug)]
+pub(crate) struct GotEntry {
+    pub(crate) offset: Offset,
+    pub(crate) resolved_at: ResolvedAt,
 }
 
 #[derive(Debug, Display, Error)]

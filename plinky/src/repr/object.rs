@@ -1,5 +1,5 @@
 use crate::cli::Mode;
-use crate::passes::generate_got::GOT;
+use crate::passes::generate_got::Got;
 use crate::passes::generate_plt::Plt;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::relocations::RelocationMode;
@@ -18,8 +18,8 @@ pub(crate) struct Object {
     pub(crate) segments: Segments,
     pub(crate) symbols: Symbols,
     pub(crate) dynamic_entries: DynamicEntries,
-    pub(crate) got: Option<GOT>,
-    pub(crate) got_plt: Option<GOT>,
+    pub(crate) got: Option<Got>,
+    pub(crate) got_plt: Option<Got>,
     pub(crate) plt: Option<Plt>,
     pub(crate) entry_point: Option<SymbolId>,
     pub(crate) mode: Mode,

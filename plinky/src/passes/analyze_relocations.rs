@@ -1,9 +1,10 @@
+use crate::cli::Mode;
 use crate::interner::intern;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{MissingGlobalSymbol, SymbolId};
-use std::collections::BTreeSet;
+use std::collections::{btree_map, BTreeMap};
 
 pub(crate) fn run(object: &Object) -> RelocsAnalysis {
     let mut analysis = RelocsAnalysis { got: None, got_plt: None };
@@ -12,8 +13,8 @@ pub(crate) fn run(object: &Object) -> RelocsAnalysis {
         let SectionContent::Data(data) = &section.content else { continue };
         for relocation in &data.relocations {
             match needs_got_entry(relocation.type_) {
-                NeedsGot::Got => add_got_reloc(&mut analysis.got, relocation),
-                NeedsGot::GotPlt => add_got_reloc(&mut analysis.got_plt, relocation),
+                NeedsGot::Got => add_got_reloc(&mut analysis.got, object, relocation),
+                NeedsGot::GotPlt => add_got_reloc(&mut analysis.got_plt, object, relocation),
                 NeedsGot::None => {}
             }
             // Some relocations (like R_386_GOTOFF or R_386_GOT32) require a .got.plt to be present
@@ -41,8 +42,24 @@ fn ensure_got(got: &mut Option<PlannedGot>) {
     }
 }
 
-fn add_got_reloc(got: &mut Option<PlannedGot>, relocation: &Relocation) {
-    got.get_or_insert_default().symbols.insert(relocation.symbol);
+fn add_got_reloc(got: &mut Option<PlannedGot>, object: &Object, relocation: &Relocation) {
+    let resolved_at = match object.mode {
+        Mode::PositionDependent => ResolvedAt::LinkTime,
+        Mode::PositionIndependent | Mode::SharedLibrary => ResolvedAt::RunTime,
+    };
+
+    match got.get_or_insert_default().symbols.entry(relocation.symbol) {
+        btree_map::Entry::Vacant(entry) => {
+            entry.insert(PlannedGotSymbol { id: relocation.symbol, resolved_at });
+        }
+        btree_map::Entry::Occupied(mut entry) => {
+            let old_entry = entry.get();
+            entry.insert(PlannedGotSymbol {
+                id: old_entry.id,
+                resolved_at: old_entry.resolved_at.max(resolved_at),
+            });
+        }
+    }
 }
 
 fn needs_got_entry(type_: RelocationType) -> NeedsGot {
@@ -88,5 +105,26 @@ pub(crate) struct RelocsAnalysis {
 
 #[derive(Default)]
 pub(crate) struct PlannedGot {
-    pub(crate) symbols: BTreeSet<SymbolId>,
+    symbols: BTreeMap<SymbolId, PlannedGotSymbol>,
+}
+
+impl PlannedGot {
+    pub(crate) fn symbols(&self) -> impl Iterator<Item = &PlannedGotSymbol> {
+        self.symbols.values()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct PlannedGotSymbol {
+    pub(crate) id: SymbolId,
+    pub(crate) resolved_at: ResolvedAt,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) enum ResolvedAt {
+    // The order of the members here is important: when a symbol is present in multiple relocs, and
+    // different relocations should be resolved at different times, the variant defined lower in
+    // this enum will have precedence.
+    LinkTime,
+    RunTime,
 }

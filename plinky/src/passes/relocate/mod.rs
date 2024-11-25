@@ -1,6 +1,6 @@
 mod editor;
 
-use crate::passes::generate_got::GOT;
+use crate::passes::generate_got::Got;
 use crate::passes::generate_plt::Plt;
 use crate::passes::relocate::editor::ByteEditor;
 use crate::repr::object::Object;
@@ -37,8 +37,8 @@ pub(crate) fn run(
 
 struct Relocator<'a> {
     env: &'a ElfEnvironment,
-    got: Option<&'a GOT>,
-    got_plt: Option<&'a GOT>,
+    got: Option<&'a Got>,
+    got_plt: Option<&'a Got>,
     plt: Option<&'a Plt>,
     symbols: &'a mut Symbols,
     resolver: &'a AddressResolver<'a>,

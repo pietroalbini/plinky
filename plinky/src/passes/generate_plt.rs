@@ -12,7 +12,7 @@ pub(crate) fn run(object: &mut Object) {
 
     // The .got.plt might not have any entries within it if it was generated just to fulfill the
     // need to have a _GLOBAL_OFFSET_TABLE_ symbol. In that case, there is no need to have a PLT.
-    if got_plt.offsets.is_empty() {
+    if got_plt.entries.is_empty() {
         return;
     }
 

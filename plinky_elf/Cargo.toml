@@ -1,6 +1,6 @@
 [package]
 name = "plinky_elf"
-edition = "2021"
+edition = "2024"
 
 [[test]]
 name = "elftest"

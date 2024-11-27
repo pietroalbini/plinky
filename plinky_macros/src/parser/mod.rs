@@ -93,7 +93,7 @@ impl Parser {
 
         let name = self.parse_ident()?;
 
-        let data = if let Ok(TokenTree::Group(group)) = self.peek() {
+        let data = match self.peek() { Ok(TokenTree::Group(group)) => {
             self.next()?;
             match group.delimiter() {
                 Delimiter::Parenthesis => {
@@ -108,9 +108,9 @@ impl Parser {
                 }
                 _ => return Err(Error::new("invalid enum variant").span(group.span())),
             }
-        } else {
+        } _ => {
             EnumVariantData::None
-        };
+        }};
 
         Ok(EnumVariant { span: name.span, attrs, name, data })
     }
@@ -276,9 +276,9 @@ impl Parser {
     fn skip_visibility(&mut self) -> Result<(), Error> {
         if self.peek()?.is_ident("pub") {
             self.next()?;
-            if let TokenTree::Group(_) = self.peek()? {
+            match self.peek()? { TokenTree::Group(_) => {
                 self.next()?;
-            }
+            } _ => {}}
         }
         Ok(())
     }

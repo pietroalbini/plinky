@@ -14,7 +14,7 @@ pub(super) fn render_section(
     object: &ElfObject,
     id: ElfSectionId,
     section: &ElfSection,
-) -> impl Widget {
+) -> impl Widget + use<> {
     let content: Vec<Box<dyn Widget>> = match &section.content {
         ElfSectionContent::Null => vec![Box::new(Text::new("empty section"))],
         ElfSectionContent::Program(program) => render_section_program(program),

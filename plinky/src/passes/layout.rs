@@ -25,7 +25,7 @@ pub(crate) fn run(object: &Object) -> Result<Layout<SectionId>, LayoutError> {
 }
 
 macro_rules! cast_section {
-    ($self:expr, $id:expr, $variant:ident) => {
+    ($self:expr_2021, $id:expr_2021, $variant:ident) => {
         match &$self.sections.get($id).content {
             SectionContent::$variant(inner) => inner,
             _ => panic!("section {:?} is of the wrong type", $id),

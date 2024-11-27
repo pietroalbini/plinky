@@ -1,6 +1,6 @@
 [package]
 name = "plinky_macros_quote"
-edition = "2021"
+edition = "2024"
 
 [lib]
 proc-macro = true

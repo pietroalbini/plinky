@@ -14,7 +14,7 @@ mod utils;
 
 pub use sections::render_note;
 
-pub fn render(object: &ElfObject, filters: &RenderElfFilters) -> impl Widget {
+pub fn render(object: &ElfObject, filters: &RenderElfFilters) -> impl Widget + use<> {
     let names = Names::new(object);
 
     let mut widgets: Vec<Box<dyn Widget>> = Vec::new();

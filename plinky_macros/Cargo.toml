@@ -1,6 +1,6 @@
 [package]
 name = "plinky_macros"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 plinky_macros_quote.workspace = true

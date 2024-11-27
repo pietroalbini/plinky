@@ -1,6 +1,6 @@
 [package]
 name = "plinky_diagnostics"
-edition = "2021"
+edition = "2024"
 
 [dev-dependencies]
 insta.workspace = true

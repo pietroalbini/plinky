@@ -2,7 +2,7 @@ cargo-features = ["different-binary-name"]
 
 [package]
 name = "plinky"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 path = "src/main.rs"

@@ -374,7 +374,7 @@ mod tests {
     use super::*;
 
     macro_rules! btreeset {
-        ($($val:expr),*$(,)?) => {{
+        ($($val:expr_2021),*$(,)?) => {{
             let mut set = BTreeSet::new();
             $(set.insert($val);)*
             set

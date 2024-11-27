@@ -23,12 +23,12 @@ pub(super) fn run(object: &mut Object) {
                 continue;
             }
         }
-        if let SectionContent::Uninitialized(uninit) = &section.content {
+        match &section.content { SectionContent::Uninitialized(uninit) => {
             if uninit.len.extract() == 0 {
                 sections_to_remove.push(section.id);
                 continue;
             }
-        }
+        } _ => {}}
     }
 
     // Buggy compilers (hi Nora) could generate symbols pointing to empty sections, which would

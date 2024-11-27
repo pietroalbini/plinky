@@ -1,6 +1,6 @@
 [package]
 name = "plinky_ar"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 plinky_macros.workspace = true

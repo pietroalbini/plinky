@@ -308,7 +308,7 @@ mod tests {
     use std::io::Cursor;
 
     macro_rules! parse {
-        ($name:expr_2021) => {
+        ($name:expr) => {
             parse_archive(include_bytes!(concat!("../sample-archives/", $name)))
         };
     }

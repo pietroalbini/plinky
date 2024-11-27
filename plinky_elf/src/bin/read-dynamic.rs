@@ -29,7 +29,7 @@ fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
 
 fn main() {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    match actual_main(&args) { Err(err) => {
+    if let Err(err) = actual_main(&args) {
         eprintln!("error: {err}");
 
         let mut source = err.source();
@@ -39,7 +39,7 @@ fn main() {
         }
 
         std::process::exit(1);
-    } _ => {}}
+    }
 }
 
 fn usage() -> ! {

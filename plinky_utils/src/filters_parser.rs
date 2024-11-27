@@ -7,7 +7,7 @@ pub enum FilterPart<'a> {
 impl FilterPart<'_> {
     pub fn parse_iter<'a>(
         raw: &'a str,
-    ) -> impl Iterator<Item = Result<FilterPart<'a>, FilterParseError>> + 'a + use<'a> {
+    ) -> impl Iterator<Item = Result<FilterPart<'a>, FilterParseError>> + use<'a> {
         raw.split(',').map(|part| {
             if part.is_empty() {
                 return Err(FilterParseError::EmptyFilter);

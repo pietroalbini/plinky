@@ -21,14 +21,14 @@ impl<T: Internable> Interner<T> {
 
     fn intern(&self, value: T) -> Interned<T> {
         let mut state = self.state.lock().expect("poisoned interner");
-        match state.mapping.get(&value) { Some(idx) => {
+        if let Some(idx) = state.mapping.get(&value) {
             Interned(*idx, PhantomData)
-        } _ => {
+        } else {
             let idx = state.data.len();
             state.data.push(Arc::new(value.clone()));
             state.mapping.insert(value, idx);
             Interned(idx, PhantomData)
-        }}
+        }
     }
 
     fn resolve(&self, interned: Interned<T>) -> Arc<T> {

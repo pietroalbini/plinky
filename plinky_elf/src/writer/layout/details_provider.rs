@@ -39,7 +39,7 @@ pub struct LayoutPartsGroup<S> {
 }
 
 macro_rules! cast_section {
-    ($self:expr_2021, $id:expr_2021, $variant:ident) => {
+    ($self:expr, $id:expr, $variant:ident) => {
         match $self.sections.get(&$id).map(|s| &s.content) {
             Some(ElfSectionContent::$variant(inner)) => inner,
             Some(_) => panic!("section {:?} is of the wrong type", $id),

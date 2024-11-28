@@ -68,6 +68,7 @@ fn add_got_reloc(got: &mut Option<PlannedGot>, object: &Object, relocation: &Rel
 fn needs_got_entry(type_: RelocationType) -> NeedsGot {
     match type_ {
         RelocationType::Absolute32 => NeedsGot::None,
+        RelocationType::Absolute64 => NeedsGot::None,
         RelocationType::AbsoluteSigned32 => NeedsGot::None,
         RelocationType::Relative32 => NeedsGot::None,
         RelocationType::PLT32 => NeedsGot::GotPlt,
@@ -86,6 +87,7 @@ fn needs_got_symbol(type_: RelocationType) -> bool {
         | RelocationType::GOTLocationRelative32
         | RelocationType::OffsetFromGOT32 => true,
         RelocationType::Absolute32
+        | RelocationType::Absolute64
         | RelocationType::AbsoluteSigned32
         | RelocationType::Relative32
         | RelocationType::PLT32

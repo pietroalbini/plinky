@@ -10,8 +10,15 @@ pub(super) struct ByteEditor<'a> {
 impl ByteEditor<'_> {
     pub(super) fn addend_32(&self) -> Result<Offset, RelocationErrorInner> {
         match self.relocation.addend {
-            RelocationAddend::Explicit(addend) => Ok(addend.into()),
+            RelocationAddend::Explicit(addend) => Ok(addend),
             RelocationAddend::Inline => Ok(i32::from_le_bytes(self.read()?).into()),
+        }
+    }
+
+    pub(crate) fn addend_64(&self) -> Result<Offset, RelocationErrorInner> {
+        match self.relocation.addend {
+            RelocationAddend::Explicit(addend) => Ok(addend),
+            RelocationAddend::Inline => Ok(i64::from_le_bytes(self.read()?).into()),
         }
     }
 

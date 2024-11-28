@@ -101,6 +101,7 @@ fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocat
 
     match (&class, &type_) {
         (ElfClass::Elf32, RelocationType::Absolute32) => ElfRelocationType::X86_32,
+        (ElfClass::Elf32, RelocationType::Absolute64) => unsupported!(),
         (ElfClass::Elf32, RelocationType::AbsoluteSigned32) => unsupported!(),
         (ElfClass::Elf32, RelocationType::Relative32) => ElfRelocationType::X86_PC32,
         (ElfClass::Elf32, RelocationType::PLT32) => unsupported!(),
@@ -112,6 +113,7 @@ fn convert_relocation_type(class: ElfClass, type_: RelocationType) -> ElfRelocat
         (ElfClass::Elf32, RelocationType::FillGotPltSlot) => ElfRelocationType::X86_JumpSlot,
 
         (ElfClass::Elf64, RelocationType::Absolute32) => ElfRelocationType::X86_64_32,
+        (ElfClass::Elf64, RelocationType::Absolute64) => ElfRelocationType::X86_64_64,
         (ElfClass::Elf64, RelocationType::AbsoluteSigned32) => ElfRelocationType::X86_64_32S,
         (ElfClass::Elf64, RelocationType::Relative32) => ElfRelocationType::X86_64_PC32,
         (ElfClass::Elf64, RelocationType::PLT32) => ElfRelocationType::X86_64_PLT32,

@@ -14,6 +14,7 @@ pub(crate) enum RelocationMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RelocationType {
     Absolute32,
+    Absolute64,
     AbsoluteSigned32,
     Relative32,
     PLT32,
@@ -29,6 +30,7 @@ impl RelocationType {
     pub(crate) fn uses_addend(&self) -> bool {
         match self {
             RelocationType::Absolute32 => true,
+            RelocationType::Absolute64 => true,
             RelocationType::AbsoluteSigned32 => true,
             RelocationType::Relative32 => true,
             RelocationType::PLT32 => true,
@@ -56,6 +58,7 @@ impl TryFrom<ElfRelocationType> for RelocationType {
             ElfRelocationType::X86_GOT32X => RelocationType::GOTIndex32,
 
             ElfRelocationType::X86_64_32 => RelocationType::Absolute32,
+            ElfRelocationType::X86_64_64 => RelocationType::Absolute64,
             ElfRelocationType::X86_64_32S => RelocationType::AbsoluteSigned32,
             ElfRelocationType::X86_64_PC32 => RelocationType::Relative32,
             ElfRelocationType::X86_64_PLT32 => RelocationType::PLT32,

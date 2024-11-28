@@ -74,6 +74,9 @@ impl<'a> Relocator<'a> {
             RelocationType::Absolute32 => {
                 editor.write_u32(self.symbol_as_absolute(relocation, editor.addend_32()?)?)
             }
+            RelocationType::Absolute64 => {
+                editor.write_u64(self.symbol_as_absolute(relocation, editor.addend_64()?)?)
+            }
             RelocationType::AbsoluteSigned32 => {
                 editor.write_i32(self.symbol_as_absolute(relocation, editor.addend_32()?)?)
             }

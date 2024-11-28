@@ -12,6 +12,8 @@ pub(crate) struct AsmStep {
     arch: Option<Arch>,
     output: Option<Template>,
     #[serde(default)]
+    assembler: Assembler,
+    #[serde(default)]
     auxiliary_files: Vec<Template>,
     #[serde(default = "default_true")]
     emit_x86_used: bool,
@@ -36,19 +38,38 @@ impl Step for AsmStep {
             std::fs::copy(&auxiliary, dest.join(file_name(&auxiliary)))?;
         }
 
-        // We invoke the assembler through the C compiler rather than invoking `as` directly,
-        // because some of the assembly files require the C preprocessor to be exeucted.
-        run(Command::new("cc")
-            .current_dir(&dest)
-            .arg("-c")
-            .arg(match self.arch.unwrap_or(ctx.arch) {
-                Arch::X86 => "-m32",
-                Arch::X86_64 => "-m64",
-            })
-            .arg(format!("-Wa,-mx86-used-note={}", if self.emit_x86_used { "yes" } else { "no" }))
-            .arg("-o")
-            .arg(&dest_name)
-            .arg(&source_name))?;
+        match self.assembler {
+            Assembler::Nasm => {
+                run(Command::new("nasm")
+                    .current_dir(&dest)
+                    .arg("-f")
+                    .arg(match self.arch.unwrap_or(ctx.arch) {
+                        Arch::X86 => "elf32",
+                        Arch::X86_64 => "elf64",
+                    })
+                    .arg("-o")
+                    .arg(&dest_name)
+                    .arg(&source_name))?;
+            }
+            Assembler::Gnu => {
+                // We invoke the assembler through the C compiler rather than invoking `as` directly,
+                // because some of the assembly files require the C preprocessor to be exeucted.
+                run(Command::new("cc")
+                    .current_dir(&dest)
+                    .arg("-c")
+                    .arg(match self.arch.unwrap_or(ctx.arch) {
+                        Arch::X86 => "-m32",
+                        Arch::X86_64 => "-m64",
+                    })
+                    .arg(format!(
+                        "-Wa,-mx86-used-note={}",
+                        if self.emit_x86_used { "yes" } else { "no" }
+                    ))
+                    .arg("-o")
+                    .arg(&dest_name)
+                    .arg(&source_name))?;
+            }
+        }
 
         ctx.template.set_variable(ctx.step_name, Value::Path(dest.join(dest_name)));
 
@@ -58,6 +79,14 @@ impl Step for AsmStep {
     fn templates(&self) -> Vec<Template> {
         std::iter::once(self.source.clone()).chain(self.auxiliary_files.iter().cloned()).collect()
     }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+enum Assembler {
+    Nasm,
+    #[default]
+    Gnu,
 }
 
 fn default_true() -> bool {

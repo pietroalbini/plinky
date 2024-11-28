@@ -1,6 +1,14 @@
 archs = ["x86", "x86_64"]
 
-# TODO: test -no-pie (with a no-pic entry point)
+[plinky.no-pie-entry-no-pic]
+cmd = ["${asm.entry_no_pic}", "${ld.data}", "${ld.syscalls}"]
+kind = "run-pass"
+run-env = { LD_LIBRARY_PATH = "." }
+debug-print = [
+    "loaded-object=@symbols,@inputs,.text,.text.main",
+    "relocations-analysis",
+    "final-elf=.dynamic,.dynstr,.dynsym,.rel*",
+]
 
 [plinky.no-pie-entry-pic]
 cmd = ["${asm.entry_pic}", "${ld.data}", "${ld.syscalls}"]
@@ -24,6 +32,10 @@ debug-print = [
 
 [asm.entry_pic]
 source = "entry-pic.${arch}.S"
+
+[asm.entry_no_pic]
+source = "entry-no-pic.${arch}.asm"
+assembler = "nasm"
 
 [ld.data]
 output = "libdata.so"

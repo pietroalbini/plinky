@@ -16,9 +16,10 @@
       {
         devShells.default = pkgs.mkShellNoCC {
           packages = [
-            pkgs.rustup
             pkgs.cargo-insta
             pkgs.gcc14
+            pkgs.nasm
+            pkgs.rustup
 
             # Provide headers for both 32bit and 64bit:
             pkgs32.glibc.dev

@@ -335,16 +335,13 @@ fn render_section_dynamic(names: &Names, dynamic: &ElfDynamic) -> Vec<Box<dyn Wi
                 continue;
             }
         };
-        table.add_row([
-            name.into(),
-            match value {
-                Value::Bytes(bytes) => format!("{bytes} bytes"),
-                Value::Addr(addr) => format!("address {addr:#x}"),
-                Value::StrOff(off) => format!("offset {off:#} in the string table"),
-                Value::Str(string) => string,
-                Value::None => "-".to_string(),
-            },
-        ]);
+        table.add_row([name.into(), match value {
+            Value::Bytes(bytes) => format!("{bytes} bytes"),
+            Value::Addr(addr) => format!("address {addr:#x}"),
+            Value::StrOff(off) => format!("offset {off:#} in the string table"),
+            Value::Str(string) => string,
+            Value::None => "-".to_string(),
+        }]);
     }
 
     vec![Box::new(info), Box::new(table)]

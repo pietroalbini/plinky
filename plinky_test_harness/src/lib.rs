@@ -9,7 +9,7 @@ mod tests;
 pub mod utils;
 
 pub use crate::gather::DefineSteps;
-use crate::gather::{gather, DefineStepsFn};
+use crate::gather::{DefineStepsFn, gather};
 pub use crate::steps::Step;
 use crate::utils::err_str;
 use std::path::Path;

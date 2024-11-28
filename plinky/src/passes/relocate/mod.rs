@@ -222,7 +222,9 @@ pub(crate) enum RelocationErrorInner {
     AddressResolution(AddressResolutionError),
     #[transparent]
     OutOfBounds(OutOfBoundsError),
-    #[display("relocation is trying to access offset {offset} (len: {len:#x}) on a section of size {size:#x}")]
+    #[display(
+        "relocation is trying to access offset {offset} (len: {len:#x}) on a section of size {size:#x}"
+    )]
     OutOfBoundsAccess { offset: Offset, len: usize, size: usize },
     #[display("relative relocations with absolute values are not supported")]
     RelativeRelocationWithAbsoluteValue,

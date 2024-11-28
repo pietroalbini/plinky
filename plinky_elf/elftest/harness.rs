@@ -1,7 +1,7 @@
-use anyhow::{bail, Error};
-use plinky_elf::writer::layout::Layout;
-use plinky_elf::writer::Writer;
+use anyhow::{Error, bail};
 use plinky_elf::ElfReader;
+use plinky_elf::writer::Writer;
+use plinky_elf::writer::layout::Layout;
 use plinky_test_harness::template::Template;
 use plinky_test_harness::{Step, TestContext};
 use std::fs::File;

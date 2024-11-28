@@ -29,7 +29,7 @@ impl<'a> AddressResolver<'a> {
                 None => {
                     return Err(AddressResolutionError::PointsToUnallocatedSection(
                         deduplication.target,
-                    ))
+                    ));
                 }
             };
 

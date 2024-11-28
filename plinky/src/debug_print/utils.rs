@@ -11,9 +11,5 @@ pub(super) fn permissions(perms: &ElfPermissions) -> String {
     if perms.execute {
         output.push('x');
     }
-    if output.is_empty() {
-        "no perms".into()
-    } else {
-        format!("perms: {output}")
-    }
+    if output.is_empty() { "no perms".into() } else { format!("perms: {output}") }
 }

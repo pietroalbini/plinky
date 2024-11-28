@@ -1,4 +1,4 @@
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::passes::load_inputs::section_groups::{SectionGroupsError, SectionGroupsForObject};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use crate::repr::object::{GnuProperties, Input, Object};
@@ -101,7 +101,7 @@ pub(super) fn merge_elf(
                             return Err(MergeElfError::UnsupportedUnknownNote {
                                 name: unknown.name,
                                 type_: unknown.type_,
-                            })
+                            });
                         }
                     }
                 }

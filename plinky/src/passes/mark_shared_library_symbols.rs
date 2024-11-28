@@ -1,7 +1,7 @@
 use crate::cli::Mode;
 use crate::repr::object::Object;
-use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolVisibility;
+use crate::repr::symbols::views::AllSymbols;
 
 pub(crate) fn run(object: &mut Object) {
     match object.mode {

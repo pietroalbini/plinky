@@ -1,6 +1,6 @@
+use crate::ElfStringTable;
 use crate::errors::LoadError;
 use crate::reader::sections::SectionReader;
-use crate::ElfStringTable;
 use std::collections::BTreeMap;
 
 pub(crate) fn read(reader: &mut SectionReader<'_, '_>) -> Result<ElfStringTable, LoadError> {

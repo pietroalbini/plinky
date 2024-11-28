@@ -1,16 +1,16 @@
 use crate::cli::Mode;
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::{Section, SectionContent, SectionId};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::SymbolVisibility;
+use plinky_elf::ElfClass;
 use plinky_elf::writer::layout::{
     Layout, LayoutDetailsHash, LayoutDetailsNote, LayoutDetailsProvider, LayoutError,
     LayoutPartsGroup, Part,
 };
-use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeSet;
 

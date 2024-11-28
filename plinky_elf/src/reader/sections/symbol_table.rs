@@ -1,8 +1,8 @@
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use crate::raw::RawSymbol;
-use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::reader::ReadCursor;
+use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable, ElfSymbolType,
     ElfSymbolVisibility,

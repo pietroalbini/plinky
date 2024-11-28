@@ -1,5 +1,5 @@
-use crate::widgets::{Table, Widget};
 use crate::WidgetWriter;
+use crate::widgets::{Table, Widget};
 use std::fmt::Write;
 
 const BYTES_PER_LINE: usize = 16;

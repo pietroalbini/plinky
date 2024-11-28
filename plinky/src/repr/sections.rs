@@ -1,4 +1,4 @@
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::repr::relocations::Relocation;
 use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolValue, Symbols};

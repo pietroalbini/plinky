@@ -2,8 +2,8 @@ use crate::interner::Interned;
 use crate::passes::build_elf::{ElfBuilder, StringsTableBuilder};
 use crate::repr::sections::{SectionId, StringsSection, UpcomingStringId};
 use crate::repr::symbols::{SymbolId, SymbolVisibility};
-use plinky_elf::ids::ElfStringId;
 use plinky_elf::ElfSectionContent;
+use plinky_elf::ids::ElfStringId;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn create_strings(

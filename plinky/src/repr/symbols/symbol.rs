@@ -1,4 +1,4 @@
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::repr::sections::SectionId;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};

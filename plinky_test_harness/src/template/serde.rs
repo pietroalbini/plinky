@@ -1,6 +1,6 @@
 use crate::template::Template;
-use serde::de::Visitor;
 use serde::Deserialize;
+use serde::de::Visitor;
 
 struct TemplateVisitor;
 

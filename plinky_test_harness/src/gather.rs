@@ -1,6 +1,6 @@
+use crate::Step;
 use crate::tests::{Arch, Test, TestStep};
 use crate::utils::err_str;
-use crate::Step;
 use anyhow::{Context, Error};
 use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;

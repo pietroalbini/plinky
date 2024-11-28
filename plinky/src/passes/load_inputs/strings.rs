@@ -1,5 +1,5 @@
-use plinky_elf::ids::{ElfSectionId, ElfStringId};
 use plinky_elf::ElfStringTable;
+use plinky_elf::ids::{ElfSectionId, ElfStringId};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 

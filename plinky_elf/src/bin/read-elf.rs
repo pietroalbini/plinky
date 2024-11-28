@@ -1,6 +1,6 @@
 use plinky_diagnostics::widgets::Widget;
-use plinky_elf::render_elf::RenderElfFilters;
 use plinky_elf::ElfReader;
+use plinky_elf::render_elf::RenderElfFilters;
 use std::error::Error;
 use std::fs::File;
 

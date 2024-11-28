@@ -1,6 +1,6 @@
 use crate::repr::sections::SectionId;
-use plinky_elf::writer::layout::{Layout, Part, PartMetadata};
 use plinky_elf::ElfPermissions;
+use plinky_elf::writer::layout::{Layout, Part, PartMetadata};
 
 #[derive(Debug)]
 pub(crate) struct Segments {

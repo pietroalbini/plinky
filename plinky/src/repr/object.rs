@@ -1,4 +1,5 @@
 use crate::cli::Mode;
+use crate::interner::Interned;
 use crate::passes::generate_got::Got;
 use crate::passes::generate_plt::Plt;
 use crate::repr::dynamic_entries::DynamicEntries;
@@ -8,7 +9,6 @@ use crate::repr::segments::Segments;
 use crate::repr::symbols::{SymbolId, Symbols};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfEnvironment, ElfMachine, ElfX86Features2, ElfX86Isa};
-use crate::interner::Interned;
 
 #[derive(Debug)]
 pub(crate) struct Object {

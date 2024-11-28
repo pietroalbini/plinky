@@ -1,7 +1,7 @@
 use crate::ids::ElfStringId;
 use crate::{ElfObject, ElfPermissions, ElfSectionContent};
-use plinky_diagnostics::widgets::Widget;
 use plinky_diagnostics::WidgetWriter;
+use plinky_diagnostics::widgets::Widget;
 
 pub(super) fn render_perms(perms: &ElfPermissions) -> String {
     let mut output = String::new();
@@ -11,11 +11,7 @@ pub(super) fn render_perms(perms: &ElfPermissions) -> String {
     push(perms.write, 'W');
     push(perms.execute, 'X');
 
-    if output.trim().is_empty() {
-        format!("{:1$}", "-", output.len())
-    } else {
-        output
-    }
+    if output.trim().is_empty() { format!("{:1$}", "-", output.len()) } else { output }
 }
 
 pub(super) fn resolve_string<'a>(object: &'a ElfObject, id: ElfStringId) -> &'a str {

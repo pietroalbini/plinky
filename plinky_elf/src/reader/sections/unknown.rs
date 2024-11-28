@@ -1,6 +1,6 @@
+use crate::ElfUnknownSection;
 use crate::errors::LoadError;
 use crate::reader::sections::SectionReader;
-use crate::ElfUnknownSection;
 
 pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,

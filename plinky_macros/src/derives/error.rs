@@ -14,14 +14,10 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
 }
 
 fn generate_error_impl(item: &Item) -> Result<TokenStream, Error> {
-    Ok(generate_impl_for(
-        item,
-        Some("std::error::Error"),
-        quote! {
-            #{ generate_error_source(item)? }
-            #{ generate_error_provide(item)? }
-        },
-    ))
+    Ok(generate_impl_for(item, Some("std::error::Error"), quote! {
+        #{ generate_error_source(item)? }
+        #{ generate_error_provide(item)? }
+    }))
 }
 
 fn generate_error_source(item: &Item) -> Result<TokenStream, Error> {
@@ -172,15 +168,11 @@ fn generate_from_impls(item: &Item) -> Result<Vec<TokenStream>, Error> {
         F: FnOnce(TokenTree) -> TokenStream,
     {
         let variable = ident("__value__");
-        generate_impl_for(
-            item,
-            Some(&format!("From<{}>", ty.0)),
-            quote! {
-                fn from(#variable: #ty) -> Self {
-                    #{ setter(variable) }
-                }
-            },
-        )
+        generate_impl_for(item, Some(&format!("From<{}>", ty.0)), quote! {
+            fn from(#variable: #ty) -> Self {
+                #{ setter(variable) }
+            }
+        })
     }
 
     let mut generated = Vec::new();

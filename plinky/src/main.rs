@@ -4,7 +4,7 @@
 use crate::debug_print::DebugCallbacks;
 use crate::linker::link_driver;
 use plinky_diagnostics::Diagnostic;
-use std::error::{request_ref, Error};
+use std::error::{Error, request_ref};
 use std::process::ExitCode;
 
 mod arch;

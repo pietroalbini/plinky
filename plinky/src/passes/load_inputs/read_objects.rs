@@ -43,7 +43,7 @@ impl<'a> ObjectsReader<'a> {
                         source: ObjectSpan::new_file(path),
                         reader: ElfReader::new_owned(Box::new(r))
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
-                    }))
+                    }));
                 }
                 FileType::Ar => {
                     if let Some(archive) = PendingArchive::new(path.clone(), r, symbols)? {

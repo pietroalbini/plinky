@@ -4,7 +4,7 @@ pub(crate) mod views;
 use crate::interner::Interned;
 use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{BTreeMap, btree_map};
 
 use crate::repr::symbols::views::SymbolsView;
 pub(crate) use symbol::{

@@ -141,10 +141,10 @@ impl<S: Ord + Eq + Clone + Copy> LayoutBuilder<'_, S> {
         };
 
         if part.present_in_file() {
-            self.layout.metadata.insert(
-                part,
-                PartMetadata { file: Some(PartFile { len, offset: self.current_offset }), memory },
-            );
+            self.layout.metadata.insert(part, PartMetadata {
+                file: Some(PartFile { len, offset: self.current_offset }),
+                memory,
+            });
             self.current_offset = self.current_offset.add(len.as_offset()?)?;
         } else {
             self.layout.metadata.insert(part, PartMetadata { file: None, memory });

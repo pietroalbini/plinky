@@ -1,4 +1,4 @@
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

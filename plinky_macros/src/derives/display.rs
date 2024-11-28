@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::parser::{Item, Parser};
-use crate::utils::{generate_for_each_variant, generate_impl_for, literal, UnifiedField};
+use crate::utils::{UnifiedField, generate_for_each_variant, generate_impl_for, literal};
 use plinky_macros_quote::quote;
 use proc_macro::TokenStream;
 
@@ -34,13 +34,9 @@ fn generate_impl(item: &Item) -> Result<TokenStream, Error> {
         }
     })?;
 
-    Ok(generate_impl_for(
-        item,
-        Some("std::fmt::Display"),
-        quote! {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                #body
-            }
-        },
-    ))
+    Ok(generate_impl_for(item, Some("std::fmt::Display"), quote! {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            #body
+        }
+    }))
 }

@@ -38,19 +38,19 @@ impl ObjectsFilter {
                 FilterPart::Special("inputs") => filter.inputs = true,
                 FilterPart::Special("sections") => match &filter.sections {
                     SectionsFilter::Some(_) => {
-                        return Err(ObjectsFilterParseError::CantMixSectionFilters)
+                        return Err(ObjectsFilterParseError::CantMixSectionFilters);
                     }
                     SectionsFilter::None | SectionsFilter::All => {
                         filter.sections = SectionsFilter::All;
                     }
                 },
                 FilterPart::Special(other) => {
-                    return Err(ObjectsFilterParseError::InvalidSpecialFilter(other.into()))
+                    return Err(ObjectsFilterParseError::InvalidSpecialFilter(other.into()));
                 }
                 FilterPart::StringFilter(section_filter) => match &mut filter.sections {
                     SectionsFilter::Some(section_filters) => section_filters.push(section_filter),
                     SectionsFilter::All => {
-                        return Err(ObjectsFilterParseError::CantMixSectionFilters)
+                        return Err(ObjectsFilterParseError::CantMixSectionFilters);
                     }
                     SectionsFilter::None => {
                         filter.sections = SectionsFilter::Some(vec![section_filter])

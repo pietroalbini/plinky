@@ -1,6 +1,6 @@
 use crate::repr::object::Object;
-use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolVisibility;
+use crate::repr::symbols::views::AllSymbols;
 
 /// A STV_HIDDEN or STV_INTERNAL symbol will be made STB_LOCAL in the linker output
 ///

@@ -93,11 +93,7 @@ impl Expression {
                 let if_true = if_true.resolve(context)?;
                 let if_false = if_false.resolve(context)?;
 
-                if condition.as_bool()? {
-                    Ok(if_true)
-                } else {
-                    Ok(if_false)
-                }
+                if condition.as_bool()? { Ok(if_true) } else { Ok(if_false) }
             }
         }
     }

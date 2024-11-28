@@ -23,19 +23,19 @@ impl RenderElfFilters {
                 FilterPart::Special("segments") => filter.segments = true,
                 FilterPart::Special("sections") => match &filter.sections {
                     SectionsFilter::Some(_) => {
-                        return Err(RenderElfFiltersParseError::CantMixSectionFilters)
+                        return Err(RenderElfFiltersParseError::CantMixSectionFilters);
                     }
                     SectionsFilter::None | SectionsFilter::All => {
                         filter.sections = SectionsFilter::All;
                     }
                 },
                 FilterPart::Special(other) => {
-                    return Err(RenderElfFiltersParseError::InvalidSpecialFilter(other.into()))
+                    return Err(RenderElfFiltersParseError::InvalidSpecialFilter(other.into()));
                 }
                 FilterPart::StringFilter(section_filter) => match &mut filter.sections {
                     SectionsFilter::Some(section_filters) => section_filters.push(section_filter),
                     SectionsFilter::All => {
-                        return Err(RenderElfFiltersParseError::CantMixSectionFilters)
+                        return Err(RenderElfFiltersParseError::CantMixSectionFilters);
                     }
                     SectionsFilter::None => {
                         filter.sections = SectionsFilter::Some(vec![section_filter])

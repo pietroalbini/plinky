@@ -1,7 +1,7 @@
 use crate::ids::ElfSectionId;
 use crate::raw::RawHashHeader;
 use crate::reader::sections::{
-    dynamic, string_table, symbol_table, SectionMetadata, SectionReader,
+    SectionMetadata, SectionReader, dynamic, string_table, symbol_table,
 };
 use crate::{
     ElfDynamicDirective, ElfReader, ElfSegment, ElfSegmentType, ElfStringTable, ElfSymbolBinding,

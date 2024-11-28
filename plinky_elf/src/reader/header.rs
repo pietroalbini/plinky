@@ -1,8 +1,8 @@
 use crate::errors::LoadError;
 use crate::ids::ElfSectionId;
 use crate::raw::{RawHeader, RawIdentification, RawSectionHeader};
-use crate::reader::program_header::read_program_header;
 use crate::reader::ReadCursor;
+use crate::reader::program_header::read_program_header;
 use crate::{ElfABI, ElfClass, ElfEndian, ElfEnvironment, ElfMachine, ElfSegment, ElfType};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;

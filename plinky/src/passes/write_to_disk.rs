@@ -1,6 +1,6 @@
 use plinky_elf::ids::ElfSectionId;
-use plinky_elf::writer::layout::Layout;
 use plinky_elf::writer::Writer;
+use plinky_elf::writer::layout::Layout;
 use plinky_elf::{ElfObject, WriteError};
 use plinky_macros::Error;
 use std::fs::{File, Permissions};

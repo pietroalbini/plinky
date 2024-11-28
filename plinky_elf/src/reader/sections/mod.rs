@@ -13,9 +13,9 @@ mod unknown;
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfStringId};
 use crate::raw::RawSectionHeader;
+use crate::reader::ReadCursor;
 use crate::reader::sections::reader::HeaderMetadata;
 pub(super) use crate::reader::sections::reader::{SectionMetadata, SectionReader};
-use crate::reader::ReadCursor;
 use crate::{ElfDeduplication, ElfSection, ElfSectionContent};
 
 pub(super) fn read_section(

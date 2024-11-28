@@ -1,8 +1,8 @@
 pub use crate::render_elf::filters::{RenderElfFilters, RenderElfFiltersParseError};
 
-use crate::render_elf::names::Names;
-use crate::render_elf::utils::{resolve_string, MultipleWidgets};
 use crate::ElfObject;
+use crate::render_elf::names::Names;
+use crate::render_elf::utils::{MultipleWidgets, resolve_string};
 use plinky_diagnostics::widgets::Widget;
 
 mod filters;

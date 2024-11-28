@@ -1,4 +1,4 @@
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::passes::load_inputs::strings::{MissingStringError, Strings};
 use plinky_elf::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use plinky_elf::{ElfGroup, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolTable};

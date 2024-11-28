@@ -523,14 +523,11 @@ impl<'a> Writer<'a> {
                 ElfDynamicDirective::Rel { address } => (17, *address),
                 ElfDynamicDirective::RelSize { bytes } => (18, *bytes),
                 ElfDynamicDirective::RelEntrySize { bytes } => (19, *bytes),
-                ElfDynamicDirective::PTLRelocationsMode { mode } => (
-                    20,
-                    match mode {
-                        ElfPLTRelocationsMode::Rel => 17,
-                        ElfPLTRelocationsMode::Rela => 7,
-                        ElfPLTRelocationsMode::Unknown(other) => *other,
-                    },
-                ),
+                ElfDynamicDirective::PTLRelocationsMode { mode } => (20, match mode {
+                    ElfPLTRelocationsMode::Rel => 17,
+                    ElfPLTRelocationsMode::Rela => 7,
+                    ElfPLTRelocationsMode::Unknown(other) => *other,
+                }),
                 ElfDynamicDirective::Debug { address } => (21, *address),
                 ElfDynamicDirective::RelocationsWillModifyText => (22, 0),
                 ElfDynamicDirective::JumpRel { address } => (23, *address),

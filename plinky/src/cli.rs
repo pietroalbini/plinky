@@ -446,12 +446,10 @@ mod tests {
 
     #[test]
     fn test_output_flags() {
-        const VARIANTS: &[&[&str]] = &[
-            &["foo", "-obar"],
-            &["foo", "-o", "bar"],
-            &["foo", "--output=bar"],
-            &["foo", "--output", "bar"],
-        ];
+        const VARIANTS: &[&[&str]] =
+            &[&["foo", "-obar"], &["foo", "-o", "bar"], &["foo", "--output=bar"], &[
+                "foo", "--output", "bar",
+            ]];
 
         for flags in VARIANTS {
             assert_eq!(
@@ -484,12 +482,10 @@ mod tests {
 
     #[test]
     fn test_entry_flags() {
-        const VARIANTS: &[&[&str]] = &[
-            &["foo", "-ebar"],
-            &["foo", "-e", "bar"],
-            &["foo", "--entry=bar"],
-            &["foo", "--entry", "bar"],
-        ];
+        const VARIANTS: &[&[&str]] =
+            &[&["foo", "-ebar"], &["foo", "-e", "bar"], &["foo", "--entry=bar"], &[
+                "foo", "--entry", "bar",
+            ]];
 
         for flags in VARIANTS {
             assert_eq!(
@@ -523,14 +519,16 @@ mod tests {
     #[test]
     fn test_debug_print() {
         let variants = [
-            (
-                btreeset![DebugPrint::LoadedObject(ObjectsFilter::all())],
-                &["foo", "--debug-print", "loaded-object"] as &[&str],
-            ),
-            (
-                btreeset![DebugPrint::RelocatedObject(ObjectsFilter::all())],
-                &["foo", "--debug-print", "relocated-object"],
-            ),
+            (btreeset![DebugPrint::LoadedObject(ObjectsFilter::all())], &[
+                "foo",
+                "--debug-print",
+                "loaded-object",
+            ] as &[&str]),
+            (btreeset![DebugPrint::RelocatedObject(ObjectsFilter::all())], &[
+                "foo",
+                "--debug-print",
+                "relocated-object",
+            ]),
             (
                 btreeset![
                     DebugPrint::LoadedObject(ObjectsFilter::parse("@env").unwrap()),
@@ -677,12 +675,11 @@ mod tests {
 
     #[test]
     fn test_duplicate_modes() {
-        for case in [
-            ["foo", "-no-pie", "-pie"],
-            ["foo", "-pie", "-no-pie"],
-            ["foo", "-shared", "-pie"],
-            ["foo", "-no-pie", "-shared"],
-        ] {
+        for case in
+            [["foo", "-no-pie", "-pie"], ["foo", "-pie", "-no-pie"], ["foo", "-shared", "-pie"], [
+                "foo", "-no-pie", "-shared",
+            ]]
+        {
             assert_eq!(Err(CliError::MultipleModeChanges), parse(case.into_iter()));
         }
     }
@@ -758,12 +755,11 @@ mod tests {
 
     #[test]
     fn test_multiple_now_flags() {
-        for case in [
-            ["foo", "-znow", "-znow"],
-            ["foo", "-znow", "-zlazy"],
-            ["foo", "-zlazy", "-znow"],
-            ["foo", "-zlazy", "-zlazy"],
-        ] {
+        for case in
+            [["foo", "-znow", "-znow"], ["foo", "-znow", "-zlazy"], ["foo", "-zlazy", "-znow"], [
+                "foo", "-zlazy", "-zlazy",
+            ]]
+        {
             assert_eq!(
                 Err(CliError::DuplicateFlag("-z now or -z lazy".into())),
                 parse(case.into_iter())

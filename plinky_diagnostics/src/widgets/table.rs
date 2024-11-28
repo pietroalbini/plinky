@@ -1,5 +1,5 @@
-use crate::widgets::Widget;
 use crate::WidgetWriter;
+use crate::widgets::Widget;
 
 const UNICODE_CHARSET: TableCharset = TableCharset {
     vertical_separator: '│',

@@ -1,6 +1,6 @@
+use crate::ElfABI;
 use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::writer::LayoutError;
-use crate::ElfABI;
 use plinky_macros::{Display, Error};
 use plinky_utils::bitfields::BitfieldReadError;
 
@@ -40,11 +40,15 @@ pub enum LoadError {
     MissingSection(u16),
     #[display("SHF_INFO_LINK flag set for section {f0} even though it's not a relocation")]
     UnsupportedInfoLinkFlag(u32),
-    #[display("only strings with char size of 1 are supported, while section {section_idx} has size {size} (due to SHF_STRINGS)")]
+    #[display(
+        "only strings with char size of 1 are supported, while section {section_idx} has size {size} (due to SHF_STRINGS)"
+    )]
     UnsupportedStringsWithSizeNotOne { section_idx: u32, size: u64 },
     #[display("flag SHF_STRINGS is only expected in sections with SHF_MERGE or in string tables")]
     UnexpectedStringsFlag { section_idx: u32 },
-    #[display("flag SHF_MERGE for fixed-sized chunks was provided with chunk size zero on section {section_idx}")]
+    #[display(
+        "flag SHF_MERGE for fixed-sized chunks was provided with chunk size zero on section {section_idx}"
+    )]
     FixedSizeChunksMergeWithZeroLenChunks { section_idx: u32 },
     #[display("flag SHF_MERGE was applied on an unsupported section (section {section_idx})")]
     MergeFlagOnUnsupportedSection { section_idx: u32 },
@@ -74,11 +78,10 @@ pub enum LoadError {
     MisalignedFile { current: usize, expected: usize },
     #[display("entry size defined in the section metadata is zero")]
     EntrySizeZero,
-    #[display("sh_size (value: {len}, hex: {len:#x}) is not a multiple of sh_entsize (value: {entry_len}, hex: {entry_len:#x}) defined in the section header")]
-    LenNotMultipleOfEntrySize {
-        len: u64,
-        entry_len: u64,
-    },
+    #[display(
+        "sh_size (value: {len}, hex: {len:#x}) is not a multiple of sh_entsize (value: {entry_len}, hex: {entry_len:#x}) defined in the section header"
+    )]
+    LenNotMultipleOfEntrySize { len: u64, entry_len: u64 },
     #[display("no section present at address {f0:#x}")]
     NoSectionAtAddress(u64),
 }

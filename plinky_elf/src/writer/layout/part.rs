@@ -113,7 +113,7 @@ impl PartMetadata {
                 Some(PartMemory { len: a.len.add(b.len)?, address: a.address })
             }
             (None, Some(_)) | (Some(_), None) => {
-                return Err(MergePartMetadataError::MixingInMemory)
+                return Err(MergePartMetadataError::MixingInMemory);
             }
         };
 

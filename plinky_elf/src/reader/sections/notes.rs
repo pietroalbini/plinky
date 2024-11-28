@@ -1,7 +1,7 @@
 use crate::errors::LoadError;
 use crate::raw::RawNoteHeader;
-use crate::reader::sections::SectionReader;
 use crate::reader::ReadCursor;
+use crate::reader::sections::SectionReader;
 use crate::{
     ElfClass, ElfGnuProperty, ElfNote, ElfNotesTable, ElfUnknownGnuProperty, ElfUnknownNote,
     ElfX86Features2, ElfX86Isa,

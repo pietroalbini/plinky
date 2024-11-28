@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Error};
+use anyhow::{Error, anyhow, bail};
 use plinky_test_harness::template::{Template, TemplateContext, TemplateContextGetters, Value};
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};

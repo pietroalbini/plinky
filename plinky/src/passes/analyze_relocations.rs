@@ -4,9 +4,10 @@ use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{MissingGlobalSymbol, SymbolId, SymbolValue};
-use std::collections::{BTreeMap, btree_map};
+use plinky_macros::{Display, Error};
+use std::collections::{btree_map, BTreeMap};
 
-pub(crate) fn run(object: &Object) -> RelocsAnalysis {
+pub(crate) fn run(object: &Object) -> Result<RelocsAnalysis, RelocsAnalysisError> {
     let mut analysis = RelocsAnalysis { got: None, got_plt: None };
 
     for section in object.sections.iter() {
@@ -15,7 +16,12 @@ pub(crate) fn run(object: &Object) -> RelocsAnalysis {
             match needs_got_entry(relocation.type_) {
                 NeedsGot::Got => add_got_reloc(&mut analysis.got, object, relocation),
                 NeedsGot::GotPlt => add_got_reloc(&mut analysis.got_plt, object, relocation),
-                NeedsGot::None => {}
+                NeedsGot::None => match object.symbols.get(relocation.symbol).value() {
+                    SymbolValue::ExternallyDefined => {
+                        return Err(RelocsAnalysisError::DynamicRelocInNoPic);
+                    }
+                    _ => {}
+                },
             }
             // Some relocations (like R_386_GOTOFF or R_386_GOT32) require a .got.plt to be present
             // even if no PLT entries are actually present. This is because they are relative to
@@ -33,7 +39,7 @@ pub(crate) fn run(object: &Object) -> RelocsAnalysis {
         Err(MissingGlobalSymbol { .. }) => {}
     }
 
-    analysis
+    Ok(analysis)
 }
 
 fn ensure_got(got: &mut Option<PlannedGot>) {
@@ -132,4 +138,10 @@ pub(crate) enum ResolvedAt {
     // this enum will have precedence.
     LinkTime,
     RunTime,
+}
+
+#[derive(Debug, Error, Display)]
+pub(crate) enum RelocsAnalysisError {
+    #[display("dynamic relocations are only supported with PIC code")]
+    DynamicRelocInNoPic,
 }

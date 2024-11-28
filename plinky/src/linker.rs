@@ -1,6 +1,6 @@
 use crate::cli::CliOptions;
 use crate::passes;
-use crate::passes::analyze_relocations::RelocsAnalysis;
+use crate::passes::analyze_relocations::{RelocsAnalysis, RelocsAnalysisError};
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::convert_relocation_modes::ConvertRelocationModesError;
 use crate::passes::deduplicate::{Deduplication, DeduplicationError};
@@ -37,7 +37,7 @@ pub(crate) fn link_driver(
 
     let deduplications = passes::deduplicate::run(&mut object)?;
 
-    let relocs_analysis = passes::analyze_relocations::run(&object);
+    let relocs_analysis = passes::analyze_relocations::run(&object)?;
     callbacks.on_relocations_analyzed(&object, &relocs_analysis);
 
     let dynamic = passes::generate_dynamic::run(&options, &mut object)?;
@@ -103,6 +103,8 @@ pub(crate) enum LinkerError {
     Dynamic(GenerateDynamicError),
     #[display("failed to generate the global offset table")]
     GenerateGot(#[from] GenerateGotError),
+    #[transparent]
+    RelocsAnalysis(RelocsAnalysisError),
     #[transparent]
     RelocationFailed(RelocationError),
     #[transparent]

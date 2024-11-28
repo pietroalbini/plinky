@@ -34,37 +34,50 @@ pub(crate) fn generate_plt(
     // Ensure alignment.
     debug_assert!(codegen.len() % 16 == 0);
 
-    let reloc_size = match object.relocation_mode() {
-        RelocationMode::Rel => RawRel::size(object.env.class),
-        RelocationMode::Rela => RawRela::size(object.env.class),
+    let reloc_size: i32 = match object.relocation_mode() {
+        RelocationMode::Rel => RawRel::size(object.env.class) as _,
+        RelocationMode::Rela => RawRela::size(object.env.class) as _,
     };
 
     let mut extra_got_plt_relocations = Vec::new();
     let mut offsets = BTreeMap::new();
-    for (idx, (symbol, got_entry)) in got_plt.entries.iter().enumerate() {
+    for (symbol, got_entry) in got_plt.entries.iter() {
         offsets.insert(*symbol, codegen.current_offset());
 
         codegen.encode(JumpReference(EbxPlus(v(got_entry.offset.extract().try_into().unwrap()))));
-        let lazy_jump_target = codegen.current_offset();
-        codegen.encode(PushImmediate(X86Value::Known((idx * reloc_size) as _)));
-        codegen.encode(JumpRelative(plt_reloc));
 
-        // When relocations are resolved at runtime (and the dynamic linker is involved), it's
-        // possible that relocations will be resolved lazily, which requires the first instruction
-        // not to jump, letting the rest of the instructions generated above execute.
-        //
-        // In order to do that though, we need to ensure the placeholder value of the .got.plt for
-        // this slot is the address of the second instruction. If eager resolution is enabled, the
-        // placeholder will be overridden at startup, while if lazy resolution is enabled it will
-        // allow executing the rest of the PLT slot.
         match got_entry.resolved_at {
-            ResolvedAt::RunTime => extra_got_plt_relocations.push(Relocation {
-                type_: RelocationType::Absolute32,
-                symbol: plt_symbol,
-                offset: got_entry.offset,
-                addend: lazy_jump_target.into(),
-            }),
-            ResolvedAt::LinkTime => {}
+            ResolvedAt::RunTime => {
+                let reloc_idx: i32 = got_entry
+                    .dynamic_relocation_index
+                    .expect("no dynamic relocation index for a runtime got entry")
+                    .try_into()
+                    .expect("too many got entries");
+
+                let lazy_jump_target = codegen.current_offset();
+                codegen.encode(PushImmediate(X86Value::Known(reloc_idx * reloc_size)));
+                codegen.encode(JumpRelative(plt_reloc));
+
+                // When relocations are resolved at runtime (and the dynamic linker is involved),
+                // it's possible that relocations will be resolved lazily, which requires the first
+                // instruction not to jump, letting the rest of the instructions execute.
+                //
+                // In order to do that though, we need to ensure the placeholder value of the
+                // .got.plt for this slot is the address of the second instruction. If eager
+                // resolution is enabled, the placeholder will be overridden at startup, while if
+                // lazy resolution is enabled it will allow executing the rest of the PLT slot.
+                extra_got_plt_relocations.push(Relocation {
+                    type_: RelocationType::Absolute32,
+                    symbol: plt_symbol,
+                    offset: got_entry.offset,
+                    addend: lazy_jump_target.into(),
+                });
+            }
+            ResolvedAt::LinkTime => {
+                for _ in 0..10 {
+                    codegen.encode(Nop);
+                }
+            }
         }
 
         // Ensure alignment.

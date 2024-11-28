@@ -241,8 +241,9 @@ debug print: built elf
 
 ==============
 
-running exited with exit status: 1
+running exited with exit status: 0
 
-no stdout present
+=== stdout ===
+Hello world!
 
 no stderr present

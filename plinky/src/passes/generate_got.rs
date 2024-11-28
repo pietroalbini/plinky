@@ -21,31 +21,41 @@ pub(crate) fn generate_got(
     dynamic_context: &Option<DynamicContext>,
 ) -> Result<(), GenerateGotError> {
     if let Some(plan) = &relocs_analysis.got {
-        object.got = Some(build_got(object, dynamic_context, &mut plan.symbols(), GotConfig {
-            section_name: ".got",
-            reloc_section_name: match object.relocation_mode() {
-                RelocationMode::Rel => ".rel.got",
-                RelocationMode::Rela => ".rela.got",
+        object.got = Some(build_got(
+            object,
+            dynamic_context,
+            &mut plan.symbols(),
+            GotConfig {
+                section_name: ".got",
+                reloc_section_name: match object.relocation_mode() {
+                    RelocationMode::Rel => ".rel.got",
+                    RelocationMode::Rela => ".rela.got",
+                },
+                inside_relro: options.read_only_got,
+                add_prelude: false,
+                relocation_type: RelocationType::FillGotSlot,
+                dynamic_entry: |_got_plt, reloc| DynamicEntry::GotReloc(reloc),
             },
-            inside_relro: options.read_only_got,
-            add_prelude: false,
-            relocation_type: RelocationType::FillGotSlot,
-            dynamic_entry: |_got_plt, reloc| DynamicEntry::GotReloc(reloc),
-        })?);
+        )?);
     }
 
     if let Some(plan) = &relocs_analysis.got_plt {
-        let mut got_plt = build_got(object, dynamic_context, &mut plan.symbols(), GotConfig {
-            section_name: ".got.plt",
-            reloc_section_name: match object.relocation_mode() {
-                RelocationMode::Rel => ".rel.plt",
-                RelocationMode::Rela => ".rela.plt",
+        let mut got_plt = build_got(
+            object,
+            dynamic_context,
+            &mut plan.symbols(),
+            GotConfig {
+                section_name: ".got.plt",
+                reloc_section_name: match object.relocation_mode() {
+                    RelocationMode::Rel => ".rel.plt",
+                    RelocationMode::Rela => ".rela.plt",
+                },
+                inside_relro: options.read_only_got_plt,
+                add_prelude: true,
+                relocation_type: RelocationType::FillGotPltSlot,
+                dynamic_entry: |got_plt, reloc| DynamicEntry::Plt { got_plt, reloc },
             },
-            inside_relro: options.read_only_got_plt,
-            add_prelude: true,
-            relocation_type: RelocationType::FillGotPltSlot,
-            dynamic_entry: |got_plt, reloc| DynamicEntry::Plt { got_plt, reloc },
-        })?;
+        )?;
 
         if options.read_only_got_plt {
             object.dynamic_entries.flags.bind_now = true;
@@ -106,19 +116,27 @@ fn build_got(
         let offset =
             Offset::from(i64::try_from(buf.len()).map_err(|_| GenerateGotError::TooLarge)?);
 
-        buf.extend_from_slice(placeholder);
-        entries.insert(symbol.id, GotEntry { offset, resolved_at: symbol.resolved_at });
-
         let reloc = Relocation {
             type_: config.relocation_type,
             symbol: symbol.id,
             offset,
             addend: Offset::from(0).into(),
         };
+
+        let mut dynamic_relocation_index = None;
         match symbol.resolved_at {
             ResolvedAt::LinkTime => link_time_relocs.push(reloc),
-            ResolvedAt::RunTime => run_time_relocs.push(reloc),
+            ResolvedAt::RunTime => {
+                dynamic_relocation_index = Some(run_time_relocs.len());
+                run_time_relocs.push(reloc);
+            }
         }
+
+        buf.extend_from_slice(placeholder);
+        entries.insert(
+            symbol.id,
+            GotEntry { offset, resolved_at: symbol.resolved_at, dynamic_relocation_index },
+        );
     }
 
     let mut data = DataSection::new(ElfPermissions::RW, &buf);
@@ -181,6 +199,7 @@ impl Got {
 pub(crate) struct GotEntry {
     pub(crate) offset: Offset,
     pub(crate) resolved_at: ResolvedAt,
+    pub(crate) dynamic_relocation_index: Option<usize>,
 }
 
 #[derive(Debug, Display, Error)]

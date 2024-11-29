@@ -5,12 +5,14 @@ reading dynamic information exited with exit status: 0
 
 === stdout ===
   Dynamic symbols:
-╭──────────────╮
-│ <empty name> │
-├──────────────┤
-│ add          │
-├──────────────┤
-│ sub          │
-╰──────────────╯
+╭──────────────┬────────────┬─────────╮
+│ Name         │ Visibility │ Binding │
+├──────────────┼────────────┼─────────┤
+│ <empty name> │ Default    │ Local   │
+├──────────────┼────────────┼─────────┤
+│ add          │ Default    │ Global  │
+├──────────────┼────────────┼─────────┤
+│ sub          │ Default    │ Global  │
+╰──────────────┴────────────┴─────────╯
 
 no stderr present

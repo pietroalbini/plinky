@@ -1,7 +1,7 @@
 use crate::ids::ElfSectionId;
 use crate::raw::RawHashHeader;
 use crate::reader::sections::{
-    SectionMetadata, SectionReader, dynamic, string_table, symbol_table,
+    dynamic, string_table, symbol_table, SectionMetadata, SectionReader,
 };
 use crate::{
     ElfDynamicDirective, ElfReader, ElfSegment, ElfSegmentType, ElfStringTable, ElfSymbolBinding,
@@ -24,6 +24,17 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
         let dynamic = parse_dynamic_segment(reader, &segment)?;
 
         Ok(ElfDynamicReader { reader, dynamic, symbols_count: None, strings: None, symbols: None })
+    }
+
+    pub fn soname(&mut self) -> Result<Option<String>, ReadDynamicError> {
+        let Some(offset) = self.dynamic.soname.value else { return Ok(None) };
+        Ok(Some(
+            self.get_string(
+                u32::try_from(offset)
+                    .map_err(|_| ReadDynamicError::StringOffsetTooLarge(offset))?,
+            )?
+            .to_string(),
+        ))
     }
 
     pub fn symbols(&mut self) -> Result<&[ElfSymbolInDynamic], ReadDynamicError> {
@@ -134,6 +145,9 @@ fn parse_dynamic_segment(
             ElfDynamicDirective::StringTable { address } => parsed.string_addr.set(address)?,
             ElfDynamicDirective::StringTableSize { bytes } => parsed.string_size.set(bytes)?,
             ElfDynamicDirective::SymbolTable { address } => parsed.symbol_addr.set(address)?,
+            ElfDynamicDirective::SharedObjectName { string_table_offset } => {
+                parsed.soname.set(string_table_offset)?
+            }
             ElfDynamicDirective::SymbolTableEntrySize { bytes } => {
                 parsed.symbol_entry_size.set(bytes)?
             }
@@ -146,6 +160,7 @@ fn parse_dynamic_segment(
 
 #[derive(Debug, Default)]
 struct DynamicSegment {
+    soname: DynamicDirective<DT_SONAME>,
     hash_addr: DynamicDirective<DT_HASH>,
     string_addr: DynamicDirective<DT_STRTAB>,
     string_size: DynamicDirective<DT_STRSZ>,
@@ -190,7 +205,7 @@ macro_rules! directive_names {
     }
 }
 
-directive_names![DT_HASH, DT_STRTAB, DT_STRSZ, DT_SYMTAB, DT_SYMENT];
+directive_names![DT_HASH, DT_STRTAB, DT_STRSZ, DT_SYMTAB, DT_SYMENT, DT_SONAME];
 
 struct FakeMetadata;
 
@@ -240,4 +255,6 @@ pub enum ReadDynamicError {
     InvalidSymbolTable(#[source] LoadError),
     #[display("missing string at offset {f0}")]
     MissingString(u32),
+    #[display("string offset {f0} too large")]
+    StringOffsetTooLarge(u64),
 }

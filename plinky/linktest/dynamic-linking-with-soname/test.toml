@@ -1,0 +1,30 @@
+# Check that when we link to a dynamic library with a soname, the DT_NEEDED is the soname.
+
+archs = ["x86", "x86_64"]
+
+[plinky.test]
+cmd = ["${c.entry}", "${ld.syscalls}"]
+kind = "run-pass"
+run-env = { LD_LIBRARY_PATH = "${dirname(rename.syscalls)}" }
+debug-print = ["loaded-object=@inputs", "final-elf=.dynstr,.dynamic"] # FIXME: remove .dynstr once we show strings in .dynamic
+
+[c.entry]
+source = "entry.c"
+relocation = "pic"
+libc = "freestanding"
+
+[rename.syscalls]
+from = "${ld.syscalls}"
+to = "libsyscalls.so.1"
+
+[ld.syscalls]
+output = "libsyscalls.so"
+content = ["${asm.syscall_exit}", "${asm.syscall_write}"]
+extra-args = ["-soname", "libsyscalls.so.1"]
+shared-library = true
+
+[asm.syscall_exit]
+source = "../_shared/syscall.exit.${arch}.S"
+
+[asm.syscall_write]
+source = "../_shared/syscall.write.${arch}.S"

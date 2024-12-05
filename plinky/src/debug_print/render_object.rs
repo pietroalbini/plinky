@@ -11,9 +11,9 @@ use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ElfDeduplication;
 use plinky_elf::render_elf::render_note;
 use plinky_elf::writer::layout::Layout;
+use plinky_elf::ElfDeduplication;
 
 pub(super) fn render_object(
     message: &str,
@@ -300,8 +300,8 @@ fn render_inputs(object: &Object) -> Box<dyn Widget> {
 
     for input in &object.inputs {
         let mut title = input.span.to_string();
-        if input.shared_object {
-            title.push_str(" (shared object)");
+        if let Some(so) = &input.shared_object {
+            title.push_str(&format!(" (shared object {})", so.name));
         }
 
         let mut table = Table::new();

@@ -84,9 +84,9 @@ debug print: loaded object
  │   │  │ x86 features 2 used │ x86 │
  │   │  ╰─────────────────────┴─────╯
  │   │
- │   │  libdata.so (shared object)
+ │   │  libdata.so (shared object libdata.so)
  │   │
- │   │  libsyscalls.so (shared object)
+ │   │  libsyscalls.so (shared object libsyscalls.so)
  │   ┴
  ┴
 

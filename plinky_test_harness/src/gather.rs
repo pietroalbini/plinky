@@ -1,6 +1,6 @@
-use crate::Step;
 use crate::tests::{Arch, Test, TestStep};
 use crate::utils::err_str;
+use crate::Step;
 use anyhow::{Context, Error};
 use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
@@ -118,7 +118,8 @@ impl DefineSteps {
             .define::<crate::steps::ld::LdStep>("ld")?
             .define::<crate::steps::c::CStep>("c")?
             .define::<crate::steps::rust::RustStep>("rust")?
-            .define::<crate::steps::ar::ArStep>("ar")
+            .define::<crate::steps::ar::ArStep>("ar")?
+            .define::<crate::steps::rename::RenameStep>("rename")
     }
 
     // Deserializing the Value into the concrete type cannot be done through dynamic dispatching.

@@ -21,7 +21,7 @@ pub(crate) fn run(
     match object.mode {
         Mode::PositionDependent => {
             // We only need to generate the dynamic section if we don't link to shared objects.
-            if object.inputs.iter().all(|input| !input.shared_object) {
+            if object.inputs.iter().all(|input| input.shared_object.is_none()) {
                 return Ok(None);
             }
         }
@@ -48,9 +48,9 @@ pub(crate) fn run(
         object.dynamic_entries.add(DynamicEntry::SharedObjectName(soname_id));
     }
     for input in &object.inputs {
-        if input.shared_object {
-            let name = input.span.to_string(); // FIXME: this is wrong
-            let needed_id = dynstr_section.add_custom_string(name);
+        if let Some(shared_object) = &input.shared_object {
+            let name = shared_object.name.resolve();
+            let needed_id = dynstr_section.add_custom_string(name.as_str());
             object.dynamic_entries.add(DynamicEntry::Needed(needed_id));
         }
     }

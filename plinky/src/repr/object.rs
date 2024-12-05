@@ -39,8 +39,13 @@ impl Object {
 #[derive(Debug)]
 pub(crate) struct Input {
     pub(crate) span: Interned<ObjectSpan>,
-    pub(crate) shared_object: bool,
+    pub(crate) shared_object: Option<InputSharedObject>,
     pub(crate) gnu_properties: GnuProperties,
+}
+
+#[derive(Debug)]
+pub(crate) struct InputSharedObject {
+    pub(crate) name: Interned<String>,
 }
 
 #[derive(Debug)]

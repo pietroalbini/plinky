@@ -1,6 +1,7 @@
-use crate::Step;
+use crate::builtins::register_builtins;
 use crate::template::{TemplateContext, Value};
 use crate::utils::RunAndSnapshot;
+use crate::Step;
 use anyhow::{Context, Error};
 use plinky_utils::create_temp_dir;
 use std::path::{Path, PathBuf};
@@ -17,6 +18,7 @@ impl Test {
     pub(crate) fn run(mut self) -> Result<(), Error> {
         let mut template_ctx = TemplateContext::new();
         template_ctx.set_variable("arch", Value::String(self.arch.to_string()));
+        register_builtins(&mut template_ctx);
 
         // Cleanup for the temporary directory is done manually at the end, to ensure that the
         // build artifacts are present for inspection during a failure.
@@ -83,7 +85,11 @@ pub struct TestContext<'a> {
 impl TestContext<'_> {
     pub fn maybe_relative_to_src(&self, path: impl AsRef<Path>) -> PathBuf {
         let path = path.as_ref();
-        if path.is_absolute() { path.into() } else { self.src.join(path) }
+        if path.is_absolute() {
+            path.into()
+        } else {
+            self.src.join(path)
+        }
     }
 
     pub fn run_and_snapshot(&self) -> RunAndSnapshot {

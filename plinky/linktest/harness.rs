@@ -18,7 +18,7 @@ struct PlinkyStep {
     #[serde(default)]
     debug_print: Vec<String>,
     #[serde(default)]
-    run_env: BTreeMap<String, String>,
+    run_env: BTreeMap<String, Template>,
 }
 
 impl Step for PlinkyStep {
@@ -48,7 +48,10 @@ impl Step for PlinkyStep {
     }
 
     fn templates(&self) -> Vec<Template> {
-        once(self.kind.clone()).chain(self.cmd.iter().cloned()).collect()
+        once(self.kind.clone())
+            .chain(self.cmd.iter().cloned())
+            .chain(self.run_env.values().cloned())
+            .collect()
     }
 
     fn is_leaf(&self) -> bool {
@@ -96,7 +99,7 @@ impl PlinkyStep {
         let mut command = Command::new(dest.join("a.out"));
         command.current_dir(&dest);
         for (key, value) in &self.run_env {
-            command.env(key, value);
+            command.env(key, value.resolve(&*ctx.template)?);
         }
 
         runner.run("running", &mut command)

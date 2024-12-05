@@ -39,8 +39,15 @@ impl<'a> ObjectsReader<'a> {
             );
             match FileType::from_magic_number(path, &mut r)? {
                 FileType::Elf => {
+                    let file_name = path.file_name().unwrap();
                     return Ok(Some(NextObject {
                         source: ObjectSpan::new_file(path),
+                        file_name: file_name
+                            .to_str()
+                            .ok_or_else(|| ReadObjectsError::NonUtf8FileName {
+                                lossy: file_name.to_string_lossy().to_string(),
+                            })?
+                            .to_string(),
                         reader: ElfReader::new_owned(Box::new(r))
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     }));
@@ -63,7 +70,8 @@ impl<'a> ObjectsReader<'a> {
         match pending_archive.next(symbols)? {
             Some(file) => match ElfReader::new_owned(Box::new(Cursor::new(file.content))) {
                 Ok(reader) => Ok(Some(NextObject {
-                    source: ObjectSpan::new_archive_member(&pending_archive.path, file.name),
+                    source: ObjectSpan::new_archive_member(&pending_archive.path, &file.name),
+                    file_name: file.name,
                     reader,
                 })),
                 Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
@@ -181,6 +189,7 @@ impl FileType {
 
 pub(super) struct NextObject {
     pub(super) reader: ElfReader<'static>,
+    pub(super) file_name: String,
     pub(super) source: ObjectSpan,
 }
 
@@ -204,4 +213,6 @@ pub(crate) enum ReadObjectsError {
         #[diagnostic]
         diagnostic: Diagnostic,
     },
+    #[display("file name is not UTF-8: {lossy}")]
+    NonUtf8FileName { lossy: String },
 }

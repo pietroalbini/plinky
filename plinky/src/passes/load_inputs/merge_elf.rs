@@ -193,7 +193,7 @@ pub(super) fn merge_elf(
 
     object.inputs.push(Input {
         span: intern(source),
-        shared_object: false,
+        shared_object: None,
         gnu_properties: GnuProperties { x86_isa_used, x86_features_2_used },
     });
 

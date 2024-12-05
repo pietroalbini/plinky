@@ -1,9 +1,9 @@
 use crate::cli::CliOptions;
 use crate::interner::intern;
-use crate::passes::load_inputs::merge_elf::{MergeElfError, merge_elf};
+use crate::passes::load_inputs::merge_elf::{merge_elf, MergeElfError};
 use crate::passes::load_inputs::read_objects::{NextObject, ObjectsReader, ReadObjectsError};
 use crate::passes::load_inputs::section_groups::{SectionGroups, SectionGroupsForObject};
-use crate::passes::load_inputs::shared_objects::{SharedObjectError, load_shared_object};
+use crate::passes::load_inputs::shared_objects::{load_shared_object, SharedObjectError};
 use crate::passes::load_inputs::strings::Strings;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;
@@ -98,7 +98,7 @@ fn load_object(
     object: &mut Object,
     strings: &mut Strings,
     section_groups: SectionGroupsForObject<'_>,
-    NextObject { mut reader, source }: NextObject,
+    NextObject { mut reader, source, file_name }: NextObject,
 ) -> Result<(), LoadInputsError> {
     match reader.type_() {
         plinky_elf::ElfType::Relocatable => {
@@ -109,7 +109,7 @@ fn load_object(
                 .map_err(|e| LoadInputsError::MergeFailed(source, e))
         }
         plinky_elf::ElfType::SharedObject => {
-            load_shared_object(object, &mut reader, source.clone())
+            load_shared_object(object, &mut reader, &file_name, source.clone())
                 .map_err(|e| LoadInputsError::SharedLoadFailed(source, e))
         }
         plinky_elf::ElfType::Executable => Err(LoadInputsError::ExecutableUnsupported(source)),

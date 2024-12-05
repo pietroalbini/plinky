@@ -10,6 +10,7 @@ file = "${ld.dynamic}"
 [ld.dynamic]
 output = "dynamic.so"
 content = ["${c.dynamic}"]
+extra-args = ["-soname=libdynamic.so.1"]
 shared-library = true
 
 [c.dynamic]

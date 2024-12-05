@@ -1,0 +1,81 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  inputs
+ │   │
+ │   │    entry.o
+ │   │  ╭─────────────────────┬─────╮
+ │   │  │ X86 ISA used        │     │
+ │   │  ├─────────────────────┼─────┤
+ │   │  │ x86 features 2 used │ x86 │
+ │   │  ╰─────────────────────┴─────╯
+ │   │
+ │   │  libsyscalls.so (shared object libsyscalls.so.1)
+ │   ┴
+ ┴
+
+debug print: built elf
+ │
+ │  section .dynstr (address: 0x4002c3)
+ │   │
+ │   │    Strings table:
+ │   │  ╭──────┬──────────────────╮
+ │   │  │ 0x0  │                  │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x1  │ libsyscalls.so.1 │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x12 │                  │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x13 │ write            │
+ │   │  ├──────┼──────────────────┤
+ │   │  │ 0x19 │ exit             │
+ │   │  ╰──────┴──────────────────╯
+ │   ┴
+ │
+ │  section .dynamic (address: 0x400341)
+ │   │
+ │   │  dynamic information | string table: .dynstr
+ │   │
+ │   │  ╭─────────────────────────┬──────────────────────────────╮
+ │   │  │ Kind                    │ Value                        │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Needed libraries        │ offset 1 in the string table │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ String table            │ address 0x4002c3             │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ String table size       │ 30 bytes                     │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Symbol table            │ address 0x4002e1             │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Symbol table entry size │ 24 bytes                     │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Hash table              │ address 0x400329             │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Jump PLT relocations    │ address 0x4003f1             │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ PLT relocations size    │ 48 bytes                     │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ PLT relocations type    │ RelocationsA                 │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ PLT GOT                 │ address 0x403000             │
+ │   │  ├─────────────────────────┼──────────────────────────────┤
+ │   │  │ Null                    │ -                            │
+ │   │  ╰─────────────────────────┴──────────────────────────────╯
+ │   ┴
+ ┴
+
+==============
+
+running exited with exit status: 0
+
+=== stdout ===
+Hello world
+
+no stderr present

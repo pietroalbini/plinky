@@ -1,5 +1,5 @@
 use crate::interner::intern;
-use crate::repr::object::{GnuProperties, Input, Object};
+use crate::repr::object::{GnuProperties, Input, InputSharedObject, Object};
 use crate::repr::symbols::{LoadSymbolsError, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfReader, ReadDynamicError};
@@ -8,6 +8,7 @@ use plinky_macros::{Display, Error};
 pub(super) fn load_shared_object(
     object: &mut Object,
     reader: &mut ElfReader<'_>,
+    file_name: &str,
     span: ObjectSpan,
 ) -> Result<(), SharedObjectError> {
     let mut dynamic_reader = reader.dynamic().map_err(SharedObjectError::ReadSegment)?;
@@ -34,9 +35,18 @@ pub(super) fn load_shared_object(
             .map_err(SharedObjectError::AddSymbol)?;
     }
 
+    let name = match dynamic_reader.soname().map_err(SharedObjectError::ReadSoname)? {
+        Some(soname) => intern(soname),
+        None => {
+            // FIXME: once -lfoo is implemented, this should return the base file name being loaded.
+            // https://maskray.me/blog/2020-11-15-explain-gnu-linker-options#sonamename
+            intern(file_name)
+        }
+    };
+
     object.inputs.push(Input {
         span,
-        shared_object: true,
+        shared_object: Some(InputSharedObject { name }),
         gnu_properties: GnuProperties { x86_isa_used: None, x86_features_2_used: None },
     });
 
@@ -53,4 +63,6 @@ pub(crate) enum SharedObjectError {
     FirstSymbolNotNull,
     #[display("failed to add symbol from the dynamic library")]
     AddSymbol(#[source] LoadSymbolsError),
+    #[display("reading the shared object name failed")]
+    ReadSoname(#[source] ReadDynamicError),
 }

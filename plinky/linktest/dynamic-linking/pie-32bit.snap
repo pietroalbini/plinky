@@ -123,32 +123,6 @@ debug print: relocations analysis
 
 debug print: built elf
  │
- │  section .dynstr (address: 0x1a0)
- │   │
- │   │    Strings table:
- │   │  ╭──────┬────────────────╮
- │   │  │ 0x0  │                │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x1  │ libdata.so     │
- │   │  ├──────┼────────────────┤
- │   │  │ 0xc  │ libsyscalls.so │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x1b │                │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x1c │ main           │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x21 │ message_len    │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x2d │ message        │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x35 │ write          │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x3b │ exit_code      │
- │   │  ├──────┼────────────────┤
- │   │  │ 0x45 │ exit           │
- │   │  ╰──────┴────────────────╯
- │   ┴
- │
  │  section .dynsym (address: 0x1ea)
  │   │
  │   │    Dynamic symbol table:

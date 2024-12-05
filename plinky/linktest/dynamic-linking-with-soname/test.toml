@@ -6,7 +6,7 @@ archs = ["x86", "x86_64"]
 cmd = ["${c.entry}", "${ld.syscalls}"]
 kind = "run-pass"
 run-env = { LD_LIBRARY_PATH = "${dirname(rename.syscalls)}" }
-debug-print = ["loaded-object=@inputs", "final-elf=.dynstr,.dynamic"] # FIXME: remove .dynstr once we show strings in .dynamic
+debug-print = ["loaded-object=@inputs", "final-elf=.dynamic"]
 
 [c.entry]
 source = "entry.c"

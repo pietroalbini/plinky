@@ -75,9 +75,9 @@ fn render_section_symbols(names: &Names, symbols: &ElfSymbolTable) -> Vec<Box<dy
     } else {
         table.set_title("Symbol table:");
     }
-    table.add_row(["Name", "Binding", "Type", "Visibility", "Definition", "Value", "Size"]);
+    table.add_head(["Name", "Binding", "Type", "Visibility", "Definition", "Value", "Size"]);
     for (id, symbol) in &symbols.symbols {
-        table.add_row([
+        table.add_body([
             names.symbol(*id).to_string(),
             symbol.binding.to_string(),
             match symbol.type_ {
@@ -106,7 +106,7 @@ fn render_section_strings(strings: &ElfStringTable) -> Vec<Box<dyn Widget>> {
     let mut table = Table::new();
     table.set_title("Strings table:");
     for (offset, string) in strings.all_with_offsets() {
-        table.add_row([format!("{offset:#x}"), string.to_string()]);
+        table.add_body([format!("{offset:#x}"), string.to_string()]);
     }
     vec![Box::new(table)]
 }
@@ -121,9 +121,9 @@ fn render_section_rel(names: &Names, rel: &ElfRelTable) -> Vec<Box<dyn Widget>> 
 
     let mut table = Table::new();
     table.set_title("Relocations:");
-    table.add_row(["Type", "Symbol", "Offset"]);
+    table.add_head(["Type", "Symbol", "Offset"]);
     for relocation in &rel.relocations {
-        table.add_row([
+        table.add_body([
             format!("{:?}", relocation.relocation_type),
             names.symbol(relocation.symbol).to_string(),
             format!("{:#x}", relocation.offset),
@@ -143,14 +143,14 @@ fn render_section_rela(names: &Names, rela: &ElfRelaTable) -> Vec<Box<dyn Widget
 
     let mut table = Table::new();
     table.set_title("Relocations:");
-    table.add_row(["Type", "Symbol", "Offset", "Addend"]);
+    table.add_head(["Type", "Symbol", "Offset", "Addend"]);
     for relocation in &rela.relocations {
         let addend = if relocation.addend >= 0 {
             format!("{:#x}", relocation.addend)
         } else {
             format!("-{:#x}", relocation.addend.abs())
         };
-        table.add_row([
+        table.add_body([
             format!("{:?}", relocation.relocation_type),
             names.symbol(relocation.symbol).to_string(),
             format!("{:#x}", relocation.offset),
@@ -172,7 +172,7 @@ fn render_section_group(names: &Names, group: &ElfGroup) -> Vec<Box<dyn Widget>>
     let mut sections = Table::new();
     sections.set_title("Sections:");
     for section in &group.sections {
-        sections.add_row([names.section(*section)]);
+        sections.add_body([names.section(*section)]);
     }
 
     vec![Box::new(Text::new(info)), Box::new(sections)]
@@ -199,7 +199,7 @@ fn render_section_hash(names: &Names, object: &ElfObject, hash: &ElfHash) -> Vec
 
     let mut content = Table::new();
     content.set_title("Content:");
-    content.add_row(["Bucket ID", "Symbols in bucket"]);
+    content.add_head(["Bucket ID", "Symbols in bucket"]);
     for (id, symbols) in buckets.iter().enumerate() {
         let mut symbols_str = String::new();
         for (pos, symbol) in symbols.iter().enumerate() {
@@ -208,7 +208,7 @@ fn render_section_hash(names: &Names, object: &ElfObject, hash: &ElfHash) -> Vec
             }
             symbols_str.push_str(names.symbol(**symbol));
         }
-        content.add_row([id.to_string(), symbols_str]);
+        content.add_body([id.to_string(), symbols_str]);
     }
 
     vec![Box::new(info), Box::new(content)]
@@ -230,16 +230,17 @@ pub fn render_note(note: &ElfNote) -> Box<dyn Widget> {
         ),
         ElfNote::GnuProperties(properties) => {
             let mut table = Table::new();
+            table.add_head(["Property", "Value"]);
             for property in properties {
                 match property {
                     ElfGnuProperty::X86Features2Used(features2) => {
-                        table.add_row(["x86 features (2) used".into(), features2.to_string()]);
+                        table.add_body(["x86 features (2) used".into(), features2.to_string()]);
                     }
                     ElfGnuProperty::X86IsaUsed(isa) => {
-                        table.add_row(["x86 ISA used".into(), isa.to_string()]);
+                        table.add_body(["x86 ISA used".into(), isa.to_string()]);
                     }
                     ElfGnuProperty::Unknown(unknown) => {
-                        table.add_row([
+                        table.add_body([
                             format!("Unknown (type {:#x})", unknown.type_),
                             format!("{:?}", unknown.data),
                         ]);
@@ -275,7 +276,7 @@ fn render_section_dynamic(
     };
 
     let mut table = Table::new();
-    table.add_row(["Kind", "Value"]);
+    table.add_head(["Kind", "Value"]);
     for directive in &dynamic.directives {
         let (name, value) = match directive {
             ElfDynamicDirective::Null => ("Null", Value::None),
@@ -340,11 +341,11 @@ fn render_section_dynamic(
             ElfDynamicDirective::Flags(flags) => ("Flags", Value::Str(flags.to_string())),
             ElfDynamicDirective::Flags1(flags1) => ("Flags1", Value::Str(flags1.to_string())),
             ElfDynamicDirective::Unknown { tag, value } => {
-                table.add_row([format!("<unknown {tag:#x}>"), format!("{value:#x}")]);
+                table.add_body([format!("<unknown {tag:#x}>"), format!("{value:#x}")]);
                 continue;
             }
         };
-        table.add_row([
+        table.add_body([
             name.into(),
             match value {
                 Value::Bytes(bytes) => format!("{bytes} bytes"),

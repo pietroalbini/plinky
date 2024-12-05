@@ -23,10 +23,10 @@ fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
 
     let mut symbols = Table::new();
     symbols.set_title("Dynamic symbols:");
-    symbols.add_row(["Name", "Visibility", "Binding"]);
+    symbols.add_head(["Name", "Visibility", "Binding"]);
     for symbol in dynamic.symbols()? {
         let name = if symbol.name.is_empty() { "<empty name>" } else { symbol.name.as_str() };
-        symbols.add_row([name.into(), symbol.visibility.to_string(), symbol.binding.to_string()]);
+        symbols.add_body([name.into(), symbol.visibility.to_string(), symbol.binding.to_string()]);
     }
     widgets.push(Box::new(symbols));
 

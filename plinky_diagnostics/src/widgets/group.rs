@@ -79,7 +79,7 @@ mod tests {
         let _config = configure_insta();
 
         let mut table = Table::new();
-        table.add_row(["Foo", "Bar"]);
+        table.add_body(["Foo", "Bar"]);
 
         let group = WidgetGroup::new().add(Text::new("A simple text message!")).add(table);
         assert_snapshot!(group.render_to_string());

@@ -98,7 +98,7 @@ mod tests {
         let _config = configure_insta();
 
         let mut table = Table::new();
-        table.add_row(["Foo", "Bar"]);
+        table.add_body(["Foo", "Bar"]);
 
         let diagnostic = Diagnostic::new(DiagnosticKind::Error, "something went wrong")
             .add(Text::new("you can learn more from this table:"))

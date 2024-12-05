@@ -12,8 +12,9 @@ debug print: loaded object
  │   │
  │   │    entry_isa_features2.o
  │   │  ╭─────────────────────┬──────────╮
- │   │  │ X86 ISA used        │ baseline │
+ │   │  │ Property            │ Value    │
  │   │  ├─────────────────────┼──────────┤
+ │   │  │ X86 ISA used        │ baseline │
  │   │  │ x86 features 2 used │ x86      │
  │   │  ╰─────────────────────┴──────────╯
  │   ┴
@@ -26,8 +27,9 @@ debug print: built elf
  │   │  GNU properties
  │   │   │
  │   │   │  ╭───────────────────────┬──────────╮
- │   │   │  │ x86 ISA used          │ baseline │
+ │   │   │  │ Property              │ Value    │
  │   │   │  ├───────────────────────┼──────────┤
+ │   │   │  │ x86 ISA used          │ baseline │
  │   │   │  │ x86 features (2) used │ x86      │
  │   │   │  ╰───────────────────────┴──────────╯
  │   │   ┴

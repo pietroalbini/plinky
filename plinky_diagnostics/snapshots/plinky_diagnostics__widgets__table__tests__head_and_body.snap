@@ -1,0 +1,11 @@
+---
+source: plinky_diagnostics/src/widgets/table.rs
+expression: table.render_to_string()
+---
+╭────┬────┬────╮
+│ a  │ b  │ c  │
+│ d  │ e  │ f  │
+├────┼────┼────┤
+│ aa │ bb │ cc │
+│ dd │ ee │ ff │
+╰────┴────┴────╯

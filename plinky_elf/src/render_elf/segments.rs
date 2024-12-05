@@ -9,7 +9,7 @@ pub(super) fn render_segments(object: &ElfObject) -> Box<dyn Widget> {
 
     let mut table = Table::new();
     table.set_title("Segments:");
-    table.add_row([
+    table.add_head([
         "Type",
         "Perms",
         "Aligment",
@@ -19,7 +19,7 @@ pub(super) fn render_segments(object: &ElfObject) -> Box<dyn Widget> {
         "Memory len",
     ]);
     for segment in &object.segments {
-        table.add_row([
+        table.add_body([
             match segment.type_ {
                 ElfSegmentType::Null => "Null".into(),
                 ElfSegmentType::Load => "Load".into(),

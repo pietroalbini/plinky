@@ -18,11 +18,11 @@ pub(super) fn render_layout(
 
     let mut table = Table::new();
     table.set_title("Layout:");
-    table.add_row(["Part", "File offset", "File length", "Memory address", "Memory length"]);
+    table.add_head(["Part", "File offset", "File length", "Memory address", "Memory length"]);
 
     for part in layout.parts() {
         let meta = layout.metadata(part);
-        table.add_row([
+        table.add_body([
             match part {
                 Part::Header => "<elf header>".into(),
                 Part::SectionHeaders => "<section header>".into(),
@@ -57,9 +57,9 @@ pub(super) fn render_layout(
 
     let mut segments = Table::new();
     segments.set_title("Segments:");
-    segments.add_row(["Start", "Align", "Type", "Perms", "Content"]);
+    segments.add_head(["Start", "Align", "Type", "Perms", "Content"]);
     for segment in sorted_segments {
-        segments.add_row([
+        segments.add_body([
             segment
                 .layout(layout)
                 .memory
@@ -115,9 +115,9 @@ fn render_deduplication(
         names.section(id),
         deduplication.source
     ));
-    table.add_row(["From", "To"]);
+    table.add_head(["From", "To"]);
     for (from, to) in &deduplication.map {
-        table.add_row([format!("{from}"), format!("{target} + {to}")]);
+        table.add_body([format!("{from}"), format!("{target} + {to}")]);
     }
 
     Box::new(table)

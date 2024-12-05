@@ -11,9 +11,7 @@ soname: libdynamic.so.1
 │ Name         │ Visibility │ Binding │
 ├──────────────┼────────────┼─────────┤
 │ <empty name> │ Default    │ Local   │
-├──────────────┼────────────┼─────────┤
 │ add          │ Default    │ Global  │
-├──────────────┼────────────┼─────────┤
 │ sub          │ Default    │ Global  │
 ╰──────────────┴────────────┴─────────╯
 

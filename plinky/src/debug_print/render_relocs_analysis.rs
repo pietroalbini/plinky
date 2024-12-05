@@ -16,9 +16,9 @@ fn render_got(name: &str, names: &Names, got: &PlannedGot) -> Box<dyn Widget> {
     let symbols: Box<dyn Widget> = if got.symbols().next().is_some() {
         let mut symbols = Table::new();
         symbols.set_title("Symbols:");
-        symbols.add_row(["Name", "Resolved at"]);
+        symbols.add_head(["Name", "Resolved at"]);
         for symbol in got.symbols() {
-            symbols.add_row([names.symbol(symbol.id), match symbol.resolved_at {
+            symbols.add_body([names.symbol(symbol.id), match symbol.resolved_at {
                 ResolvedAt::LinkTime => "link time",
                 ResolvedAt::RunTime => "runtime",
             }]);

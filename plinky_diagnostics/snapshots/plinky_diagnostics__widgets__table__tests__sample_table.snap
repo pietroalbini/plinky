@@ -1,12 +1,10 @@
 ---
-source: plinky_diagnostics/src/table.rs
-expression: table.render()
+source: plinky_diagnostics/src/widgets/table.rs
+expression: table.render_to_string()
 ---
 ╭───────┬────────────┬────────╮
 │ Foo   │ Bar        │ Baz    │
 ├───────┼────────────┼────────┤
 │ Hello │ super long │ world! │
-├───────┼────────────┼────────┤
 │ 98%   │            │ -      │
 ╰───────┴────────────┴────────╯
-

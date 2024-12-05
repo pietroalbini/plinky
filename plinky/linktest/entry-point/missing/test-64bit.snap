@@ -13,9 +13,7 @@ debug print: loaded object
  │  │ Name         │ Type │ Source   │ Visibility │ Value       │
  │  ├──────────────┼──────┼──────────┼────────────┼─────────────┤
  │  │ <empty>      │ none │ <plinky> │ local      │ <null>      │
- │  ├──────────────┼──────┼──────────┼────────────┼─────────────┤
  │  │ _start       │ none │ <plinky> │ global     │ <undefined> │
- │  ├──────────────┼──────┼──────────┼────────────┼─────────────┤
  │  │ custom_entry │ none │ hello.o  │ global     │ .text + 0x0 │
  │  ╰──────────────┴──────┴──────────┴────────────┴─────────────╯
  ┴

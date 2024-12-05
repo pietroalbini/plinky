@@ -4,7 +4,6 @@ expression: table.render_to_string()
 ---
 ╭─────┬─────┬───────────╮
 │ a   │ b   │ c         │
-├─────┼─────┼───────────┤
 │ foo │ baz │ qu        │
 │ bar │     │ u         │
 │     │     │           │

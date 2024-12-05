@@ -9,9 +9,9 @@ pub(super) fn render_gc(object: &Object, removed: &[RemovedSection]) -> Diagnost
 
     let mut removed_table = Table::new();
     removed_table.set_title("Removed sections:");
-    removed_table.add_row(["Section name", "Source"]);
+    removed_table.add_head(["Section name", "Source"]);
     for section in removed {
-        removed_table.add_row([names.section(section.id), &section.source.to_string()]);
+        removed_table.add_body([names.section(section.id), &section.source.to_string()]);
     }
 
     Diagnostic::new(DiagnosticKind::DebugPrint, "garbage collector outcome").add(removed_table)

@@ -36,7 +36,7 @@ impl Widget for HexDump {
         }
 
         let mut table = Table::new();
-        table.add_row([hex.trim(), ascii.trim()]);
+        table.add_body([hex.trim(), ascii.trim()]);
         table.render(writer);
     }
 }

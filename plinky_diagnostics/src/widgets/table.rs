@@ -1,5 +1,5 @@
-use crate::WidgetWriter;
 use crate::widgets::Widget;
+use crate::WidgetWriter;
 
 const UNICODE_CHARSET: TableCharset = TableCharset {
     vertical_separator: '│',
@@ -24,7 +24,23 @@ impl Table {
         self.title = Some(title.into());
     }
 
-    pub fn add_row<I, V>(&mut self, row: I)
+    pub fn add_head<I, V>(&mut self, row: I)
+    where
+        V: Into<String>,
+        I: IntoIterator<Item = V>,
+    {
+        self.add_row(RowKind::Head, row)
+    }
+
+    pub fn add_body<I, V>(&mut self, row: I)
+    where
+        V: Into<String>,
+        I: IntoIterator<Item = V>,
+    {
+        self.add_row(RowKind::Body, row)
+    }
+
+    fn add_row<I, V>(&mut self, kind: RowKind, row: I)
     where
         V: Into<String>,
         I: IntoIterator<Item = V>,
@@ -38,17 +54,27 @@ impl Table {
         match &mut self.state {
             TableState::Empty => {
                 let mut cells_len = Vec::new();
+                let content: Vec<_> = row
+                    .inspect(|cell| cells_len.push(cell.iter().map(|l| l.len()).max().unwrap_or(0)))
+                    .collect();
                 self.state = TableState::HasContent {
-                    content: row
-                        .inspect(|cell| {
-                            cells_len.push(cell.iter().map(|l| l.len()).max().unwrap_or(0))
-                        })
-                        .collect(),
                     cells_len,
                     cells_count: count,
+                    head: match kind {
+                        RowKind::Head => content.clone(),
+                        RowKind::Body => Vec::new(),
+                    },
+                    body: match kind {
+                        RowKind::Head => Vec::new(),
+                        RowKind::Body => content,
+                    },
                 };
             }
-            TableState::HasContent { cells_count, cells_len, content } => {
+            TableState::HasContent { cells_count, cells_len, head, body } => {
+                let content = match kind {
+                    RowKind::Head => head,
+                    RowKind::Body => body,
+                };
                 content.extend(row.enumerate().map(|(pos, cell)| {
                     let cell_len = cell.iter().map(|c| c.len()).max().unwrap_or(0);
                     match cells_len.get_mut(pos) {
@@ -66,6 +92,45 @@ impl Table {
 
     pub fn is_empty(&self) -> bool {
         matches!(self.state, TableState::Empty)
+    }
+
+    pub fn is_body_empty(&self) -> bool {
+        match &self.state {
+            TableState::Empty => true,
+            TableState::HasContent { body, .. } => body.is_empty(),
+        }
+    }
+
+    fn render_content(
+        &self,
+        writer: &mut WidgetWriter,
+        content: &[Vec<String>],
+        cells_len: &[usize],
+        cells_count: usize,
+    ) {
+        let mut rows = content.chunks_exact(cells_count);
+        for row in rows.by_ref() {
+            let lines_count = row.iter().map(|cell| cell.len()).max().unwrap_or(0);
+
+            for line in 0..lines_count {
+                writer.push(self.charset.vertical_separator);
+                for (idx, cell_all_lines) in row.iter().enumerate() {
+                    let cell = cell_all_lines.get(line).map(|c| c.as_str()).unwrap_or_default();
+                    writer.push(' ');
+                    writer.push_str(cell);
+
+                    // Padding to align all cells.
+                    for _ in cell.len()..cells_len[idx] {
+                        writer.push(' ');
+                    }
+
+                    writer.push(' ');
+                    writer.push(self.charset.vertical_separator);
+                }
+                writer.push('\n');
+            }
+        }
+        assert!(rows.remainder().is_empty());
     }
 
     fn render_horizontal_border(
@@ -89,7 +154,7 @@ impl Table {
 
 impl Widget for Table {
     fn render(&self, writer: &mut WidgetWriter) {
-        let TableState::HasContent { cells_count, cells_len, content } = &self.state else {
+        let TableState::HasContent { cells_count, cells_len, head, body } = &self.state else {
             panic!("trying to render an empty table");
         };
 
@@ -98,51 +163,31 @@ impl Widget for Table {
             writer.push_str(title);
             writer.push_str("\n");
         }
+
         self.render_horizontal_border(writer, cells_len, &self.charset.first_junction);
-        writer.push_str("\n");
-
-        let mut rows = content.chunks_exact(*cells_count);
-        let mut idx = 0;
-        for row in rows.by_ref() {
-            let last_row = idx == content.len() / cells_count - 1;
-            let lines_count = row.iter().map(|cell| cell.len()).max().unwrap_or(0);
-
-            for line in 0..lines_count {
-                writer.push(self.charset.vertical_separator);
-                for (idx, cell_all_lines) in row.iter().enumerate() {
-                    let cell = cell_all_lines.get(line).map(|c| c.as_str()).unwrap_or_default();
-                    writer.push(' ');
-                    writer.push_str(cell);
-
-                    // Padding to align all cells.
-                    for _ in cell.len()..cells_len[idx] {
-                        writer.push(' ');
-                    }
-
-                    writer.push(' ');
-                    writer.push(self.charset.vertical_separator);
-                }
-                writer.push('\n');
-            }
-            self.render_horizontal_border(
-                writer,
-                cells_len,
-                if last_row { &self.charset.last_junction } else { &self.charset.middle_junction },
-            );
-            if !last_row {
-                writer.push('\n');
-            }
-
-            idx += 1;
+        writer.push('\n');
+        if !head.is_empty() {
+            self.render_content(writer, head, cells_len, *cells_count);
         }
-
-        assert!(rows.remainder().is_empty());
+        if !head.is_empty() && !body.is_empty() {
+            self.render_horizontal_border(writer, cells_len, &self.charset.middle_junction);
+            writer.push('\n');
+        }
+        if !body.is_empty() {
+            self.render_content(writer, body, cells_len, *cells_count);
+        }
+        self.render_horizontal_border(writer, cells_len, &self.charset.last_junction);
     }
 }
 
 enum TableState {
     Empty,
-    HasContent { cells_count: usize, cells_len: Vec<usize>, content: Vec<Vec<String>> },
+    HasContent {
+        cells_count: usize,
+        cells_len: Vec<usize>,
+        head: Vec<Vec<String>>,
+        body: Vec<Vec<String>>,
+    },
 }
 
 struct TableCharset {
@@ -159,6 +204,11 @@ struct TableJunctionCharset {
     last: char,
 }
 
+enum RowKind {
+    Head,
+    Body,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,9 +220,9 @@ mod tests {
         let _config = configure_insta();
 
         let mut table = Table::new();
-        table.add_row(["Foo", "Bar", "Baz"]);
-        table.add_row(["Hello", "super long", "world!"]);
-        table.add_row(["98%", "", "-"]);
+        table.add_head(["Foo", "Bar", "Baz"]);
+        table.add_body(["Hello", "super long", "world!"]);
+        table.add_body(["98%", "", "-"]);
 
         assert_snapshot!(table.render_to_string());
     }
@@ -182,7 +232,7 @@ mod tests {
         let _config = configure_insta();
 
         let mut table = Table::new();
-        table.add_row(["alone"]);
+        table.add_body(["alone"]);
 
         assert_snapshot!(table.render_to_string());
     }
@@ -193,7 +243,7 @@ mod tests {
 
         let mut table = Table::new();
         table.set_title("Example title:");
-        table.add_row(["a", "b", "c"]);
+        table.add_body(["a", "b", "c"]);
 
         assert_snapshot!(table.render_to_string());
     }
@@ -203,8 +253,21 @@ mod tests {
         let _config = configure_insta();
 
         let mut table = Table::new();
-        table.add_row(["a", "b", "c"]);
-        table.add_row(["foo\nbar", "baz", "qu\nu\n\n\nx!!!!!!!!"]);
+        table.add_body(["a", "b", "c"]);
+        table.add_body(["foo\nbar", "baz", "qu\nu\n\n\nx!!!!!!!!"]);
+
+        assert_snapshot!(table.render_to_string());
+    }
+
+    #[test]
+    fn test_head_and_body() {
+        let _config = configure_insta();
+
+        let mut table = Table::new();
+        table.add_head(["a", "b", "c"]);
+        table.add_head(["d", "e", "f"]);
+        table.add_body(["aa", "bb", "cc"]);
+        table.add_body(["dd", "ee", "ff"]);
 
         assert_snapshot!(table.render_to_string());
     }
@@ -213,8 +276,8 @@ mod tests {
     #[should_panic = "other rows have 3 cells, while this row has 2 cells"]
     fn test_wrong_number_of_cells() {
         let mut table = Table::new();
-        table.add_row(["foo", "bar", "baz"]);
-        table.add_row(["a", "b"]);
+        table.add_body(["foo", "bar", "baz"]);
+        table.add_body(["a", "b"]);
     }
 
     #[test]

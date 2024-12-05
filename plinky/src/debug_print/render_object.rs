@@ -122,9 +122,9 @@ fn render_data_section(
 fn render_relocations(names: &Names, title: &str, relocations: &[Relocation]) -> Box<dyn Widget> {
     let mut table = Table::new();
     table.set_title(title);
-    table.add_row(["Type", "Symbol", "Offset", "Addend"]);
+    table.add_head(["Type", "Symbol", "Offset", "Addend"]);
     for relocation in relocations {
-        table.add_row([
+        table.add_body([
             format!("{:?}", relocation.type_),
             names.symbol(relocation.symbol).into(),
             format!("{}", relocation.offset),
@@ -170,7 +170,7 @@ fn render_symbols<'a>(
 
     let mut table = Table::new();
     table.set_title(title);
-    table.add_row(["Name", "Type", "Source", "Visibility", "Value"]);
+    table.add_head(["Name", "Type", "Source", "Visibility", "Value"]);
     for symbol in symbols {
         let type_ = match symbol.type_() {
             SymbolType::NoType => "none",
@@ -198,7 +198,7 @@ fn render_symbols<'a>(
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),
         };
-        table.add_row([
+        table.add_body([
             names.symbol(symbol.id()),
             type_,
             &symbol.span().to_string(),
@@ -226,7 +226,7 @@ fn render_strings_section(
     custom.set_title("Additional strings:");
     for (_, string) in strings.iter_custom_strings() {
         custom_count += 1;
-        custom.add_row([string]);
+        custom.add_body([string]);
     }
 
     Box::new(
@@ -307,14 +307,15 @@ fn render_inputs(object: &Object) -> Box<dyn Widget> {
         let mut table = Table::new();
         table.set_title(title.clone());
 
+        table.add_head(["Property", "Value"]);
         if let Some(isa) = &input.gnu_properties.x86_isa_used {
-            table.add_row(["X86 ISA used".to_string(), isa.to_string()]);
+            table.add_body(["X86 ISA used".to_string(), isa.to_string()]);
         }
         if let Some(features2) = &input.gnu_properties.x86_features_2_used {
-            table.add_row(["x86 features 2 used".to_string(), features2.to_string()]);
+            table.add_body(["x86 features 2 used".to_string(), features2.to_string()]);
         }
 
-        if table.is_empty() {
+        if table.is_body_empty() {
             result.push(Box::new(Text::new(title)));
         } else {
             result.push(Box::new(table));

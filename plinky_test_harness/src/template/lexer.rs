@@ -8,6 +8,9 @@ pub(super) enum Token<'a> {
     QuestionMark,
     Colon,
     DoubleEquals,
+    OpenParen,
+    CloseParen,
+    Comma,
     BeginInterpolation,
     EndInterpolation,
 }
@@ -21,6 +24,9 @@ impl std::fmt::Display for Token<'_> {
             Token::QuestionMark => f.write_str("?"),
             Token::Colon => f.write_str(":"),
             Token::DoubleEquals => f.write_str("=="),
+            Token::OpenParen => f.write_str("("),
+            Token::CloseParen => f.write_str(")"),
+            Token::Comma => f.write_str(","),
             Token::BeginInterpolation => f.write_str("${"),
             Token::EndInterpolation => f.write_str("}"),
         }
@@ -86,6 +92,18 @@ impl<'a> Iterator for Lexer<'a, '_> {
                         **remaining = &remaining[1..];
                         Some(Ok(Token::Colon))
                     }
+                    Some('(') => {
+                        **remaining = &remaining[1..];
+                        Some(Ok(Token::OpenParen))
+                    }
+                    Some(')') => {
+                        **remaining = &remaining[1..];
+                        Some(Ok(Token::CloseParen))
+                    }
+                    Some(',') => {
+                        **remaining = &remaining[1..];
+                        Some(Ok(Token::Comma))
+                    }
                     Some('=') => {
                         if remaining.chars().skip(1).next() != Some('=') {
                             return Some(Err(TemplateParseError::UnexpectedChar('=')));
@@ -140,12 +158,15 @@ mod tests {
                 Token::QuestionMark,
                 Token::DoubleEquals,
                 Token::Colon,
+                Token::CloseParen,
+                Token::OpenParen,
+                Token::Comma,
                 Token::Variable("caller.role"),
                 Token::StringLiteral("hello \t world"),
                 Token::Variable("caller.name.both")
             ],
             Lexer::new(
-                &mut "Hello ${user}! I am ${ ?==:  caller.role \t 'hello \t world' caller.name.both"
+                &mut "Hello ${user}! I am ${ ?==:)( , caller.role \t 'hello \t world' caller.name.both"
             )
             .map(|t| t.unwrap())
             .collect::<Vec<_>>(),

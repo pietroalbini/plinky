@@ -1,4 +1,5 @@
 #![feature(test)]
+#![feature(error_generic_member_access)]
 
 extern crate test;
 

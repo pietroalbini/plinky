@@ -1,9 +1,11 @@
+mod functions;
 mod lexer;
 mod parser;
 mod serde;
 
 use crate::template::lexer::Lexer;
 use crate::template::parser::Parser;
+pub use functions::{FunctionCallError, IntoTemplateFunction, TemplateFunction};
 use plinky_macros::{Display, Error};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -61,6 +63,10 @@ enum Expression {
     Variable(String),
     Value(Value),
     Equals(Box<Expression>, Box<Expression>),
+    FunctionCall {
+        name: String,
+        params: Vec<Expression>,
+    },
     TernaryOperator {
         condition: Box<Expression>,
         if_true: Box<Expression>,
@@ -93,7 +99,26 @@ impl Expression {
                 let if_true = if_true.resolve(context)?;
                 let if_false = if_false.resolve(context)?;
 
-                if condition.as_bool()? { Ok(if_true) } else { Ok(if_false) }
+                if condition.as_bool()? {
+                    Ok(if_true)
+                } else {
+                    Ok(if_false)
+                }
+            }
+
+            Expression::FunctionCall { name, params } => {
+                let function = context
+                    .get_function(name)
+                    .ok_or_else(|| TemplateResolveError::MissingFunction(name.clone()))?;
+
+                let mut resolved_params = Vec::new();
+                for param in params {
+                    resolved_params.push(param.resolve(context)?);
+                }
+
+                Ok(Cow::Owned(function.call(&resolved_params).map_err(|err| {
+                    TemplateResolveError::FunctionCall { name: name.clone(), err }
+                })?))
             }
         }
     }
@@ -115,21 +140,21 @@ pub enum Value {
 }
 
 impl Value {
-    fn as_str(&self) -> Result<Cow<'_, str>, TemplateResolveError> {
+    fn as_str(&self) -> Result<Cow<'_, str>, ConversionError> {
         match self {
             Value::String(string) => Ok(Cow::Borrowed(string.as_str())),
             Value::Path(path) => match path.to_str() {
                 Some(path) => Ok(Cow::Borrowed(path)),
-                None => Err(TemplateResolveError::NonUtf8Path(path.clone())),
+                None => Err(ConversionError::NonUtf8Path(path.clone())),
             },
-            Value::Bool(_) => Err(TemplateResolveError::BoolToStringUnsupported),
+            Value::Bool(_) => Err(ConversionError::BoolToStringUnsupported),
         }
     }
 
-    fn as_bool(&self) -> Result<bool, TemplateResolveError> {
+    fn as_bool(&self) -> Result<bool, ConversionError> {
         match self {
-            Value::String(_) => Err(TemplateResolveError::StringToBoolUnsupported),
-            Value::Path(_) => Err(TemplateResolveError::PathToBoolUnsupported),
+            Value::String(_) => Err(ConversionError::StringToBoolUnsupported),
+            Value::Path(_) => Err(ConversionError::PathToBoolUnsupported),
             Value::Bool(b) => Ok(*b),
         }
     }
@@ -137,25 +162,38 @@ impl Value {
 
 pub struct TemplateContext {
     variables: HashMap<String, Value>,
+    functions: HashMap<String, Box<dyn TemplateFunction>>,
 }
 
 impl TemplateContext {
     pub fn new() -> Self {
-        Self { variables: HashMap::new() }
+        Self { variables: HashMap::new(), functions: HashMap::new() }
     }
 
     pub fn set_variable(&mut self, key: &str, value: Value) {
         self.variables.insert(key.into(), value);
     }
+
+    pub fn add_function<T, U>(&mut self, name: &str, func: T)
+    where
+        T: IntoTemplateFunction<U>,
+    {
+        self.functions.insert(name.into(), func.into_template_function());
+    }
 }
 
 pub trait TemplateContextGetters {
     fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>>;
+    fn get_function(&self, name: &str) -> Option<&dyn TemplateFunction>;
 }
 
 impl TemplateContextGetters for TemplateContext {
     fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>> {
         self.variables.get(key).map(Cow::Borrowed)
+    }
+
+    fn get_function(&self, name: &str) -> Option<&dyn TemplateFunction> {
+        self.functions.get(name).map(|v| &**v)
     }
 }
 
@@ -173,16 +211,32 @@ pub enum TemplateParseError {
 pub enum TemplateResolveError {
     #[display("missing variable: {f0}")]
     MissingVariable(String),
+    #[display("missing function: {f0}")]
+    MissingFunction(String),
+    #[display("cannot compare different types {f0:?} and {f1:?}")]
+    TypeMismatchComparison(Value, Value),
+    #[transparent]
+    Conversion(ConversionError),
+    #[display("calling function {name} failed")]
+    FunctionCall {
+        name: String,
+        #[source]
+        err: FunctionCallError,
+    },
+}
+
+#[derive(Debug, Display, Error, PartialEq, Eq)]
+pub enum ConversionError {
     #[display("non-UTF-8 path: {f0:?}")]
     NonUtf8Path(PathBuf),
     #[display("converting from bool to string is unsupported")]
     BoolToStringUnsupported,
+    #[display("converting from bool to path is unsupported")]
+    BoolToPathUnsupported,
     #[display("converting from string to bool is unsupported")]
     StringToBoolUnsupported,
     #[display("converting from path to bool is unsupported")]
     PathToBoolUnsupported,
-    #[display("cannot compare different types {f0:?} and {f1:?}")]
-    TypeMismatchComparison(Value, Value),
 }
 
 #[cfg(test)]
@@ -231,12 +285,47 @@ mod tests {
         assert_resolve_error(
             &ctx,
             "${ name ? 'yes' : 'no' }",
-            TemplateResolveError::StringToBoolUnsupported,
+            TemplateResolveError::Conversion(ConversionError::StringToBoolUnsupported),
         );
         assert_resolve_error(
             &ctx,
             "${ path ? 'yes' : 'no' }",
-            TemplateResolveError::PathToBoolUnsupported,
+            TemplateResolveError::Conversion(ConversionError::PathToBoolUnsupported),
+        );
+
+        ctx.add_function("upper", |name: String| -> _ { Value::String(name.to_uppercase()) });
+        assert_resolve(&ctx, "${upper(name)}", "PIETRO");
+        assert_resolve_error(
+            &ctx,
+            "${upper()}",
+            TemplateResolveError::FunctionCall {
+                name: "upper".into(),
+                err: FunctionCallError::TooFewArgs,
+            },
+        );
+        assert_resolve_error(
+            &ctx,
+            "${upper(name, name)}",
+            TemplateResolveError::FunctionCall {
+                name: "upper".into(),
+                err: FunctionCallError::TooManyArgs,
+            },
+        );
+        assert_resolve_error(
+            &ctx,
+            "${upper(false)}",
+            TemplateResolveError::FunctionCall {
+                name: "upper".into(),
+                err: FunctionCallError::InvalidArg {
+                    position: 1,
+                    err: ConversionError::BoolToStringUnsupported,
+                },
+            },
+        );
+        assert_resolve_error(
+            &ctx,
+            "${lower(name)}",
+            TemplateResolveError::MissingFunction("lower".into()),
         );
     }
 

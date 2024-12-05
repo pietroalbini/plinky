@@ -77,7 +77,30 @@ impl<'a, 'b> Parser<'a, 'b> {
         match self.lexer.next().transpose()? {
             Some(Token::Variable("true")) => Ok(Expression::Value(Value::Bool(true))),
             Some(Token::Variable("false")) => Ok(Expression::Value(Value::Bool(false))),
-            Some(Token::Variable(var)) => Ok(Expression::Variable(var.into())),
+            Some(Token::Variable(var)) => {
+                if self.peek()? == Some(&Token::OpenParen) {
+                    self.lexer.next().transpose()?;
+
+                    let mut params = Vec::new();
+                    loop {
+                        if self.peek()? == Some(&Token::CloseParen) {
+                            self.lexer.next().transpose()?;
+                            break;
+                        }
+                        params.push(self.parse_expression()?);
+
+                        match self.lexer.next().transpose()? {
+                            Some(Token::CloseParen) => break,
+                            Some(Token::Comma) => {}
+                            other => unexpected(other, "end of function args")?,
+                        }
+                    }
+
+                    Ok(Expression::FunctionCall { name: var.into(), params })
+                } else {
+                    Ok(Expression::Variable(var.into()))
+                }
+            }
 
             Some(Token::StringLiteral(lit)) => Ok(Expression::Value(Value::String(lit.into()))),
 
@@ -185,6 +208,22 @@ mod tests {
     }
 
     #[test]
+    fn test_function() {
+        assert_eq!(
+            template([raw("Directory: "), func("dirname", [var("path")])]),
+            parse("Directory: ${dirname(path)}").unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_function_multiple_args() {
+        assert_eq!(
+            template([raw("Path: "), func("join", [var("base"), str_lit("hello.txt")])]),
+            parse("Path: ${join(base, 'hello.txt')}").unwrap(),
+        );
+    }
+
+    #[test]
     fn test_bad_templates() {
         let bad = &["Hello ${", "Hello ${ var", "Hello ${var1 var2"];
 
@@ -223,6 +262,18 @@ mod tests {
             if_true: box_expr(if_true),
             if_false: box_expr(if_false),
         })
+    }
+
+    fn func<const N: usize>(name: &str, params: [Part; N]) -> Part {
+        let params = params
+            .into_iter()
+            .map(|p| match p {
+                Part::RawText(_) => panic!("raw text not supported"),
+                Part::Expression(e) => e,
+            })
+            .collect();
+
+        Part::Expression(Expression::FunctionCall { name: name.into(), params })
     }
 
     fn box_expr(part: Part) -> Box<Expression> {

@@ -11,6 +11,8 @@ pub(crate) struct LdStep {
     output: Template,
     content: Vec<Template>,
     #[serde(default)]
+    extra_args: Vec<Template>,
+    #[serde(default)]
     shared_library: bool,
 }
 
@@ -29,6 +31,12 @@ impl Step for LdStep {
             std::fs::copy(ctx.maybe_relative_to_src(&input), dest.join(file_name(input)))?;
         }
 
+        let extra_args = self
+            .extra_args
+            .iter()
+            .map(|t| t.resolve(&*ctx.template))
+            .collect::<Result<Vec<_>, _>>()?;
+
         run(Command::new("ld")
             .current_dir(&dest)
             .arg("-o")
@@ -39,7 +47,8 @@ impl Step for LdStep {
             .args(match ctx.arch {
                 Arch::X86 => ["-m", "elf_i386"],
                 Arch::X86_64 => ["-m", "elf_x86_64"],
-            }))?;
+            })
+            .args(extra_args))?;
 
         ctx.template.set_variable(ctx.step_name, Value::Path(dest.join(dest_name)));
 
@@ -47,6 +56,11 @@ impl Step for LdStep {
     }
 
     fn templates(&self) -> Vec<Template> {
-        self.content.iter().cloned().chain(std::iter::once(self.output.clone())).collect()
+        self.content
+            .iter()
+            .cloned()
+            .chain(std::iter::once(self.output.clone()))
+            .chain(self.extra_args.clone())
+            .collect()
     }
 }

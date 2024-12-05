@@ -1,5 +1,7 @@
-use anyhow::{Error, anyhow, bail};
-use plinky_test_harness::template::{Template, TemplateContext, TemplateContextGetters, Value};
+use anyhow::{anyhow, bail, Error};
+use plinky_test_harness::template::{
+    Template, TemplateContext, TemplateContextGetters, TemplateFunction, Value,
+};
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};
 use std::borrow::Cow;
@@ -120,6 +122,10 @@ impl TemplateContextGetters for CopyFilesTemplateResolver<'_> {
             }
             _ => Some(parent),
         }
+    }
+
+    fn get_function(&self, name: &str) -> Option<&dyn TemplateFunction> {
+        self.context.get_function(name)
     }
 }
 

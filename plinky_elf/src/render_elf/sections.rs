@@ -26,7 +26,7 @@ pub(super) fn render_section(
         ElfSectionContent::Group(group) => render_section_group(names, group),
         ElfSectionContent::Hash(hash) => render_section_hash(names, object, hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
-        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(names, dynamic),
+        ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(names, object, dynamic),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
     };
 
@@ -251,7 +251,11 @@ pub fn render_note(note: &ElfNote) -> Box<dyn Widget> {
     }
 }
 
-fn render_section_dynamic(names: &Names, dynamic: &ElfDynamic) -> Vec<Box<dyn Widget>> {
+fn render_section_dynamic(
+    names: &Names,
+    object: &ElfObject,
+    dynamic: &ElfDynamic,
+) -> Vec<Box<dyn Widget>> {
     enum Value<'a> {
         Bytes(&'a u64),
         Addr(&'a u64),
@@ -264,6 +268,11 @@ fn render_section_dynamic(names: &Names, dynamic: &ElfDynamic) -> Vec<Box<dyn Wi
         "dynamic information | string table: {}",
         names.section(dynamic.string_table),
     ));
+
+    let string_table = object.sections.get(&dynamic.string_table).expect("missing string table");
+    let ElfSectionContent::StringTable(strings) = &string_table.content else {
+        panic!("the dynamic section's string table is not a string table");
+    };
 
     let mut table = Table::new();
     table.add_row(["Kind", "Value"]);
@@ -335,13 +344,19 @@ fn render_section_dynamic(names: &Names, dynamic: &ElfDynamic) -> Vec<Box<dyn Wi
                 continue;
             }
         };
-        table.add_row([name.into(), match value {
-            Value::Bytes(bytes) => format!("{bytes} bytes"),
-            Value::Addr(addr) => format!("address {addr:#x}"),
-            Value::StrOff(off) => format!("offset {off:#} in the string table"),
-            Value::Str(string) => string,
-            Value::None => "-".to_string(),
-        }]);
+        table.add_row([
+            name.into(),
+            match value {
+                Value::Bytes(bytes) => format!("{bytes} bytes"),
+                Value::Addr(addr) => format!("address {addr:#x}"),
+                Value::StrOff(off) => {
+                    let string = strings.get(*off as _).unwrap_or("<missing>");
+                    format!("string {off:#x}: {string}")
+                },
+                Value::Str(string) => string,
+                Value::None => "-".to_string(),
+            },
+        ]);
     }
 
     vec![Box::new(info), Box::new(table)]

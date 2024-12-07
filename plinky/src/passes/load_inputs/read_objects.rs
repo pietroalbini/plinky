@@ -1,3 +1,4 @@
+use crate::cli::CliInput;
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
@@ -10,13 +11,13 @@ use std::io::{BufReader, Cursor, Read};
 use std::path::{Path, PathBuf};
 
 pub(super) struct ObjectsReader<'a> {
-    remaining_files: &'a [PathBuf],
+    remaining_inputs: &'a [CliInput],
     current_archive: Option<PendingArchive>,
 }
 
 impl<'a> ObjectsReader<'a> {
-    pub(super) fn new(paths: &'a [PathBuf]) -> Self {
-        Self { remaining_files: paths, current_archive: None }
+    pub(super) fn new(inputs: &'a [CliInput]) -> Self {
+        Self { remaining_inputs: inputs, current_archive: None }
     }
 
     pub(super) fn next_object(
@@ -28,20 +29,22 @@ impl<'a> ObjectsReader<'a> {
                 return Ok(Some(result));
             }
 
-            if self.remaining_files.is_empty() {
+            if self.remaining_inputs.is_empty() {
                 return Ok(None);
             }
-            let path = &self.remaining_files[0];
-            self.remaining_files = &self.remaining_files[1..];
+            let input = &self.remaining_inputs[0];
+            self.remaining_inputs = &self.remaining_inputs[1..];
+
+            let path = self.resolve_input(input)?;
 
             let mut r = BufReader::new(
-                File::open(path).map_err(|e| ReadObjectsError::OpenFailed(path.clone(), e))?,
+                File::open(&path).map_err(|e| ReadObjectsError::OpenFailed(path.clone(), e))?,
             );
-            match FileType::from_magic_number(path, &mut r)? {
+            match FileType::from_magic_number(&path, &mut r)? {
                 FileType::Elf => {
                     let file_name = path.file_name().unwrap();
                     return Ok(Some(NextObject {
-                        source: ObjectSpan::new_file(path),
+                        source: ObjectSpan::new_file(&path),
                         file_name: file_name
                             .to_str()
                             .ok_or_else(|| ReadObjectsError::NonUtf8FileName {
@@ -59,6 +62,12 @@ impl<'a> ObjectsReader<'a> {
                     continue;
                 }
             }
+        }
+    }
+
+    fn resolve_input(&self, input: &CliInput) -> Result<PathBuf, ReadObjectsError> {
+        match input {
+            CliInput::Path(p) => Ok(p.clone()),
         }
     }
 

@@ -11,7 +11,7 @@ const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie", "shared", "soname"];
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CliOptions {
-    pub(crate) inputs: Vec<PathBuf>,
+    pub(crate) inputs: Vec<CliInput>,
     pub(crate) output: PathBuf,
     pub(crate) entry: Option<String>,
     pub(crate) gc_sections: bool,
@@ -47,6 +47,11 @@ pub(crate) enum DebugPrint {
     FinalElf(RenderElfFilters),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum CliInput {
+    Path(PathBuf),
+}
+
 pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     args: I,
 ) -> Result<CliOptions, CliError> {
@@ -68,7 +73,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut previous_token: Option<CliToken<'_>> = None;
     while let Some(token) = lexer.next() {
         match token {
-            CliToken::StandaloneValue(val) => inputs.push(val.into()),
+            CliToken::StandaloneValue(val) => inputs.push(CliInput::Path(val.into())),
 
             CliToken::LongFlag("output") | CliToken::ShortFlag("o") => {
                 reject_duplicate(&token, &mut output, || lexer.expect_flag_value(&token))?;
@@ -431,7 +436,7 @@ mod tests {
     #[test]
     fn test_one_input() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_static() }),
+            Ok(CliOptions { inputs: vec![p("foo")], ..default_options_static() }),
             parse(["foo"].into_iter())
         )
     }
@@ -439,7 +444,7 @@ mod tests {
     #[test]
     fn test_two_inputs() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into(), "bar".into()], ..default_options_static() }),
+            Ok(CliOptions { inputs: vec![p("foo"), p("bar")], ..default_options_static() }),
             parse(["foo", "bar"].into_iter())
         )
     }
@@ -454,7 +459,7 @@ mod tests {
         for flags in VARIANTS {
             assert_eq!(
                 Ok(CliOptions {
-                    inputs: vec!["foo".into()],
+                    inputs: vec![p("foo")],
                     output: "bar".into(),
                     ..default_options_static()
                 }),
@@ -490,7 +495,7 @@ mod tests {
         for flags in VARIANTS {
             assert_eq!(
                 Ok(CliOptions {
-                    inputs: vec!["foo".into()],
+                    inputs: vec![p("foo")],
                     entry: Some("bar".into()),
                     ..default_options_static()
                 }),
@@ -540,7 +545,7 @@ mod tests {
         for (expected, flags) in variants {
             assert_eq!(
                 Ok(CliOptions {
-                    inputs: vec!["foo".into()],
+                    inputs: vec![p("foo")],
                     debug_print: expected,
                     ..default_options_static()
                 }),
@@ -613,7 +618,7 @@ mod tests {
     fn test_gc_sections() {
         assert_eq!(
             Ok(CliOptions {
-                inputs: vec!["foo".into()],
+                inputs: vec![p("foo")],
                 gc_sections: true,
                 ..default_options_static()
             }),
@@ -633,7 +638,7 @@ mod tests {
     fn test_dynamic_linker() {
         assert_eq!(
             Ok(CliOptions {
-                inputs: vec!["foo".into()],
+                inputs: vec![p("foo")],
                 dynamic_linker: DynamicLinker::Custom("bar".into()),
                 ..default_options_pie()
             }),
@@ -652,7 +657,7 @@ mod tests {
     #[test]
     fn test_no_pie() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_static() }),
+            Ok(CliOptions { inputs: vec![p("foo")], ..default_options_static() }),
             parse(["foo", "-no-pie"].into_iter())
         );
     }
@@ -660,7 +665,7 @@ mod tests {
     #[test]
     fn test_pie() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_pie() }),
+            Ok(CliOptions { inputs: vec![p("foo")], ..default_options_pie() }),
             parse(["foo", "-pie"].into_iter())
         );
     }
@@ -668,7 +673,7 @@ mod tests {
     #[test]
     fn test_shared() {
         assert_eq!(
-            Ok(CliOptions { inputs: vec!["foo".into()], ..default_options_shared() }),
+            Ok(CliOptions { inputs: vec![p("foo")], ..default_options_shared() }),
             parse(["foo", "-shared"].into_iter())
         )
     }
@@ -688,7 +693,7 @@ mod tests {
     fn test_relro() {
         assert_eq!(
             Ok(CliOptions {
-                inputs: vec!["foo".into()],
+                inputs: vec![p("foo")],
                 read_only_got: true,
                 ..default_options_pie()
             }),
@@ -700,7 +705,7 @@ mod tests {
     fn test_norelro() {
         assert_eq!(
             Ok(CliOptions {
-                inputs: vec!["foo".into()],
+                inputs: vec![p("foo")],
                 read_only_got: false,
                 ..default_options_pie()
             }),
@@ -732,7 +737,7 @@ mod tests {
     fn test_lazy() {
         assert_eq!(
             Ok(CliOptions {
-                inputs: vec!["foo".into()],
+                inputs: vec![p("foo")],
                 read_only_got_plt: false,
                 ..default_options_pie()
             }),
@@ -744,7 +749,7 @@ mod tests {
     fn test_now() {
         assert_eq!(
             Ok(CliOptions {
-                inputs: vec!["foo".into()],
+                inputs: vec![p("foo")],
                 mode: Mode::PositionIndependent,
                 read_only_got_plt: true,
                 ..default_options_pie()
@@ -777,7 +782,7 @@ mod tests {
         for case in [["foo", "-shared", "-soname=hello.so"], ["foo", "-shared", "-hhello.so"]] {
             assert_eq!(
                 Ok(CliOptions {
-                    inputs: vec!["foo".into()],
+                    inputs: vec![p("foo")],
                     shared_object_name: Some("hello.so".into()),
                     ..default_options_shared()
                 }),
@@ -820,6 +825,10 @@ mod tests {
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
             parse(["--foo-bar"].into_iter())
         )
+    }
+
+    fn p(name: &str) -> CliInput {
+        CliInput::Path(name.into())
     }
 
     fn default_options_static() -> CliOptions {

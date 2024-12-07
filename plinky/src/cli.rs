@@ -20,6 +20,7 @@ pub(crate) struct CliOptions {
     pub(crate) read_only_got: bool,
     pub(crate) read_only_got_plt: bool,
     pub(crate) dynamic_linker: DynamicLinker,
+    pub(crate) search_paths: Vec<PathBuf>,
     pub(crate) shared_object_name: Option<String>,
     pub(crate) mode: Mode,
 }
@@ -67,6 +68,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut gc_sections = None;
     let mut mode = None;
     let mut dynamic_linker = None;
+    let mut search_paths = Vec::new();
     let mut shared_object_name = None;
     let mut debug_print = BTreeSet::new();
 
@@ -103,6 +105,14 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongShortFlag("shared") => {
                 reject_multiple_modes(&mut mode, Mode::SharedLibrary)?;
+            }
+
+            CliToken::ShortFlag("L") | CliToken::LongFlag("library-path") => {
+                let path = lexer.expect_flag_value(&token)?;
+                if path.starts_with('=') || path.starts_with("$SYSROOT") {
+                    return Err(CliError::UnsupportedSysrootRelativeLibraryPath);
+                }
+                search_paths.push(PathBuf::from(path));
             }
 
             CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
@@ -184,6 +194,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         output: output.unwrap_or("a.out").into(),
         gc_sections: gc_sections.unwrap_or(false),
         debug_print,
+        search_paths,
         shared_object_name: shared_object_name.map(|s| s.into()),
         executable_stack: executable_stack.unwrap_or(false),
         read_only_got: read_only_got.unwrap_or(false),
@@ -277,6 +288,8 @@ pub(crate) enum CliError {
     NowOnlyForPie,
     #[display("setting the shared object name is only supported when building shared objects")]
     UnsupportedSharedObjectName,
+    #[display("sysroot-relative library paths are not supported yet")]
+    UnsupportedSysrootRelativeLibraryPath,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -451,10 +464,12 @@ mod tests {
 
     #[test]
     fn test_output_flags() {
-        const VARIANTS: &[&[&str]] =
-            &[&["foo", "-obar"], &["foo", "-o", "bar"], &["foo", "--output=bar"], &[
-                "foo", "--output", "bar",
-            ]];
+        const VARIANTS: &[&[&str]] = &[
+            &["foo", "-obar"],
+            &["foo", "-o", "bar"],
+            &["foo", "--output=bar"],
+            &["foo", "--output", "bar"],
+        ];
 
         for flags in VARIANTS {
             assert_eq!(
@@ -487,10 +502,12 @@ mod tests {
 
     #[test]
     fn test_entry_flags() {
-        const VARIANTS: &[&[&str]] =
-            &[&["foo", "-ebar"], &["foo", "-e", "bar"], &["foo", "--entry=bar"], &[
-                "foo", "--entry", "bar",
-            ]];
+        const VARIANTS: &[&[&str]] = &[
+            &["foo", "-ebar"],
+            &["foo", "-e", "bar"],
+            &["foo", "--entry=bar"],
+            &["foo", "--entry", "bar"],
+        ];
 
         for flags in VARIANTS {
             assert_eq!(
@@ -524,16 +541,14 @@ mod tests {
     #[test]
     fn test_debug_print() {
         let variants = [
-            (btreeset![DebugPrint::LoadedObject(ObjectsFilter::all())], &[
-                "foo",
-                "--debug-print",
-                "loaded-object",
-            ] as &[&str]),
-            (btreeset![DebugPrint::RelocatedObject(ObjectsFilter::all())], &[
-                "foo",
-                "--debug-print",
-                "relocated-object",
-            ]),
+            (
+                btreeset![DebugPrint::LoadedObject(ObjectsFilter::all())],
+                &["foo", "--debug-print", "loaded-object"] as &[&str],
+            ),
+            (
+                btreeset![DebugPrint::RelocatedObject(ObjectsFilter::all())],
+                &["foo", "--debug-print", "relocated-object"],
+            ),
             (
                 btreeset![
                     DebugPrint::LoadedObject(ObjectsFilter::parse("@env").unwrap()),
@@ -680,11 +695,12 @@ mod tests {
 
     #[test]
     fn test_duplicate_modes() {
-        for case in
-            [["foo", "-no-pie", "-pie"], ["foo", "-pie", "-no-pie"], ["foo", "-shared", "-pie"], [
-                "foo", "-no-pie", "-shared",
-            ]]
-        {
+        for case in [
+            ["foo", "-no-pie", "-pie"],
+            ["foo", "-pie", "-no-pie"],
+            ["foo", "-shared", "-pie"],
+            ["foo", "-no-pie", "-shared"],
+        ] {
             assert_eq!(Err(CliError::MultipleModeChanges), parse(case.into_iter()));
         }
     }
@@ -692,11 +708,7 @@ mod tests {
     #[test]
     fn test_relro() {
         assert_eq!(
-            Ok(CliOptions {
-                inputs: vec![p("foo")],
-                read_only_got: true,
-                ..default_options_pie()
-            }),
+            Ok(CliOptions { inputs: vec![p("foo")], read_only_got: true, ..default_options_pie() }),
             parse(["foo", "-pie", "-z", "relro"].into_iter())
         );
     }
@@ -760,11 +772,12 @@ mod tests {
 
     #[test]
     fn test_multiple_now_flags() {
-        for case in
-            [["foo", "-znow", "-znow"], ["foo", "-znow", "-zlazy"], ["foo", "-zlazy", "-znow"], [
-                "foo", "-zlazy", "-zlazy",
-            ]]
-        {
+        for case in [
+            ["foo", "-znow", "-znow"],
+            ["foo", "-znow", "-zlazy"],
+            ["foo", "-zlazy", "-znow"],
+            ["foo", "-zlazy", "-zlazy"],
+        ] {
             assert_eq!(
                 Err(CliError::DuplicateFlag("-z now or -z lazy".into())),
                 parse(case.into_iter())
@@ -820,6 +833,64 @@ mod tests {
     }
 
     #[test]
+    fn test_search_paths() {
+        for case in [
+            &["foo", "-Lbar"] as &[&str],
+            &["foo", "-L", "bar"],
+            &["foo", "--library-path=bar"],
+            &["foo", "--library-path", "bar"],
+        ] {
+            assert_eq!(
+                CliOptions {
+                    inputs: vec![p("foo")],
+                    search_paths: vec!["bar".into()],
+                    ..default_options_static()
+                },
+                parse(case.iter().map(|s| *s)).unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_multiple_search_paths() {
+        assert_eq!(
+            CliOptions {
+                inputs: vec![p("foo")],
+                search_paths: vec!["bar".into(), "baz/hello".into()],
+                ..default_options_static()
+            },
+            parse(["foo", "-Lbar", "--library-path=baz/hello"].into_iter()).unwrap(),
+        )
+    }
+
+    #[test]
+    fn test_search_path_flag_without_value() {
+        assert_eq!(
+            Err(CliError::MissingValueForFlag("-L".into())),
+            parse(["foo", "-L"].into_iter())
+        );
+        assert_eq!(
+            Err(CliError::MissingValueForFlag("--library-path".into())),
+            parse(["foo", "--library-path"].into_iter())
+        );
+    }
+
+    #[test]
+    fn test_sysroot_relative_search_path() {
+        for case in [
+            &["foo", "-L", "=/bar"] as &[&str],
+            &["foo", "-L", "$SYSROOT/bar"],
+            &["foo", "--library-path", "=/bar"],
+            &["foo", "--library-path", "$SYSROOT/bar"],
+        ] {
+            assert_eq!(
+                Err(CliError::UnsupportedSysrootRelativeLibraryPath),
+                parse(case.iter().map(|s| *s))
+            );
+        }
+    }
+
+    #[test]
     fn test_unknown_flags() {
         assert_eq!(
             Err(CliError::UnsupportedFlag("--foo-bar".into())),
@@ -842,6 +913,7 @@ mod tests {
             read_only_got: false,
             read_only_got_plt: false,
             dynamic_linker: DynamicLinker::PlatformDefault,
+            search_paths: Vec::new(),
             shared_object_name: None,
             mode: Mode::PositionDependent,
         }

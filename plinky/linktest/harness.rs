@@ -110,14 +110,32 @@ impl PlinkyStep {
 fn copy_argument(dest: &Path, value: Value) -> Value {
     match value {
         Value::Path(path) => {
-            let file_name = path.file_name().expect("path without file name");
-            let dest = dest.join(file_name);
-            if !dest.exists() {
-                std::fs::copy(&path, dest).expect("failed to copy file");
+            let name = path.file_name().expect("path without name");
+            if !dest.join(name).exists() {
+                copy_recursive(&path, dest).expect("failed to copy source element");
             }
-            Value::Path(file_name.into())
+            Value::Path(name.into())
         }
         _ => value,
+    }
+}
+
+fn copy_recursive(from: &Path, dest_dir: &Path) -> Result<(), std::io::Error> {
+    let from_meta = std::fs::metadata(from)?;
+    let name = from.file_name().expect("missing name");
+    if from_meta.is_symlink() {
+        Err(std::io::Error::new(std::io::ErrorKind::Other, "cannot copy symlinks"))
+    } else if from_meta.is_file() {
+        std::fs::copy(from, dest_dir.join(name))?;
+        Ok(())
+    } else {
+        let new_dir = dest_dir.join(name);
+        std::fs::create_dir_all(&new_dir)?;
+        for entry in std::fs::read_dir(from)? {
+            let entry = entry?;
+            copy_recursive(&entry.path(), &new_dir)?;
+        }
+        Ok(())
     }
 }
 

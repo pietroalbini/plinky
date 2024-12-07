@@ -1,10 +1,7 @@
 use anyhow::{anyhow, bail, Error};
-use plinky_test_harness::template::{
-    Template, TemplateContext, TemplateContextGetters, TemplateFunction, Value,
-};
+use plinky_test_harness::template::{ResolveHooks, Template, Value};
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::iter::once;
 use std::path::Path;
@@ -64,8 +61,12 @@ impl PlinkyStep {
         let dest = ctx.dest.join(ctx.step_name);
         std::fs::create_dir_all(&dest)?;
 
-        let resolver = CopyFilesTemplateResolver { dest: &dest, context: ctx.template };
-        let cmd = self.cmd.iter().map(|c| c.resolve(&resolver)).collect::<Result<Vec<_>, _>>()?;
+        let hooks = ResolveHooks::new().expression_resolved(|value| copy_argument(&dest, value));
+        let cmd = self
+            .cmd
+            .iter()
+            .map(|c| c.resolve_with(&*ctx.template, &hooks))
+            .collect::<Result<Vec<_>, _>>()?;
 
         let mut command = Command::new(env!("CARGO_BIN_EXE_ld.plinky"));
         command.current_dir(&dest).args(&cmd).env("RUST_BACKTRACE", "1");
@@ -106,29 +107,17 @@ impl PlinkyStep {
     }
 }
 
-struct CopyFilesTemplateResolver<'a> {
-    dest: &'a Path,
-    context: &'a TemplateContext,
-}
-
-impl TemplateContextGetters for CopyFilesTemplateResolver<'_> {
-    fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>> {
-        let parent = self.context.get_variable(key)?;
-        match parent.as_ref() {
-            Value::Path(path) => {
-                let file_name = path.file_name().expect("path without file name");
-                let dest = self.dest.join(file_name);
-                if !dest.exists() {
-                    std::fs::copy(path, self.dest.join(file_name)).expect("failed to copy file");
-                }
-                Some(Cow::Owned(Value::Path(file_name.into())))
+fn copy_argument(dest: &Path, value: Value) -> Value {
+    match value {
+        Value::Path(path) => {
+            let file_name = path.file_name().expect("path without file name");
+            let dest = dest.join(file_name);
+            if !dest.exists() {
+                std::fs::copy(&path, dest).expect("failed to copy file");
             }
-            _ => Some(parent),
+            Value::Path(file_name.into())
         }
-    }
-
-    fn get_function(&self, name: &str) -> Option<&dyn TemplateFunction> {
-        self.context.get_function(name)
+        _ => value,
     }
 }
 

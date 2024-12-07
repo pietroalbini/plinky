@@ -24,21 +24,33 @@ impl Template {
 
     pub fn resolve(
         &self,
-        context: &dyn TemplateContextGetters,
+        context: &TemplateContext,
+    ) -> Result<String, TemplateResolveError> {
+        self.resolve_with(context, &ResolveHooks::new())
+    }
+
+    pub fn resolve_with(
+        &self,
+        context: &TemplateContext,
+        hooks: &ResolveHooks<'_>,
     ) -> Result<String, TemplateResolveError> {
         let mut result = String::new();
         for part in &self.parts {
             match part {
                 Part::RawText(lit) => result.push_str(lit),
                 Part::Expression(expr) => {
-                    result.push_str(expr.resolve(context)?.as_str()?.as_ref());
+                    let mut resolved = expr.resolve(context)?;
+                    if let Some(hook) = &hooks.expression_resolved {
+                        resolved = Cow::Owned(hook(resolved.into_owned()));
+                    }
+                    result.push_str(resolved.as_str()?.as_ref());
                 }
             }
         }
         Ok(result)
     }
 
-    pub fn will_resolve(&self, context: &dyn TemplateContextGetters) -> bool {
+    pub fn will_resolve(&self, context: &TemplateContext) -> bool {
         for part in &self.parts {
             match part {
                 Part::RawText(_) => {}
@@ -77,7 +89,7 @@ enum Expression {
 impl Expression {
     fn resolve<'a>(
         &'a self,
-        context: &'a dyn TemplateContextGetters,
+        context: &'a TemplateContext,
     ) -> Result<Cow<'a, Value>, TemplateResolveError> {
         match self {
             Expression::Variable(var) => context
@@ -180,20 +192,28 @@ impl TemplateContext {
     {
         self.functions.insert(name.into(), func.into_template_function());
     }
-}
 
-pub trait TemplateContextGetters {
-    fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>>;
-    fn get_function(&self, name: &str) -> Option<&dyn TemplateFunction>;
-}
-
-impl TemplateContextGetters for TemplateContext {
     fn get_variable(&self, key: &str) -> Option<Cow<'_, Value>> {
         self.variables.get(key).map(Cow::Borrowed)
     }
 
     fn get_function(&self, name: &str) -> Option<&dyn TemplateFunction> {
         self.functions.get(name).map(|v| &**v)
+    }
+}
+
+pub struct ResolveHooks<'a> {
+    expression_resolved: Option<Box<dyn Fn(Value) -> Value + 'a>>,
+}
+
+impl<'a> ResolveHooks<'a> {
+    pub fn new() -> Self {
+        Self { expression_resolved: None }
+    }
+
+    pub fn expression_resolved(mut self, f: impl Fn(Value) -> Value + 'a) -> Self {
+        self.expression_resolved = Some(Box::new(f));
+        self
     }
 }
 

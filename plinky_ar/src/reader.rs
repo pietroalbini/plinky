@@ -9,7 +9,7 @@ use crate::{ArFile, ArMemberId, ArSymbolTable};
 use plinky_macros::{Display, Error, RawType};
 use plinky_utils::raw_types::{RawReadError, RawType};
 use plinky_utils::{Bits, Endian};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::{BufRead, Seek, SeekFrom};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -163,7 +163,7 @@ impl<R: BufRead + Seek> ArReader<R> {
             offsets.push(u32::read(Bits::Bits64, Endian::Big, &mut raw)?);
         }
 
-        let mut symbols = HashMap::new();
+        let mut symbols = BTreeMap::new();
         for offset in offsets {
             let Some(end) = raw.iter().position(|&c| c == 0) else {
                 return Err(ArSymbolTableReadError::UnterminatedString);
@@ -172,10 +172,10 @@ impl<R: BufRead + Seek> ArReader<R> {
             let name = std::str::from_utf8(&raw[..end])
                 .map_err(|_| ArSymbolTableReadError::NonUtf8SymbolName)?;
             raw = &raw[end + 1..];
-            symbols.insert(name.to_string(), ArMemberId {
-                reader_serial: self.serial,
-                header_offset: offset as _,
-            });
+            symbols.insert(
+                name.to_string(),
+                ArMemberId { reader_serial: self.serial, header_offset: offset as _ },
+            );
         }
 
         if !raw.is_empty() && raw.iter().any(|&byte| byte != 0) {
@@ -346,14 +346,17 @@ mod tests {
     #[test]
     fn test_gnu_one_file() {
         assert_eq!(
-            (None, vec![ArFile {
-                name: "example.txt".into(),
-                content: b"hello\n".into(),
-                modification_time: 0,
-                owner_id: 0,
-                group_id: 0,
-                mode: 0o644,
-            }]),
+            (
+                None,
+                vec![ArFile {
+                    name: "example.txt".into(),
+                    content: b"hello\n".into(),
+                    modification_time: 0,
+                    owner_id: 0,
+                    group_id: 0,
+                    mode: 0o644,
+                }]
+            ),
             parse!("gnu-one-file.a").unwrap()
         );
     }
@@ -361,32 +364,35 @@ mod tests {
     #[test]
     fn test_gnu_multiple_files() {
         assert_eq!(
-            (None, vec![
-                ArFile {
-                    name: "unaligned-with-very-very-long-file-name.txt".into(),
-                    content: b"unaligned body\n".into(),
-                    modification_time: 0,
-                    owner_id: 0,
-                    group_id: 0,
-                    mode: 0o644,
-                },
-                ArFile {
-                    name: "aligned.txt".into(),
-                    content: b"hello\n".into(),
-                    modification_time: 0,
-                    owner_id: 0,
-                    group_id: 0,
-                    mode: 0o644,
-                },
-                ArFile {
-                    name: "also-aligned.txt".into(),
-                    content: b"aligned\n".into(),
-                    modification_time: 0,
-                    owner_id: 0,
-                    group_id: 0,
-                    mode: 0o644,
-                },
-            ]),
+            (
+                None,
+                vec![
+                    ArFile {
+                        name: "unaligned-with-very-very-long-file-name.txt".into(),
+                        content: b"unaligned body\n".into(),
+                        modification_time: 0,
+                        owner_id: 0,
+                        group_id: 0,
+                        mode: 0o644,
+                    },
+                    ArFile {
+                        name: "aligned.txt".into(),
+                        content: b"hello\n".into(),
+                        modification_time: 0,
+                        owner_id: 0,
+                        group_id: 0,
+                        mode: 0o644,
+                    },
+                    ArFile {
+                        name: "also-aligned.txt".into(),
+                        content: b"aligned\n".into(),
+                        modification_time: 0,
+                        owner_id: 0,
+                        group_id: 0,
+                        mode: 0o644,
+                    },
+                ]
+            ),
             parse!("gnu-multiple-files.a").unwrap()
         );
     }
@@ -394,14 +400,17 @@ mod tests {
     #[test]
     fn test_metadata() {
         assert_eq!(
-            (None, vec![ArFile {
-                name: "hello.txt".into(),
-                content: b"data\n".into(),
-                modification_time: 1703532181,
-                owner_id: 1000,
-                group_id: 1000,
-                mode: 0o100664
-            }]),
+            (
+                None,
+                vec![ArFile {
+                    name: "hello.txt".into(),
+                    content: b"data\n".into(),
+                    modification_time: 1703532181,
+                    owner_id: 1000,
+                    group_id: 1000,
+                    mode: 0o100664
+                }]
+            ),
             parse!("metadata.a").unwrap()
         );
     }

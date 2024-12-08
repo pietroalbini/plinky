@@ -4,7 +4,7 @@ mod reader;
 mod utils;
 
 pub use crate::reader::{ArReadError, ArReader};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ArFile {
@@ -18,7 +18,7 @@ pub struct ArFile {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArSymbolTable {
-    pub symbols: HashMap<String, ArMemberId>,
+    pub symbols: BTreeMap<String, ArMemberId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

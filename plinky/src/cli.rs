@@ -326,7 +326,8 @@ impl<'a> CliLexer<'a> {
 
     fn expect_flag_value(&mut self, flag: &CliToken<'_>) -> Result<&'a str, CliError> {
         match self.next() {
-            Some(CliToken::FlagValue(value)) | Some(CliToken::StandaloneValue(value)) => Ok(value),
+            Some(CliToken::FlagValue(value)) if !value.is_empty() => Ok(value),
+            Some(CliToken::StandaloneValue(value)) if !value.is_empty() => Ok(value),
             _ => Err(CliError::MissingValueForFlag(flag.to_string())),
         }
     }
@@ -872,6 +873,10 @@ mod tests {
         assert_eq!(
             Err(CliError::MissingValueForFlag("--library-path".into())),
             parse(["foo", "--library-path"].into_iter())
+        );
+        assert_eq!(
+            Err(CliError::MissingValueForFlag("--library-path".into())),
+            parse(["foo", "--library-path", ""].into_iter())
         );
     }
 

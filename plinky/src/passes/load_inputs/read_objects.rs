@@ -1,4 +1,4 @@
-use crate::cli::CliInput;
+use crate::cli::{CliInput, CliInputValue};
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
@@ -11,13 +11,14 @@ use std::io::{BufReader, Cursor, Read};
 use std::path::{Path, PathBuf};
 
 pub(super) struct ObjectsReader<'a> {
+    search_paths: &'a [PathBuf],
     remaining_inputs: &'a [CliInput],
     current_archive: Option<PendingArchive>,
 }
 
 impl<'a> ObjectsReader<'a> {
-    pub(super) fn new(inputs: &'a [CliInput]) -> Self {
-        Self { remaining_inputs: inputs, current_archive: None }
+    pub(super) fn new(search_paths: &'a [PathBuf], inputs: &'a [CliInput]) -> Self {
+        Self { remaining_inputs: inputs, current_archive: None, search_paths }
     }
 
     pub(super) fn next_object(
@@ -35,22 +36,16 @@ impl<'a> ObjectsReader<'a> {
             let input = &self.remaining_inputs[0];
             self.remaining_inputs = &self.remaining_inputs[1..];
 
-            let path = self.resolve_input(input)?;
+            let (path, library_name) = self.resolve_input(input)?;
 
             let mut r = BufReader::new(
                 File::open(&path).map_err(|e| ReadObjectsError::OpenFailed(path.clone(), e))?,
             );
             match FileType::from_magic_number(&path, &mut r)? {
                 FileType::Elf => {
-                    let file_name = path.file_name().unwrap();
                     return Ok(Some(NextObject {
                         source: ObjectSpan::new_file(&path),
-                        file_name: file_name
-                            .to_str()
-                            .ok_or_else(|| ReadObjectsError::NonUtf8FileName {
-                                lossy: file_name.to_string_lossy().to_string(),
-                            })?
-                            .to_string(),
+                        library_name,
                         reader: ElfReader::new_owned(Box::new(r))
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
                     }));
@@ -65,10 +60,54 @@ impl<'a> ObjectsReader<'a> {
         }
     }
 
-    fn resolve_input(&self, input: &CliInput) -> Result<PathBuf, ReadObjectsError> {
-        match input {
-            CliInput::Path(p) => Ok(p.clone()),
+    fn resolve_input(&self, input: &CliInput) -> Result<(PathBuf, LibraryName), ReadObjectsError> {
+        let mut names = Vec::new();
+        match &input.value {
+            CliInputValue::Path(p) => {
+                return Ok((p.clone(), LibraryName::Known(path_to_string(&p)?)))
+            }
+            CliInputValue::Library(name) => {
+                if input.search_shared_objects {
+                    names.push(format!("lib{name}.so"));
+                }
+                names.push(format!("lib{name}.a"));
+            }
+            CliInputValue::LibraryVerbatim(verbatim) => names.push(verbatim.clone()),
         }
+
+        // This is a closure to only run it lazily.
+        let library_for_error = || match &input.value {
+            CliInputValue::Path(_) => unreachable!(),
+            CliInputValue::Library(name) => name.clone(),
+            CliInputValue::LibraryVerbatim(verbatim) => format!(":{verbatim}"),
+        };
+
+        for search_path in self.search_paths {
+            for name in &names {
+                let path = search_path.join(name);
+                match std::fs::metadata(&path) {
+                    Ok(_) => {
+                        return Ok((
+                            path,
+                            // When a library is linked with -l, the library path that will be
+                            // included in DT_NEEDED won't be the real path of the library, but
+                            // just the file name (assuming the library doesn't have DT_SONAME).
+                            LibraryName::Known(name.into()),
+                        ));
+                    }
+                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => continue,
+                    Err(err) => {
+                        return Err(ReadObjectsError::OpenLibraryCandidate {
+                            library: library_for_error(),
+                            path,
+                            err,
+                        });
+                    }
+                }
+            }
+        }
+
+        Err(ReadObjectsError::MissingLibrary(library_for_error()))
     }
 
     fn next_from_archive(
@@ -80,7 +119,7 @@ impl<'a> ObjectsReader<'a> {
             Some(file) => match ElfReader::new_owned(Box::new(Cursor::new(file.content))) {
                 Ok(reader) => Ok(Some(NextObject {
                     source: ObjectSpan::new_archive_member(&pending_archive.path, &file.name),
-                    file_name: file.name,
+                    library_name: LibraryName::InsideArchive,
                     reader,
                 })),
                 Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
@@ -172,6 +211,13 @@ impl PendingArchive {
     }
 }
 
+fn path_to_string(path: &Path) -> Result<String, ReadObjectsError> {
+    Ok(path
+        .to_str()
+        .ok_or_else(|| ReadObjectsError::NonUtf8FileName { lossy: path.to_string_lossy().into() })?
+        .to_string())
+}
+
 enum FileType {
     Elf,
     Ar,
@@ -198,8 +244,13 @@ impl FileType {
 
 pub(super) struct NextObject {
     pub(super) reader: ElfReader<'static>,
-    pub(super) file_name: String,
+    pub(super) library_name: LibraryName,
     pub(super) source: ObjectSpan,
+}
+
+pub(super) enum LibraryName {
+    Known(String),
+    InsideArchive,
 }
 
 #[derive(Debug, Error, Display)]
@@ -224,4 +275,13 @@ pub(crate) enum ReadObjectsError {
     },
     #[display("file name is not UTF-8: {lossy}")]
     NonUtf8FileName { lossy: String },
+    #[display("failed to open path while searching for library {library}: {path:?}")]
+    OpenLibraryCandidate {
+        library: String,
+        path: PathBuf,
+        #[source]
+        err: std::io::Error,
+    },
+    #[display("missing library {f0}")]
+    MissingLibrary(String),
 }

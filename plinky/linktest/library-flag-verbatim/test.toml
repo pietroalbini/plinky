@@ -1,0 +1,24 @@
+archs = ["x86", "x86_64"]
+
+[plinky.test]
+cmd = ["${c.hello}", "-L${dir.libs}", "-l:nonstandard-name.a"]
+kind = "run-pass"
+debug-print = ["loaded-object=@inputs"]
+
+[dir.libs]
+files = ["${ar.syscalls}"]
+
+[c.hello]
+source = "../_shared/hello-world.c"
+libc = "freestanding"
+relocation = "static"
+
+[ar.syscalls]
+output = "nonstandard-name.a"
+content = ["${asm.syscall_exit}", "${asm.syscall_write}"]
+
+[asm.syscall_exit]
+source = "../_shared/syscall.exit.${arch}.S"
+
+[asm.syscall_write]
+source = "../_shared/syscall.write.${arch}.S"

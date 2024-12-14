@@ -45,20 +45,20 @@ debug print: loaded object
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────┬──────┬─────────────────┬────────────┬───────────────────────────────────╮
- │  │ Name                  │ Type │ Source          │ Visibility │ Value                             │
- │  ├───────────────────────┼──────┼─────────────────┼────────────┼───────────────────────────────────┤
- │  │ <empty>               │ none │ <plinky>        │ local      │ <null>                            │
- │  │ _GLOBAL_OFFSET_TABLE_ │ none │ entry-pic.x86.o │ global     │ <undefined>                       │
- │  │ __x86.get_pc_thunk.bx │ none │ entry-pic.x86.o │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │
- │  │ _start                │ none │ entry-pic.x86.o │ global     │ .text + 0x0                       │
- │  │ exit                  │ none │ libsyscalls.so  │ global     │ <externally defined>              │
- │  │ exit_code             │ none │ libdata.so      │ global     │ <externally defined>              │
- │  │ main                  │ none │ entry-pic.x86.o │ global     │ .text.main + 0x0                  │
- │  │ message               │ none │ libdata.so      │ global     │ <externally defined>              │
- │  │ message_len           │ none │ libdata.so      │ global     │ <externally defined>              │
- │  │ write                 │ none │ libsyscalls.so  │ global     │ <externally defined>              │
- │  ╰───────────────────────┴──────┴─────────────────┴────────────┴───────────────────────────────────╯
+ │  ╭───────────────────────┬──────┬──────────────────┬────────────┬───────────────────────────────────╮
+ │  │ Name                  │ Type │ Source           │ Visibility │ Value                             │
+ │  ├───────────────────────┼──────┼──────────────────┼────────────┼───────────────────────────────────┤
+ │  │ <empty>               │ none │ <plinky>         │ local      │ <null>                            │
+ │  │ _GLOBAL_OFFSET_TABLE_ │ none │ entry-pic.x86.o  │ global     │ <undefined>                       │
+ │  │ __x86.get_pc_thunk.bx │ none │ entry-pic.x86.o  │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │
+ │  │ _start                │ none │ entry-pic.x86.o  │ global     │ .text + 0x0                       │
+ │  │ exit                  │ none │ ./libsyscalls.so │ global     │ <externally defined>              │
+ │  │ exit_code             │ none │ ./libdata.so     │ global     │ <externally defined>              │
+ │  │ main                  │ none │ entry-pic.x86.o  │ global     │ .text.main + 0x0                  │
+ │  │ message               │ none │ ./libdata.so     │ global     │ <externally defined>              │
+ │  │ message_len           │ none │ ./libdata.so     │ global     │ <externally defined>              │
+ │  │ write                 │ none │ ./libsyscalls.so │ global     │ <externally defined>              │
+ │  ╰───────────────────────┴──────┴──────────────────┴────────────┴───────────────────────────────────╯
  │
  │  inputs
  │   │
@@ -70,9 +70,9 @@ debug print: loaded object
  │   │  │ x86 features 2 used │ x86   │
  │   │  ╰─────────────────────┴───────╯
  │   │
- │   │  libdata.so (shared object libdata.so)
+ │   │  ./libdata.so (shared object ./libdata.so)
  │   │
- │   │  libsyscalls.so (shared object libsyscalls.so)
+ │   │  ./libsyscalls.so (shared object ./libsyscalls.so)
  │   ┴
  ┴
 
@@ -105,7 +105,7 @@ debug print: relocations analysis
 
 debug print: built elf
  │
- │  section .dynsym (address: 0x1ea)
+ │  section .dynsym (address: 0x1ee)
  │   │
  │   │    Dynamic symbol table:
  │   │  ╭───────────────┬─────────┬──────┬────────────┬────────────┬────────┬──────╮
@@ -121,33 +121,33 @@ debug print: built elf
  │   │  ╰───────────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x28a)
+ │  section .dynamic (address: 0x28e)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
- │   │  ╭──────────────────────────────┬────────────────────────────╮
- │   │  │ Kind                         │ Value                      │
- │   │  ├──────────────────────────────┼────────────────────────────┤
- │   │  │ Needed libraries             │ string 0x1: libdata.so     │
- │   │  │ Needed libraries             │ string 0xc: libsyscalls.so │
- │   │  │ String table                 │ address 0x1a0              │
- │   │  │ String table size            │ 74 bytes                   │
- │   │  │ Symbol table                 │ address 0x1ea              │
- │   │  │ Symbol table entry size      │ 16 bytes                   │
- │   │  │ Hash table                   │ address 0x25a              │
- │   │  │ Relocations table            │ address 0x30a              │
- │   │  │ Relocations table size       │ 24 bytes                   │
- │   │  │ Relocations table entry size │ 8 bytes                    │
- │   │  │ Jump PLT relocations         │ address 0x322              │
- │   │  │ PLT relocations size         │ 24 bytes                   │
- │   │  │ PLT relocations type         │ Relocations                │
- │   │  │ PLT GOT                      │ address 0x200c             │
- │   │  │ Flags1                       │ pie                        │
- │   │  │ Null                         │ -                          │
- │   │  ╰──────────────────────────────┴────────────────────────────╯
+ │   │  ╭──────────────────────────────┬──────────────────────────────╮
+ │   │  │ Kind                         │ Value                        │
+ │   │  ├──────────────────────────────┼──────────────────────────────┤
+ │   │  │ Needed libraries             │ string 0x1: ./libdata.so     │
+ │   │  │ Needed libraries             │ string 0xe: ./libsyscalls.so │
+ │   │  │ String table                 │ address 0x1a0                │
+ │   │  │ String table size            │ 78 bytes                     │
+ │   │  │ Symbol table                 │ address 0x1ee                │
+ │   │  │ Symbol table entry size      │ 16 bytes                     │
+ │   │  │ Hash table                   │ address 0x25e                │
+ │   │  │ Relocations table            │ address 0x30e                │
+ │   │  │ Relocations table size       │ 24 bytes                     │
+ │   │  │ Relocations table entry size │ 8 bytes                      │
+ │   │  │ Jump PLT relocations         │ address 0x326                │
+ │   │  │ PLT relocations size         │ 24 bytes                     │
+ │   │  │ PLT relocations type         │ Relocations                  │
+ │   │  │ PLT GOT                      │ address 0x200c               │
+ │   │  │ Flags1                       │ pie                          │
+ │   │  │ Null                         │ -                            │
+ │   │  ╰──────────────────────────────┴──────────────────────────────╯
  │   ┴
  │
- │  section .rel.got (address: 0x30a)
+ │  section .rel.got (address: 0x30e)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got
@@ -162,7 +162,7 @@ debug print: built elf
  │   │  ╰─────────────┴───────────────┴────────╯
  │   ┴
  │
- │  section .rel.plt (address: 0x322)
+ │  section .rel.plt (address: 0x326)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got.plt

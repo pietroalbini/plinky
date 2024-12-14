@@ -1,0 +1,46 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  inputs
+ │   │
+ │   │    hello-world.o
+ │   │  ╭─────────────────────┬───────╮
+ │   │  │ Property            │ Value │
+ │   │  ├─────────────────────┼───────┤
+ │   │  │ X86 ISA used        │       │
+ │   │  │ x86 features 2 used │ x86   │
+ │   │  ╰─────────────────────┴───────╯
+ │   │
+ │   │    syscall.exit.x86_64.o inside archive dir.archive/libsyscalls.a
+ │   │  ╭─────────────────────┬──────────╮
+ │   │  │ Property            │ Value    │
+ │   │  ├─────────────────────┼──────────┤
+ │   │  │ X86 ISA used        │ baseline │
+ │   │  │ x86 features 2 used │ x86      │
+ │   │  ╰─────────────────────┴──────────╯
+ │   │
+ │   │    syscall.write.x86_64.o inside archive dir.archive/libsyscalls.a
+ │   │  ╭─────────────────────┬──────────╮
+ │   │  │ Property            │ Value    │
+ │   │  ├─────────────────────┼──────────┤
+ │   │  │ X86 ISA used        │ baseline │
+ │   │  │ x86 features 2 used │ x86      │
+ │   │  ╰─────────────────────┴──────────╯
+ │   ┴
+ ┴
+
+==============
+
+running exited with exit status: 0
+
+=== stdout ===
+Hello world
+
+no stderr present

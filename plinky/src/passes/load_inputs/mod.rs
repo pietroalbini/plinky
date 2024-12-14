@@ -23,7 +23,7 @@ mod shared_objects;
 mod strings;
 
 pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
-    let mut reader = ObjectsReader::new(&options.inputs);
+    let mut reader = ObjectsReader::new(&options.search_paths, &options.inputs);
 
     let mut empty_symbols = Symbols::new().map_err(LoadInputsError::SymbolTableCreationFailed)?;
     let entry_point = options
@@ -98,7 +98,7 @@ fn load_object(
     object: &mut Object,
     strings: &mut Strings,
     section_groups: SectionGroupsForObject<'_>,
-    NextObject { mut reader, source, file_name }: NextObject,
+    NextObject { mut reader, source, library_name }: NextObject,
 ) -> Result<(), LoadInputsError> {
     match reader.type_() {
         plinky_elf::ElfType::Relocatable => {
@@ -109,7 +109,7 @@ fn load_object(
                 .map_err(|e| LoadInputsError::MergeFailed(source, e))
         }
         plinky_elf::ElfType::SharedObject => {
-            load_shared_object(object, &mut reader, &file_name, source.clone())
+            load_shared_object(object, &mut reader, &library_name, source.clone())
                 .map_err(|e| LoadInputsError::SharedLoadFailed(source, e))
         }
         plinky_elf::ElfType::Executable => Err(LoadInputsError::ExecutableUnsupported(source)),

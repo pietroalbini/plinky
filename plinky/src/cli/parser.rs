@@ -1,5 +1,5 @@
 use crate::cli::lexer::{CliLexer, CliToken};
-use crate::cli::{CliError, CliInput, CliOptions, DebugPrint, DynamicLinker, Mode};
+use crate::cli::{CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, Mode};
 use crate::debug_print::filters::ObjectsFilter;
 use plinky_elf::render_elf::RenderElfFilters;
 use std::collections::BTreeSet;
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 // GNU ld loves to be inconsistent, and thus some long flags are prefixed with a single dash
 // rather than a double dash. To ensure we still parse the CLI correctly, we have a list of
 // flags that should be emitted as LongShortFlag.
-const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie", "shared", "soname"];
+const LONG_SHORT_FLAG: &[&str] = &["no-pie", "pie", "shared", "soname", "Bstatic", "Bdynamic"];
 
 pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     args: I,
@@ -26,13 +26,15 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut mode = None;
     let mut dynamic_linker = None;
     let mut search_paths = Vec::new();
+    let mut search_shared_objects = true;
     let mut shared_object_name = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
     while let Some(token) = lexer.next() {
         match token {
-            CliToken::StandaloneValue(val) => inputs.push(CliInput::Path(val.into())),
+            CliToken::StandaloneValue(val) => inputs
+                .push(CliInput { value: CliInputValue::Path(val.into()), search_shared_objects }),
 
             CliToken::LongFlag("output") | CliToken::ShortFlag("o") => {
                 reject_duplicate(&token, &mut output, || lexer.expect_flag_value(&token))?;
@@ -71,6 +73,25 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 }
                 search_paths.push(PathBuf::from(path));
             }
+
+            CliToken::ShortFlag("l") | CliToken::LongFlag("library") => {
+                let name = lexer.expect_flag_value(&token)?;
+                if let Some(verbatim) = name.strip_prefix(':') {
+                    inputs.push(CliInput {
+                        value: CliInputValue::LibraryVerbatim(verbatim.into()),
+                        search_shared_objects,
+                    });
+                } else {
+                    inputs.push(CliInput {
+                        value: CliInputValue::Library(name.into()),
+                        search_shared_objects,
+                    });
+                }
+            }
+
+            CliToken::LongShortFlag("Bstatic") => search_shared_objects = false,
+
+            CliToken::LongShortFlag("Bdynamic") => search_shared_objects = true,
 
             CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
                 "execstack" => reject_duplicate(

@@ -1,0 +1,56 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  inputs
+ │   │
+ │   │    hello-world.o
+ │   │  ╭─────────────────────┬───────╮
+ │   │  │ Property            │ Value │
+ │   │  ├─────────────────────┼───────┤
+ │   │  │ X86 ISA used        │       │
+ │   │  │ x86 features 2 used │ x86   │
+ │   │  ╰─────────────────────┴───────╯
+ │   │
+ │   │  dir.shared_object/libsyscalls.so (shared object libsyscalls.so)
+ │   ┴
+ ┴
+
+debug print: built elf
+ │
+ │  section .dynamic (address: 0x400224)
+ │   │
+ │   │  dynamic information | string table: .dynstr
+ │   │
+ │   │  ╭─────────────────────────┬────────────────────────────╮
+ │   │  │ Kind                    │ Value                      │
+ │   │  ├─────────────────────────┼────────────────────────────┤
+ │   │  │ Needed libraries        │ string 0x1: libsyscalls.so │
+ │   │  │ String table            │ address 0x4001c0           │
+ │   │  │ String table size       │ 28 bytes                   │
+ │   │  │ Symbol table            │ address 0x4001dc           │
+ │   │  │ Symbol table entry size │ 16 bytes                   │
+ │   │  │ Hash table              │ address 0x40020c           │
+ │   │  │ Jump PLT relocations    │ address 0x40027c           │
+ │   │  │ PLT relocations size    │ 16 bytes                   │
+ │   │  │ PLT relocations type    │ Relocations                │
+ │   │  │ PLT GOT                 │ address 0x403000           │
+ │   │  │ Null                    │ -                          │
+ │   │  ╰─────────────────────────┴────────────────────────────╯
+ │   ┴
+ ┴
+
+==============
+
+running exited with exit status: 0
+
+=== stdout ===
+Hello world
+
+no stderr present

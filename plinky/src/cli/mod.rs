@@ -50,8 +50,16 @@ pub(crate) enum DebugPrint {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum CliInput {
+pub(crate) struct CliInput {
+    pub(crate) value: CliInputValue,
+    pub(crate) search_shared_objects: bool,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum CliInputValue {
     Path(PathBuf),
+    Library(String),
+    LibraryVerbatim(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Error, Display)]

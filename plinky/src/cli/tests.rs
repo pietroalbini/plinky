@@ -1,4 +1,6 @@
-use crate::cli::{parse, CliError, CliInput, CliOptions, DebugPrint, DynamicLinker, Mode};
+use crate::cli::{
+    parse, CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, Mode,
+};
 use crate::debug_print::filters::ObjectsFilter;
 use std::collections::BTreeSet;
 
@@ -11,7 +13,7 @@ fn test_no_flags() {
 fn test_one_input() {
     assert_parse(
         &["foo.o"],
-        Ok(CliOptions { inputs: vec![p("foo.o")], ..default_options_static() }),
+        Ok(CliOptions { inputs: vec![i("foo.o").path()], ..default_options_static() }),
     );
 }
 
@@ -19,7 +21,10 @@ fn test_one_input() {
 fn test_two_inputs() {
     assert_parse(
         &["foo.o", "bar.o"],
-        Ok(CliOptions { inputs: vec![p("foo.o"), p("bar.o")], ..default_options_static() }),
+        Ok(CliOptions {
+            inputs: vec![i("foo.o").path(), i("bar.o").path()],
+            ..default_options_static()
+        }),
     )
 }
 
@@ -373,6 +378,61 @@ fn test_sysroot_relative_search_path() {
 }
 
 #[test]
+fn test_library() {
+    assert_parse_multiple(
+        &[&["-lfoo"], &["-l", "foo"], &["--library", "foo"], &["--library=foo"]],
+        Ok(CliOptions {
+            inputs: vec![CliInput {
+                value: CliInputValue::Library("foo".into()),
+                search_shared_objects: true,
+            }],
+            ..default_options_static()
+        }),
+    );
+}
+
+#[test]
+fn test_multiple_libraries() {
+    assert_parse(
+        &["-lfoo", "-lbar"],
+        Ok(CliOptions { inputs: vec![i("foo").lib(), i("bar").lib()], ..default_options_static() }),
+    );
+}
+
+#[test]
+fn test_verbatim_library() {
+    assert_parse_multiple(
+        &[&["-l:foo.so"], &["-l", ":foo.so"], &["--library=:foo.so"], &["--library", ":foo.so"]],
+        Ok(CliOptions { inputs: vec![i("foo.so").lib_verbatim()], ..default_options_static() }),
+    );
+}
+
+#[test]
+fn test_bstatic_bdynamic() {
+    assert_parse(
+        &["-lfoo", "-Bstatic", "-lbar", "-Bdynamic", "-lbaz"],
+        Ok(CliOptions {
+            inputs: vec![
+                i("foo").search_shared_objects(true).lib(),
+                i("bar").search_shared_objects(false).lib(),
+                i("baz").search_shared_objects(true).lib(),
+            ],
+            ..default_options_static()
+        }),
+    );
+}
+
+#[test]
+fn test_bstatic_with_space() {
+    assert_parse(&["input.o", "-B", "static"], Err(CliError::UnsupportedFlag("-B".into())));
+}
+
+#[test]
+fn test_bdynamic_with_space() {
+    assert_parse(&["input.o", "-B", "dynamic"], Err(CliError::UnsupportedFlag("-B".into())));
+}
+
+#[test]
 fn test_unknown_flags() {
     assert_parse(&["--foo-bar"], Err(CliError::UnsupportedFlag("--foo-bar".into())));
 }
@@ -408,13 +468,44 @@ fn assert_parse_multiple(cases: &[&[&str]], expected: Result<CliOptions, CliErro
     }
 }
 
-fn p(name: &str) -> CliInput {
-    CliInput::Path(name.into())
+fn i(name: &str) -> InputBuilder {
+    InputBuilder { name: name.into(), search_shared_objects: true }
+}
+
+struct InputBuilder {
+    name: String,
+    search_shared_objects: bool,
+}
+
+impl InputBuilder {
+    fn search_shared_objects(mut self, value: bool) -> Self {
+        self.search_shared_objects = value;
+        self
+    }
+
+    fn path(self) -> CliInput {
+        let value = CliInputValue::Path(self.name.clone().into());
+        self.finalize(value)
+    }
+
+    fn lib(self) -> CliInput {
+        let value = CliInputValue::Library(self.name.clone());
+        self.finalize(value)
+    }
+
+    fn lib_verbatim(self) -> CliInput {
+        let value = CliInputValue::LibraryVerbatim(self.name.clone());
+        self.finalize(value)
+    }
+
+    fn finalize(self, value: CliInputValue) -> CliInput {
+        CliInput { value, search_shared_objects: self.search_shared_objects }
+    }
 }
 
 fn default_options_static() -> CliOptions {
     CliOptions {
-        inputs: vec![p("input.o")],
+        inputs: vec![i("input.o").path()],
         output: "a.out".into(),
         entry: Some("_start".into()),
         gc_sections: false,

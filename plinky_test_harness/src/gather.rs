@@ -119,7 +119,8 @@ impl DefineSteps {
             .define::<crate::steps::c::CStep>("c")?
             .define::<crate::steps::rust::RustStep>("rust")?
             .define::<crate::steps::ar::ArStep>("ar")?
-            .define::<crate::steps::rename::RenameStep>("rename")
+            .define::<crate::steps::rename::RenameStep>("rename")?
+            .define::<crate::steps::dir::DirStep>("dir")
     }
 
     // Deserializing the Value into the concrete type cannot be done through dynamic dispatching.

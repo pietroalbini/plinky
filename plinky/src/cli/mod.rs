@@ -23,6 +23,7 @@ pub(crate) struct CliOptions {
     pub(crate) dynamic_linker: DynamicLinker,
     pub(crate) search_paths: Vec<PathBuf>,
     pub(crate) shared_object_name: Option<String>,
+    pub(crate) hash_style: HashStyle,
     pub(crate) mode: Mode,
 }
 
@@ -62,6 +63,31 @@ pub(crate) enum CliInputValue {
     LibraryVerbatim(String),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum HashStyle {
+    Sysv,
+    Gnu,
+    Both,
+}
+
+impl HashStyle {
+    pub(crate) fn has_sysv(&self) -> bool {
+        match self {
+            HashStyle::Sysv => true,
+            HashStyle::Gnu => false,
+            HashStyle::Both => true,
+        }
+    }
+
+    pub(crate) fn has_gnu(&self) -> bool {
+        match self {
+            HashStyle::Sysv => false,
+            HashStyle::Gnu => true,
+            HashStyle::Both => true,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Error, Display)]
 pub(crate) enum CliError {
     #[display("unsupported debug print: {f0}")]
@@ -90,4 +116,6 @@ pub(crate) enum CliError {
     UnsupportedSharedObjectName,
     #[display("sysroot-relative library paths are not supported yet")]
     UnsupportedSysrootRelativeLibraryPath,
+    #[display("unsupported hash style {f0}")]
+    UnsupportedHashStyle(String),
 }

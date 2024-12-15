@@ -1,5 +1,6 @@
 use crate::cli::{
-    parse, CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, Mode,
+    parse, CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, HashStyle,
+    Mode,
 };
 use crate::debug_print::filters::ObjectsFilter;
 use std::collections::BTreeSet;
@@ -433,6 +434,39 @@ fn test_bdynamic_with_space() {
 }
 
 #[test]
+fn test_hash_style() {
+    assert_parse(
+        &["input.o", "--hash-style=gnu"],
+        Ok(CliOptions { hash_style: HashStyle::Gnu, ..default_options_static() }),
+    );
+    assert_parse(
+        &["input.o", "--hash-style", "sysv"],
+        Ok(CliOptions { hash_style: HashStyle::Sysv, ..default_options_static() }),
+    );
+    assert_parse(
+        &["input.o", "--hash-style=both"],
+        Ok(CliOptions { hash_style: HashStyle::Both, ..default_options_static() }),
+    );
+    assert_parse(
+        &["input.o"],
+        Ok(CliOptions { hash_style: HashStyle::Both, ..default_options_static() }),
+    );
+}
+
+#[test]
+fn test_duplicate_hash_style() {
+    assert_reject_duplicate(&["input.o", "--hash-style=gnu", "--hash-style", "both"]);
+}
+
+#[test]
+fn test_invalid_hash_style() {
+    assert_parse(
+        &["input.o", "--hash-style=random"],
+        Err(CliError::UnsupportedHashStyle("random".into())),
+    );
+}
+
+#[test]
 fn test_unknown_flags() {
     assert_parse(&["--foo-bar"], Err(CliError::UnsupportedFlag("--foo-bar".into())));
 }
@@ -516,6 +550,7 @@ fn default_options_static() -> CliOptions {
         dynamic_linker: DynamicLinker::PlatformDefault,
         search_paths: Vec::new(),
         shared_object_name: None,
+        hash_style: HashStyle::Both,
         mode: Mode::PositionDependent,
     }
 }

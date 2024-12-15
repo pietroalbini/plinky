@@ -1,5 +1,7 @@
 use crate::cli::lexer::{CliLexer, CliToken};
-use crate::cli::{CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, Mode};
+use crate::cli::{
+    CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, HashStyle, Mode,
+};
 use crate::debug_print::filters::ObjectsFilter;
 use plinky_elf::render_elf::RenderElfFilters;
 use std::collections::BTreeSet;
@@ -28,6 +30,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut search_paths = Vec::new();
     let mut search_shared_objects = true;
     let mut shared_object_name = None;
+    let mut hash_style = None;
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -46,6 +49,17 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
             CliToken::LongFlag("dynamic-linker") => {
                 reject_duplicate(&token, &mut dynamic_linker, || lexer.expect_flag_value(&token))?;
+            }
+
+            CliToken::LongFlag("hash-style") => {
+                reject_duplicate(&token, &mut hash_style, || {
+                    match lexer.expect_flag_value(&token)? {
+                        "sysv" => Ok(HashStyle::Sysv),
+                        "gnu" => Ok(HashStyle::Gnu),
+                        "both" => Ok(HashStyle::Both),
+                        other => return Err(CliError::UnsupportedHashStyle(other.into())),
+                    }
+                })?;
             }
 
             CliToken::LongShortFlag("soname") | CliToken::ShortFlag("h") => {
@@ -177,6 +191,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
         executable_stack: executable_stack.unwrap_or(false),
         read_only_got: read_only_got.unwrap_or(false),
         read_only_got_plt: read_only_got_plt.unwrap_or(false),
+        hash_style: hash_style.unwrap_or(HashStyle::Both),
         mode,
 
         entry: match mode {

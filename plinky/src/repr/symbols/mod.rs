@@ -4,7 +4,7 @@ pub(crate) mod views;
 use crate::interner::Interned;
 use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
-use std::collections::{BTreeMap, btree_map};
+use std::collections::{btree_map, BTreeMap};
 
 use crate::repr::symbols::views::SymbolsView;
 pub(crate) use symbol::{
@@ -98,27 +98,45 @@ impl Symbols {
     pub(crate) fn iter<'a>(
         &'a self,
         view: &'a dyn SymbolsView,
-    ) -> impl Iterator<Item = &'a Symbol> + 'a {
-        self.symbols
+    ) -> Box<dyn Iterator<Item = &'a Symbol> + 'a> {
+        let iter = self
+            .symbols
             .iter()
             .filter_map(|symbol| match symbol {
                 SymbolSlot::Present(symbol) => Some(symbol),
                 SymbolSlot::Removed => None,
             })
-            .filter(|symbol| symbol.id().0 == 0 || view.filter(symbol))
+            .filter(|symbol| symbol.is_null_symbol() || view.filter(symbol));
+
+        if view.should_sort() {
+            let mut symbols = iter.collect::<Vec<_>>();
+            view.sort_ref(&mut symbols);
+            Box::new(symbols.into_iter())
+        } else {
+            Box::new(iter)
+        }
     }
 
     pub(crate) fn iter_mut<'a>(
         &'a mut self,
         view: &'a dyn SymbolsView,
-    ) -> impl Iterator<Item = &'a mut Symbol> + 'a {
-        self.symbols
+    ) -> Box<dyn Iterator<Item = &'a mut Symbol> + 'a> {
+        let iter = self
+            .symbols
             .iter_mut()
             .filter_map(|symbol| match symbol {
                 SymbolSlot::Present(symbol) => Some(symbol),
                 SymbolSlot::Removed => None,
             })
-            .filter(|symbol| symbol.id().0 == 0 || view.filter(symbol))
+            .filter(|symbol| symbol.is_null_symbol() || view.filter(symbol));
+
+        if view.should_sort() {
+            let mut symbols = iter.collect::<Vec<_>>();
+            view.sort_mut(&mut symbols);
+            Box::new(symbols.into_iter())
+        } else {
+            Box::new(iter)
+        }
     }
 
     pub(crate) fn null_symbol_id(&self) -> SymbolId {

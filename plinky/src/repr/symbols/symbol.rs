@@ -1,6 +1,6 @@
-use crate::interner::{Interned, intern};
+use crate::interner::{intern, Interned};
 use crate::repr::sections::SectionId;
-use crate::repr::symbols::{LoadSymbolsError, SymbolId};
+use crate::repr::symbols::{LoadSymbolsError, SymbolId, NULL_SYMBOL_ID};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::ElfSectionId;
@@ -88,6 +88,10 @@ impl Symbol {
 
         resolve_inner(self, resolver, offset)
             .map_err(|inner| ResolveSymbolError { symbol: self.name, inner })
+    }
+
+    pub(crate) fn is_null_symbol(&self) -> bool {
+        self.id == NULL_SYMBOL_ID
     }
 }
 

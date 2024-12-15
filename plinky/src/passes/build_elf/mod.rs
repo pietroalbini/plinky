@@ -2,6 +2,7 @@ mod dynamic;
 mod relocations;
 mod strings;
 mod symbols;
+pub(crate) mod gnu_hash;
 pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;

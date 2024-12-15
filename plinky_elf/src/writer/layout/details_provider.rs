@@ -1,6 +1,6 @@
 use crate::ids::ElfSectionId;
-use crate::writer::LayoutError;
 use crate::writer::layout::Part;
+use crate::writer::LayoutError;
 use crate::{ElfClass, ElfObject, ElfSection, ElfSectionContent, ElfSegmentType};
 
 pub trait LayoutDetailsProvider<S: Copy> {
@@ -17,6 +17,7 @@ pub trait LayoutDetailsProvider<S: Copy> {
     fn dynamic_directives_count(&self, id: S) -> usize;
     fn relocations_in_table_count(&self, id: S) -> usize;
     fn hash_details(&self, id: S) -> LayoutDetailsHash;
+    fn gnu_hash_details(&self, id: S) -> LayoutDetailsGnuHash;
     fn note_details(&self, id: S) -> Vec<LayoutDetailsNote>;
 
     fn parts_for_sections(&self) -> Result<Vec<Part<S>>, LayoutError>;
@@ -24,6 +25,12 @@ pub trait LayoutDetailsProvider<S: Copy> {
 }
 
 pub struct LayoutDetailsHash {
+    pub buckets: usize,
+    pub chain: usize,
+}
+
+pub struct LayoutDetailsGnuHash {
+    pub bloom: usize,
     pub buckets: usize,
     pub chain: usize,
 }
@@ -99,6 +106,15 @@ impl LayoutDetailsProvider<ElfSectionId> for ElfObject {
         LayoutDetailsHash { buckets: hash.buckets.len(), chain: hash.chain.len() }
     }
 
+    fn gnu_hash_details(&self, id: ElfSectionId) -> LayoutDetailsGnuHash {
+        let gnu_hash = cast_section!(self, id, GnuHash);
+        LayoutDetailsGnuHash {
+            bloom: gnu_hash.bloom.len(),
+            buckets: gnu_hash.buckets.len(),
+            chain: gnu_hash.chain.len(),
+        }
+    }
+
     fn note_details(&self, id: ElfSectionId) -> Vec<LayoutDetailsNote> {
         cast_section!(self, id, Note)
             .notes
@@ -172,6 +188,7 @@ fn part_for_section(
         ElfSectionContent::Group(_) => Part::Group(id.clone()),
         ElfSectionContent::Hash(_) => Part::Hash(id.clone()),
         ElfSectionContent::Dynamic(_) => Part::Dynamic(id.clone()),
+        ElfSectionContent::GnuHash(_) => Part::GnuHash(id.clone()),
 
         ElfSectionContent::Note(_) => Part::Note(id.clone()),
         ElfSectionContent::Unknown(_) => {

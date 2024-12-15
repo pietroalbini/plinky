@@ -1,4 +1,5 @@
 pub(super) mod dynamic;
+mod gnu_hash;
 mod group;
 mod hash;
 mod notes;
@@ -13,9 +14,9 @@ mod unknown;
 use crate::errors::LoadError;
 use crate::ids::{ElfSectionId, ElfStringId};
 use crate::raw::RawSectionHeader;
-use crate::reader::ReadCursor;
 use crate::reader::sections::reader::HeaderMetadata;
 pub(super) use crate::reader::sections::reader::{SectionMetadata, SectionReader};
+use crate::reader::ReadCursor;
 use crate::{ElfDeduplication, ElfSection, ElfSectionContent};
 
 pub(super) fn read_section(
@@ -48,6 +49,7 @@ fn read_section_inner(
         9 => SectionType::Rel,
         11 => SectionType::SymbolTable { dynsym: true },
         17 => SectionType::Group,
+        0x6ffffff6 => SectionType::GnuHash,
         other => SectionType::Unknown(other),
     };
 
@@ -115,6 +117,7 @@ fn read_section_inner(
         SectionType::Uninit => ElfSectionContent::Uninitialized(uninit::read(&mut reader, &meta)?),
         SectionType::Group => ElfSectionContent::Group(group::read(&mut reader, &meta)?),
         SectionType::Hash => ElfSectionContent::Hash(hash::read(&mut reader, &meta)?),
+        SectionType::GnuHash => ElfSectionContent::GnuHash(gnu_hash::read(&mut reader, &meta)?),
         SectionType::Dynamic => ElfSectionContent::Dynamic(dynamic::read(&mut reader, &meta)?),
         SectionType::Unknown(other) => {
             ElfSectionContent::Unknown(unknown::read(&mut reader, other)?)
@@ -141,6 +144,7 @@ enum SectionType {
     Uninit,
     Group,
     Hash,
+    GnuHash,
     Dynamic,
     Unknown(u32),
 }

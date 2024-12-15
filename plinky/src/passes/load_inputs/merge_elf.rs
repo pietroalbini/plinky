@@ -65,7 +65,7 @@ pub(super) fn merge_elf(
                 );
             }
             ElfSectionContent::Group(group) => pending_groups.push((section_id, group)),
-            ElfSectionContent::Hash(_) => {
+            ElfSectionContent::Hash(_) | ElfSectionContent::GnuHash(_) => {
                 // We don't need hash tables imported from the ELF file, we build our own.
             }
             ElfSectionContent::Dynamic(_) => {

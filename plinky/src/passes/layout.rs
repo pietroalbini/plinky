@@ -1,16 +1,16 @@
 use crate::cli::Mode;
-use crate::interner::{Interned, intern};
+use crate::interner::{intern, Interned};
 use crate::passes::build_elf::sysv_hash::num_buckets;
 use crate::repr::object::Object;
 use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::{Section, SectionContent, SectionId};
 use crate::repr::segments::{SegmentContent, SegmentType};
 use crate::repr::symbols::SymbolVisibility;
-use plinky_elf::ElfClass;
 use plinky_elf::writer::layout::{
-    Layout, LayoutDetailsHash, LayoutDetailsNote, LayoutDetailsProvider, LayoutError,
-    LayoutPartsGroup, Part,
+    Layout, LayoutDetailsGnuHash, LayoutDetailsHash, LayoutDetailsNote, LayoutDetailsProvider,
+    LayoutError, LayoutPartsGroup, Part,
 };
+use plinky_elf::ElfClass;
 use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeSet;
 
@@ -118,6 +118,10 @@ impl LayoutDetailsProvider<SectionId> for Object {
         let hash = cast_section!(self, id, SysvHash);
         let symbols_count = self.symbols.iter(&*hash.view).count();
         LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }
+    }
+
+    fn gnu_hash_details(&self, _id: SectionId) -> LayoutDetailsGnuHash {
+        unimplemented!();
     }
 
     fn note_details(&self, id: SectionId) -> Vec<LayoutDetailsNote> {

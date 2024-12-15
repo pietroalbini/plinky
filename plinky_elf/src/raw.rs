@@ -144,6 +144,14 @@ pub struct RawHashHeader {
     pub chain_count: u32,
 }
 
+#[derive(RawType)]
+pub struct RawGnuHashHeader {
+    pub buckets_count: u32,
+    pub symbols_offset: u32,
+    pub bloom_count: u32,
+    pub bloom_shift: u32,
+}
+
 #[derive(Bitfield)]
 #[bitfield_repr(u32)]
 pub struct RawGroupFlags {

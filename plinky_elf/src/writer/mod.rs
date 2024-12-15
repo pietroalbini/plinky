@@ -6,8 +6,8 @@ pub(crate) use self::layout::LayoutError;
 use crate::errors::WriteError;
 use crate::ids::{ElfSectionId, ElfSymbolId};
 use crate::raw::{
-    RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification, RawNoteHeader,
-    RawProgramHeader, RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader,
+    RawGnuHashHeader, RawGroupFlags, RawHashHeader, RawHeader, RawHeaderFlags, RawIdentification,
+    RawNoteHeader, RawProgramHeader, RawProgramHeaderFlags, RawRel, RawRela, RawSectionHeader,
     RawSectionHeaderFlags, RawSymbol,
 };
 use crate::writer::layout::{Layout, Part};
@@ -76,6 +76,7 @@ impl<'a> Writer<'a> {
                 Part::Rel(id) => self.write_rel_table(id)?,
                 Part::Group(id) => self.write_group(id)?,
                 Part::Hash(id) => self.write_hash(id)?,
+                Part::GnuHash(id) => self.write_gnu_hash(id)?,
                 Part::Dynamic(id) => self.write_dynamic(id)?,
                 Part::Note(id) => self.write_notes(id)?,
                 Part::Padding { .. } => self.write_padding(part)?,
@@ -181,11 +182,12 @@ impl<'a> Writer<'a> {
                 ElfSectionContent::StringTable(_) => 3,
                 ElfSectionContent::Rela(_) => 4,
                 ElfSectionContent::Hash(_) => 5,
+                ElfSectionContent::GnuHash(_) => 0x6ffffff6,
                 ElfSectionContent::Dynamic(_) => 6,
                 ElfSectionContent::Note(_) => 7,
                 ElfSectionContent::Rel(_) => 9,
-                ElfSectionContent::Unknown(_) => panic!("unknown section"),
                 ElfSectionContent::Group(_) => 17,
+                ElfSectionContent::Unknown(_) => panic!("unknown section"),
             };
 
             let mut flags = match &section.content {
@@ -235,6 +237,7 @@ impl<'a> Writer<'a> {
                     ElfSectionContent::Rel(rel) => rel.symbol_table.index,
                     ElfSectionContent::Rela(rela) => rela.symbol_table.index,
                     ElfSectionContent::Hash(hash) => hash.symbol_table.index,
+                    ElfSectionContent::GnuHash(gnu_hash) => gnu_hash.symbol_table.index,
                     ElfSectionContent::Group(group) => group.symbol_table.index,
                     ElfSectionContent::Dynamic(dynamic) => dynamic.string_table.index,
                     _ => 0,
@@ -494,6 +497,31 @@ impl<'a> Writer<'a> {
         Ok(())
     }
 
+    fn write_gnu_hash(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
+        let gnu_hash = cast_section!(self, id, GnuHash);
+        self.write_raw(RawGnuHashHeader {
+            buckets_count: gnu_hash.buckets.len().try_into().expect("too many buckets"),
+            symbols_offset: gnu_hash.symbols_offset,
+            bloom_count: gnu_hash.bloom.len().try_into().expect("too many bloom items"),
+            bloom_shift: gnu_hash.bloom_shift,
+        })?;
+        for entry in &gnu_hash.bloom {
+            match self.object.env.class {
+                ElfClass::Elf32 => {
+                    self.write_raw(u32::try_from(*entry).expect("64bit bloom in 32bit object"))?
+                }
+                ElfClass::Elf64 => self.write_raw(*entry)?,
+            }
+        }
+        for bucket in &gnu_hash.buckets {
+            self.write_raw(*bucket)?;
+        }
+        for chain in &gnu_hash.chain {
+            self.write_raw(*chain)?;
+        }
+        Ok(())
+    }
+
     fn write_dynamic(&mut self, id: ElfSectionId) -> Result<(), WriteError> {
         let dynamic = cast_section!(self, id, Dynamic);
         for directive in &dynamic.directives {
@@ -523,11 +551,14 @@ impl<'a> Writer<'a> {
                 ElfDynamicDirective::Rel { address } => (17, *address),
                 ElfDynamicDirective::RelSize { bytes } => (18, *bytes),
                 ElfDynamicDirective::RelEntrySize { bytes } => (19, *bytes),
-                ElfDynamicDirective::PTLRelocationsMode { mode } => (20, match mode {
-                    ElfPLTRelocationsMode::Rel => 17,
-                    ElfPLTRelocationsMode::Rela => 7,
-                    ElfPLTRelocationsMode::Unknown(other) => *other,
-                }),
+                ElfDynamicDirective::PTLRelocationsMode { mode } => (
+                    20,
+                    match mode {
+                        ElfPLTRelocationsMode::Rel => 17,
+                        ElfPLTRelocationsMode::Rela => 7,
+                        ElfPLTRelocationsMode::Unknown(other) => *other,
+                    },
+                ),
                 ElfDynamicDirective::Debug { address } => (21, *address),
                 ElfDynamicDirective::RelocationsWillModifyText => (22, 0),
                 ElfDynamicDirective::JumpRel { address } => (23, *address),

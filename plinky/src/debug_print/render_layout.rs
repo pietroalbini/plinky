@@ -33,6 +33,7 @@ pub(super) fn render_layout(
                 | Part::StringTable(id)
                 | Part::SymbolTable(id)
                 | Part::Hash(id)
+                | Part::GnuHash(id)
                 | Part::Rel(id)
                 | Part::Rela(id)
                 | Part::Group(id)

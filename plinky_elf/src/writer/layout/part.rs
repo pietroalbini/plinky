@@ -18,6 +18,7 @@ pub enum Part<S> {
     Group(S),
     Dynamic(S),
     Note(S),
+    GnuHash(S),
     Padding { id: PaddingId, len: usize },
 }
 
@@ -32,6 +33,7 @@ impl<S> Part<S> {
             Part::StringTable(id) => Some(id),
             Part::SymbolTable(id) => Some(id),
             Part::Hash(id) => Some(id),
+            Part::GnuHash(id) => Some(id),
             Part::Rel(id) => Some(id),
             Part::Rela(id) => Some(id),
             Part::Group(id) => Some(id),
@@ -56,6 +58,7 @@ impl<S> Part<S> {
             Part::StringTable(id) => Part::StringTable(c(id)),
             Part::SymbolTable(id) => Part::SymbolTable(c(id)),
             Part::Hash(id) => Part::Hash(c(id)),
+            Part::GnuHash(id) => Part::GnuHash(c(id)),
             Part::Rel(id) => Part::Rel(c(id)),
             Part::Rela(id) => Part::Rela(c(id)),
             Part::Group(id) => Part::Group(c(id)),

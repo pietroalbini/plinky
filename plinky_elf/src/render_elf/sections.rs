@@ -2,10 +2,10 @@ use crate::ids::ElfSectionId;
 use crate::render_elf::names::Names;
 use crate::render_elf::utils::render_perms;
 use crate::{
-    ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGnuProperty, ElfGroup, ElfHash, ElfNote,
-    ElfNotesTable, ElfObject, ElfPLTRelocationsMode, ElfProgramSection, ElfRelTable, ElfRelaTable,
-    ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolDefinition, ElfSymbolTable,
-    ElfSymbolType, ElfUninitializedSection, ElfUnknownSection,
+    ElfClass, ElfDeduplication, ElfDynamic, ElfDynamicDirective, ElfGnuHash, ElfGnuProperty,
+    ElfGroup, ElfHash, ElfNote, ElfNotesTable, ElfObject, ElfPLTRelocationsMode, ElfProgramSection,
+    ElfRelTable, ElfRelaTable, ElfSection, ElfSectionContent, ElfStringTable, ElfSymbolDefinition,
+    ElfSymbolTable, ElfSymbolType, ElfUninitializedSection, ElfUnknownSection,
 };
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 
@@ -25,6 +25,7 @@ pub(super) fn render_section(
         ElfSectionContent::Rela(rela) => render_section_rela(names, rela),
         ElfSectionContent::Group(group) => render_section_group(names, group),
         ElfSectionContent::Hash(hash) => render_section_hash(names, object, hash),
+        ElfSectionContent::GnuHash(gnu_hash) => render_section_gnu_hash(names, object, gnu_hash),
         ElfSectionContent::Note(notes) => render_section_notes(notes),
         ElfSectionContent::Dynamic(dynamic) => render_section_dynamic(names, object, dynamic),
         ElfSectionContent::Unknown(unknown) => render_section_unknown(unknown),
@@ -214,6 +215,61 @@ fn render_section_hash(names: &Names, object: &ElfObject, hash: &ElfHash) -> Vec
     vec![Box::new(info), Box::new(content)]
 }
 
+fn render_section_gnu_hash(
+    names: &Names,
+    object: &ElfObject,
+    gnu_hash: &ElfGnuHash,
+) -> Vec<Box<dyn Widget>> {
+    let ElfSectionContent::SymbolTable(symbol_table) =
+        &object.sections.get(&gnu_hash.symbol_table).unwrap().content
+    else {
+        panic!("hash table's symbol table is not a symbol table");
+    };
+
+    let info = Text::new(format!("GNU hash table for {}", names.section(gnu_hash.symbol_table)));
+
+    let bloom_bits = match object.env.class {
+        ElfClass::Elf32 => 32,
+        ElfClass::Elf64 => 64,
+    };
+    let mut bloom = Table::new();
+    bloom.set_title(format!("Bloom filter (shift of {}):", gnu_hash.bloom_shift));
+    for byte in &gnu_hash.bloom {
+        bloom.add_body([format!("{byte:0>bloom_bits$b}")]);
+    }
+
+    let mut buckets = Vec::new();
+    for chain_start in &gnu_hash.buckets {
+        let mut symbols = Vec::new();
+        for (mut idx, hash) in gnu_hash.chain.iter().skip(*chain_start as usize).enumerate() {
+            idx += *chain_start as usize;
+            symbols.push(symbol_table.symbols.keys().skip(idx).next().unwrap());
+
+            // The chain ends when the least significant bit of the hash is 1.
+            if (hash & 1) == 1 {
+                break;
+            }
+        }
+        buckets.push(symbols);
+    }
+
+    let mut content = Table::new();
+    content.set_title("Content:");
+    content.add_head(["Bucket ID", "Symbols in bucket"]);
+    for (id, symbols) in buckets.iter().enumerate() {
+        let mut symbols_str = String::new();
+        for (pos, symbol) in symbols.iter().enumerate() {
+            if pos != 0 {
+                symbols_str.push('\n');
+            }
+            symbols_str.push_str(names.symbol(**symbol));
+        }
+        content.add_body([id.to_string(), symbols_str]);
+    }
+
+    vec![Box::new(info), Box::new(bloom), Box::new(content)]
+}
+
 fn render_section_notes(notes: &ElfNotesTable) -> Vec<Box<dyn Widget>> {
     notes.notes.iter().map(render_note).collect()
 }
@@ -353,7 +409,7 @@ fn render_section_dynamic(
                 Value::StrOff(off) => {
                     let string = strings.get(*off as _).unwrap_or("<missing>");
                     format!("string {off:#x}: {string}")
-                },
+                }
                 Value::Str(string) => string,
                 Value::None => "-".to_string(),
             },

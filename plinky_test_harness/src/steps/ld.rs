@@ -43,7 +43,7 @@ impl Step for LdStep {
             .arg(&dest_name)
             .args(content.iter().map(|c| file_name(c)).collect::<Vec<_>>())
             .args(if self.shared_library { &["-shared"] as &[_] } else { &[] })
-            .arg("--hash-style=sysv") // FIXME: temporary until we implement GNU hash
+            .arg("--hash-style=both")
             .args(match ctx.arch {
                 Arch::X86 => ["-m", "elf_i386"],
                 Arch::X86_64 => ["-m", "elf_x86_64"],

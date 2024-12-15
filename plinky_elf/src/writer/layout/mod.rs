@@ -4,6 +4,7 @@ mod part;
 pub use self::details_provider::*;
 pub use self::part::*;
 
+use crate::raw::RawGnuHashHeader;
 use crate::raw::RawNoteHeader;
 use crate::raw::{
     RawGroupFlags, RawHashHeader, RawHeader, RawIdentification, RawProgramHeader, RawRel, RawRela,
@@ -141,10 +142,10 @@ impl<S: Ord + Eq + Clone + Copy> LayoutBuilder<'_, S> {
         };
 
         if part.present_in_file() {
-            self.layout.metadata.insert(part, PartMetadata {
-                file: Some(PartFile { len, offset: self.current_offset }),
-                memory,
-            });
+            self.layout.metadata.insert(
+                part,
+                PartMetadata { file: Some(PartFile { len, offset: self.current_offset }), memory },
+            );
             self.current_offset = self.current_offset.add(len.as_offset()?)?;
         } else {
             self.layout.metadata.insert(part, PartMetadata { file: None, memory });
@@ -193,6 +194,14 @@ fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> L
             RawHashHeader::size(class)
                 + hash.buckets * u32::size(class)
                 + hash.chain * u32::size(class)
+        }
+
+        Part::GnuHash(id) => {
+            let gnu_hash = details.gnu_hash_details(id);
+            RawGnuHashHeader::size(class)
+                + gnu_hash.bloom * <u64 as RawTypeAsPointerSize>::size(class)
+                + gnu_hash.buckets * u32::size(class)
+                + gnu_hash.chain * u32::size(class)
         }
 
         Part::Note(id) => {

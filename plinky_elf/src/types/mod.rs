@@ -3,7 +3,7 @@ mod string_table;
 pub use self::string_table::ElfStringTable;
 
 use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
-use crate::raw::{RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
+use crate::raw::{RawGnuHashHeader, RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use plinky_macros::Bitfield;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use plinky_utils::{Bits, Endian};
@@ -94,6 +94,7 @@ pub enum ElfSectionContent {
     Note(ElfNotesTable),
     Group(ElfGroup),
     Hash(ElfHash),
+    GnuHash(ElfGnuHash),
     Dynamic(ElfDynamic),
     Unknown(ElfUnknownSection),
 }
@@ -113,6 +114,13 @@ impl ElfSectionContent {
             }
             ElfSectionContent::Hash(h) => {
                 RawHashHeader::size(bits)
+                    + u32::size(bits) * h.buckets.len()
+                    + u32::size(bits) * h.chain.len()
+            }
+            ElfSectionContent::GnuHash(h) => {
+                let bloom_bits = <u64 as RawTypeAsPointerSize>::size(bits);
+                RawGnuHashHeader::size(bits)
+                    + bloom_bits * h.bloom.len()
                     + u32::size(bits) * h.buckets.len()
                     + u32::size(bits) * h.chain.len()
             }
@@ -442,6 +450,16 @@ pub struct ElfGroup {
 #[derive(Debug)]
 pub struct ElfHash {
     pub symbol_table: ElfSectionId,
+    pub buckets: Vec<u32>,
+    pub chain: Vec<u32>,
+}
+
+#[derive(Debug)]
+pub struct ElfGnuHash {
+    pub symbol_table: ElfSectionId,
+    pub bloom_shift: u32,
+    pub symbols_offset: u32,
+    pub bloom: Vec<u64>,
     pub buckets: Vec<u32>,
     pub chain: Vec<u32>,
 }

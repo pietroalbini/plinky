@@ -226,7 +226,11 @@ fn render_section_gnu_hash(
         panic!("hash table's symbol table is not a symbol table");
     };
 
-    let info = Text::new(format!("GNU hash table for {}", names.section(gnu_hash.symbol_table)));
+    let info = Text::new(format!(
+        "GNU hash table for {}\nIgnored symbols: {}",
+        names.section(gnu_hash.symbol_table),
+        gnu_hash.symbols_offset,
+    ));
 
     let bloom_bits = match object.env.class {
         ElfClass::Elf32 => 32,
@@ -239,11 +243,22 @@ fn render_section_gnu_hash(
     }
 
     let mut buckets = Vec::new();
-    for chain_start in &gnu_hash.buckets {
+    for start_symtab_index in &gnu_hash.buckets {
         let mut symbols = Vec::new();
-        for (mut idx, hash) in gnu_hash.chain.iter().skip(*chain_start as usize).enumerate() {
-            idx += *chain_start as usize;
-            symbols.push(symbol_table.symbols.keys().skip(idx).next().unwrap());
+        for (idx, hash) in gnu_hash
+            .chain
+            .iter()
+            .enumerate()
+            .skip((*start_symtab_index - gnu_hash.symbols_offset) as usize)
+        {
+            symbols.push(
+                symbol_table
+                    .symbols
+                    .keys()
+                    .skip(idx + gnu_hash.symbols_offset as usize)
+                    .next()
+                    .unwrap(),
+            );
 
             // The chain ends when the least significant bit of the hash is 1.
             if (hash & 1) == 1 {

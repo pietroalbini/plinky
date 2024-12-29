@@ -251,14 +251,15 @@ fn render_section_gnu_hash(
             .enumerate()
             .skip((*start_symtab_index - gnu_hash.symbols_offset) as usize)
         {
-            symbols.push(
+            symbols.push((
                 symbol_table
                     .symbols
                     .keys()
                     .skip(idx + gnu_hash.symbols_offset as usize)
                     .next()
                     .unwrap(),
-            );
+                hash & 0xfffffffe,
+            ));
 
             // The chain ends when the least significant bit of the hash is 1.
             if (hash & 1) == 1 {
@@ -270,16 +271,19 @@ fn render_section_gnu_hash(
 
     let mut content = Table::new();
     content.set_title("Content:");
-    content.add_head(["Bucket ID", "Symbols in bucket"]);
+    content.add_head(["Bucket ID", "Symbols in bucket", "Truncated hashes"]);
     for (id, symbols) in buckets.iter().enumerate() {
         let mut symbols_str = String::new();
-        for (pos, symbol) in symbols.iter().enumerate() {
+        let mut hashes_str = String::new();
+        for (pos, (symbol, hash)) in symbols.iter().enumerate() {
             if pos != 0 {
                 symbols_str.push('\n');
+                hashes_str.push('\n');
             }
             symbols_str.push_str(names.symbol(**symbol));
+            hashes_str.push_str(&format!("{hash:0>8x}"));
         }
-        content.add_body([id.to_string(), symbols_str]);
+        content.add_body([id.to_string(), symbols_str, hashes_str]);
     }
 
     vec![Box::new(info), Box::new(bloom), Box::new(content)]

@@ -27,7 +27,7 @@ debug-print = [
 [plinky.pie_got_relro]
 cmd = ["${c.hello_got}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie", "-zrelro"]
 kind = "run-pass"
-debug-print = ["layout", "final-elf=@segments"]
+debug-print = ["layout", "final-elf=@segments,.gnu.hash"]
 
 [plinky.pie_plt]
 cmd = ["${c.hello_plt}", "${asm.syscall_write}", "${asm.syscall_exit}", "-pie"]

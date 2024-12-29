@@ -18,14 +18,15 @@ debug print: calculated layout
  │  │ .dynstr            │ 0x2fb       │ 0xd         │ 0x2fb          │ 0xd           │
  │  │ .dynsym            │ 0x308       │ 0x48        │ 0x308          │ 0x48          │
  │  │ .hash              │ 0x350       │ 0x18        │ 0x350          │ 0x18          │
- │  │ .dynamic           │ 0x368       │ 0xa0        │ 0x368          │ 0xa0          │
- │  │ .rela.got          │ 0x408       │ 0x30        │ 0x408          │ 0x30          │
- │  │ <section header>   │ 0x438       │ 0x4c0       │ -              │ -             │
- │  │ .shstrtab          │ 0x8f8       │ 0x9a        │ -              │ -             │
- │  │ .strtab            │ 0x992       │ 0x33        │ -              │ -             │
- │  │ .symtab            │ 0x9c5       │ 0x90        │ -              │ -             │
- │  │ .comment#0         │ 0xa55       │ 0x22        │ -              │ -             │
- │  │ <padding>          │ 0xa77       │ 0x589       │ -              │ -             │
+ │  │ .gnu.hash          │ 0x368       │ 0x24        │ 0x368          │ 0x24          │
+ │  │ .dynamic           │ 0x38c       │ 0xb0        │ 0x38c          │ 0xb0          │
+ │  │ .rela.got          │ 0x43c       │ 0x30        │ 0x43c          │ 0x30          │
+ │  │ <section header>   │ 0x46c       │ 0x500       │ -              │ -             │
+ │  │ .shstrtab          │ 0x96c       │ 0xa4        │ -              │ -             │
+ │  │ .strtab            │ 0xa10       │ 0x33        │ -              │ -             │
+ │  │ .symtab            │ 0xa43       │ 0x90        │ -              │ -             │
+ │  │ .comment#0         │ 0xad3       │ 0x22        │ -              │ -             │
+ │  │ <padding>          │ 0xaf5       │ 0x50b       │ -              │ -             │
  │  │ .rodata            │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame          │ 0x100d      │ 0x38        │ 0x100d         │ 0x38          │
  │  │ <padding>          │ 0x1045      │ 0xfbb       │ -              │ -             │
@@ -50,6 +51,7 @@ debug print: calculated layout
  │  │        │        │                │       │ .dynstr            │
  │  │        │        │                │       │ .dynsym            │
  │  │        │        │                │       │ .hash              │
+ │  │        │        │                │       │ .gnu.hash          │
  │  │        │        │                │       │ .dynamic           │
  │  │        │        │                │       │ .rela.got          │
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata            │
@@ -59,7 +61,7 @@ debug print: calculated layout
  │  │        │        │                │       │ .text#2            │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got               │
  │  │        │        │                │       │ .got.plt           │
- │  │ 0x368  │ 0x8    │ dynamic        │ R     │ .dynamic           │
+ │  │ 0x38c  │ 0x8    │ dynamic        │ R     │ .dynamic           │
  │  │ -      │ 0x1    │ GNU stack      │ RW    │                    │
  │  │ 0x3000 │ 0x1    │ GNU relro      │ R     │ .got               │
  │  │ 0x3028 │ 0x8    │ GNU property   │ R     │ .note.gnu.property │
@@ -84,17 +86,36 @@ debug print: calculated layout
 
 debug print: built elf
  │
+ │  section .gnu.hash (address: 0x368)
+ │   │
+ │   │  GNU hash table for .dynsym
+ │   │  Ignored symbols: 1
+ │   │
+ │   │    Bloom filter (shift of 10):
+ │   │  ╭──────────────────────────────────────────────────────────────────╮
+ │   │  │ 1000000000000000001000000000000010000000000000010000000000000000 │
+ │   │  ╰──────────────────────────────────────────────────────────────────╯
+ │   │
+ │   │    Content:
+ │   │  ╭───────────┬───────────────────┬──────────────────╮
+ │   │  │ Bucket ID │ Symbols in bucket │ Truncated hashes │
+ │   │  ├───────────┼───────────────────┼──────────────────┤
+ │   │  │ 0         │ write#1           │ 10a8b550         │
+ │   │  │           │ exit#1            │ 7c967e3e         │
+ │   │  ╰───────────┴───────────────────┴──────────────────╯
+ │   ┴
+ │
  │    Segments:
  │  ╭───────────────────────────┬───────┬──────────┬─────────────┬──────────┬────────────────┬────────────╮
  │  │ Type                      │ Perms │ Aligment │ File offset │ File len │ Memory address │ Memory len │
  │  ├───────────────────────────┼───────┼──────────┼─────────────┼──────────┼────────────────┼────────────┤
  │  │ Program header table      │ R     │ 0x1000   │ 0x40        │ 0x268    │ 0x40           │ 0x268      │
  │  │ Interpreter               │ R     │ 0x1      │ 0x2a8       │ 0x53     │ 0x2a8          │ 0x53       │
- │  │ Load                      │ R     │ 0x1000   │ 0x0         │ 0x438    │ 0x0            │ 0x438      │
+ │  │ Load                      │ R     │ 0x1000   │ 0x0         │ 0x46c    │ 0x0            │ 0x46c      │
  │  │ Load                      │ R     │ 0x1000   │ 0x1000      │ 0x45     │ 0x1000         │ 0x45       │
  │  │ Load                      │ R X   │ 0x1000   │ 0x2000      │ 0x44     │ 0x2000         │ 0x44       │
  │  │ Load                      │ RW    │ 0x1000   │ 0x3000      │ 0x28     │ 0x3000         │ 0x28       │
- │  │ Dynamic                   │ R     │ 0x8      │ 0x368       │ 0xa0     │ 0x368          │ 0xa0       │
+ │  │ Dynamic                   │ R     │ 0x8      │ 0x38c       │ 0xb0     │ 0x38c          │ 0xb0       │
  │  │ Note                      │ R     │ 0x8      │ 0x3028      │ 0x30     │ 0x3028         │ 0x30       │
  │  │ GNU stack                 │ RW    │ 0x1      │ 0x0         │ 0x0      │ 0x0            │ 0x0        │
  │  │ GNU relocations read-only │ R     │ 0x1      │ 0x3000      │ 0x10     │ 0x3000         │ 0x10       │

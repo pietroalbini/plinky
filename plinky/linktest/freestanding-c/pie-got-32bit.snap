@@ -76,14 +76,15 @@ debug print: calculated layout
  │  │ .dynstr                     │ 0x1c0       │ 0xd         │ 0x1c0          │ 0xd           │
  │  │ .dynsym                     │ 0x1cd       │ 0x30        │ 0x1cd          │ 0x30          │
  │  │ .hash                       │ 0x1fd       │ 0x18        │ 0x1fd          │ 0x18          │
- │  │ .dynamic                    │ 0x215       │ 0x50        │ 0x215          │ 0x50          │
- │  │ .rel.got                    │ 0x265       │ 0x10        │ 0x265          │ 0x10          │
- │  │ <section header>            │ 0x275       │ 0x320       │ -              │ -             │
- │  │ .shstrtab                   │ 0x595       │ 0xb5        │ -              │ -             │
- │  │ .strtab                     │ 0x64a       │ 0x51        │ -              │ -             │
- │  │ .symtab                     │ 0x69b       │ 0x80        │ -              │ -             │
- │  │ .comment#0                  │ 0x71b       │ 0x22        │ -              │ -             │
- │  │ <padding>                   │ 0x73d       │ 0x8c3       │ -              │ -             │
+ │  │ .gnu.hash                   │ 0x215       │ 0x20        │ 0x215          │ 0x20          │
+ │  │ .dynamic                    │ 0x235       │ 0x58        │ 0x235          │ 0x58          │
+ │  │ .rel.got                    │ 0x28d       │ 0x10        │ 0x28d          │ 0x10          │
+ │  │ <section header>            │ 0x29d       │ 0x348       │ -              │ -             │
+ │  │ .shstrtab                   │ 0x5e5       │ 0xbf        │ -              │ -             │
+ │  │ .strtab                     │ 0x6a4       │ 0x51        │ -              │ -             │
+ │  │ .symtab                     │ 0x6f5       │ 0x80        │ -              │ -             │
+ │  │ .comment#0                  │ 0x775       │ 0x22        │ -              │ -             │
+ │  │ <padding>                   │ 0x797       │ 0x869       │ -              │ -             │
  │  │ .rodata                     │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame                   │ 0x100d      │ 0x48        │ 0x100d         │ 0x48          │
  │  │ <padding>                   │ 0x1055      │ 0xfab       │ -              │ -             │
@@ -109,6 +110,7 @@ debug print: calculated layout
  │  │        │        │                │       │ .dynstr                     │
  │  │        │        │                │       │ .dynsym                     │
  │  │        │        │                │       │ .hash                       │
+ │  │        │        │                │       │ .gnu.hash                   │
  │  │        │        │                │       │ .dynamic                    │
  │  │        │        │                │       │ .rel.got                    │
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata                     │
@@ -119,7 +121,7 @@ debug print: calculated layout
  │  │        │        │                │       │ .text#2                     │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got                        │
  │  │        │        │                │       │ .got.plt                    │
- │  │ 0x215  │ 0x4    │ dynamic        │ R     │ .dynamic                    │
+ │  │ 0x235  │ 0x4    │ dynamic        │ R     │ .dynamic                    │
  │  │ -      │ 0x1    │ GNU stack      │ RW    │                             │
  │  │ 0x3014 │ 0x4    │ GNU property   │ R     │ .note.gnu.property          │
  │  │ 0x3014 │ 0x4    │ notes          │ R     │ .note.gnu.property          │
@@ -157,7 +159,7 @@ debug print: object after relocations are applied
  │   │  address: 0x3008
  │   │
  │   │  ╭─────────────────────────────────────┬──────────────╮
- │   │  │ 15 02 00 00 00 00 00 00 00 00 00 00 │ ............ │
+ │   │  │ 35 02 00 00 00 00 00 00 00 00 00 00 │ 5........... │
  │   │  ╰─────────────────────────────────────┴──────────────╯
  │   ┴
  │
@@ -292,7 +294,26 @@ debug print: built elf
  │   │  ╰───────────┴───────────────────╯
  │   ┴
  │
- │  section .dynamic (address: 0x215)
+ │  section .gnu.hash (address: 0x215)
+ │   │
+ │   │  GNU hash table for .dynsym
+ │   │  Ignored symbols: 1
+ │   │
+ │   │    Bloom filter (shift of 10):
+ │   │  ╭──────────────────────────────────╮
+ │   │  │ 10000000000000010010000000000000 │
+ │   │  ╰──────────────────────────────────╯
+ │   │
+ │   │    Content:
+ │   │  ╭───────────┬───────────────────┬──────────────────╮
+ │   │  │ Bucket ID │ Symbols in bucket │ Truncated hashes │
+ │   │  ├───────────┼───────────────────┼──────────────────┤
+ │   │  │ 0         │ write#1           │ 10a8b550         │
+ │   │  │           │ exit#1            │ 7c967e3e         │
+ │   │  ╰───────────┴───────────────────┴──────────────────╯
+ │   ┴
+ │
+ │  section .dynamic (address: 0x235)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -304,7 +325,8 @@ debug print: built elf
  │   │  │ Symbol table                 │ address 0x1cd │
  │   │  │ Symbol table entry size      │ 16 bytes      │
  │   │  │ Hash table                   │ address 0x1fd │
- │   │  │ Relocations table            │ address 0x265 │
+ │   │  │ GNU hash table               │ address 0x215 │
+ │   │  │ Relocations table            │ address 0x28d │
  │   │  │ Relocations table size       │ 16 bytes      │
  │   │  │ Relocations table entry size │ 8 bytes       │
  │   │  │ Flags1                       │ pie           │
@@ -312,7 +334,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────┴───────────────╯
  │   ┴
  │
- │  section .rel.got (address: 0x265)
+ │  section .rel.got (address: 0x28d)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got
@@ -332,11 +354,11 @@ debug print: built elf
  │  ├──────────────────────┼───────┼──────────┼─────────────┼──────────┼────────────────┼────────────┤
  │  │ Program header table │ R     │ 0x1000   │ 0x34        │ 0x140    │ 0x34           │ 0x140      │
  │  │ Interpreter          │ R     │ 0x1      │ 0x174       │ 0x4c     │ 0x174          │ 0x4c       │
- │  │ Load                 │ R     │ 0x1000   │ 0x0         │ 0x275    │ 0x0            │ 0x275      │
+ │  │ Load                 │ R     │ 0x1000   │ 0x0         │ 0x29d    │ 0x0            │ 0x29d      │
  │  │ Load                 │ R     │ 0x1000   │ 0x1000      │ 0x55     │ 0x1000         │ 0x55       │
  │  │ Load                 │ R X   │ 0x1000   │ 0x2000      │ 0x5d     │ 0x2000         │ 0x5d       │
  │  │ Load                 │ RW    │ 0x1000   │ 0x3000      │ 0x14     │ 0x3000         │ 0x14       │
- │  │ Dynamic              │ R     │ 0x4      │ 0x215       │ 0x50     │ 0x215          │ 0x50       │
+ │  │ Dynamic              │ R     │ 0x4      │ 0x235       │ 0x58     │ 0x235          │ 0x58       │
  │  │ Note                 │ R     │ 0x4      │ 0x3014      │ 0x28     │ 0x3014         │ 0x28       │
  │  │ GNU stack            │ RW    │ 0x1      │ 0x0         │ 0x0      │ 0x0            │ 0x0        │
  │  │ GNU property         │ R     │ 0x4      │ 0x3014      │ 0x28     │ 0x3014         │ 0x28       │

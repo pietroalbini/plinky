@@ -19,7 +19,7 @@ kind = "run-pass"
 debug-print = [
     "loaded-object=@symbols,@inputs,.text,.text.main",
     "relocations-analysis",
-    "final-elf=.dynamic,.dynsym,.rel*",
+    "final-elf=.dynamic,.dynsym,.rel*,.gnu.hash",
 ]
 
 [asm.entry_pic]

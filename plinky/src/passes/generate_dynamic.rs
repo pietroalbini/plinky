@@ -3,8 +3,8 @@ use crate::interner::intern;
 use crate::repr::dynamic_entries::DynamicEntry;
 use crate::repr::object::Object;
 use crate::repr::sections::{
-    DataSection, DynamicSection, SectionContent, SectionId, StringsSection, SymbolsSection,
-    SysvHashSection,
+    DataSection, DynamicSection, GnuHashSection, SectionContent, SectionId, StringsSection,
+    SymbolsSection, SysvHashSection,
 };
 use crate::repr::segments::{Segment, SegmentContent, SegmentId, SegmentType};
 use crate::repr::symbols::views::DynamicSymbolTable;
@@ -18,6 +18,7 @@ pub(crate) fn run(
     options: &CliOptions,
     object: &mut Object,
 ) -> Result<Option<DynamicContext>, GenerateDynamicError> {
+    let class = object.env.class;
     match object.mode {
         Mode::PositionDependent => {
             // We only need to generate the dynamic section if we don't link to shared objects.
@@ -42,7 +43,7 @@ pub(crate) fn run(
         Mode::SharedLibrary => {}
     }
 
-    let mut dynstr_section = StringsSection::new(DynamicSymbolTable);
+    let mut dynstr_section = StringsSection::new(DynamicSymbolTable { class });
     if let Some(soname) = &options.shared_object_name {
         let soname_id = dynstr_section.add_custom_string(soname);
         object.dynamic_entries.add(DynamicEntry::SharedObjectName(soname_id));
@@ -66,11 +67,25 @@ pub(crate) fn run(
 
     let dynsym = create(
         ".dynsym",
-        SymbolsSection::new(dynstr, DynamicSymbolTable, true).into(),
+        SymbolsSection::new(dynstr, DynamicSymbolTable { class }, true).into(),
         DynamicEntry::SymbolTable,
     );
 
-    create(".hash", SysvHashSection::new(DynamicSymbolTable, dynsym).into(), DynamicEntry::Hash);
+    if options.hash_style.has_sysv() {
+        create(
+            ".hash",
+            SysvHashSection::new(DynamicSymbolTable { class }, dynsym).into(),
+            DynamicEntry::Hash,
+        );
+    }
+
+    if options.hash_style.has_gnu() {
+        create(
+            ".gnu.hash",
+            GnuHashSection::new(DynamicSymbolTable { class }, dynsym).into(),
+            DynamicEntry::GnuHash,
+        );
+    }
 
     let dynamic = object.sections.builder(".dynamic", DynamicSection::new(dynstr)).create();
     segment_content.push(SegmentContent::Section(dynamic));

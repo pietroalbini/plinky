@@ -39,6 +39,7 @@ pub(crate) fn run(object: &mut Object) {
             SectionContent::Strings(_)
             | SectionContent::Symbols(_)
             | SectionContent::SysvHash(_)
+            | SectionContent::GnuHash(_)
             | SectionContent::Relocations(_)
             | SectionContent::Dynamic(_)
             | SectionContent::SectionNames => continue,

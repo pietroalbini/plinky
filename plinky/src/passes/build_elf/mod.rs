@@ -27,6 +27,7 @@ use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
+use crate::passes::build_elf::gnu_hash::create_gnu_hash;
 
 type SectionConversion = BTreeMap<SectionId, ElfSectionId>;
 
@@ -206,6 +207,12 @@ impl<'a> ElfBuilder<'a> {
                 SectionContent::SysvHash(sysv) => create_sysv_hash(
                     self.object.symbols.iter(&*sysv.view),
                     *self.section_ids.get(&sysv.symbols).unwrap(),
+                ),
+
+                SectionContent::GnuHash(gnu) => create_gnu_hash(
+                    self.object.symbols.iter(&*gnu.view),
+                    *self.section_ids.get(&gnu.symbols).unwrap(),
+                    self.object.env.class,
                 ),
 
                 SectionContent::Relocations(relocations) => create_relocations(

@@ -53,6 +53,10 @@ pub(super) fn build_dynamic_section(
                 let mem = layout(builder, id, "sysv hash");
                 directives.push(ElfDynamicDirective::Hash { address: mem.address.extract() });
             }
+            DynamicEntry::GnuHash(id) => {
+                let mem = layout(builder, id, "gnu hash");
+                directives.push(ElfDynamicDirective::GnuHash { address: mem.address.extract() });
+            }
             DynamicEntry::GotReloc(id) => {
                 let mem = layout(builder, id, "got relocations table");
                 match builder.object.relocation_mode() {

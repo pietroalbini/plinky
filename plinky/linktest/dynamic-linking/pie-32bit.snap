@@ -121,7 +121,33 @@ debug print: built elf
  │   │  ╰───────────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x28e)
+ │  section .gnu.hash (address: 0x28e)
+ │   │
+ │   │  GNU hash table for .dynsym
+ │   │  Ignored symbols: 1
+ │   │
+ │   │    Bloom filter (shift of 10):
+ │   │  ╭──────────────────────────────────╮
+ │   │  │ 00000000000000000000000000000000 │
+ │   │  │ 10000000000000000000000000000000 │
+ │   │  │ 00000000000000010010000100100000 │
+ │   │  │ 10000010000000001000010000000010 │
+ │   │  ╰──────────────────────────────────╯
+ │   │
+ │   │    Content:
+ │   │  ╭───────────┬───────────────────┬──────────────────╮
+ │   │  │ Bucket ID │ Symbols in bucket │ Truncated hashes │
+ │   │  ├───────────┼───────────────────┼──────────────────┤
+ │   │  │ 0         │ main#1            │ 7c9a7f6a         │
+ │   │  │           │ message_len#1     │ e3f594c8         │
+ │   │  │           │ message#1         │ be463eea         │
+ │   │  │           │ write#1           │ 10a8b550         │
+ │   │  │ 1         │ exit_code#1       │ 4e398478         │
+ │   │  │           │ exit#1            │ 7c967e3e         │
+ │   │  ╰───────────┴───────────────────┴──────────────────╯
+ │   ┴
+ │
+ │  section .dynamic (address: 0x2ce)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -135,10 +161,11 @@ debug print: built elf
  │   │  │ Symbol table                 │ address 0x1ee                │
  │   │  │ Symbol table entry size      │ 16 bytes                     │
  │   │  │ Hash table                   │ address 0x25e                │
- │   │  │ Relocations table            │ address 0x30e                │
+ │   │  │ GNU hash table               │ address 0x28e                │
+ │   │  │ Relocations table            │ address 0x356                │
  │   │  │ Relocations table size       │ 24 bytes                     │
  │   │  │ Relocations table entry size │ 8 bytes                      │
- │   │  │ Jump PLT relocations         │ address 0x326                │
+ │   │  │ Jump PLT relocations         │ address 0x36e                │
  │   │  │ PLT relocations size         │ 24 bytes                     │
  │   │  │ PLT relocations type         │ Relocations                  │
  │   │  │ PLT GOT                      │ address 0x200c               │
@@ -147,7 +174,7 @@ debug print: built elf
  │   │  ╰──────────────────────────────┴──────────────────────────────╯
  │   ┴
  │
- │  section .rel.got (address: 0x30e)
+ │  section .rel.got (address: 0x356)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got
@@ -162,7 +189,7 @@ debug print: built elf
  │   │  ╰─────────────┴───────────────┴────────╯
  │   ┴
  │
- │  section .rel.plt (address: 0x326)
+ │  section .rel.plt (address: 0x36e)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got.plt

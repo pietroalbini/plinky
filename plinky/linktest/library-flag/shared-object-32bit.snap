@@ -24,7 +24,7 @@ debug print: loaded object
 
 debug print: built elf
  │
- │  section .dynamic (address: 0x400224)
+ │  section .dynamic (address: 0x400244)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -37,7 +37,8 @@ debug print: built elf
  │   │  │ Symbol table            │ address 0x4001dc           │
  │   │  │ Symbol table entry size │ 16 bytes                   │
  │   │  │ Hash table              │ address 0x40020c           │
- │   │  │ Jump PLT relocations    │ address 0x40027c           │
+ │   │  │ GNU hash table          │ address 0x400224           │
+ │   │  │ Jump PLT relocations    │ address 0x4002a4           │
  │   │  │ PLT relocations size    │ 16 bytes                   │
  │   │  │ PLT relocations type    │ Relocations                │
  │   │  │ PLT GOT                 │ address 0x403000           │

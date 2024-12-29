@@ -1,6 +1,7 @@
 use crate::cli::Mode;
 use crate::interner::{intern, Interned};
-use crate::passes::build_elf::sysv_hash::num_buckets;
+use crate::passes::build_elf::gnu_hash::GnuHasher;
+use crate::passes::build_elf::sysv_hash;
 use crate::repr::object::Object;
 use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::{Section, SectionContent, SectionId};
@@ -117,11 +118,18 @@ impl LayoutDetailsProvider<SectionId> for Object {
     fn hash_details(&self, id: SectionId) -> LayoutDetailsHash {
         let hash = cast_section!(self, id, SysvHash);
         let symbols_count = self.symbols.iter(&*hash.view).count();
-        LayoutDetailsHash { buckets: num_buckets(symbols_count), chain: symbols_count }
+        LayoutDetailsHash { buckets: sysv_hash::num_buckets(symbols_count), chain: symbols_count }
     }
 
-    fn gnu_hash_details(&self, _id: SectionId) -> LayoutDetailsGnuHash {
-        unimplemented!();
+    fn gnu_hash_details(&self, id: SectionId) -> LayoutDetailsGnuHash {
+        let gnu_hash = cast_section!(self, id, GnuHash);
+        let hasher = GnuHasher::new(self.env.class, self.symbols.iter(&*gnu_hash.view));
+
+        LayoutDetailsGnuHash {
+            bloom: hasher.bloom_bytes_count as _,
+            buckets: hasher.buckets_count as _,
+            chain: hasher.symbols_count,
+        }
     }
 
     fn note_details(&self, id: SectionId) -> Vec<LayoutDetailsNote> {
@@ -192,6 +200,7 @@ fn part_for_section(object: &Object, section: &Section) -> Part<SectionId> {
         SectionContent::Strings(_) => Part::StringTable(section.id),
         SectionContent::Symbols(_) => Part::SymbolTable(section.id),
         SectionContent::SysvHash(_) => Part::Hash(section.id),
+        SectionContent::GnuHash(_) => Part::GnuHash(section.id),
         SectionContent::Relocations(_) => match object.relocation_mode() {
             RelocationMode::Rel => Part::Rel(section.id),
             RelocationMode::Rela => Part::Rela(section.id),

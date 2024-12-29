@@ -4,8 +4,9 @@ use crate::debug_print::utils::permissions;
 use crate::repr::object::Object;
 use crate::repr::relocations::{Relocation, RelocationAddend};
 use crate::repr::sections::{
-    DataSection, DynamicSection, NotesSection, RelocationsSection, Section, SectionContent,
-    SectionId, StringsSection, SymbolsSection, SysvHashSection, UninitializedSection,
+    DataSection, DynamicSection, GnuHashSection, NotesSection, RelocationsSection, Section,
+    SectionContent, SectionId, StringsSection, SymbolsSection, SysvHashSection,
+    UninitializedSection,
 };
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
@@ -43,7 +44,14 @@ pub(super) fn render_object(
         .add_iter(
             filter
                 .dynamic
-                .then(|| render_symbols(object, &names, "Dynamic symbols:", &DynamicSymbolTable))
+                .then(|| {
+                    render_symbols(
+                        object,
+                        &names,
+                        "Dynamic symbols:",
+                        &DynamicSymbolTable { class: object.env.class },
+                    )
+                })
                 .flatten(),
         )
         .add_iter(filter.inputs.then(|| render_inputs(object)))
@@ -73,6 +81,7 @@ fn render_section(
         SectionContent::Strings(strings) => render_strings_section(names, section, strings),
         SectionContent::Symbols(symbols) => render_symbols_section(names, section, symbols),
         SectionContent::SysvHash(sysv) => render_sysv_hash_section(names, section, sysv),
+        SectionContent::GnuHash(gnu) => render_gnu_hash_section(names, section, gnu),
         SectionContent::Relocations(relocations) => {
             render_relocations_section(names, section, relocations)
         }
@@ -257,6 +266,18 @@ fn render_sysv_hash_section(
         "view: {}\nsymbols: {}",
         sysv.view,
         names.section(sysv.symbols)
+    ))))
+}
+
+fn render_gnu_hash_section(
+    names: &Names,
+    section: &Section,
+    gnu: &GnuHashSection,
+) -> Box<dyn Widget> {
+    Box::new(section_widget(names, section, "GNU hash").add(Text::new(format!(
+        "view: {}\nsymbols: {}",
+        gnu.view,
+        names.section(gnu.symbols)
     ))))
 }
 

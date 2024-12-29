@@ -117,7 +117,7 @@ debug print: built elf
  │   │  ╰───────────────┴─────────┴──────┴────────────┴────────────┴───────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x400390)
+ │  section .dynamic (address: 0x4003c4)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -131,10 +131,11 @@ debug print: built elf
  │   │  │ Symbol table            │ address 0x4002d4             │
  │   │  │ Symbol table entry size │ 24 bytes                     │
  │   │  │ Hash table              │ address 0x400364             │
- │   │  │ RelocationsA table      │ address 0x400480             │
+ │   │  │ GNU hash table          │ address 0x400390             │
+ │   │  │ RelocationsA table      │ address 0x4004c4             │
  │   │  │ RelocationsA size       │ 72 bytes                     │
  │   │  │ RelocationsA entry size │ 24 bytes                     │
- │   │  │ Jump PLT relocations    │ address 0x4004c8             │
+ │   │  │ Jump PLT relocations    │ address 0x40050c             │
  │   │  │ PLT relocations size    │ 48 bytes                     │
  │   │  │ PLT relocations type    │ RelocationsA                 │
  │   │  │ PLT GOT                 │ address 0x402018             │
@@ -142,7 +143,7 @@ debug print: built elf
  │   │  ╰─────────────────────────┴──────────────────────────────╯
  │   ┴
  │
- │  section .rela.got (address: 0x400480)
+ │  section .rela.got (address: 0x4004c4)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got
@@ -157,7 +158,7 @@ debug print: built elf
  │   │  ╰────────────────┴───────────────┴──────────┴────────╯
  │   ┴
  │
- │  section .rela.plt (address: 0x4004c8)
+ │  section .rela.plt (address: 0x40050c)
  │   │
  │   │  symbol table:       .dynsym
  │   │  applies to section: .got.plt

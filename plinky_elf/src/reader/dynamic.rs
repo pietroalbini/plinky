@@ -68,6 +68,9 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
         } else {
             let hash_addr = self.dynamic.hash_addr.get()?;
 
+            // TODO: implement gnu hash support
+            // TODO: add test for gnu hash only library
+
             // The ELF specification doesn't include a dynamic directive to list the size of the
             // symbol table, nor the number of symbols. The only way to get the information is to
             // read the number of chain items in DT_HASH, which corresponds to the symbols count.

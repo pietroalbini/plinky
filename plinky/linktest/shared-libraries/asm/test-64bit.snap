@@ -30,7 +30,7 @@ debug print: built elf
  │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
  │   ┴
  │
- │  section .dynamic (address: 0x26a)
+ │  section .dynamic (address: 0x28e)
  │   │
  │   │  dynamic information | string table: .dynstr
  │   │
@@ -42,6 +42,7 @@ debug print: built elf
  │   │  │ Symbol table            │ address 0x20a │
  │   │  │ Symbol table entry size │ 24 bytes      │
  │   │  │ Hash table              │ address 0x252 │
+ │   │  │ GNU hash table          │ address 0x26a │
  │   │  │ Null                    │ -             │
  │   │  ╰─────────────────────────┴───────────────╯
  │   ┴

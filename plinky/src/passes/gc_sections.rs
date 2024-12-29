@@ -26,7 +26,8 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
 
     // Mark all symbols to be exported in .dynsym as a GC root, to avoid literally everything being
     // discarded when building shared libraries.
-    for symbol in object.symbols.iter(&DynamicSymbolTable) {
+    let view = DynamicSymbolTable { class: object.env.class };
+    for symbol in object.symbols.iter(&view) {
         visitor.add(symbol.id());
     }
 
@@ -92,6 +93,7 @@ impl Visitor {
                 SectionContent::Strings(_) => {}
                 SectionContent::Symbols(_) => {}
                 SectionContent::SysvHash(_) => {}
+                SectionContent::GnuHash(_) => {}
                 SectionContent::Relocations(_) => {}
                 SectionContent::Dynamic(_) => {}
                 SectionContent::Notes(_) => {}

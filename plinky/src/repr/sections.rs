@@ -212,6 +212,7 @@ pub(crate) enum SectionContent {
     Strings(StringsSection),
     Symbols(SymbolsSection),
     SysvHash(SysvHashSection),
+    GnuHash(GnuHashSection),
     Relocations(RelocationsSection),
     Dynamic(DynamicSection),
     Notes(NotesSection),
@@ -314,6 +315,18 @@ impl SysvHashSection {
     }
 }
 
+#[derive(Debug)]
+pub(crate) struct GnuHashSection {
+    pub(crate) view: Box<dyn SymbolsView>,
+    pub(crate) symbols: SectionId,
+}
+
+impl GnuHashSection {
+    pub(crate) fn new(view: impl SymbolsView + 'static, symbols: SectionId) -> Self {
+        Self { view: Box::new(view), symbols }
+    }
+}
+
 #[derive(Debug, Getters)]
 pub(crate) struct RelocationsSection {
     #[get]
@@ -394,6 +407,7 @@ from!(impl From<UninitializedSection> for SectionContent::Uninitialized);
 from!(impl From<StringsSection> for SectionContent::Strings);
 from!(impl From<SymbolsSection> for SectionContent::Symbols);
 from!(impl From<SysvHashSection> for SectionContent::SysvHash);
+from!(impl From<GnuHashSection> for SectionContent::GnuHash);
 from!(impl From<RelocationsSection> for SectionContent::Relocations);
 from!(impl From<DynamicSection> for SectionContent::Dynamic);
 from!(impl From<NotesSection> for SectionContent::Notes);

@@ -23,6 +23,11 @@ impl<'a> ReadCursor<'a> {
         Ok(())
     }
 
+    pub(super) fn skip(&mut self, count: u64) -> Result<(), LoadError> {
+        self.reader.get().seek_relative(count as i64)?;
+        Ok(())
+    }
+
     pub(super) fn read_vec(&mut self, size: u64) -> Result<Vec<u8>, LoadError> {
         let mut contents = vec![0; size as _];
         self.reader.get().read_exact(&mut contents)?;

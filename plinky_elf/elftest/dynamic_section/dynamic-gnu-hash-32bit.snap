@@ -1,0 +1,18 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+reading dynamic information exited with exit status: 0
+
+=== stdout ===
+soname: libdynamic.so.1
+
+  Dynamic symbols:
+╭──────────────┬────────────┬─────────╮
+│ Name         │ Visibility │ Binding │
+├──────────────┼────────────┼─────────┤
+│ <empty name> │ Default    │ Local   │
+│ add          │ Default    │ Global  │
+│ sub          │ Default    │ Global  │
+╰──────────────┴────────────┴─────────╯
+
+no stderr present

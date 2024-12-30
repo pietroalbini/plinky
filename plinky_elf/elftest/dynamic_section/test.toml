@@ -1,16 +1,34 @@
 archs = ["x86", "x86_64"]
 
 [read-elf.read]
-file = "${ld.dynamic}"
+file = "${ld.dynamic_both_hashes}"
 filter = ".dyn*,*plt,@segments"
 
 [read-dynamic.dynamic]
-file = "${ld.dynamic}"
+file = "${ld.dynamic_both_hashes}"
 
-[ld.dynamic]
+[read-dynamic.dynamic-sysv-hash]
+file = "${ld.dynamic_sysv_hash}"
+
+[read-dynamic.dynamic-gnu-hash]
+file = "${ld.dynamic_gnu_hash}"
+
+[ld.dynamic_both_hashes]
 output = "dynamic.so"
 content = ["${c.dynamic}"]
-extra-args = ["-soname=libdynamic.so.1"]
+extra-args = ["-soname=libdynamic.so.1", "--hash-style=both"]
+shared-library = true
+
+[ld.dynamic_sysv_hash]
+output = "dynamic.so"
+content = ["${c.dynamic}"]
+extra-args = ["-soname=libdynamic.so.1", "--hash-style=sysv"]
+shared-library = true
+
+[ld.dynamic_gnu_hash]
+output = "dynamic.so"
+content = ["${c.dynamic}"]
+extra-args = ["-soname=libdynamic.so.1", "--hash-style=gnu"]
 shared-library = true
 
 [c.dynamic]

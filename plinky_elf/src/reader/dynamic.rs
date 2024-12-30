@@ -1,5 +1,5 @@
 use crate::ids::ElfSectionId;
-use crate::raw::RawHashHeader;
+use crate::raw::{RawGnuHashHeader, RawHashHeader};
 use crate::reader::sections::{
     dynamic, string_table, symbol_table, SectionMetadata, SectionReader,
 };
@@ -8,6 +8,7 @@ use crate::{
     ElfSymbolVisibility, LoadError,
 };
 use plinky_macros::{Display, Error};
+use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 
 pub struct ElfDynamicReader<'reader, 'src> {
     reader: &'reader mut ElfReader<'src>,
@@ -64,32 +65,68 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
 
     fn symbols_count(&mut self) -> Result<u32, ReadDynamicError> {
         if let Some(count) = self.symbols_count {
-            Ok(count)
-        } else {
-            let hash_addr = self.dynamic.hash_addr.get()?;
-
-            // TODO: implement gnu hash support
-            // TODO: add test for gnu hash only library
-
-            // The ELF specification doesn't include a dynamic directive to list the size of the
-            // symbol table, nor the number of symbols. The only way to get the information is to
-            // read the number of chain items in DT_HASH, which corresponds to the symbols count.
-            //
-            // Note that some object files might only have DT_GNU_HASH and not DT_HASH, and that is
-            // currently not supported. To implement support, see this article:
-            //
-            //     https://maskray.me/blog/2022-08-21-glibc-and-dt-gnu-hash#dt_symtabsz-or-dt_symtab_count
-            //
-            self.reader.cursor.seek_to(hash_addr).map_err(ReadDynamicError::InvalidHashSection)?;
-            let raw = self
-                .reader
-                .cursor
-                .read_raw::<RawHashHeader>()
-                .map_err(ReadDynamicError::InvalidHashSection)?;
-
-            self.symbols_count = Some(raw.chain_count);
-            Ok(raw.chain_count)
+            return Ok(count);
         }
+
+        // The ELF specification doesn't include a dynamic directive to list the size of the
+        // symbol table, nor the number of symbols. The only way to get the information is to
+        // parse DT_HASH or DT_GNU_HASH and extract the symbol count from it.
+        let count = if let Some(hash_addr) = self.dynamic.hash_addr.value {
+            // Parsing the symbol count from DT_GNU_HASH is trickier, so try DT_HASH first.
+            self.parse_symbol_count_from_hash(hash_addr)
+                .map_err(ReadDynamicError::InvalidHashSection)?
+        } else if let Some(gnu_hash_addr) = self.dynamic.gnu_hash_addr.value {
+            self.parse_symbol_count_from_gnu_hash(gnu_hash_addr)
+                .map_err(ReadDynamicError::InvalidGnuHashTable)?
+        } else {
+            return Err(ReadDynamicError::NoHashTables);
+        };
+
+        self.symbols_count = Some(count);
+        Ok(count)
+    }
+
+    fn parse_symbol_count_from_hash(&mut self, hash_addr: u64) -> Result<u32, LoadError> {
+        self.reader.cursor.seek_to(hash_addr)?;
+        let raw = self.reader.cursor.read_raw::<RawHashHeader>()?;
+        Ok(raw.chain_count)
+    }
+
+    fn parse_symbol_count_from_gnu_hash(&mut self, gnu_hash_addr: u64) -> Result<u32, LoadError> {
+        self.reader.cursor.seek_to(gnu_hash_addr)?;
+        let header = self.reader.cursor.read_raw::<RawGnuHashHeader>()?;
+
+        let bits = self.reader.cursor.class;
+        self.reader
+            .cursor
+            .skip(<u64 as RawTypeAsPointerSize>::size(bits) as u64 * header.bloom_count as u64)?;
+
+        let mut max_chain = None;
+        for _ in 0..header.buckets_count {
+            let chain: u32 = self.reader.cursor.read_raw()?;
+            if chain < header.symbols_offset {
+                continue;
+            }
+
+            match max_chain {
+                None => max_chain = Some(chain),
+                Some(existing) => max_chain = Some(existing.max(chain)),
+            }
+        }
+        let Some(max_chain) = max_chain else { return Ok(header.symbols_offset) };
+
+        self.reader
+            .cursor
+            .skip((max_chain - header.symbols_offset) as u64 * u32::size(bits) as u64)?;
+        let mut symbols_count = max_chain;
+        loop {
+            symbols_count += 1;
+            if self.reader.cursor.read_raw::<u32>()? & 1 == 1 {
+                break;
+            }
+        }
+
+        Ok(symbols_count)
     }
 
     fn get_string(&mut self, offset: u32) -> Result<&str, ReadDynamicError> {
@@ -145,6 +182,7 @@ fn parse_dynamic_segment(
     for directive in directives {
         match directive {
             ElfDynamicDirective::Hash { address } => parsed.hash_addr.set(address)?,
+            ElfDynamicDirective::GnuHash { address } => parsed.gnu_hash_addr.set(address)?,
             ElfDynamicDirective::StringTable { address } => parsed.string_addr.set(address)?,
             ElfDynamicDirective::StringTableSize { bytes } => parsed.string_size.set(bytes)?,
             ElfDynamicDirective::SymbolTable { address } => parsed.symbol_addr.set(address)?,
@@ -165,6 +203,7 @@ fn parse_dynamic_segment(
 struct DynamicSegment {
     soname: DynamicDirective<DT_SONAME>,
     hash_addr: DynamicDirective<DT_HASH>,
+    gnu_hash_addr: DynamicDirective<DT_GNU_HASH>,
     string_addr: DynamicDirective<DT_STRTAB>,
     string_size: DynamicDirective<DT_STRSZ>,
     symbol_addr: DynamicDirective<DT_SYMTAB>,
@@ -208,7 +247,7 @@ macro_rules! directive_names {
     }
 }
 
-directive_names![DT_HASH, DT_STRTAB, DT_STRSZ, DT_SYMTAB, DT_SYMENT, DT_SONAME];
+directive_names![DT_HASH, DT_GNU_HASH, DT_STRTAB, DT_STRSZ, DT_SYMTAB, DT_SYMENT, DT_SONAME];
 
 struct FakeMetadata;
 
@@ -254,10 +293,14 @@ pub enum ReadDynamicError {
     InvalidHashSection(#[source] LoadError),
     #[display("invalid string table")]
     InvalidStringTable(#[source] LoadError),
+    #[display("invalid GNU hash table")]
+    InvalidGnuHashTable(#[source] LoadError),
     #[display("invalid symbol table")]
     InvalidSymbolTable(#[source] LoadError),
     #[display("missing string at offset {f0}")]
     MissingString(u32),
     #[display("string offset {f0} too large")]
     StringOffsetTooLarge(u64),
+    #[display("no hash tables are present in the object file")]
+    NoHashTables,
 }

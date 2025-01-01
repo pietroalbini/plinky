@@ -11,7 +11,7 @@ section .dynsym (address: 0x278)
  │  │ Name      │ Binding │ Type     │ Visibility │ Definition │ Value  │ Size │
  │  ├───────────┼─────────┼──────────┼────────────┼────────────┼────────┼──────┤
  │  │ <empty>#0 │ Local   │ -        │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │  │ add#0     │ Global  │ -        │ Default    │ Undefined  │ 0x0    │ 0x0  │
+ │  │ add#0     │ Global  │ Function │ Default    │ Undefined  │ 0x0    │ 0x0  │
  │  │ sub#0     │ Global  │ Function │ Default    │ .text      │ 0x1020 │ 0x23 │
  │  ╰───────────┴─────────┴──────────┴────────────┴────────────┴────────┴──────╯
  ┴
@@ -19,15 +19,16 @@ section .dynsym (address: 0x278)
 section .dynstr (address: 0x2c0)
  │
  │    Strings table:
- │  ╭─────┬─────────────────╮
- │  │ 0x0 │                 │
- │  │ 0x1 │ sub             │
- │  │ 0x5 │ add             │
- │  │ 0x9 │ libdynamic.so.1 │
- │  ╰─────┴─────────────────╯
+ │  ╭──────┬─────────────────╮
+ │  │ 0x0  │                 │
+ │  │ 0x1  │ sub             │
+ │  │ 0x5  │ add             │
+ │  │ 0x9  │ dependency.so   │
+ │  │ 0x17 │ libdynamic.so.1 │
+ │  ╰──────┴─────────────────╯
  ┴
 
-section .rela.plt (address: 0x2e0)
+section .rela.plt (address: 0x2e8)
  │
  │  symbol table:       .dynsym
  │  applies to section: .got.plt
@@ -50,26 +51,27 @@ section .plt (address: 0x1000)
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
 
-section .dynamic (address: 0x3ed8)
+section .dynamic (address: 0x3ec8)
  │
  │  dynamic information | string table: .dynstr
  │
- │  ╭─────────────────────────┬─────────────────────────────╮
- │  │ Kind                    │ Value                       │
- │  ├─────────────────────────┼─────────────────────────────┤
- │  │ Shared object name      │ string 0x9: libdynamic.so.1 │
- │  │ Hash table              │ address 0x238               │
- │  │ GNU hash table          │ address 0x250               │
- │  │ String table            │ address 0x2c0               │
- │  │ Symbol table            │ address 0x278               │
- │  │ String table size       │ 25 bytes                    │
- │  │ Symbol table entry size │ 24 bytes                    │
- │  │ PLT GOT                 │ address 0x3fe8              │
- │  │ PLT relocations size    │ 24 bytes                    │
- │  │ PLT relocations type    │ RelocationsA                │
- │  │ Jump PLT relocations    │ address 0x2e0               │
- │  │ Null                    │ -                           │
- │  ╰─────────────────────────┴─────────────────────────────╯
+ │  ╭─────────────────────────┬──────────────────────────────╮
+ │  │ Kind                    │ Value                        │
+ │  ├─────────────────────────┼──────────────────────────────┤
+ │  │ Needed libraries        │ string 0x9: dependency.so    │
+ │  │ Shared object name      │ string 0x17: libdynamic.so.1 │
+ │  │ Hash table              │ address 0x238                │
+ │  │ GNU hash table          │ address 0x250                │
+ │  │ String table            │ address 0x2c0                │
+ │  │ Symbol table            │ address 0x278                │
+ │  │ String table size       │ 39 bytes                     │
+ │  │ Symbol table entry size │ 24 bytes                     │
+ │  │ PLT GOT                 │ address 0x3fe8               │
+ │  │ PLT relocations size    │ 24 bytes                     │
+ │  │ PLT relocations type    │ RelocationsA                 │
+ │  │ Jump PLT relocations    │ address 0x2e8                │
+ │  │ Null                    │ -                            │
+ │  ╰─────────────────────────┴──────────────────────────────╯
  ┴
 
 section .got.plt (address: 0x3fe8)
@@ -77,7 +79,7 @@ section .got.plt (address: 0x3fe8)
  │  program data | permissions: RW
  │
  │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │  │ d8 3e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 │ .>.............. │
+ │  │ c8 3e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 │ .>.............. │
  │  │ 00 00 00 00 00 00 00 00 16 10 00 00 00 00 00 00 │ ................ │
  │  ╰─────────────────────────────────────────────────┴──────────────────╯
  ┴
@@ -86,15 +88,15 @@ section .got.plt (address: 0x3fe8)
 ╭───────────────────────────┬───────┬──────────┬─────────────┬──────────┬────────────────┬────────────╮
 │ Type                      │ Perms │ Aligment │ File offset │ File len │ Memory address │ Memory len │
 ├───────────────────────────┼───────┼──────────┼─────────────┼──────────┼────────────────┼────────────┤
-│ Load                      │ R     │ 0x1000   │ 0x0         │ 0x2f8    │ 0x0            │ 0x2f8      │
+│ Load                      │ R     │ 0x1000   │ 0x0         │ 0x300    │ 0x0            │ 0x300      │
 │ Load                      │ R X   │ 0x1000   │ 0x1000      │ 0x43     │ 0x1000         │ 0x43       │
 │ Load                      │ R     │ 0x1000   │ 0x2000      │ 0x8c     │ 0x2000         │ 0x8c       │
-│ Load                      │ RW    │ 0x1000   │ 0x2ed8      │ 0x130    │ 0x3ed8         │ 0x130      │
-│ Dynamic                   │ RW    │ 0x8      │ 0x2ed8      │ 0x110    │ 0x3ed8         │ 0x110      │
+│ Load                      │ RW    │ 0x1000   │ 0x2ec8      │ 0x140    │ 0x3ec8         │ 0x140      │
+│ Dynamic                   │ RW    │ 0x8      │ 0x2ec8      │ 0x120    │ 0x3ec8         │ 0x120      │
 │ Note                      │ R     │ 0x8      │ 0x2000      │ 0x30     │ 0x2000         │ 0x30       │
 │ GNU property              │ R     │ 0x8      │ 0x2000      │ 0x30     │ 0x2000         │ 0x30       │
 │ GNU stack                 │ RW    │ 0x10     │ 0x0         │ 0x0      │ 0x0            │ 0x0        │
-│ GNU relocations read-only │ R     │ 0x1      │ 0x2ed8      │ 0x128    │ 0x3ed8         │ 0x128      │
+│ GNU relocations read-only │ R     │ 0x1      │ 0x2ec8      │ 0x138    │ 0x3ec8         │ 0x138      │
 ╰───────────────────────────┴───────┴──────────┴─────────────┴──────────┴────────────────┴────────────╯
 
 no stderr present

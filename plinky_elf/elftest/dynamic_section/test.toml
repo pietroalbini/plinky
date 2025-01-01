@@ -15,23 +15,33 @@ file = "${ld.dynamic_gnu_hash}"
 
 [ld.dynamic_both_hashes]
 output = "dynamic.so"
-content = ["${c.dynamic}"]
+content = ["${c.dynamic}", "${ld.dependency}"]
 extra-args = ["-soname=libdynamic.so.1", "--hash-style=both"]
 shared-library = true
 
 [ld.dynamic_sysv_hash]
 output = "dynamic.so"
-content = ["${c.dynamic}"]
+content = ["${c.dynamic}", "${ld.dependency}"]
 extra-args = ["-soname=libdynamic.so.1", "--hash-style=sysv"]
 shared-library = true
 
 [ld.dynamic_gnu_hash]
 output = "dynamic.so"
-content = ["${c.dynamic}"]
+content = ["${c.dynamic}", "${ld.dependency}"]
 extra-args = ["-soname=libdynamic.so.1", "--hash-style=gnu"]
+shared-library = true
+
+[ld.dependency]
+output = "dependency.so"
+content = ["${c.dependency}"]
 shared-library = true
 
 [c.dynamic]
 source = "dynamic.c"
+libc = "freestanding"
+relocation = "pic"
+
+[c.dependency]
+source = "dependency.c"
 libc = "freestanding"
 relocation = "pic"

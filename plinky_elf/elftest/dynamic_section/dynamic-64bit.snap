@@ -15,4 +15,9 @@ soname: libdynamic.so.1
 │ sub          │ Default    │ Global  │ Yes     │
 ╰──────────────┴────────────┴─────────┴─────────╯
 
+  Needed libraries:
+╭───────────────╮
+│ dependency.so │
+╰───────────────╯
+
 no stderr present

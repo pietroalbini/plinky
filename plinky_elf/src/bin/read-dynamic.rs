@@ -36,6 +36,16 @@ fn actual_main(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
     widgets.push(Box::new(symbols));
 
+    let needed = dynamic.needed_libraries()?;
+    if !needed.is_empty() {
+        let mut table = Table::new();
+        table.set_title("Needed libraries:");
+        for library in needed {
+            table.add_body([library]);
+        }
+        widgets.push(Box::new(table));
+    }
+
     println!("{}", MultipleWidgets(widgets).render_to_string());
 
     Ok(())

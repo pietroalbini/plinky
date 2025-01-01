@@ -17,6 +17,7 @@ pub struct ElfDynamicReader<'reader, 'src> {
     symbols_count: Option<u32>,
     symbols: Option<Vec<ElfSymbolInDynamic>>,
     strings: Option<ElfStringTable>,
+    needed_libraries: Option<Vec<String>>,
 }
 
 impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
@@ -24,7 +25,14 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
         let segment = find_dynamic_segment(&reader.segments)?;
         let dynamic = parse_dynamic_segment(reader, &segment)?;
 
-        Ok(ElfDynamicReader { reader, dynamic, symbols_count: None, strings: None, symbols: None })
+        Ok(ElfDynamicReader {
+            reader,
+            dynamic,
+            symbols_count: None,
+            strings: None,
+            symbols: None,
+            needed_libraries: None,
+        })
     }
 
     pub fn soname(&mut self) -> Result<Option<String>, ReadDynamicError> {
@@ -36,6 +44,22 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
             )?
             .to_string(),
         ))
+    }
+
+    pub fn needed_libraries(&mut self) -> Result<&[String], ReadDynamicError> {
+        if self.dynamic.needed.is_empty() {
+            return Ok(&[]);
+        }
+
+        if self.needed_libraries.is_none() {
+            let mut needed = Vec::new();
+            for offset in self.dynamic.needed.clone() {
+                needed.push(self.get_string(offset as u32)?.to_string());
+            }
+            self.needed_libraries = Some(needed);
+        }
+
+        Ok(self.needed_libraries.as_ref().unwrap())
     }
 
     pub fn symbols(&mut self) -> Result<&[ElfSymbolInDynamic], ReadDynamicError> {
@@ -183,6 +207,9 @@ fn parse_dynamic_segment(
         dynamic::read_directives(&mut reader).map_err(ReadDynamicError::ReadDirectives)?;
     for directive in directives {
         match directive {
+            ElfDynamicDirective::Needed { string_table_offset } => {
+                parsed.needed.push(string_table_offset)
+            }
             ElfDynamicDirective::Hash { address } => parsed.hash_addr.set(address)?,
             ElfDynamicDirective::GnuHash { address } => parsed.gnu_hash_addr.set(address)?,
             ElfDynamicDirective::StringTable { address } => parsed.string_addr.set(address)?,
@@ -203,6 +230,7 @@ fn parse_dynamic_segment(
 
 #[derive(Debug, Default)]
 struct DynamicSegment {
+    needed: Vec<u64>,
     soname: DynamicDirective<DT_SONAME>,
     hash_addr: DynamicDirective<DT_HASH>,
     gnu_hash_addr: DynamicDirective<DT_GNU_HASH>,

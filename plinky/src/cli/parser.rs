@@ -1,6 +1,7 @@
 use crate::cli::lexer::{CliLexer, CliToken};
 use crate::cli::{
-    CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, HashStyle, Mode,
+    CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint, DynamicLinker,
+    HashStyle, Mode,
 };
 use crate::debug_print::filters::ObjectsFilter;
 use plinky_elf::render_elf::RenderElfFilters;
@@ -28,16 +29,18 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut mode = None;
     let mut dynamic_linker = None;
     let mut search_paths = Vec::new();
-    let mut search_shared_objects = true;
     let mut shared_object_name = None;
     let mut hash_style = None;
+    let mut input_options = CliInputOptions { search_shared_objects: true };
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
     while let Some(token) = lexer.next() {
         match token {
-            CliToken::StandaloneValue(val) => inputs
-                .push(CliInput { value: CliInputValue::Path(val.into()), search_shared_objects }),
+            CliToken::StandaloneValue(val) => inputs.push(CliInput {
+                value: CliInputValue::Path(val.into()),
+                options: input_options.clone(),
+            }),
 
             CliToken::LongFlag("output") | CliToken::ShortFlag("o") => {
                 reject_duplicate(&token, &mut output, || lexer.expect_flag_value(&token))?;
@@ -93,19 +96,19 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
                 if let Some(verbatim) = name.strip_prefix(':') {
                     inputs.push(CliInput {
                         value: CliInputValue::LibraryVerbatim(verbatim.into()),
-                        search_shared_objects,
+                        options: input_options.clone(),
                     });
                 } else {
                     inputs.push(CliInput {
                         value: CliInputValue::Library(name.into()),
-                        search_shared_objects,
+                        options: input_options.clone(),
                     });
                 }
             }
 
-            CliToken::LongShortFlag("Bstatic") => search_shared_objects = false,
+            CliToken::LongShortFlag("Bstatic") => input_options.search_shared_objects = false,
 
-            CliToken::LongShortFlag("Bdynamic") => search_shared_objects = true,
+            CliToken::LongShortFlag("Bdynamic") => input_options.search_shared_objects = true,
 
             CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
                 "execstack" => reject_duplicate(

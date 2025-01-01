@@ -1,6 +1,6 @@
 use crate::cli::{
-    parse, CliError, CliInput, CliInputValue, CliOptions, DebugPrint, DynamicLinker, HashStyle,
-    Mode,
+    parse, CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint,
+    DynamicLinker, HashStyle, Mode,
 };
 use crate::debug_print::filters::ObjectsFilter;
 use std::collections::BTreeSet;
@@ -382,13 +382,7 @@ fn test_sysroot_relative_search_path() {
 fn test_library() {
     assert_parse_multiple(
         &[&["-lfoo"], &["-l", "foo"], &["--library", "foo"], &["--library=foo"]],
-        Ok(CliOptions {
-            inputs: vec![CliInput {
-                value: CliInputValue::Library("foo".into()),
-                search_shared_objects: true,
-            }],
-            ..default_options_static()
-        }),
+        Ok(CliOptions { inputs: vec![i("foo").lib()], ..default_options_static() }),
     );
 }
 
@@ -533,7 +527,10 @@ impl InputBuilder {
     }
 
     fn finalize(self, value: CliInputValue) -> CliInput {
-        CliInput { value, search_shared_objects: self.search_shared_objects }
+        CliInput {
+            value,
+            options: CliInputOptions { search_shared_objects: self.search_shared_objects },
+        }
     }
 }
 

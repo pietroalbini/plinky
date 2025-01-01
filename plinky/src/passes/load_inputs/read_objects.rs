@@ -67,7 +67,7 @@ impl<'a> ObjectsReader<'a> {
                 return Ok((p.clone(), LibraryName::Known(path_to_string(&p)?)))
             }
             CliInputValue::Library(name) => {
-                if input.search_shared_objects {
+                if input.options.search_shared_objects {
                     names.push(format!("lib{name}.so"));
                 }
                 names.push(format!("lib{name}.a"));

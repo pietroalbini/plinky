@@ -15,14 +15,8 @@ pub(super) fn load_shared_object(
     let mut dynamic_reader = reader.dynamic().map_err(SharedObjectError::ReadSegment)?;
 
     let span = intern(span);
-    let mut first = true;
     for symbol in dynamic_reader.symbols().map_err(SharedObjectError::ReadSymbols)? {
-        if first {
-            first = false;
-            if !symbol.name.is_empty() {
-                return Err(SharedObjectError::FirstSymbolNotNull);
-            }
-            // Skip the null symbol.
+        if !symbol.defined {
             continue;
         }
         object
@@ -41,7 +35,7 @@ pub(super) fn load_shared_object(
         None => match library_name {
             LibraryName::Known(path) => intern(path),
             LibraryName::InsideArchive => todo!(),
-        }
+        },
     };
 
     object.inputs.push(Input {
@@ -59,8 +53,6 @@ pub(crate) enum SharedObjectError {
     ReadSegment(#[source] ReadDynamicError),
     #[display("reading the symbol names failed")]
     ReadSymbols(#[source] ReadDynamicError),
-    #[display("the first symbol is not the null symbol")]
-    FirstSymbolNotNull,
     #[display("failed to add symbol from the dynamic library")]
     AddSymbol(#[source] LoadSymbolsError),
     #[display("reading the shared object name failed")]

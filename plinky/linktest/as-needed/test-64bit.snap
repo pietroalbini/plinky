@@ -19,5 +19,7 @@ debug print: loaded object
  │   │  ╰─────────────────────┴───────╯
  │   │
  │   │  libused.so (shared object libused.so)
+ │   │
+ │   │  libdependency.so (shared object libdependency.so)
  │   ┴
  ┴

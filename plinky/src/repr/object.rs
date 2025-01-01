@@ -46,6 +46,8 @@ pub(crate) struct Input {
 #[derive(Debug)]
 pub(crate) struct InputSharedObject {
     pub(crate) name: Interned<String>,
+    pub(crate) dependencies: Vec<Interned<String>>,
+    pub(crate) undefined_global_symbols: Vec<Interned<String>>,
 }
 
 #[derive(Debug)]

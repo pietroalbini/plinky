@@ -1,7 +1,7 @@
 archs = ["x86_64"]
 
 [plinky.test]
-cmd = ["${asm.entry}", "--as-needed", "${ld.used}", "${ld.unused}"]
+cmd = ["${asm.entry}", "--as-needed", "${ld.used}", "${ld.unused}", "${ld.dependency}"]
 kind = "link-pass"
 debug-print = ["loaded-object=@inputs"]
 
@@ -15,6 +15,11 @@ output = "libunused.so"
 content = ["${asm.unused}"]
 shared-library = true
 
+[ld.dependency]
+output = "libdependency.so"
+content = ["${asm.dependency}"]
+shared-library = true
+
 [asm.entry]
 source = "entry.S"
 
@@ -23,3 +28,6 @@ source = "used.S"
 
 [asm.unused]
 source = "unused.S"
+
+[asm.dependency]
+source = "dependency.S"

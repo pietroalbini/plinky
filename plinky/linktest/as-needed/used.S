@@ -5,4 +5,4 @@
 
 .section .text
 used:
-    nop
+    jmp dependency

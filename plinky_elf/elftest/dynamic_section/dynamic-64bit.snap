@@ -7,12 +7,12 @@ reading dynamic information exited with exit status: 0
 soname: libdynamic.so.1
 
   Dynamic symbols:
-╭──────────────┬────────────┬─────────╮
-│ Name         │ Visibility │ Binding │
-├──────────────┼────────────┼─────────┤
-│ <empty name> │ Default    │ Local   │
-│ add          │ Default    │ Global  │
-│ sub          │ Default    │ Global  │
-╰──────────────┴────────────┴─────────╯
+╭──────────────┬────────────┬─────────┬─────────╮
+│ Name         │ Visibility │ Binding │ Defined │
+├──────────────┼────────────┼─────────┼─────────┤
+│ <empty name> │ Default    │ Local   │ No      │
+│ add          │ Default    │ Global  │ No      │
+│ sub          │ Default    │ Global  │ Yes     │
+╰──────────────┴────────────┴─────────┴─────────╯
 
 no stderr present

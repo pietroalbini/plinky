@@ -5,7 +5,7 @@ use crate::reader::sections::{
 };
 use crate::{
     ElfDynamicDirective, ElfReader, ElfSegment, ElfSegmentType, ElfStringTable, ElfSymbolBinding,
-    ElfSymbolVisibility, LoadError,
+    ElfSymbolDefinition, ElfSymbolVisibility, LoadError,
 };
 use plinky_macros::{Display, Error};
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
@@ -56,6 +56,7 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
                     name: self.get_string(symbol.name.offset)?.to_string(),
                     visibility: symbol.visibility,
                     binding: symbol.binding,
+                    defined: symbol.definition != ElfSymbolDefinition::Undefined,
                 });
             }
             self.symbols = Some(result);
@@ -150,6 +151,7 @@ pub struct ElfSymbolInDynamic {
     pub name: String,
     pub visibility: ElfSymbolVisibility,
     pub binding: ElfSymbolBinding,
+    pub defined: bool,
 }
 
 fn find_dynamic_segment(segments: &[ElfSegment]) -> Result<ElfSegment, ReadDynamicError> {

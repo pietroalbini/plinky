@@ -336,7 +336,7 @@ impl std::fmt::Display for ElfSymbolVisibility {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ElfSymbolDefinition {
     Undefined,
     Absolute,

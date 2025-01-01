@@ -31,7 +31,7 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
     let mut search_paths = Vec::new();
     let mut shared_object_name = None;
     let mut hash_style = None;
-    let mut input_options = CliInputOptions { search_shared_objects: true };
+    let mut input_options = CliInputOptions { search_shared_objects: true, as_needed: false };
     let mut debug_print = BTreeSet::new();
 
     let mut previous_token: Option<CliToken<'_>> = None;
@@ -109,6 +109,10 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
             CliToken::LongShortFlag("Bstatic") => input_options.search_shared_objects = false,
 
             CliToken::LongShortFlag("Bdynamic") => input_options.search_shared_objects = true,
+
+            CliToken::LongFlag("as-needed") => input_options.as_needed = true,
+
+            CliToken::LongFlag("no-as-needed") => input_options.as_needed = false,
 
             CliToken::ShortFlag("z") => match lexer.expect_flag_value(&token)? {
                 "execstack" => reject_duplicate(

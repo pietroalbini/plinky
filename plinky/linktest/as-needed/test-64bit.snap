@@ -1,0 +1,23 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 0
+
+no stdout present
+
+=== stderr ===
+debug print: loaded object
+ │
+ │  inputs
+ │   │
+ │   │    entry.o
+ │   │  ╭─────────────────────┬───────╮
+ │   │  │ Property            │ Value │
+ │   │  ├─────────────────────┼───────┤
+ │   │  │ X86 ISA used        │       │
+ │   │  │ x86 features 2 used │ x86   │
+ │   │  ╰─────────────────────┴───────╯
+ │   │
+ │   │  libused.so (shared object libused.so)
+ │   ┴
+ ┴

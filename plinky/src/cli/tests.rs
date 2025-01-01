@@ -461,6 +461,24 @@ fn test_invalid_hash_style() {
 }
 
 #[test]
+fn test_as_needed() {
+    assert_parse(
+        &["liba.so", "-lb", "--as-needed", "libc.so", "-ld", "--no-as-needed", "libe.so", "-lf"],
+        Ok(CliOptions {
+            inputs: vec![
+                i("liba.so").as_needed(false).path(),
+                i("b").as_needed(false).lib(),
+                i("libc.so").as_needed(true).path(),
+                i("d").as_needed(true).lib(),
+                i("libe.so").as_needed(false).path(),
+                i("f").as_needed(false).lib(),
+            ],
+            ..default_options_static()
+        }),
+    )
+}
+
+#[test]
 fn test_unknown_flags() {
     assert_parse(&["--foo-bar"], Err(CliError::UnsupportedFlag("--foo-bar".into())));
 }
@@ -497,17 +515,23 @@ fn assert_parse_multiple(cases: &[&[&str]], expected: Result<CliOptions, CliErro
 }
 
 fn i(name: &str) -> InputBuilder {
-    InputBuilder { name: name.into(), search_shared_objects: true }
+    InputBuilder { name: name.into(), search_shared_objects: true, as_needed: false }
 }
 
 struct InputBuilder {
     name: String,
     search_shared_objects: bool,
+    as_needed: bool,
 }
 
 impl InputBuilder {
     fn search_shared_objects(mut self, value: bool) -> Self {
         self.search_shared_objects = value;
+        self
+    }
+
+    fn as_needed(mut self, value: bool) -> Self {
+        self.as_needed = value;
         self
     }
 
@@ -529,7 +553,10 @@ impl InputBuilder {
     fn finalize(self, value: CliInputValue) -> CliInput {
         CliInput {
             value,
-            options: CliInputOptions { search_shared_objects: self.search_shared_objects },
+            options: CliInputOptions {
+                search_shared_objects: self.search_shared_objects,
+                as_needed: self.as_needed,
+            },
         }
     }
 }

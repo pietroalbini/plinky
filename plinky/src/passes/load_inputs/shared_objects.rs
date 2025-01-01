@@ -1,18 +1,27 @@
-use crate::interner::intern;
+use crate::cli::CliInputOptions;
+use crate::interner::{intern, Interned};
 use crate::passes::load_inputs::read_objects::LibraryName;
 use crate::repr::object::{GnuProperties, Input, InputSharedObject, Object};
-use crate::repr::symbols::{LoadSymbolsError, UpcomingSymbol};
+use crate::repr::symbols::views::AllSymbols;
+use crate::repr::symbols::{LoadSymbolsError, SymbolValue, SymbolVisibility, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
-use plinky_elf::{ElfReader, ReadDynamicError};
+use plinky_elf::{ElfReader, ElfSymbolBinding, ElfSymbolInDynamic, ReadDynamicError};
 use plinky_macros::{Display, Error};
+use std::collections::HashSet;
 
 pub(super) fn load_shared_object(
     object: &mut Object,
     reader: &mut ElfReader<'_>,
     library_name: &LibraryName,
+    options: CliInputOptions,
     span: ObjectSpan,
 ) -> Result<(), SharedObjectError> {
     let mut dynamic_reader = reader.dynamic().map_err(SharedObjectError::ReadSegment)?;
+    let symbols = dynamic_reader.symbols().map_err(SharedObjectError::ReadSymbols)?;
+
+    if options.as_needed && !is_needed(symbols, object) {
+        return Ok(());
+    }
 
     let span = intern(span);
     for symbol in dynamic_reader.symbols().map_err(SharedObjectError::ReadSymbols)? {
@@ -45,6 +54,30 @@ pub(super) fn load_shared_object(
     });
 
     Ok(())
+}
+
+fn is_needed(dynamic_symbols: &[ElfSymbolInDynamic], object: &Object) -> bool {
+    let provided_symbols = dynamic_symbols
+        .iter()
+        .filter(|s| matches!(s.binding, ElfSymbolBinding::Global | ElfSymbolBinding::Weak))
+        .filter(|s| s.defined)
+        .map(|symbol| intern(&symbol.name))
+        .collect::<HashSet<Interned<String>>>();
+
+    // First, check if any global non-weak undefined symbol is provided by the shared library.
+    for sym in object.symbols.iter(&AllSymbols) {
+        let SymbolValue::Undefined = &sym.value() else { continue };
+        let SymbolVisibility::Global { weak: false, .. } = sym.visibility() else { continue };
+
+        if provided_symbols.contains(&sym.name()) {
+            return true;
+        }
+    }
+
+    // TODO: check if any library that doesn't need the current one has an undefined symbol
+    // provided by this library.
+
+    false
 }
 
 #[derive(Debug, Error, Display)]

@@ -98,7 +98,7 @@ fn load_object(
     object: &mut Object,
     strings: &mut Strings,
     section_groups: SectionGroupsForObject<'_>,
-    NextObject { mut reader, source, library_name }: NextObject,
+    NextObject { mut reader, source, library_name, options }: NextObject,
 ) -> Result<(), LoadInputsError> {
     match reader.type_() {
         plinky_elf::ElfType::Relocatable => {
@@ -109,7 +109,7 @@ fn load_object(
                 .map_err(|e| LoadInputsError::MergeFailed(source, e))
         }
         plinky_elf::ElfType::SharedObject => {
-            load_shared_object(object, &mut reader, &library_name, source.clone())
+            load_shared_object(object, &mut reader, &library_name, options, source.clone())
                 .map_err(|e| LoadInputsError::SharedLoadFailed(source, e))
         }
         plinky_elf::ElfType::Executable => Err(LoadInputsError::ExecutableUnsupported(source)),

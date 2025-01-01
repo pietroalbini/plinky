@@ -1,0 +1,25 @@
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.entry}", "--as-needed", "${ld.used}", "${ld.unused}"]
+kind = "link-pass"
+debug-print = ["loaded-object=@inputs"]
+
+[ld.used]
+output = "libused.so"
+content = ["${asm.used}"]
+shared-library = true
+
+[ld.unused]
+output = "libunused.so"
+content = ["${asm.unused}"]
+shared-library = true
+
+[asm.entry]
+source = "entry.S"
+
+[asm.used]
+source = "used.S"
+
+[asm.unused]
+source = "unused.S"

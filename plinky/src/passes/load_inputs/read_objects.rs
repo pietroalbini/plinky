@@ -1,4 +1,4 @@
-use crate::cli::{CliInput, CliInputValue};
+use crate::cli::{CliInput, CliInputOptions, CliInputValue};
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 pub(super) struct ObjectsReader<'a> {
     search_paths: &'a [PathBuf],
     remaining_inputs: &'a [CliInput],
-    current_archive: Option<PendingArchive>,
+    current_archive: Option<PendingArchive<'a>>,
 }
 
 impl<'a> ObjectsReader<'a> {
@@ -48,10 +48,13 @@ impl<'a> ObjectsReader<'a> {
                         library_name,
                         reader: ElfReader::new_owned(Box::new(r))
                             .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
+                        options: input.options.clone(),
                     }));
                 }
                 FileType::Ar => {
-                    if let Some(archive) = PendingArchive::new(path.clone(), r, symbols)? {
+                    if let Some(archive) =
+                        PendingArchive::new(path.clone(), r, symbols, &input.options)?
+                    {
                         self.current_archive = Some(archive);
                     }
                     continue;
@@ -121,6 +124,7 @@ impl<'a> ObjectsReader<'a> {
                     source: ObjectSpan::new_archive_member(&pending_archive.path, &file.name),
                     library_name: LibraryName::InsideArchive,
                     reader,
+                    options: pending_archive.options.clone(),
                 })),
                 Err(err) => Err(ReadObjectsError::ArchiveFileParseFailed(
                     file.name,
@@ -136,18 +140,20 @@ impl<'a> ObjectsReader<'a> {
     }
 }
 
-struct PendingArchive {
+struct PendingArchive<'a> {
     path: PathBuf,
     reader: ArReader<BufReader<File>>,
     pending_members: VecDeque<ArMemberId>,
     loaded_members: HashSet<ArMemberId>,
+    options: &'a CliInputOptions,
 }
 
-impl PendingArchive {
+impl<'a> PendingArchive<'a> {
     fn new(
         path: PathBuf,
         reader: BufReader<File>,
         symbols: &Symbols,
+        options: &'a CliInputOptions,
     ) -> Result<Option<Self>, ReadObjectsError> {
         let mut this = PendingArchive {
             reader: ArReader::new(reader)
@@ -155,6 +161,7 @@ impl PendingArchive {
             path,
             pending_members: VecDeque::new(),
             loaded_members: HashSet::new(),
+            options,
         };
 
         // Only return a new instance of PendingArchive if there are actually objects to load.
@@ -246,6 +253,7 @@ pub(super) struct NextObject {
     pub(super) reader: ElfReader<'static>,
     pub(super) library_name: LibraryName,
     pub(super) source: ObjectSpan,
+    pub(super) options: CliInputOptions,
 }
 
 pub(super) enum LibraryName {

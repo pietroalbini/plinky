@@ -66,6 +66,7 @@ pub(crate) enum CliInputValue {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct CliInputOptions {
     pub(crate) search_shared_objects: bool,
+    pub(crate) as_needed: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]

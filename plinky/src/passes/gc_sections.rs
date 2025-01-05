@@ -1,3 +1,4 @@
+use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable};
@@ -53,14 +54,17 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     for section_id in all_sections {
         if !visitor.to_save.contains(&section_id) {
             let removed = object.sections.remove(section_id, Some(&mut object.symbols));
-            removed_sections.push(RemovedSection { id: section_id, source: removed.source });
+            removed_sections.push(RemovedSection {
+                name: removed.name,
+                source: removed.source,
+            });
         }
     }
     removed_sections
 }
 
 pub(crate) struct RemovedSection {
-    pub(crate) id: SectionId,
+    pub(crate) name: Interned<String>,
     pub(crate) source: ObjectSpan,
 }
 

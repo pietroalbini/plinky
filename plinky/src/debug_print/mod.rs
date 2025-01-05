@@ -13,14 +13,14 @@ use crate::debug_print::render_object::render_object;
 use crate::debug_print::render_relocs_analysis::render_relocs_analysis;
 use crate::linker::LinkerCallbacks;
 use crate::passes::analyze_relocations::RelocsAnalysis;
-use crate::passes::deduplicate::Deduplication;
 use crate::passes::gc_sections::RemovedSection;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::ElfObject;
 use plinky_elf::writer::layout::Layout;
+use plinky_elf::ElfObject;
 use std::collections::{BTreeMap, BTreeSet};
+use crate::passes::deduplicate::Deduplication;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: BTreeSet<DebugPrint>,
@@ -35,9 +35,9 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_sections_removed_by_gc(&self, object: &Object, removed: &[RemovedSection]) {
+    fn on_sections_removed_by_gc(&self, _object: &Object, removed: &[RemovedSection]) {
         if self.print.contains(&DebugPrint::Gc) {
-            render(render_gc(object, removed));
+            render(render_gc(removed));
         }
     }
 

@@ -66,6 +66,12 @@ impl Symbol {
                     assert!(offset == Offset::from(0));
                     Ok(ResolvedSymbol::Absolute(*value))
                 }
+                SymbolValue::Section { section } => match resolver.address(*section, offset) {
+                    Ok((section, memory_address)) => {
+                        Ok(ResolvedSymbol::Address { section, memory_address })
+                    }
+                    Err(err) => Err(ResolveSymbolErrorKind::Layout(err)),
+                },
                 SymbolValue::SectionRelative { section, offset: section_offset } => {
                     match resolver.address(*section, section_offset.add(offset)?) {
                         Ok((section, memory_address)) => {
@@ -112,6 +118,7 @@ pub(crate) enum SymbolVisibility {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum SymbolValue {
     Absolute { value: Absolute },
+    Section { section: SectionId },
     SectionRelative { section: SectionId, offset: Offset },
     SectionVirtualAddress { section: SectionId, memory_address: Address },
     SectionNotLoaded,
@@ -249,19 +256,27 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::Null => SymbolValue::Null,
             UpcomingSymbol::GlobalUnknown { .. } => SymbolValue::Undefined,
             UpcomingSymbol::GlobalHidden { value, .. } => *value,
-            UpcomingSymbol::Section { section } => {
-                SymbolValue::SectionRelative { section: *section, offset: 0i64.into() }
-            }
+            UpcomingSymbol::Section { section } => SymbolValue::Section { section: *section },
             UpcomingSymbol::ExternallyDefined { .. } => SymbolValue::ExternallyDefined,
-            UpcomingSymbol::Elf { section_conversion, sections_not_loaded, elf, .. } => match elf
-                .definition
-            {
+            UpcomingSymbol::Elf {
+                section_conversion,
+                sections_not_loaded,
+                resolved_name,
+                elf,
+                ..
+            } => match elf.definition {
                 ElfSymbolDefinition::Undefined => SymbolValue::Undefined,
                 ElfSymbolDefinition::Absolute => SymbolValue::Absolute { value: elf.value.into() },
                 ElfSymbolDefinition::Common => todo!(),
                 ElfSymbolDefinition::Section(section) => {
                     if sections_not_loaded.contains(&section) {
                         SymbolValue::SectionNotLoaded
+                    } else if *resolved_name == intern("") && elf.value == 0 {
+                        SymbolValue::Section {
+                            section: *section_conversion
+                                .get(&section)
+                                .expect("missing section conversion"),
+                        }
                     } else {
                         SymbolValue::SectionRelative {
                             section: *section_conversion

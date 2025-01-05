@@ -195,10 +195,10 @@ debug print: object after relocations are applied
  │  │ Name                                  │ Type     │ Source          │ Visibility │ Value                             │
  │  ├───────────────────────────────────────┼──────────┼─────────────────┼────────────┼───────────────────────────────────┤
  │  │ <empty>                               │ none     │ <plinky>        │ local      │ <null>                            │
- │  │ <section .text#0>                     │ section  │ hello.o         │ local      │ .text#0 + 0x0                     │
- │  │ <section .rodata>                     │ section  │ hello.o         │ local      │ .rodata + 0x0                     │
- │  │ <section .text.__x86.get_pc_thunk.bx> │ section  │ hello.o         │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │
- │  │ <section .plt>                        │ section  │ <plinky>        │ local      │ .plt + 0x0                        │
+ │  │ <section .text#0>                     │ section  │ hello.o         │ local      │ .text#0                           │
+ │  │ <section .rodata>                     │ section  │ hello.o         │ local      │ .rodata                           │
+ │  │ <section .text.__x86.get_pc_thunk.bx> │ section  │ hello.o         │ local      │ .text.__x86.get_pc_thunk.bx       │
+ │  │ <section .plt>                        │ section  │ <plinky>        │ local      │ .plt                              │
  │  │ _DYNAMIC                              │ none     │ <plinky>        │ local      │ .dynamic + 0x0                    │
  │  │ _GLOBAL_OFFSET_TABLE_                 │ none     │ <plinky>        │ local      │ .got.plt + 0x0                    │
  │  │ __x86.get_pc_thunk.bx                 │ function │ hello.o         │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │

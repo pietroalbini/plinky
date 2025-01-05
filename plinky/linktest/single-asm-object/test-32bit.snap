@@ -62,7 +62,7 @@ debug print: loaded object
  │  │ Name            │ Type    │ Source   │ Visibility │ Value       │
  │  ├─────────────────┼─────────┼──────────┼────────────┼─────────────┤
  │  │ <empty>         │ none    │ <plinky> │ local      │ <null>      │
- │  │ <section .data> │ section │ hello.o  │ local      │ .data + 0x0 │
+ │  │ <section .data> │ section │ hello.o  │ local      │ .data       │
  │  │ _start          │ none    │ hello.o  │ global     │ .text + 0x0 │
  │  │ len             │ none    │ hello.o  │ local      │ 0xd         │
  │  │ msg             │ none    │ hello.o  │ local      │ .data + 0x0 │
@@ -181,7 +181,7 @@ debug print: object after relocations are applied
  │  │ Name            │ Type    │ Source   │ Visibility │ Value       │
  │  ├─────────────────┼─────────┼──────────┼────────────┼─────────────┤
  │  │ <empty>         │ none    │ <plinky> │ local      │ <null>      │
- │  │ <section .data> │ section │ hello.o  │ local      │ .data + 0x0 │
+ │  │ <section .data> │ section │ hello.o  │ local      │ .data       │
  │  │ _start          │ none    │ hello.o  │ global     │ .text + 0x0 │
  │  │ len             │ none    │ hello.o  │ local      │ 0xd         │
  │  │ msg             │ none    │ hello.o  │ local      │ .data + 0x0 │

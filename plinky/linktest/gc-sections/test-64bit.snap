@@ -105,9 +105,9 @@ debug print: loaded object
  │  │ Name                      │ Type    │ Source   │ Visibility │ Value                 │
  │  ├───────────────────────────┼─────────┼──────────┼────────────┼───────────────────────┤
  │  │ <empty>                   │ none    │ <plinky> │ local      │ <null>                │
- │  │ <section .text.foo>       │ section │ foo.o    │ local      │ .text.foo + 0x0       │
- │  │ <section .rodata.name>    │ section │ foo.o    │ local      │ .rodata.name + 0x0    │
- │  │ <section .rodata.surname> │ section │ foo.o    │ local      │ .rodata.surname + 0x0 │
+ │  │ <section .text.foo>       │ section │ foo.o    │ local      │ .text.foo             │
+ │  │ <section .rodata.name>    │ section │ foo.o    │ local      │ .rodata.name          │
+ │  │ <section .rodata.surname> │ section │ foo.o    │ local      │ .rodata.surname       │
  │  │ _start                    │ none    │ foo.o    │ global     │ .text + 0x0           │
  │  │ excluded                  │ none    │ foo.o    │ local      │ .text.bar + 0x0       │
  │  │ name                      │ none    │ foo.o    │ local      │ .rodata.name + 0x0    │
@@ -211,16 +211,17 @@ debug print: object after relocations are applied
  │   ┴
  │
  │    Symbols:
- │  ╭────────────────────────┬─────────┬──────────┬────────────┬────────────────────╮
- │  │ Name                   │ Type    │ Source   │ Visibility │ Value              │
- │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
- │  │ <empty>                │ none    │ <plinky> │ local      │ <null>             │
- │  │ <section .text.foo>    │ section │ foo.o    │ local      │ .text.foo + 0x0    │
- │  │ <section .rodata.name> │ section │ foo.o    │ local      │ .rodata.name + 0x0 │
- │  │ _start                 │ none    │ foo.o    │ global     │ .text + 0x0        │
- │  │ name                   │ none    │ foo.o    │ local      │ .rodata.name + 0x0 │
- │  │ sample                 │ none    │ foo.o    │ local      │ .text.foo + 0x0    │
- │  ╰────────────────────────┴─────────┴──────────┴────────────┴────────────────────╯
+ │  ╭───────────────────────────┬─────────┬──────────┬────────────┬────────────────────╮
+ │  │ Name                      │ Type    │ Source   │ Visibility │ Value              │
+ │  ├───────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ <empty>                   │ none    │ <plinky> │ local      │ <null>             │
+ │  │ <section .text.foo>       │ section │ foo.o    │ local      │ .text.foo          │
+ │  │ <section .rodata.name>    │ section │ foo.o    │ local      │ .rodata.name       │
+ │  │ <section .rodata.surname> │ section │ foo.o    │ local      │ .rodata.surname    │
+ │  │ _start                    │ none    │ foo.o    │ global     │ .text + 0x0        │
+ │  │ name                      │ none    │ foo.o    │ local      │ .rodata.name + 0x0 │
+ │  │ sample                    │ none    │ foo.o    │ local      │ .text.foo + 0x0    │
+ │  ╰───────────────────────────┴─────────┴──────────┴────────────┴────────────────────╯
  │
  │  inputs
  │   │

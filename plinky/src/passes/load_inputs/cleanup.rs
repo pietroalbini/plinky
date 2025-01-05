@@ -1,8 +1,8 @@
 use crate::interner::intern;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
-use crate::repr::symbols::SymbolValue;
 use crate::repr::symbols::views::AllSymbols;
+use crate::repr::symbols::SymbolValue;
 use plinky_utils::ints::ExtractNumber;
 use std::collections::HashSet;
 
@@ -43,7 +43,8 @@ pub(super) fn run(object: &mut Object) {
             | SymbolValue::SectionNotLoaded
             | SymbolValue::Undefined
             | SymbolValue::Null => None,
-            SymbolValue::SectionRelative { section, .. }
+            SymbolValue::Section { section }
+            | SymbolValue::SectionRelative { section, .. }
             | SymbolValue::SectionVirtualAddress { section, .. } => Some(section),
         })
         .collect::<HashSet<_>>();

@@ -196,6 +196,7 @@ fn render_symbols<'a>(
         };
         let value = match symbol.value() {
             SymbolValue::Absolute { value } => format!("{value}"),
+            SymbolValue::Section { section } => names.section(section).to_string(),
             SymbolValue::SectionRelative { section, offset } => {
                 format!("{} + {offset}", names.section(section))
             }

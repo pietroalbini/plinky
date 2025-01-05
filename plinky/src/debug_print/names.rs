@@ -2,7 +2,6 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{SymbolId, SymbolValue};
-use plinky_utils::ints::ExtractNumber;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 
@@ -24,7 +23,7 @@ impl Names {
 
         let symbols = calculate_names(object.symbols.iter(&AllSymbols).map(|symbol| {
             let name = match (symbol.name().resolve().as_str(), symbol.value()) {
-                ("", SymbolValue::SectionRelative { section, offset }) if offset.extract() == 0 => {
+                (_, SymbolValue::Section { section }) => {
                     format!("<section {}>", sections[&section])
                 }
                 ("", _) => "<empty>".to_string(),

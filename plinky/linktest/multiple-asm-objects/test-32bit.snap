@@ -85,8 +85,8 @@ debug print: loaded object
  │  │ Name                │ Type    │ Source    │ Visibility │ Value           │
  │  ├─────────────────────┼─────────┼───────────┼────────────┼─────────────────┤
  │  │ <empty>             │ none    │ <plinky>  │ local      │ <null>          │
- │  │ <section .rodata#0> │ section │ goodbye.o │ local      │ .rodata#0 + 0x0 │
- │  │ <section .rodata#1> │ section │ hello.o   │ local      │ .rodata#1 + 0x0 │
+ │  │ <section .rodata#0> │ section │ goodbye.o │ local      │ .rodata#0       │
+ │  │ <section .rodata#1> │ section │ hello.o   │ local      │ .rodata#1       │
  │  │ _start              │ none    │ hello.o   │ global     │ .text#1 + 0x0   │
  │  │ goodbye             │ none    │ goodbye.o │ global     │ .text#0 + 0x0   │
  │  │ len#0               │ none    │ goodbye.o │ local      │ 0xf             │
@@ -239,8 +239,8 @@ debug print: object after relocations are applied
  │  │ Name                │ Type    │ Source    │ Visibility │ Value           │
  │  ├─────────────────────┼─────────┼───────────┼────────────┼─────────────────┤
  │  │ <empty>             │ none    │ <plinky>  │ local      │ <null>          │
- │  │ <section .rodata#0> │ section │ goodbye.o │ local      │ .rodata#0 + 0x0 │
- │  │ <section .rodata#1> │ section │ hello.o   │ local      │ .rodata#1 + 0x0 │
+ │  │ <section .rodata#0> │ section │ goodbye.o │ local      │ .rodata#0       │
+ │  │ <section .rodata#1> │ section │ hello.o   │ local      │ .rodata#1       │
  │  │ _start              │ none    │ hello.o   │ global     │ .text#1 + 0x0   │
  │  │ goodbye             │ none    │ goodbye.o │ global     │ .text#0 + 0x0   │
  │  │ len#0               │ none    │ goodbye.o │ local      │ 0xf             │

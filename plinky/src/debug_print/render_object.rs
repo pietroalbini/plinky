@@ -207,6 +207,7 @@ fn render_symbols<'a>(
             SymbolValue::SectionNotLoaded => "<section not loaded>".into(),
             SymbolValue::Undefined => "<undefined>".into(),
             SymbolValue::Null => "<null>".into(),
+            SymbolValue::Poison => "<poison>".into(),
         };
         table.add_body([
             names.symbol(symbol.id()),

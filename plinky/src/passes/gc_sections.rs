@@ -20,6 +20,7 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
                 SymbolValue::Absolute { .. } => None,
                 SymbolValue::Undefined => None,
                 SymbolValue::Null => None,
+                SymbolValue::Poison => None,
             })
             .collect(),
         to_save: BTreeSet::new(),

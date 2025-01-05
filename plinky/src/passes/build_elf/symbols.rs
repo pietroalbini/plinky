@@ -136,6 +136,7 @@ impl Converter<'_> {
                     SymbolValue::SectionNotLoaded => ElfSymbolDefinition::Undefined,
                     SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
                     SymbolValue::Null => ElfSymbolDefinition::Undefined,
+                    SymbolValue::Poison => panic!("trying to convert poisoned symbol"),
                 },
                 value: match symbol.value() {
                     SymbolValue::Absolute { value } => value.extract(),
@@ -152,6 +153,7 @@ impl Converter<'_> {
                     SymbolValue::SectionNotLoaded => 0,
                     SymbolValue::Undefined => 0,
                     SymbolValue::Null => 0,
+                    SymbolValue::Poison => panic!("trying to convert poisoned symbol"),
                 },
                 size: 0,
             },

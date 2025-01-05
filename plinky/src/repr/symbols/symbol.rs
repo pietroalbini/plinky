@@ -29,7 +29,6 @@ pub(crate) struct Symbol {
     value: SymbolValue,
     #[get]
     needed_by_dynamic: bool,
-    #[get]
     exclude_from_tables: bool,
 }
 
@@ -48,6 +47,10 @@ impl Symbol {
 
     pub(crate) fn mark_exclude_from_tables(&mut self) {
         self.exclude_from_tables = true;
+    }
+
+    pub(crate) fn exclude_from_tables(&self) -> bool {
+        self.exclude_from_tables || matches!(self.value, SymbolValue::Poison)
     }
 
     pub(crate) fn resolve(
@@ -89,6 +92,7 @@ impl Symbol {
                 SymbolValue::ExternallyDefined => Ok(ResolvedSymbol::ExternallyDefined),
                 SymbolValue::SectionNotLoaded => Err(ResolveSymbolErrorKind::SectionNotLoaded),
                 SymbolValue::Null => Err(ResolveSymbolErrorKind::Null),
+                SymbolValue::Poison => panic!("resolving poisoned symbol"),
             }
         }
 
@@ -123,6 +127,7 @@ pub(crate) enum SymbolValue {
     SectionVirtualAddress { section: SectionId, memory_address: Address },
     SectionNotLoaded,
     ExternallyDefined,
+    Poison,
     Undefined,
     Null,
 }

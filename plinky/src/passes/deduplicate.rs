@@ -1,7 +1,6 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
-use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
@@ -73,7 +72,6 @@ fn deduplicate(
         let mut deduplication = Deduplication {
             target: merged_id,
             map: BTreeMap::new(),
-            source: section.source.clone(),
         };
         for chunk in split(split_rule, &part.bytes) {
             let (chunk_start, chunk) = chunk?;
@@ -165,7 +163,6 @@ fn split(
 
 pub(crate) struct Deduplication {
     pub(crate) target: SectionId,
-    pub(crate) source: ObjectSpan,
     pub(crate) map: BTreeMap<Offset, Offset>,
 }
 

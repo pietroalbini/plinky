@@ -19,8 +19,7 @@ use crate::repr::sections::SectionId;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::writer::layout::Layout;
 use plinky_elf::ElfObject;
-use std::collections::{BTreeMap, BTreeSet};
-use crate::passes::deduplicate::Deduplication;
+use std::collections::BTreeSet;
 
 pub(crate) struct DebugCallbacks {
     pub(crate) print: BTreeSet<DebugPrint>,
@@ -41,14 +40,9 @@ impl LinkerCallbacks for DebugCallbacks {
         }
     }
 
-    fn on_layout_calculated(
-        &self,
-        object: &Object,
-        layout: &Layout<SectionId>,
-        deduplications: &BTreeMap<SectionId, Deduplication>,
-    ) {
+    fn on_layout_calculated(&self, object: &Object, layout: &Layout<SectionId>) {
         if self.print.contains(&DebugPrint::Layout) {
-            render(render_layout(object, layout, deduplications));
+            render(render_layout(object, layout));
         }
     }
 

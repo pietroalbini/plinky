@@ -3,7 +3,7 @@ use crate::passes;
 use crate::passes::analyze_relocations::{RelocsAnalysis, RelocsAnalysisError};
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::convert_relocation_modes::ConvertRelocationModesError;
-use crate::passes::deduplicate::{Deduplication, DeduplicationError};
+use crate::passes::deduplicate::DeduplicationError;
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::generate_dynamic::GenerateDynamicError;
 use crate::passes::generate_got::GenerateGotError;
@@ -17,7 +17,6 @@ use crate::utils::address_resolver::AddressResolver;
 use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
-use std::collections::BTreeMap;
 
 pub(crate) fn link_driver(
     options: &CliOptions,
@@ -54,7 +53,7 @@ pub(crate) fn link_driver(
     passes::inject_gnu_relro::run(&mut object);
 
     let layout = passes::layout::run(&object)?;
-    callbacks.on_layout_calculated(&object, &layout, &deduplications);
+    callbacks.on_layout_calculated(&object, &layout);
 
     let resolver = AddressResolver::new(&layout, &deduplications);
 
@@ -80,13 +79,7 @@ pub(crate) trait LinkerCallbacks {
 
     fn on_relocations_analyzed(&self, _object: &Object, _analysis: &RelocsAnalysis) {}
 
-    fn on_layout_calculated(
-        &self,
-        _object: &Object,
-        _layout: &Layout<SectionId>,
-        _deduplications: &BTreeMap<SectionId, Deduplication>,
-    ) {
-    }
+    fn on_layout_calculated(&self, _object: &Object, _layout: &Layout<SectionId>) {}
 
     fn on_relocations_applied(&self, _object: &Object, _layout: &Layout<SectionId>) {}
 

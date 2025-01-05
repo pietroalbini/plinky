@@ -43,22 +43,6 @@ debug print: calculated layout
  │  │ 0x402008 │ 0x8    │ GNU property │ R     │ .note.gnu.property │
  │  │ 0x402008 │ 0x8    │ notes        │ R     │ .note.gnu.property │
  │  ╰──────────┴────────┴──────────────┴───────┴────────────────────╯
- │
- │    deduplication facade .custom_messages#1 in foo.o
- │  ╭──────┬──────────────────────────╮
- │  │ From │ To                       │
- │  ├──────┼──────────────────────────┤
- │  │ 0x0  │ .custom_messages#0 + 0x0 │
- │  │ 0x6  │ .custom_messages#0 + 0x6 │
- │  ╰──────┴──────────────────────────╯
- │
- │    deduplication facade .custom_messages#2 in bar.o
- │  ╭──────┬──────────────────────────╮
- │  │ From │ To                       │
- │  ├──────┼──────────────────────────┤
- │  │ 0x0  │ .custom_messages#0 + 0xf │
- │  │ 0x8  │ .custom_messages#0 + 0x6 │
- │  ╰──────┴──────────────────────────╯
  ┴
 
 debug print: object after relocations are applied

@@ -1,19 +1,13 @@
 use crate::debug_print::names::Names;
-use crate::passes::deduplicate::Deduplication;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::repr::segments::{SegmentContent, SegmentType};
-use plinky_diagnostics::widgets::{Table, Widget};
+use plinky_diagnostics::widgets::Table;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
 use plinky_elf::writer::layout::{Layout, Part};
 use plinky_utils::ints::ExtractNumber;
-use std::collections::BTreeMap;
 
-pub(super) fn render_layout(
-    object: &Object,
-    layout: &Layout<SectionId>,
-    deduplications: &BTreeMap<SectionId, Deduplication>,
-) -> Diagnostic {
+pub(super) fn render_layout(object: &Object, layout: &Layout<SectionId>) -> Diagnostic {
     let names = Names::new(object);
 
     let mut table = Table::new();
@@ -93,33 +87,5 @@ pub(super) fn render_layout(
         ]);
     }
 
-    Diagnostic::new(DiagnosticKind::DebugPrint, "calculated layout")
-        .add(table)
-        .add(segments)
-        .add_iter(
-            deduplications
-                .iter()
-                .map(|(id, deduplication)| render_deduplication(&names, *id, deduplication)),
-        )
-}
-
-fn render_deduplication(
-    names: &Names,
-    id: SectionId,
-    deduplication: &Deduplication,
-) -> Box<dyn Widget> {
-    let target = names.section(deduplication.target);
-
-    let mut table = Table::new();
-    table.set_title(format!(
-        "deduplication facade {} in {}",
-        names.section(id),
-        deduplication.source
-    ));
-    table.add_head(["From", "To"]);
-    for (from, to) in &deduplication.map {
-        table.add_body([format!("{from}"), format!("{target} + {to}")]);
-    }
-
-    Box::new(table)
+    Diagnostic::new(DiagnosticKind::DebugPrint, "calculated layout").add(table).add(segments)
 }

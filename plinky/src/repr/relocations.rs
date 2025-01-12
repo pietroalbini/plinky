@@ -1,8 +1,8 @@
 use crate::repr::symbols::SymbolId;
 use plinky_elf::ids::ElfSymbolId;
-use plinky_elf::{ElfRel, ElfRela, ElfRelocationType};
+use plinky_elf::{ElfEndian, ElfRel, ElfRela, ElfRelocationType};
 use plinky_macros::{Display, Error};
-use plinky_utils::ints::Offset;
+use plinky_utils::ints::{ExtractNumber, Offset};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,19 +27,18 @@ pub(crate) enum RelocationType {
 }
 
 impl RelocationType {
-    pub(crate) fn uses_addend(&self) -> bool {
+    pub(crate) fn addend_type(&self) -> AddendType {
         match self {
-            RelocationType::Absolute32 => true,
-            RelocationType::Absolute64 => true,
-            RelocationType::AbsoluteSigned32 => true,
-            RelocationType::Relative32 => true,
-            RelocationType::PLT32 => true,
-            RelocationType::GOTRelative32 => true,
-            RelocationType::GOTIndex32 => true,
-            RelocationType::GOTLocationRelative32 => true,
-            RelocationType::OffsetFromGOT32 => true,
-            RelocationType::FillGotSlot => false,
-            RelocationType::FillGotPltSlot => false,
+            RelocationType::Absolute64 => AddendType::I64,
+            RelocationType::Absolute32
+            | RelocationType::AbsoluteSigned32
+            | RelocationType::Relative32
+            | RelocationType::PLT32
+            | RelocationType::GOTRelative32
+            | RelocationType::GOTIndex32
+            | RelocationType::GOTLocationRelative32
+            | RelocationType::OffsetFromGOT32 => AddendType::I32,
+            RelocationType::FillGotSlot | RelocationType::FillGotPltSlot => AddendType::None,
         }
     }
 }
@@ -103,6 +102,37 @@ impl Relocation {
             addend: RelocationAddend::Explicit(elf.addend.into()),
         })
     }
+
+    pub(crate) fn addend(
+        &self,
+        endian: ElfEndian,
+        data: &[u8],
+    ) -> Result<Offset, RelocationAddendError> {
+        match self.addend {
+            RelocationAddend::Inline => {}
+            RelocationAddend::Explicit(addend) => return Ok(addend),
+        }
+
+        match (self.type_.addend_type(), endian) {
+            (AddendType::None, _) => return Err(RelocationAddendError::NotSupported(self.type_)),
+            (AddendType::I32, ElfEndian::Little) => {
+                Ok(i32::from_le_bytes(self.addend_bytes(data)?).into())
+            }
+            (AddendType::I64, ElfEndian::Little) => {
+                Ok(i64::from_le_bytes(self.addend_bytes(data)?).into())
+            }
+        }
+    }
+
+    fn addend_bytes<const N: usize>(&self, data: &[u8]) -> Result<[u8; N], RelocationAddendError> {
+        let start = self.offset.extract();
+        let end = self.offset.extract() + N as i64;
+        if start < 0 || (data.len() as i64) < end {
+            return Err(RelocationAddendError::OutOfBounds(self.offset));
+        }
+
+        Ok((&data[(start as usize)..(end as usize)]).try_into().unwrap())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -117,8 +147,23 @@ impl From<Offset> for RelocationAddend {
     }
 }
 
+#[derive(Debug)]
+pub(crate) enum AddendType {
+    None,
+    I32,
+    I64,
+}
+
 #[derive(Debug, Display, Error)]
 #[display("unsupported relocation type {elf_type:?}")]
 pub(crate) struct UnsupportedRelocationType {
     elf_type: ElfRelocationType,
+}
+
+#[derive(Debug, Display, Error)]
+pub(crate) enum RelocationAddendError {
+    #[display("relocation type {f0:?} does not support addends")]
+    NotSupported(RelocationType),
+    #[display("addend at offset {f0:?} is out of section bounds")]
+    OutOfBounds(Offset),
 }

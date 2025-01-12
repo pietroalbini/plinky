@@ -2,14 +2,14 @@
 //! takes care of converting whatever mode is present in the relocations into the expected one.
 
 use crate::repr::object::Object;
-use crate::repr::relocations::{RelocationAddend, RelocationMode};
+use crate::repr::relocations::{
+    AddendType, RelocationAddend, RelocationAddendError, RelocationMode,
+};
 use crate::repr::sections::SectionContent;
 use plinky_elf::ElfEndian;
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{ExtractNumber, Offset};
 use std::collections::BTreeMap;
-
-const ADDEND_BYTES: usize = 4;
 
 pub(crate) fn run(object: &mut Object) -> Result<(), ConvertRelocationModesError> {
     let endian = object.env.endian;
@@ -36,24 +36,40 @@ pub(crate) fn run(object: &mut Object) -> Result<(), ConvertRelocationModesError
         for relocation in relocations.relocations_mut() {
             match (&relocation.addend, expected_mode) {
                 (RelocationAddend::Inline, RelocationMode::Rela) => {
-                    if relocation.type_.uses_addend() {
-                        let addend_bytes = *addend_slice(&mut applies_to.bytes, relocation.offset);
-                        relocation.addend = RelocationAddend::Explicit(match endian {
-                            ElfEndian::Little => i32::from_le_bytes(addend_bytes).into(),
-                        });
-                    } else {
-                        relocation.addend = RelocationAddend::Explicit(0.into());
-                    }
+                    let addend = match relocation.addend(endian, &applies_to.bytes) {
+                        Ok(addend) => addend,
+                        Err(RelocationAddendError::NotSupported(_)) => Offset::from(0i64),
+                        Err(RelocationAddendError::OutOfBounds(offset)) => {
+                            return Err(ConvertRelocationModesError::OutOfBounds(offset));
+                        }
+                    };
+                    relocation.addend = RelocationAddend::Explicit(addend);
                 }
 
                 (RelocationAddend::Explicit(addend), RelocationMode::Rel) => {
-                    if relocation.type_.uses_addend() {
-                        let addend: i32 = addend.extract().try_into().map_err(|_| {
-                            ConvertRelocationModesError::RelAddendMustBe32Bit(addend.extract())
-                        })?;
-                        *addend_slice(&mut applies_to.bytes, relocation.offset) = match endian {
-                            ElfEndian::Little => addend.to_le_bytes(),
-                        };
+                    match relocation.type_.addend_type() {
+                        AddendType::None => {}
+                        AddendType::I32 => {
+                            let addend: i32 = addend.extract().try_into().map_err(|_| {
+                                ConvertRelocationModesError::RelAddendMustBe32Bit(*addend)
+                            })?;
+                            write_addend(
+                                &mut applies_to.bytes,
+                                relocation.offset,
+                                match endian {
+                                    ElfEndian::Little => addend.to_le_bytes(),
+                                },
+                            )?;
+                        }
+                        AddendType::I64 => {
+                            write_addend(
+                                &mut applies_to.bytes,
+                                relocation.offset,
+                                match endian {
+                                    ElfEndian::Little => addend.extract().to_le_bytes(),
+                                },
+                            )?;
+                        }
                     }
                     relocation.addend = RelocationAddend::Inline;
                 }
@@ -68,18 +84,27 @@ pub(crate) fn run(object: &mut Object) -> Result<(), ConvertRelocationModesError
     Ok(())
 }
 
-fn addend_slice(bytes: &mut [u8], offset: Offset) -> &mut [u8; 4] {
+fn write_addend<const N: usize>(
+    bytes: &mut [u8],
+    offset: Offset,
+    addend: [u8; N],
+) -> Result<(), ConvertRelocationModesError> {
     let start = offset.extract();
-    let end = offset.extract() + ADDEND_BYTES as i64;
+    let end = offset.extract() + N as i64;
     if start < 0 || (bytes.len() as i64) < end {
-        panic!("relocation's addend is out of bounds");
+        return Err(ConvertRelocationModesError::OutOfBounds(offset));
     }
 
-    (&mut bytes[(start as usize)..(end as usize)]).try_into().unwrap()
+    let slot = &mut bytes[(start as usize)..(end as usize)].try_into().unwrap();
+    *slot = addend;
+
+    Ok(())
 }
 
 #[derive(Debug, Error, Display)]
 pub(crate) enum ConvertRelocationModesError {
     #[display("relocation addend {f0} does not fit in 32 bits")]
-    RelAddendMustBe32Bit(i64),
+    RelAddendMustBe32Bit(Offset),
+    #[display("addend at offset {f0:?} is out of section bounds")]
+    OutOfBounds(Offset),
 }

@@ -218,6 +218,7 @@ debug print: object after relocations are applied
  │  │ <section .text.foo>       │ section │ foo.o    │ local      │ .text.foo          │
  │  │ <section .rodata.name>    │ section │ foo.o    │ local      │ .rodata.name       │
  │  │ <section .rodata.surname> │ section │ foo.o    │ local      │ .rodata.surname    │
+ │  │ <section .comment#0>      │ section │ <plinky> │ local      │ .comment#0         │
  │  │ _start                    │ none    │ foo.o    │ global     │ .text + 0x0        │
  │  │ name                      │ none    │ foo.o    │ local      │ .rodata.name + 0x0 │
  │  │ sample                    │ none    │ foo.o    │ local      │ .text.foo + 0x0    │

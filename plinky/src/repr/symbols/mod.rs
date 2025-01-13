@@ -159,7 +159,7 @@ pub(crate) struct MissingGlobalSymbol {
     name: Interned<String>,
 }
 
-#[derive(Debug, Error, Display)]
+#[derive(Debug, Error, Display, PartialEq, Eq)]
 pub(crate) enum LoadSymbolsError {
     #[display("unknown symbol bindings are not supported")]
     UnsupportedUnknownSymbolBinding,

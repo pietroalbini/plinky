@@ -3,11 +3,11 @@ use crate::passes;
 use crate::passes::analyze_relocations::{RelocsAnalysis, RelocsAnalysisError};
 use crate::passes::build_elf::ElfBuilderError;
 use crate::passes::convert_relocation_modes::ConvertRelocationModesError;
-use crate::passes::deduplicate::DeduplicationError;
 use crate::passes::gc_sections::RemovedSection;
 use crate::passes::generate_dynamic::GenerateDynamicError;
 use crate::passes::generate_got::GenerateGotError;
 use crate::passes::load_inputs::LoadInputsError;
+use crate::passes::merge_sections::MergeSectionsError;
 use crate::passes::relocate::RelocationError;
 use crate::passes::replace_section_relative_symbols::ReplaceSectionRelativeSymbolsError;
 use crate::passes::write_to_disk::WriteToDiskError;
@@ -34,7 +34,7 @@ pub(crate) fn link_driver(
         callbacks.on_sections_removed_by_gc(&object, &removed);
     }
 
-    let deduplications = passes::deduplicate::run(&mut object)?;
+    passes::merge_sections::run(&mut object)?;
 
     let relocs_analysis = passes::analyze_relocations::run(&object)?;
     callbacks.on_relocations_analyzed(&object, &relocs_analysis);
@@ -55,7 +55,7 @@ pub(crate) fn link_driver(
     let layout = passes::layout::run(&object)?;
     callbacks.on_layout_calculated(&object, &layout);
 
-    let resolver = AddressResolver::new(&layout, &deduplications);
+    let resolver = AddressResolver::new(&layout);
 
     passes::relocate::run(&mut object, &resolver)?;
     callbacks.on_relocations_applied(&object, &layout);
@@ -91,7 +91,7 @@ pub(crate) enum LinkerError {
     #[transparent]
     LoadInputsFailed(LoadInputsError),
     #[transparent]
-    DeduplicationFailed(DeduplicationError),
+    MergeSections(MergeSectionsError),
     #[transparent]
     Dynamic(GenerateDynamicError),
     #[display("failed to generate the global offset table")]

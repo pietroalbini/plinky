@@ -193,6 +193,7 @@ debug print: object after relocations are applied
  │  │ <empty>               │ none     │ <plinky>        │ local      │ <null>         │
  │  │ <section .text#0>     │ section  │ hello.o         │ local      │ .text#0        │
  │  │ <section .rodata>     │ section  │ hello.o         │ local      │ .rodata        │
+ │  │ <section .comment#0>  │ section  │ <plinky>        │ local      │ .comment#0     │
  │  │ <section .plt>        │ section  │ <plinky>        │ local      │ .plt           │
  │  │ _DYNAMIC              │ none     │ <plinky>        │ local      │ .dynamic + 0x0 │
  │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>        │ local      │ .got.plt + 0x0 │

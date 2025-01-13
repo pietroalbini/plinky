@@ -1,13 +1,14 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
+use crate::repr::symbols::{LoadSymbolsError, SymbolId, UpcomingSymbol};
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
-pub(crate) fn run(
+pub(super) fn run(
     object: &mut Object,
 ) -> Result<BTreeMap<SectionId, Deduplication>, DeduplicationError> {
     let mut groups: BTreeMap<_, Vec<_>> = BTreeMap::new();
@@ -59,6 +60,8 @@ fn deduplicate(
     let mut sections_to_remove = Vec::new();
     let mut source = None;
 
+    let merged_symbol_id = object.symbols.add(UpcomingSymbol::Section { section: merged_id })?;
+
     for &section_id in section_ids {
         let section = object.sections.get(section_id);
         let SectionContent::Data(part) = &section.content else {
@@ -71,6 +74,7 @@ fn deduplicate(
         }
         let mut deduplication = Deduplication {
             target: merged_id,
+            target_symbol: merged_symbol_id,
             map: BTreeMap::new(),
         };
         for chunk in split(split_rule, &part.bytes) {
@@ -96,16 +100,21 @@ fn deduplicate(
 
     object
         .sections
-        .builder(&*name.resolve(), DataSection {
-            perms,
-            deduplication: match split_rule {
-                SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
-                SplitRule::FixedSizeChunks { size } => ElfDeduplication::FixedSizeChunks { size },
+        .builder(
+            &*name.resolve(),
+            DataSection {
+                perms,
+                deduplication: match split_rule {
+                    SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
+                    SplitRule::FixedSizeChunks { size } => {
+                        ElfDeduplication::FixedSizeChunks { size }
+                    }
+                },
+                bytes: merged,
+                relocations: Vec::new(),
+                inside_relro: false,
             },
-            bytes: merged,
-            relocations: Vec::new(),
-            inside_relro: false,
-        })
+        )
         .source(source.expect("no deduplicated sections"))
         .create_in_placeholder(merged_id);
 
@@ -161,9 +170,11 @@ fn split(
     })
 }
 
-pub(crate) struct Deduplication {
-    pub(crate) target: SectionId,
-    pub(crate) map: BTreeMap<Offset, Offset>,
+#[derive(Debug)]
+pub(super) struct Deduplication {
+    pub(super) target: SectionId,
+    pub(super) target_symbol: SymbolId,
+    pub(super) map: BTreeMap<Offset, Offset>,
 }
 
 #[derive(Debug, Display, Error)]
@@ -182,6 +193,8 @@ pub(crate) enum DeduplicationErrorKind {
     UnevenChunkSize { len: u64, chunks: u64 },
     #[display("there is a non-zero-terminated string in the content")]
     NonZeroTerminatedString,
+    #[display("failed to create the symbol for the merged section")]
+    SymbolCreation(#[from] LoadSymbolsError),
     #[display("the amount of data overflows the internal representation")]
     OutOfBounds(#[from] OutOfBoundsError),
 }
@@ -194,9 +207,10 @@ mod tests {
     fn test_split_fixed_sized_chunks_ok() {
         assert_eq!(
             &[(0usize, &[1u8, 2, 3, 4] as &[u8]), (4, &[5, 6, 7, 8]), (8, &[9, 10, 11, 12])],
-            split(SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() }, &[
-                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
-            ])
+            split(
+                SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
+                &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+            )
             .collect::<Result<Vec<_>, _>>()
             .unwrap()
             .as_slice()
@@ -205,9 +219,10 @@ mod tests {
 
     #[test]
     fn test_split_fixed_chunks_uneven() {
-        let mut split = split(SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() }, &[
-            1, 2, 3, 4, 5,
-        ]);
+        let mut split = split(
+            SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
+            &[1, 2, 3, 4, 5],
+        );
 
         assert_eq!(Some(Ok((0, &[1u8, 2, 3, 4] as &[u8]))), split.next());
         assert_eq!(

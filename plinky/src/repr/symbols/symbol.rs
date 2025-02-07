@@ -34,6 +34,17 @@ pub(crate) struct Symbol {
 
 impl Symbol {
     pub(crate) fn set_value(&mut self, value: SymbolValue) {
+        // To ensure invariants are upheld, only some specific kinds of symbol value conversions
+        // can happen. When adding a new allowed conversion, make sure to uphold that:
+        //
+        // - SymbolValue::Section must not be converted from or to, except into Poison.
+        match (&self.value, &value) {
+            (SymbolValue::SectionRelative { .. }, SymbolValue::SectionRelative { .. }) => {}
+            (SymbolValue::SectionRelative { .. }, SymbolValue::SectionVirtualAddress { .. }) => {}
+            (_, SymbolValue::Poison) => {}
+            (from, to) => panic!("cannot convert from {from:?} to {to:?}"),
+        }
+
         self.value = value;
     }
 

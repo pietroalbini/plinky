@@ -1,7 +1,7 @@
 use crate::interner::Interned;
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
-use crate::repr::symbols::{LoadSymbolsError, SymbolId, UpcomingSymbol};
+use crate::repr::symbols::LoadSymbolsError;
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
@@ -60,8 +60,6 @@ fn deduplicate(
     let mut sections_to_remove = Vec::new();
     let mut source = None;
 
-    let merged_symbol_id = object.symbols.add(UpcomingSymbol::Section { section: merged_id })?;
-
     for &section_id in section_ids {
         let section = object.sections.get(section_id);
         let SectionContent::Data(part) = &section.content else {
@@ -74,7 +72,6 @@ fn deduplicate(
         }
         let mut deduplication = Deduplication {
             target: merged_id,
-            target_symbol: merged_symbol_id,
             map: BTreeMap::new(),
         };
         for chunk in split(split_rule, &part.bytes) {
@@ -173,7 +170,6 @@ fn split(
 #[derive(Debug)]
 pub(super) struct Deduplication {
     pub(super) target: SectionId,
-    pub(super) target_symbol: SymbolId,
     pub(super) map: BTreeMap<Offset, Offset>,
 }
 

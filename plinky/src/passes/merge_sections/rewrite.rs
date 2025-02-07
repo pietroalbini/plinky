@@ -3,7 +3,7 @@ use crate::repr::object::Object;
 use crate::repr::relocations::{RelocationAddend, RelocationAddendError};
 use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::symbols::views::AllSymbols;
-use crate::repr::symbols::SymbolValue;
+use crate::repr::symbols::{LoadSymbolsError, SymbolValue, UpcomingSymbol};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::Offset;
 use std::collections::BTreeMap;
@@ -23,7 +23,14 @@ pub(super) fn run(
             if let Some(deduplication) = deduplications.get(&section) {
                 let addend = relocation.addend(object.env.endian, &data.bytes)?;
                 if let Some(new_offset) = deduplication.map.get(&addend) {
-                    relocation.symbol = deduplication.target_symbol;
+                    if let Some(symbol) = object.symbols.section_symbol_id(deduplication.target) {
+                        relocation.symbol = symbol;
+                    } else {
+                        relocation.symbol = object
+                            .symbols
+                            .add(UpcomingSymbol::Section { section: deduplication.target })
+                            .map_err(RewriteError::CreateSectionSymbol)?;
+                    }
                     relocation.addend = RelocationAddend::Explicit(*new_offset);
                 } else {
                     return Err(RewriteError::InvalidOffsetInDeduplicatedSection {
@@ -80,4 +87,6 @@ pub(crate) enum RewriteError {
     InvalidOffsetInDeduplicatedSection { section: SectionId, offset: Offset },
     #[display("failed to retrieve the relocation addend")]
     RelocationAddend(#[from] RelocationAddendError),
+    #[display("failed to create the section symbol")]
+    CreateSectionSymbol(#[source] LoadSymbolsError),
 }

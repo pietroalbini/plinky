@@ -6,6 +6,7 @@ use plinky_elf::ElfSymbolVisibility;
 use plinky_macros::{Display, Error};
 use std::collections::{btree_map, BTreeMap};
 
+use crate::repr::sections::SectionId;
 use crate::repr::symbols::views::SymbolsView;
 pub(crate) use symbol::{
     ResolveSymbolError, ResolvedSymbol, Symbol, SymbolType, SymbolValue, SymbolVisibility,
@@ -17,12 +18,17 @@ const NULL_SYMBOL_ID: SymbolId = SymbolId(0);
 #[derive(Debug)]
 pub(crate) struct Symbols {
     symbols: Vec<SymbolSlot>,
+    section_symbols: BTreeMap<SectionId, SymbolId>,
     global_symbols: BTreeMap<Interned<String>, SymbolId>,
 }
 
 impl Symbols {
     pub(crate) fn new() -> Result<Self, LoadSymbolsError> {
-        let mut symbols = Self { symbols: Vec::new(), global_symbols: BTreeMap::new() };
+        let mut symbols = Self {
+            symbols: Vec::new(),
+            section_symbols: BTreeMap::new(),
+            global_symbols: BTreeMap::new(),
+        };
 
         let null_symbol_id = symbols.add(UpcomingSymbol::Null)?;
         assert_eq!(NULL_SYMBOL_ID, null_symbol_id);
@@ -34,7 +40,13 @@ impl Symbols {
         match upcoming.visibility()? {
             SymbolVisibility::Local => {
                 let id = SymbolId(self.symbols.len());
-                self.symbols.push(SymbolSlot::Present(upcoming.create(id)?));
+                let symbol = upcoming.create(id)?;
+
+                if let SymbolValue::Section { section } = &symbol.value() {
+                    self.section_symbols.insert(*section, id);
+                }
+
+                self.symbols.push(SymbolSlot::Present(symbol));
                 Ok(id)
             }
             SymbolVisibility::Global { weak: false, hidden: _ } => {
@@ -69,7 +81,13 @@ impl Symbols {
     }
 
     pub(crate) fn remove(&mut self, id: SymbolId) {
-        self.symbols[id.0] = SymbolSlot::Removed;
+        let old = std::mem::replace(&mut self.symbols[id.0], SymbolSlot::Removed);
+
+        if let SymbolSlot::Present(old) = old {
+            if let SymbolValue::Section { section } = old.value() {
+                self.section_symbols.remove(&section);
+            }
+        }
     }
 
     pub(crate) fn get(&self, id: SymbolId) -> &Symbol {
@@ -93,6 +111,10 @@ impl Symbols {
         name: Interned<String>,
     ) -> Result<&Symbol, MissingGlobalSymbol> {
         Ok(self.get(*self.global_symbols.get(&name).ok_or(MissingGlobalSymbol { name })?))
+    }
+
+    pub(crate) fn section_symbol_id(&self, id: SectionId) -> Option<SymbolId> {
+        self.section_symbols.get(&id).copied()
     }
 
     pub(crate) fn iter<'a>(

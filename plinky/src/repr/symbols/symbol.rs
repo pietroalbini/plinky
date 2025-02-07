@@ -149,6 +149,7 @@ pub(crate) enum UpcomingSymbol<'a> {
     },
     Section {
         section: SectionId,
+        span: Interned<ObjectSpan>,
     },
     ExternallyDefined {
         name: Interned<String>,
@@ -181,7 +182,10 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::GlobalUnknown { .. } => {}
             UpcomingSymbol::GlobalHidden { .. } => {}
             UpcomingSymbol::ExternallyDefined { span: new_span, .. } => span = Some(*new_span),
-            UpcomingSymbol::Section { .. } => type_ = SymbolType::Section,
+            UpcomingSymbol::Section { span: new_span, .. } => {
+                type_ = SymbolType::Section;
+                span = Some(*new_span);
+            },
             UpcomingSymbol::Elf { elf, span: new_span, stt_file: new_stt_file, .. } => {
                 type_ = match elf.type_ {
                     ElfSymbolType::NoType => SymbolType::NoType,
@@ -266,7 +270,7 @@ impl UpcomingSymbol<'_> {
             UpcomingSymbol::Null => SymbolValue::Null,
             UpcomingSymbol::GlobalUnknown { .. } => SymbolValue::Undefined,
             UpcomingSymbol::GlobalHidden { value, .. } => *value,
-            UpcomingSymbol::Section { section } => SymbolValue::Section { section: *section },
+            UpcomingSymbol::Section { section, .. } => SymbolValue::Section { section: *section },
             UpcomingSymbol::ExternallyDefined { .. } => SymbolValue::ExternallyDefined,
             UpcomingSymbol::Elf {
                 section_conversion,

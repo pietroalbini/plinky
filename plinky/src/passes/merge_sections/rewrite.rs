@@ -1,16 +1,18 @@
 use crate::passes::merge_sections::deduplicate::Deduplication;
+use crate::passes::merge_sections::same_name::SameNameMerge;
 use crate::repr::object::Object;
 use crate::repr::relocations::{RelocationAddend, RelocationAddendError};
 use crate::repr::sections::{SectionContent, SectionId};
 use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::{LoadSymbolsError, SymbolValue, UpcomingSymbol};
 use plinky_macros::{Display, Error};
-use plinky_utils::ints::Offset;
+use plinky_utils::ints::{Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 
 pub(super) fn run(
     object: &mut Object,
     deduplications: BTreeMap<SectionId, Deduplication>,
+    same_name: BTreeMap<SectionId, SameNameMerge>,
 ) -> Result<(), RewriteError> {
     // Some sections have relocations directly from the start of a deduplicated section, declaring
     // the offset into the deduplicated section as the relocation addend. Manually rewrite those.
@@ -28,7 +30,10 @@ pub(super) fn run(
                     } else {
                         relocation.symbol = object
                             .symbols
-                            .add(UpcomingSymbol::Section { section: deduplication.target })
+                            .add(UpcomingSymbol::Section {
+                                section: deduplication.target,
+                                span: deduplication.span,
+                            })
                             .map_err(RewriteError::CreateSectionSymbol)?;
                     }
                     relocation.addend = RelocationAddend::Explicit(*new_offset);
@@ -39,6 +44,23 @@ pub(super) fn run(
                     });
                 }
             }
+
+            if let Some(same_name) = same_name.get(&section) {
+                let addend = relocation.addend(object.env.endian, &data.bytes)?;
+                relocation.addend = RelocationAddend::Explicit(addend.add(same_name.offset)?);
+
+                if let Some(symbol) = object.symbols.section_symbol_id(same_name.target) {
+                    relocation.symbol = symbol;
+                } else {
+                    relocation.symbol = object
+                        .symbols
+                        .add(UpcomingSymbol::Section {
+                            section: same_name.target,
+                            span: same_name.span,
+                        })
+                        .map_err(RewriteError::CreateSectionSymbol)?;
+                }
+            }
         }
     }
 
@@ -47,7 +69,7 @@ pub(super) fn run(
     for symbol in object.symbols.iter_mut(&AllSymbols) {
         let (section, offset) = match symbol.value() {
             SymbolValue::Section { section } => {
-                if deduplications.contains_key(&section) {
+                if deduplications.contains_key(&section) || same_name.contains_key(&section) {
                     symbols_to_remove.push(symbol.id());
                 }
                 continue;
@@ -73,6 +95,12 @@ pub(super) fn run(
                 return Err(RewriteError::InvalidOffsetInDeduplicatedSection { section, offset });
             }
         }
+        if let Some(same_name) = same_name.get(&section) {
+            symbol.set_value(SymbolValue::SectionRelative {
+                section: same_name.target,
+                offset: offset.add(same_name.offset)?,
+            });
+        }
     }
     for symbol_id in symbols_to_remove {
         object.symbols.remove(symbol_id);
@@ -92,4 +120,6 @@ pub(crate) enum RewriteError {
     RelocationAddend(#[from] RelocationAddendError),
     #[display("failed to create the section symbol")]
     CreateSectionSymbol(#[source] LoadSymbolsError),
+    #[transparent]
+    OutOfBounds(OutOfBoundsError),
 }

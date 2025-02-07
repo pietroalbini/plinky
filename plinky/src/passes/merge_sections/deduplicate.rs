@@ -1,4 +1,4 @@
-use crate::interner::Interned;
+use crate::interner::{intern, Interned};
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
 use crate::repr::symbols::LoadSymbolsError;
@@ -7,6 +7,7 @@ use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
+use plinky_diagnostics::ObjectSpan;
 
 pub(super) fn run(
     object: &mut Object,
@@ -60,6 +61,7 @@ fn deduplicate(
     let mut sections_to_remove = Vec::new();
     let mut source = None;
 
+    let mut new_deduplication_maps = BTreeMap::new();
     for &section_id in section_ids {
         let section = object.sections.get(section_id);
         let SectionContent::Data(part) = &section.content else {
@@ -70,29 +72,34 @@ fn deduplicate(
             None => source = Some(section.source.clone()),
             Some(other_source) => source = Some(other_source.merge(&section.source)),
         }
-        let mut deduplication = Deduplication {
-            target: merged_id,
-            map: BTreeMap::new(),
-        };
+        let mut map = BTreeMap::new();
         for chunk in split(split_rule, &part.bytes) {
             let (chunk_start, chunk) = chunk?;
             match seen.get(&chunk) {
                 Some(idx) => {
-                    deduplication.map.insert(Length::from(chunk_start).as_offset()?, *idx);
+                    map.insert(Length::from(chunk_start).as_offset()?, *idx);
                 }
                 None => {
                     let idx = merged.len();
                     merged.extend_from_slice(chunk);
                     seen.insert(chunk, Length::from(idx).as_offset()?);
-                    deduplication.map.insert(
+                    map.insert(
                         Length::from(chunk_start).as_offset()?,
                         Length::from(idx).as_offset()?,
                     );
                 }
             }
         }
-        deduplications.insert(section_id, deduplication);
+        new_deduplication_maps.insert(section_id, map);
         sections_to_remove.push(section_id);
+    }
+
+    for (section_id, map) in new_deduplication_maps {
+        deduplications.insert(section_id, Deduplication {
+            target: merged_id,
+            map,
+            span: intern(source.clone().expect("no deduplicated sections")),
+        });
     }
 
     object
@@ -171,6 +178,7 @@ fn split(
 pub(super) struct Deduplication {
     pub(super) target: SectionId,
     pub(super) map: BTreeMap<Offset, Offset>,
+    pub(super) span: Interned<ObjectSpan>,
 }
 
 #[derive(Debug, Display, Error)]

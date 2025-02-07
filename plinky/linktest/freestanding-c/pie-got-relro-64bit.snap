@@ -21,18 +21,16 @@ debug print: calculated layout
  │  │ .gnu.hash          │ 0x368       │ 0x24        │ 0x368          │ 0x24          │
  │  │ .dynamic           │ 0x38c       │ 0xb0        │ 0x38c          │ 0xb0          │
  │  │ .rela.got          │ 0x43c       │ 0x30        │ 0x43c          │ 0x30          │
- │  │ <section header>   │ 0x46c       │ 0x500       │ -              │ -             │
- │  │ .shstrtab          │ 0x96c       │ 0xa4        │ -              │ -             │
- │  │ .strtab            │ 0xa10       │ 0x33        │ -              │ -             │
- │  │ .symtab            │ 0xa43       │ 0x90        │ -              │ -             │
- │  │ .comment#0         │ 0xad3       │ 0x22        │ -              │ -             │
- │  │ <padding>          │ 0xaf5       │ 0x50b       │ -              │ -             │
+ │  │ <section header>   │ 0x46c       │ 0x480       │ -              │ -             │
+ │  │ .shstrtab          │ 0x8ec       │ 0x98        │ -              │ -             │
+ │  │ .strtab            │ 0x984       │ 0x33        │ -              │ -             │
+ │  │ .symtab            │ 0x9b7       │ 0x90        │ -              │ -             │
+ │  │ .comment#0         │ 0xa47       │ 0x22        │ -              │ -             │
+ │  │ <padding>          │ 0xa69       │ 0x597       │ -              │ -             │
  │  │ .rodata            │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame          │ 0x100d      │ 0x38        │ 0x100d         │ 0x38          │
  │  │ <padding>          │ 0x1045      │ 0xfbb       │ -              │ -             │
- │  │ .text#0            │ 0x2000      │ 0x29        │ 0x2000         │ 0x29          │
- │  │ .text#1            │ 0x2029      │ 0x12        │ 0x2029         │ 0x12          │
- │  │ .text#2            │ 0x203b      │ 0x9         │ 0x203b         │ 0x9           │
+ │  │ .text#0            │ 0x2000      │ 0x44        │ 0x2000         │ 0x44          │
  │  │ <padding>          │ 0x2044      │ 0xfbc       │ -              │ -             │
  │  │ .got               │ 0x3000      │ 0x10        │ 0x3000         │ 0x10          │
  │  │ .got.plt           │ 0x3010      │ 0x18        │ 0x3010         │ 0x18          │
@@ -57,8 +55,6 @@ debug print: calculated layout
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata            │
  │  │        │        │                │       │ .eh_frame          │
  │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text#0            │
- │  │        │        │                │       │ .text#1            │
- │  │        │        │                │       │ .text#2            │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got               │
  │  │        │        │                │       │ .got.plt           │
  │  │ 0x38c  │ 0x8    │ dynamic        │ R     │ .dynamic           │

@@ -72,48 +72,31 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#0 (perms: rx) in hello.o
+ │  section .text#0 (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
  │   │
  │   │  address: 0x401000
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 55 48 89 e5 ba 0c 00 00 00 48 8d 05 f0 ef ff ff │ UH.......H...... │
  │   │  │ 48 89 c6 bf 01 00 00 00 ff 15 e2 0f 00 00 bf 00 │ H............... │
- │   │  │ 00 00 00 ff 15 df 0f 00 00                      │ .........        │
+ │   │  │ 00 00 00 ff 15 df 0f 00 00 50 51 41 53 48 c7 c0 │ .........PQASH.. │
+ │   │  │ 01 00 00 00 0f 05 41 5b 59 58 c3 48 c7 c0 3c 00 │ ......A[YX.H..<. │
+ │   │  │ 00 00 0f 05                                     │ ....             │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#1 (perms: rx) in syscall.write.o
- │   │
- │   │  address: 0x401029
- │   │
- │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ 50 51 41 53 48 c7 c0 01 00 00 00 0f 05 41 5b 59 │ PQASH........A[Y │
- │   │  │ 58 c3                                           │ X.               │
- │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#2 (perms: rx) in syscall.exit.o
- │   │
- │   │  address: 0x40103b
- │   │
- │   │  ╭────────────────────────────┬───────────╮
- │   │  │ 48 c7 c0 3c 00 00 00 0f 05 │ H..<..... │
- │   │  ╰────────────────────────────┴───────────╯
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────┬──────────┬─────────────────┬────────────┬────────────────╮
- │  │ Name                  │ Type     │ Source          │ Visibility │ Value          │
- │  ├───────────────────────┼──────────┼─────────────────┼────────────┼────────────────┤
- │  │ <empty>               │ none     │ <plinky>        │ local      │ <null>         │
- │  │ <section .text#0>     │ section  │ hello.o         │ local      │ .text#0        │
- │  │ <section .rodata>     │ section  │ hello.o         │ local      │ .rodata        │
- │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>        │ local      │ .got.plt + 0x0 │
- │  │ _start                │ function │ hello.o         │ global     │ .text#0 + 0x0  │
- │  │ exit                  │ none     │ syscall.exit.o  │ global     │ .text#2 + 0x0  │
- │  │ write                 │ none     │ syscall.write.o │ global     │ .text#1 + 0x0  │
- │  ╰───────────────────────┴──────────┴─────────────────┴────────────┴────────────────╯
+ │  ╭───────────────────────┬──────────┬────────────────────────────────────────────────────┬────────────┬────────────────╮
+ │  │ Name                  │ Type     │ Source                                             │ Visibility │ Value          │
+ │  ├───────────────────────┼──────────┼────────────────────────────────────────────────────┼────────────┼────────────────┤
+ │  │ <empty>               │ none     │ <plinky>                                           │ local      │ <null>         │
+ │  │ <section .rodata>     │ section  │ hello.o                                            │ local      │ .rodata        │
+ │  │ <section .text#0>     │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text#0        │
+ │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>                                           │ local      │ .got.plt + 0x0 │
+ │  │ _start                │ function │ hello.o                                            │ global     │ .text#0 + 0x0  │
+ │  │ exit                  │ none     │ syscall.exit.o                                     │ global     │ .text#0 + 0x3b │
+ │  │ write                 │ none     │ syscall.write.o                                    │ global     │ .text#0 + 0x29 │
+ │  ╰───────────────────────┴──────────┴────────────────────────────────────────────────────┴────────────┴────────────────╯
  ┴
 
 ==============

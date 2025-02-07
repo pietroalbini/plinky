@@ -123,17 +123,15 @@ debug print: calculated layout
  │  ├────────────────────┼─────────────┼─────────────┼────────────────┼───────────────┤
  │  │ <elf header>       │ 0x0         │ 0x40        │ -              │ -             │
  │  │ <program header>   │ 0x40        │ 0x150       │ -              │ -             │
- │  │ <section header>   │ 0x190       │ 0x300       │ -              │ -             │
- │  │ .shstrtab          │ 0x490       │ 0x61        │ -              │ -             │
- │  │ .comment           │ 0x4f1       │ 0xf         │ -              │ -             │
- │  │ .strtab            │ 0x500       │ 0x49        │ -              │ -             │
- │  │ .symtab            │ 0x549       │ 0xf0        │ -              │ -             │
- │  │ <padding>          │ 0x639       │ 0x9c7       │ -              │ -             │
- │  │ .rodata#0          │ 0x1000      │ 0xf         │ 0x400000       │ 0xf           │
- │  │ .rodata#1          │ 0x100f      │ 0xd         │ 0x40000f       │ 0xd           │
+ │  │ <section header>   │ 0x190       │ 0x280       │ -              │ -             │
+ │  │ .shstrtab          │ 0x410       │ 0x53        │ -              │ -             │
+ │  │ .comment           │ 0x463       │ 0xf         │ -              │ -             │
+ │  │ .strtab            │ 0x472       │ 0x49        │ -              │ -             │
+ │  │ .symtab            │ 0x4bb       │ 0xf0        │ -              │ -             │
+ │  │ <padding>          │ 0x5ab       │ 0xa55       │ -              │ -             │
+ │  │ .rodata#0          │ 0x1000      │ 0x1c        │ 0x400000       │ 0x1c          │
  │  │ <padding>          │ 0x101c      │ 0xfe4       │ -              │ -             │
- │  │ .text#0            │ 0x2000      │ 0x1f        │ 0x401000       │ 0x1f          │
- │  │ .text#1            │ 0x201f      │ 0x1b        │ 0x40101f       │ 0x1b          │
+ │  │ .text#0            │ 0x2000      │ 0x3a        │ 0x401000       │ 0x3a          │
  │  │ .plt               │ 0x203a      │ 0x20        │ 0x40103a       │ 0x20          │
  │  │ <padding>          │ 0x205a      │ 0xfa6       │ -              │ -             │
  │  │ .got.plt           │ 0x3000      │ 0x8         │ 0x402000       │ 0x8           │
@@ -145,9 +143,7 @@ debug print: calculated layout
  │  │ Start    │ Align  │ Type         │ Perms │ Content            │
  │  ├──────────┼────────┼──────────────┼───────┼────────────────────┤
  │  │ 0x400000 │ 0x1000 │ program      │ R     │ .rodata#0          │
- │  │          │        │              │       │ .rodata#1          │
  │  │ 0x401000 │ 0x1000 │ program      │ RX    │ .text#0            │
- │  │          │        │              │       │ .text#1            │
  │  │          │        │              │       │ .plt               │
  │  │ 0x402000 │ 0x1000 │ program      │ RW    │ .got.plt           │
  │  │ -        │ 0x1    │ GNU stack    │ RW    │                    │
@@ -203,22 +199,14 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .rodata#0 (perms: r) in goodbye.o
+ │  section .rodata#0 (perms: r) in mix of goodbye.o and hello.o
  │   │
  │   │  address: 0x400000
  │   │
- │   │  ╭──────────────────────────────────────────────┬─────────────────╮
- │   │  │ 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a │ Goodbye world!. │
- │   │  ╰──────────────────────────────────────────────┴─────────────────╯
- │   ┴
- │
- │  section .rodata#1 (perms: r) in hello.o
- │   │
- │   │  address: 0x40000f
- │   │
- │   │  ╭────────────────────────────────────────┬───────────────╮
- │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
- │   │  ╰────────────────────────────────────────┴───────────────╯
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a 48 │ Goodbye world!.H │
+ │   │  │ 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a             │ ello world!.     │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │  section names section .shstrtab in <plinky>
@@ -237,42 +225,33 @@ debug print: object after relocations are applied
  │   │  strings: .strtab
  │   ┴
  │
- │  section .text#0 (perms: rx) in goodbye.o
+ │  section .text#0 (perms: rx) in mix of goodbye.o and hello.o
  │   │
  │   │  address: 0x401000
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba │ .............@.. │
- │   │  │ 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    │ ...............  │
- │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#1 (perms: rx) in hello.o
- │   │
- │   │  address: 0x40101f
- │   │
- │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba │ .............@.. │
- │   │  │ 0d 00 00 00 cd 80 e9 10 00 00 00                │ ...........      │
+ │   │  │ 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80 b8 │ ................ │
+ │   │  │ 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba 0d │ ............@... │
+ │   │  │ 00 00 00 cd 80 e9 10 00 00 00                   │ ..........       │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────┬─────────┬───────────┬────────────┬─────────────────╮
- │  │ Name                  │ Type    │ Source    │ Visibility │ Value           │
- │  ├───────────────────────┼─────────┼───────────┼────────────┼─────────────────┤
- │  │ <empty>               │ none    │ <plinky>  │ local      │ <null>          │
- │  │ <section .rodata#0>   │ section │ goodbye.o │ local      │ .rodata#0       │
- │  │ <section .rodata#1>   │ section │ hello.o   │ local      │ .rodata#1       │
- │  │ <section .plt>        │ section │ <plinky>  │ local      │ .plt            │
- │  │ _GLOBAL_OFFSET_TABLE_ │ none    │ <plinky>  │ local      │ .got.plt + 0x0  │
- │  │ _start                │ none    │ hello.o   │ global     │ .text#1 + 0x0   │
- │  │ goodbye               │ none    │ goodbye.o │ global     │ .text#0 + 0x0   │
- │  │ len#0                 │ none    │ goodbye.o │ local      │ 0xf             │
- │  │ len#1                 │ none    │ hello.o   │ local      │ 0xd             │
- │  │ msg#0                 │ none    │ goodbye.o │ local      │ .rodata#0 + 0x0 │
- │  │ msg#1                 │ none    │ hello.o   │ local      │ .rodata#1 + 0x0 │
- │  ╰───────────────────────┴─────────┴───────────┴────────────┴─────────────────╯
+ │  ╭───────────────────────┬─────────┬──────────────────────────────┬────────────┬─────────────────╮
+ │  │ Name                  │ Type    │ Source                       │ Visibility │ Value           │
+ │  ├───────────────────────┼─────────┼──────────────────────────────┼────────────┼─────────────────┤
+ │  │ <empty>               │ none    │ <plinky>                     │ local      │ <null>          │
+ │  │ <section .rodata#0>   │ section │ mix of goodbye.o and hello.o │ local      │ .rodata#0       │
+ │  │ <section .plt>        │ section │ <plinky>                     │ local      │ .plt            │
+ │  │ _GLOBAL_OFFSET_TABLE_ │ none    │ <plinky>                     │ local      │ .got.plt + 0x0  │
+ │  │ _start                │ none    │ hello.o                      │ global     │ .text#0 + 0x1f  │
+ │  │ goodbye               │ none    │ goodbye.o                    │ global     │ .text#0 + 0x0   │
+ │  │ len#0                 │ none    │ goodbye.o                    │ local      │ 0xf             │
+ │  │ len#1                 │ none    │ hello.o                      │ local      │ 0xd             │
+ │  │ msg#0                 │ none    │ goodbye.o                    │ local      │ .rodata#0 + 0x0 │
+ │  │ msg#1                 │ none    │ hello.o                      │ local      │ .rodata#0 + 0xf │
+ │  ╰───────────────────────┴─────────┴──────────────────────────────┴────────────┴─────────────────╯
  │
  │  inputs
  │   │
@@ -317,55 +296,15 @@ debug print: built elf
  │   │  ╭──────┬────────────────────╮
  │   │  │ 0x0  │                    │
  │   │  │ 0x1  │ .shstrtab          │
- │   │  │ 0xb  │ .text              │
- │   │  │ 0x11 │ .rodata            │
- │   │  │ 0x19 │ .text              │
- │   │  │ 0x1f │ .rodata            │
- │   │  │ 0x27 │ .comment           │
- │   │  │ 0x30 │ .strtab            │
- │   │  │ 0x38 │ .symtab            │
- │   │  │ 0x40 │ .got.plt           │
- │   │  │ 0x49 │ .plt               │
- │   │  │ 0x4e │ .note.gnu.property │
+ │   │  │ 0xb  │ .comment           │
+ │   │  │ 0x14 │ .strtab            │
+ │   │  │ 0x1c │ .symtab            │
+ │   │  │ 0x24 │ .rodata            │
+ │   │  │ 0x2c │ .text              │
+ │   │  │ 0x32 │ .got.plt           │
+ │   │  │ 0x3b │ .plt               │
+ │   │  │ 0x40 │ .note.gnu.property │
  │   │  ╰──────┴────────────────────╯
- │   ┴
- │
- │  section .text#0 (address: 0x401000)
- │   │
- │   │  program data | permissions: R X
- │   │
- │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba │ .............@.. │
- │   │  │ 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80    │ ...............  │
- │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .rodata#0 (address: 0x400000)
- │   │
- │   │  program data | permissions: R
- │   │
- │   │  ╭──────────────────────────────────────────────┬─────────────────╮
- │   │  │ 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a │ Goodbye world!. │
- │   │  ╰──────────────────────────────────────────────┴─────────────────╯
- │   ┴
- │
- │  section .text#1 (address: 0x40101f)
- │   │
- │   │  program data | permissions: R X
- │   │
- │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba │ .............@.. │
- │   │  │ 0d 00 00 00 cd 80 e9 10 00 00 00                │ ...........      │
- │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .rodata#1 (address: 0x40000f)
- │   │
- │   │  program data | permissions: R
- │   │
- │   │  ╭────────────────────────────────────────┬───────────────╮
- │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
- │   │  ╰────────────────────────────────────────┴───────────────╯
  │   ┴
  │
  │  section .comment (address: 0x0)
@@ -404,14 +343,36 @@ debug print: built elf
  │   │  │ <empty>               │ Local   │ -    │ Default    │ Undefined  │ 0x0      │ 0x0  │
  │   │  │ _GLOBAL_OFFSET_TABLE_ │ Local   │ -    │ Default    │ .got.plt   │ 0x402000 │ 0x0  │
  │   │  │ goodbye.S             │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
- │   │  │ msg#0                 │ Local   │ -    │ Default    │ .rodata#0  │ 0x400000 │ 0x0  │
+ │   │  │ msg#0                 │ Local   │ -    │ Default    │ .rodata    │ 0x400000 │ 0x0  │
  │   │  │ len#0                 │ Local   │ -    │ Default    │ Absolute   │ 0xf      │ 0x0  │
  │   │  │ hello.S               │ Local   │ File │ Default    │ Absolute   │ 0x0      │ 0x0  │
- │   │  │ msg#1                 │ Local   │ -    │ Default    │ .rodata#1  │ 0x40000f │ 0x0  │
+ │   │  │ msg#1                 │ Local   │ -    │ Default    │ .rodata    │ 0x40000f │ 0x0  │
  │   │  │ len#1                 │ Local   │ -    │ Default    │ Absolute   │ 0xd      │ 0x0  │
- │   │  │ _start                │ Global  │ -    │ Default    │ .text#1    │ 0x40101f │ 0x0  │
- │   │  │ goodbye               │ Global  │ -    │ Default    │ .text#0    │ 0x401000 │ 0x0  │
+ │   │  │ _start                │ Global  │ -    │ Default    │ .text      │ 0x40101f │ 0x0  │
+ │   │  │ goodbye               │ Global  │ -    │ Default    │ .text      │ 0x401000 │ 0x0  │
  │   │  ╰───────────────────────┴─────────┴──────┴────────────┴────────────┴──────────┴──────╯
+ │   ┴
+ │
+ │  section .rodata (address: 0x400000)
+ │   │
+ │   │  program data | permissions: R
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 47 6f 6f 64 62 79 65 20 77 6f 72 6c 64 21 0a 48 │ Goodbye world!.H │
+ │   │  │ 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a             │ ello world!.     │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ │   ┴
+ │
+ │  section .text (address: 0x401000)
+ │   │
+ │   │  program data | permissions: R X
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 40 00 ba │ .............@.. │
+ │   │  │ 0f 00 00 00 cd 80 b0 01 bb 00 00 00 00 cd 80 b8 │ ................ │
+ │   │  │ 04 00 00 00 bb 01 00 00 00 b9 0f 00 40 00 ba 0d │ ............@... │
+ │   │  │ 00 00 00 cd 80 e9 10 00 00 00                   │ ..........       │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │  section .got.plt (address: 0x402000)

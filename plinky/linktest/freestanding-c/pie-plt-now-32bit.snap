@@ -21,19 +21,17 @@ debug print: calculated layout
  │  │ .gnu.hash                   │ 0x235       │ 0x20        │ 0x235          │ 0x20          │
  │  │ .dynamic                    │ 0x255       │ 0x68        │ 0x255          │ 0x68          │
  │  │ .rel.plt                    │ 0x2bd       │ 0x10        │ 0x2bd          │ 0x10          │
- │  │ <section header>            │ 0x2cd       │ 0x348       │ -              │ -             │
- │  │ .shstrtab                   │ 0x615       │ 0xbf        │ -              │ -             │
- │  │ .strtab                     │ 0x6d4       │ 0x51        │ -              │ -             │
- │  │ .symtab                     │ 0x725       │ 0x80        │ -              │ -             │
- │  │ .comment#0                  │ 0x7a5       │ 0x22        │ -              │ -             │
- │  │ <padding>                   │ 0x7c7       │ 0x839       │ -              │ -             │
+ │  │ <section header>            │ 0x2cd       │ 0x2f8       │ -              │ -             │
+ │  │ .shstrtab                   │ 0x5c5       │ 0xb3        │ -              │ -             │
+ │  │ .strtab                     │ 0x678       │ 0x51        │ -              │ -             │
+ │  │ .symtab                     │ 0x6c9       │ 0x80        │ -              │ -             │
+ │  │ .comment#0                  │ 0x749       │ 0x22        │ -              │ -             │
+ │  │ <padding>                   │ 0x76b       │ 0x895       │ -              │ -             │
  │  │ .rodata                     │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame                   │ 0x100d      │ 0x48        │ 0x100d         │ 0x48          │
  │  │ <padding>                   │ 0x1055      │ 0xfab       │ -              │ -             │
- │  │ .text#0                     │ 0x2000      │ 0x32        │ 0x2000         │ 0x32          │
- │  │ .text.__x86.get_pc_thunk.bx │ 0x2032      │ 0x4         │ 0x2032         │ 0x4           │
- │  │ .text#1                     │ 0x2036      │ 0x1a        │ 0x2036         │ 0x1a          │
- │  │ .text#2                     │ 0x2050      │ 0xb         │ 0x2050         │ 0xb           │
+ │  │ .text.__x86.get_pc_thunk.bx │ 0x2000      │ 0x4         │ 0x2000         │ 0x4           │
+ │  │ .text#0                     │ 0x2004      │ 0x57        │ 0x2004         │ 0x57          │
  │  │ .plt                        │ 0x205b      │ 0x30        │ 0x205b         │ 0x30          │
  │  │ <padding>                   │ 0x208b      │ 0xf75       │ -              │ -             │
  │  │ .got.plt                    │ 0x3000      │ 0x14        │ 0x3000         │ 0x14          │
@@ -57,10 +55,8 @@ debug print: calculated layout
  │  │        │        │                │       │ .rel.plt                    │
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata                     │
  │  │        │        │                │       │ .eh_frame                   │
- │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text#0                     │
- │  │        │        │                │       │ .text.__x86.get_pc_thunk.bx │
- │  │        │        │                │       │ .text#1                     │
- │  │        │        │                │       │ .text#2                     │
+ │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text.__x86.get_pc_thunk.bx │
+ │  │        │        │                │       │ .text#0                     │
  │  │        │        │                │       │ .plt                        │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got.plt                    │
  │  │ 0x255  │ 0x4    │ dynamic        │ R     │ .dynamic                    │

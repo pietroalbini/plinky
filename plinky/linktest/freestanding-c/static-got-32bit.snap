@@ -75,51 +75,34 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────┴──────────╯
  │   ┴
  │
- │  section .text#0 (perms: rx) in hello.o
+ │  section .text#0 (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
  │   │
- │   │  address: 0x401000
+ │   │  address: 0x401004
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ 55 89 e5 53 83 ec 04 e8 28 00 00 00 81 c3 fc 0f │ U..S....(....... │
+ │   │  │ 55 89 e5 53 83 ec 04 e8 f0 ff ff ff 81 c3 f8 0f │ U..S............ │
  │   │  │ 00 00 83 ec 04 6a 0c 8d 83 f8 df ff ff 50 6a 01 │ .....j.......Pj. │
  │   │  │ ff 93 f8 ff ff ff 83 c4 10 83 ec 0c 6a 00 ff 93 │ ............j... │
- │   │  │ fc ff ff ff                                     │ ....             │
+ │   │  │ fc ff ff ff 50 53 51 b8 04 00 00 00 8b 5c 24 10 │ ....PSQ......\$. │
+ │   │  │ 8b 4c 24 14 8b 54 24 18 cd 80 59 5b 58 c3 b8 01 │ .L$..T$...Y[X... │
+ │   │  │ 00 00 00 8b 5c 24 04 cd 80                      │ ....\$...        │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#1 (perms: rx) in syscall.write.o
- │   │
- │   │  address: 0x401038
- │   │
- │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ 50 53 51 b8 04 00 00 00 8b 5c 24 10 8b 4c 24 14 │ PSQ......\$..L$. │
- │   │  │ 8b 54 24 18 cd 80 59 5b 58 c3                   │ .T$...Y[X.       │
- │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#2 (perms: rx) in syscall.exit.o
- │   │
- │   │  address: 0x401052
- │   │
- │   │  ╭──────────────────────────────────┬─────────────╮
- │   │  │ b8 01 00 00 00 8b 5c 24 04 cd 80 │ ......\$... │
- │   │  ╰──────────────────────────────────┴─────────────╯
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────────────────────┬──────────┬─────────────────┬────────────┬───────────────────────────────────╮
- │  │ Name                                  │ Type     │ Source          │ Visibility │ Value                             │
- │  ├───────────────────────────────────────┼──────────┼─────────────────┼────────────┼───────────────────────────────────┤
- │  │ <empty>                               │ none     │ <plinky>        │ local      │ <null>                            │
- │  │ <section .text#0>                     │ section  │ hello.o         │ local      │ .text#0                           │
- │  │ <section .rodata>                     │ section  │ hello.o         │ local      │ .rodata                           │
- │  │ <section .text.__x86.get_pc_thunk.bx> │ section  │ hello.o         │ local      │ .text.__x86.get_pc_thunk.bx       │
- │  │ _GLOBAL_OFFSET_TABLE_                 │ none     │ <plinky>        │ local      │ .got.plt + 0x0                    │
- │  │ __x86.get_pc_thunk.bx                 │ function │ hello.o         │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │
- │  │ _start                                │ function │ hello.o         │ global     │ .text#0 + 0x0                     │
- │  │ exit                                  │ none     │ syscall.exit.o  │ global     │ .text#2 + 0x0                     │
- │  │ write                                 │ none     │ syscall.write.o │ global     │ .text#1 + 0x0                     │
- │  ╰───────────────────────────────────────┴──────────┴─────────────────┴────────────┴───────────────────────────────────╯
+ │  ╭───────────────────────────────────────┬──────────┬────────────────────────────────────────────────────┬────────────┬───────────────────────────────────╮
+ │  │ Name                                  │ Type     │ Source                                             │ Visibility │ Value                             │
+ │  ├───────────────────────────────────────┼──────────┼────────────────────────────────────────────────────┼────────────┼───────────────────────────────────┤
+ │  │ <empty>                               │ none     │ <plinky>                                           │ local      │ <null>                            │
+ │  │ <section .rodata>                     │ section  │ hello.o                                            │ local      │ .rodata                           │
+ │  │ <section .text.__x86.get_pc_thunk.bx> │ section  │ hello.o                                            │ local      │ .text.__x86.get_pc_thunk.bx       │
+ │  │ <section .text#0>                     │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text#0                           │
+ │  │ _GLOBAL_OFFSET_TABLE_                 │ none     │ <plinky>                                           │ local      │ .got.plt + 0x0                    │
+ │  │ __x86.get_pc_thunk.bx                 │ function │ hello.o                                            │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │
+ │  │ _start                                │ function │ hello.o                                            │ global     │ .text#0 + 0x0                     │
+ │  │ exit                                  │ none     │ syscall.exit.o                                     │ global     │ .text#0 + 0x4e                    │
+ │  │ write                                 │ none     │ syscall.write.o                                    │ global     │ .text#0 + 0x34                    │
+ │  ╰───────────────────────────────────────┴──────────┴────────────────────────────────────────────────────┴────────────┴───────────────────────────────────╯
  ┴
 
 ==============

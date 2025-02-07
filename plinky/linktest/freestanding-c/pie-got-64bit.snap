@@ -76,18 +76,16 @@ debug print: calculated layout
  │  │ .gnu.hash          │ 0x330       │ 0x24        │ 0x330          │ 0x24          │
  │  │ .dynamic           │ 0x354       │ 0xb0        │ 0x354          │ 0xb0          │
  │  │ .rela.got          │ 0x404       │ 0x30        │ 0x404          │ 0x30          │
- │  │ <section header>   │ 0x434       │ 0x500       │ -              │ -             │
- │  │ .shstrtab          │ 0x934       │ 0xa4        │ -              │ -             │
- │  │ .strtab            │ 0x9d8       │ 0x33        │ -              │ -             │
- │  │ .symtab            │ 0xa0b       │ 0x90        │ -              │ -             │
- │  │ .comment#0         │ 0xa9b       │ 0x22        │ -              │ -             │
- │  │ <padding>          │ 0xabd       │ 0x543       │ -              │ -             │
+ │  │ <section header>   │ 0x434       │ 0x480       │ -              │ -             │
+ │  │ .shstrtab          │ 0x8b4       │ 0x98        │ -              │ -             │
+ │  │ .strtab            │ 0x94c       │ 0x33        │ -              │ -             │
+ │  │ .symtab            │ 0x97f       │ 0x90        │ -              │ -             │
+ │  │ .comment#0         │ 0xa0f       │ 0x22        │ -              │ -             │
+ │  │ <padding>          │ 0xa31       │ 0x5cf       │ -              │ -             │
  │  │ .rodata            │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame          │ 0x100d      │ 0x38        │ 0x100d         │ 0x38          │
  │  │ <padding>          │ 0x1045      │ 0xfbb       │ -              │ -             │
- │  │ .text#0            │ 0x2000      │ 0x29        │ 0x2000         │ 0x29          │
- │  │ .text#1            │ 0x2029      │ 0x12        │ 0x2029         │ 0x12          │
- │  │ .text#2            │ 0x203b      │ 0x9         │ 0x203b         │ 0x9           │
+ │  │ .text#0            │ 0x2000      │ 0x44        │ 0x2000         │ 0x44          │
  │  │ <padding>          │ 0x2044      │ 0xfbc       │ -              │ -             │
  │  │ .got               │ 0x3000      │ 0x10        │ 0x3000         │ 0x10          │
  │  │ .got.plt           │ 0x3010      │ 0x18        │ 0x3010         │ 0x18          │
@@ -112,8 +110,6 @@ debug print: calculated layout
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata            │
  │  │        │        │                │       │ .eh_frame          │
  │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text#0            │
- │  │        │        │                │       │ .text#1            │
- │  │        │        │                │       │ .text#2            │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got               │
  │  │        │        │                │       │ .got.plt           │
  │  │ 0x354  │ 0x8    │ dynamic        │ R     │ .dynamic           │
@@ -158,58 +154,41 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#0 (perms: rx) in hello.o
+ │  section .text#0 (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
  │   │
  │   │  address: 0x2000
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ 55 48 89 e5 ba 0c 00 00 00 48 8d 05 f0 ef ff ff │ UH.......H...... │
  │   │  │ 48 89 c6 bf 01 00 00 00 ff 15 e2 0f 00 00 bf 00 │ H............... │
- │   │  │ 00 00 00 ff 15 df 0f 00 00                      │ .........        │
+ │   │  │ 00 00 00 ff 15 df 0f 00 00 50 51 41 53 48 c7 c0 │ .........PQASH.. │
+ │   │  │ 01 00 00 00 0f 05 41 5b 59 58 c3 48 c7 c0 3c 00 │ ......A[YX.H..<. │
+ │   │  │ 00 00 0f 05                                     │ ....             │
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#1 (perms: rx) in syscall.write.o
- │   │
- │   │  address: 0x2029
- │   │
- │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
- │   │  │ 50 51 41 53 48 c7 c0 01 00 00 00 0f 05 41 5b 59 │ PQASH........A[Y │
- │   │  │ 58 c3                                           │ X.               │
- │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
- │   ┴
- │
- │  section .text#2 (perms: rx) in syscall.exit.o
- │   │
- │   │  address: 0x203b
- │   │
- │   │  ╭────────────────────────────┬───────────╮
- │   │  │ 48 c7 c0 3c 00 00 00 0f 05 │ H..<..... │
- │   │  ╰────────────────────────────┴───────────╯
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────┬──────────┬─────────────────┬────────────┬────────────────╮
- │  │ Name                  │ Type     │ Source          │ Visibility │ Value          │
- │  ├───────────────────────┼──────────┼─────────────────┼────────────┼────────────────┤
- │  │ <empty>               │ none     │ <plinky>        │ local      │ <null>         │
- │  │ <section .text#0>     │ section  │ hello.o         │ local      │ .text#0        │
- │  │ <section .rodata>     │ section  │ hello.o         │ local      │ .rodata        │
- │  │ _DYNAMIC              │ none     │ <plinky>        │ local      │ .dynamic + 0x0 │
- │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>        │ local      │ .got.plt + 0x0 │
- │  │ _start                │ function │ hello.o         │ global     │ .text#0 + 0x0  │
- │  │ exit                  │ none     │ syscall.exit.o  │ global     │ .text#2 + 0x0  │
- │  │ write                 │ none     │ syscall.write.o │ global     │ .text#1 + 0x0  │
- │  ╰───────────────────────┴──────────┴─────────────────┴────────────┴────────────────╯
+ │  ╭───────────────────────┬──────────┬────────────────────────────────────────────────────┬────────────┬────────────────╮
+ │  │ Name                  │ Type     │ Source                                             │ Visibility │ Value          │
+ │  ├───────────────────────┼──────────┼────────────────────────────────────────────────────┼────────────┼────────────────┤
+ │  │ <empty>               │ none     │ <plinky>                                           │ local      │ <null>         │
+ │  │ <section .rodata>     │ section  │ hello.o                                            │ local      │ .rodata        │
+ │  │ <section .text#0>     │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text#0        │
+ │  │ _DYNAMIC              │ none     │ <plinky>                                           │ local      │ .dynamic + 0x0 │
+ │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>                                           │ local      │ .got.plt + 0x0 │
+ │  │ _start                │ function │ hello.o                                            │ global     │ .text#0 + 0x0  │
+ │  │ exit                  │ none     │ syscall.exit.o                                     │ global     │ .text#0 + 0x3b │
+ │  │ write                 │ none     │ syscall.write.o                                    │ global     │ .text#0 + 0x29 │
+ │  ╰───────────────────────┴──────────┴────────────────────────────────────────────────────┴────────────┴────────────────╯
  │
  │    Dynamic symbols:
- │  ╭─────────┬──────┬─────────────────┬────────────┬───────────────╮
- │  │ Name    │ Type │ Source          │ Visibility │ Value         │
- │  ├─────────┼──────┼─────────────────┼────────────┼───────────────┤
- │  │ <empty> │ none │ <plinky>        │ local      │ <null>        │
- │  │ exit    │ none │ syscall.exit.o  │ global     │ .text#2 + 0x0 │
- │  │ write   │ none │ syscall.write.o │ global     │ .text#1 + 0x0 │
- │  ╰─────────┴──────┴─────────────────┴────────────┴───────────────╯
+ │  ╭─────────┬──────┬─────────────────┬────────────┬────────────────╮
+ │  │ Name    │ Type │ Source          │ Visibility │ Value          │
+ │  ├─────────┼──────┼─────────────────┼────────────┼────────────────┤
+ │  │ <empty> │ none │ <plinky>        │ local      │ <null>         │
+ │  │ exit    │ none │ syscall.exit.o  │ global     │ .text#0 + 0x3b │
+ │  │ write   │ none │ syscall.write.o │ global     │ .text#0 + 0x29 │
+ │  ╰─────────┴──────┴─────────────────┴────────────┴────────────────╯
  ┴
 
 debug print: built elf
@@ -256,8 +235,8 @@ debug print: built elf
  │   │  │ Name      │ Binding │ Type │ Visibility │ Definition │ Value  │ Size │
  │   │  ├───────────┼─────────┼──────┼────────────┼────────────┼────────┼──────┤
  │   │  │ <empty>#1 │ Local   │ -    │ Default    │ Undefined  │ 0x0    │ 0x0  │
- │   │  │ write#1   │ Global  │ -    │ Default    │ .text#1    │ 0x2029 │ 0x0  │
- │   │  │ exit#1    │ Global  │ -    │ Default    │ .text#2    │ 0x203b │ 0x0  │
+ │   │  │ write#1   │ Global  │ -    │ Default    │ .text      │ 0x2029 │ 0x0  │
+ │   │  │ exit#1    │ Global  │ -    │ Default    │ .text      │ 0x203b │ 0x0  │
  │   │  ╰───────────┴─────────┴──────┴────────────┴────────────┴────────┴──────╯
  │   ┴
  │

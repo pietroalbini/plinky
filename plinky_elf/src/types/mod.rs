@@ -134,7 +134,7 @@ impl ElfSectionContent {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum ElfDeduplication {
     Disabled,
     ZeroTerminatedStrings,

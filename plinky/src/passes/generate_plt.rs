@@ -1,7 +1,9 @@
+use crate::interner::intern;
 use crate::repr::object::Object;
 use crate::repr::relocations::Relocation;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
 use crate::repr::symbols::{SymbolId, UpcomingSymbol};
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfMachine, ElfPermissions};
 use plinky_utils::ints::Offset;
 use std::collections::BTreeMap;
@@ -17,7 +19,13 @@ pub(crate) fn run(object: &mut Object) {
     }
 
     let plt_section = object.sections.reserve_placeholder();
-    let plt_symbol = object.symbols.add(UpcomingSymbol::Section { section: plt_section }).unwrap();
+    let plt_symbol = object
+        .symbols
+        .add(UpcomingSymbol::Section {
+            section: plt_section,
+            span: intern(ObjectSpan::new_synthetic()),
+        })
+        .unwrap();
 
     let output = match object.env.machine {
         ElfMachine::X86 => crate::arch::x86::generate_plt(object, got_plt, plt_symbol),

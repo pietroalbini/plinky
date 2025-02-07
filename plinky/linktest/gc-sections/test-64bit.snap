@@ -142,7 +142,7 @@ debug print: object after relocations are applied
  │
  │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
  │
- │  section .comment#0 (no perms) in mix of foo.o and <plinky>
+ │  section .comment (no perms) in mix of foo.o and <plinky>
  │   │
  │   │  zero-terminated strings should be deduplicated
  │   │
@@ -211,17 +211,16 @@ debug print: object after relocations are applied
  │   ┴
  │
  │    Symbols:
- │  ╭───────────────────────────┬─────────┬──────────┬────────────┬────────────────────╮
- │  │ Name                      │ Type    │ Source   │ Visibility │ Value              │
- │  ├───────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
- │  │ <empty>                   │ none    │ <plinky> │ local      │ <null>             │
- │  │ <section .text.foo>       │ section │ foo.o    │ local      │ .text.foo          │
- │  │ <section .rodata.name>    │ section │ foo.o    │ local      │ .rodata.name       │
- │  │ <section .rodata.surname> │ section │ foo.o    │ local      │ .rodata.surname    │
- │  │ _start                    │ none    │ foo.o    │ global     │ .text + 0x0        │
- │  │ name                      │ none    │ foo.o    │ local      │ .rodata.name + 0x0 │
- │  │ sample                    │ none    │ foo.o    │ local      │ .text.foo + 0x0    │
- │  ╰───────────────────────────┴─────────┴──────────┴────────────┴────────────────────╯
+ │  ╭────────────────────────┬─────────┬──────────┬────────────┬────────────────────╮
+ │  │ Name                   │ Type    │ Source   │ Visibility │ Value              │
+ │  ├────────────────────────┼─────────┼──────────┼────────────┼────────────────────┤
+ │  │ <empty>                │ none    │ <plinky> │ local      │ <null>             │
+ │  │ <section .text.foo>    │ section │ foo.o    │ local      │ .text.foo          │
+ │  │ <section .rodata.name> │ section │ foo.o    │ local      │ .rodata.name       │
+ │  │ _start                 │ none    │ foo.o    │ global     │ .text + 0x0        │
+ │  │ name                   │ none    │ foo.o    │ local      │ .rodata.name + 0x0 │
+ │  │ sample                 │ none    │ foo.o    │ local      │ .text.foo + 0x0    │
+ │  ╰────────────────────────┴─────────┴──────────┴────────────┴────────────────────╯
  │
  │  inputs
  │   │

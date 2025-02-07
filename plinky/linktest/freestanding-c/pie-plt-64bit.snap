@@ -75,12 +75,12 @@ debug print: calculated layout
  │  │ .shstrtab          │ 0x8c4       │ 0x98        │ -              │ -             │
  │  │ .strtab            │ 0x95c       │ 0x33        │ -              │ -             │
  │  │ .symtab            │ 0x98f       │ 0x90        │ -              │ -             │
- │  │ .comment#0         │ 0xa1f       │ 0x22        │ -              │ -             │
+ │  │ .comment           │ 0xa1f       │ 0x22        │ -              │ -             │
  │  │ <padding>          │ 0xa41       │ 0x5bf       │ -              │ -             │
  │  │ .rodata            │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame          │ 0x100d      │ 0x38        │ 0x100d         │ 0x38          │
  │  │ <padding>          │ 0x1045      │ 0xfbb       │ -              │ -             │
- │  │ .text#0            │ 0x2000      │ 0x42        │ 0x2000         │ 0x42          │
+ │  │ .text              │ 0x2000      │ 0x42        │ 0x2000         │ 0x42          │
  │  │ .plt               │ 0x2042      │ 0x30        │ 0x2042         │ 0x30          │
  │  │ <padding>          │ 0x2072      │ 0xf8e       │ -              │ -             │
  │  │ .got.plt           │ 0x3000      │ 0x28        │ 0x3000         │ 0x28          │
@@ -104,7 +104,7 @@ debug print: calculated layout
  │  │        │        │                │       │ .rela.plt          │
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata            │
  │  │        │        │                │       │ .eh_frame          │
- │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text#0            │
+ │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text              │
  │  │        │        │                │       │ .plt               │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got.plt           │
  │  │ 0x354  │ 0x8    │ dynamic        │ R     │ .dynamic           │
@@ -152,7 +152,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#0 (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
+ │  section .text (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
  │   │
  │   │  address: 0x2000
  │   │
@@ -171,23 +171,23 @@ debug print: object after relocations are applied
  │  ├───────────────────────┼──────────┼────────────────────────────────────────────────────┼────────────┼────────────────┤
  │  │ <empty>               │ none     │ <plinky>                                           │ local      │ <null>         │
  │  │ <section .rodata>     │ section  │ hello.o                                            │ local      │ .rodata        │
- │  │ <section .text#0>     │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text#0        │
+ │  │ <section .text>       │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text          │
  │  │ <section .plt>        │ section  │ <plinky>                                           │ local      │ .plt           │
  │  │ _DYNAMIC              │ none     │ <plinky>                                           │ local      │ .dynamic + 0x0 │
  │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>                                           │ local      │ .got.plt + 0x0 │
- │  │ _start                │ function │ hello.o                                            │ global     │ .text#0 + 0x0  │
- │  │ exit                  │ none     │ syscall.exit.o                                     │ global     │ .text#0 + 0x39 │
- │  │ write                 │ none     │ syscall.write.o                                    │ global     │ .text#0 + 0x27 │
+ │  │ _start                │ function │ hello.o                                            │ global     │ .text + 0x0    │
+ │  │ exit                  │ none     │ syscall.exit.o                                     │ global     │ .text + 0x39   │
+ │  │ write                 │ none     │ syscall.write.o                                    │ global     │ .text + 0x27   │
  │  ╰───────────────────────┴──────────┴────────────────────────────────────────────────────┴────────────┴────────────────╯
  │
  │    Dynamic symbols:
- │  ╭─────────┬──────┬─────────────────┬────────────┬────────────────╮
- │  │ Name    │ Type │ Source          │ Visibility │ Value          │
- │  ├─────────┼──────┼─────────────────┼────────────┼────────────────┤
- │  │ <empty> │ none │ <plinky>        │ local      │ <null>         │
- │  │ exit    │ none │ syscall.exit.o  │ global     │ .text#0 + 0x39 │
- │  │ write   │ none │ syscall.write.o │ global     │ .text#0 + 0x27 │
- │  ╰─────────┴──────┴─────────────────┴────────────┴────────────────╯
+ │  ╭─────────┬──────┬─────────────────┬────────────┬──────────────╮
+ │  │ Name    │ Type │ Source          │ Visibility │ Value        │
+ │  ├─────────┼──────┼─────────────────┼────────────┼──────────────┤
+ │  │ <empty> │ none │ <plinky>        │ local      │ <null>       │
+ │  │ exit    │ none │ syscall.exit.o  │ global     │ .text + 0x39 │
+ │  │ write   │ none │ syscall.write.o │ global     │ .text + 0x27 │
+ │  ╰─────────┴──────┴─────────────────┴────────────┴──────────────╯
  ┴
 
 debug print: built elf

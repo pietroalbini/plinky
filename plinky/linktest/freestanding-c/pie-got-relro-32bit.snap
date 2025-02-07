@@ -25,13 +25,13 @@ debug print: calculated layout
  │  │ .shstrtab                   │ 0x5b5       │ 0xb3        │ -              │ -             │
  │  │ .strtab                     │ 0x668       │ 0x51        │ -              │ -             │
  │  │ .symtab                     │ 0x6b9       │ 0x80        │ -              │ -             │
- │  │ .comment#0                  │ 0x739       │ 0x22        │ -              │ -             │
+ │  │ .comment                    │ 0x739       │ 0x22        │ -              │ -             │
  │  │ <padding>                   │ 0x75b       │ 0x8a5       │ -              │ -             │
  │  │ .rodata                     │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame                   │ 0x100d      │ 0x48        │ 0x100d         │ 0x48          │
  │  │ <padding>                   │ 0x1055      │ 0xfab       │ -              │ -             │
  │  │ .text.__x86.get_pc_thunk.bx │ 0x2000      │ 0x4         │ 0x2000         │ 0x4           │
- │  │ .text#0                     │ 0x2004      │ 0x59        │ 0x2004         │ 0x59          │
+ │  │ .text                       │ 0x2004      │ 0x59        │ 0x2004         │ 0x59          │
  │  │ <padding>                   │ 0x205d      │ 0xfa3       │ -              │ -             │
  │  │ .got                        │ 0x3000      │ 0x8         │ 0x3000         │ 0x8           │
  │  │ .got.plt                    │ 0x3008      │ 0xc         │ 0x3008         │ 0xc           │
@@ -56,7 +56,7 @@ debug print: calculated layout
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata                     │
  │  │        │        │                │       │ .eh_frame                   │
  │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text.__x86.get_pc_thunk.bx │
- │  │        │        │                │       │ .text#0                     │
+ │  │        │        │                │       │ .text                       │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got                        │
  │  │        │        │                │       │ .got.plt                    │
  │  │ 0x255  │ 0x4    │ dynamic        │ R     │ .dynamic                    │

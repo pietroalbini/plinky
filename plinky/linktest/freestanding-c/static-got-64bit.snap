@@ -72,7 +72,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
- │  section .text#0 (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
+ │  section .text (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -91,11 +91,11 @@ debug print: object after relocations are applied
  │  ├───────────────────────┼──────────┼────────────────────────────────────────────────────┼────────────┼────────────────┤
  │  │ <empty>               │ none     │ <plinky>                                           │ local      │ <null>         │
  │  │ <section .rodata>     │ section  │ hello.o                                            │ local      │ .rodata        │
- │  │ <section .text#0>     │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text#0        │
+ │  │ <section .text>       │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text          │
  │  │ _GLOBAL_OFFSET_TABLE_ │ none     │ <plinky>                                           │ local      │ .got.plt + 0x0 │
- │  │ _start                │ function │ hello.o                                            │ global     │ .text#0 + 0x0  │
- │  │ exit                  │ none     │ syscall.exit.o                                     │ global     │ .text#0 + 0x3b │
- │  │ write                 │ none     │ syscall.write.o                                    │ global     │ .text#0 + 0x29 │
+ │  │ _start                │ function │ hello.o                                            │ global     │ .text + 0x0    │
+ │  │ exit                  │ none     │ syscall.exit.o                                     │ global     │ .text + 0x3b   │
+ │  │ write                 │ none     │ syscall.write.o                                    │ global     │ .text + 0x29   │
  │  ╰───────────────────────┴──────────┴────────────────────────────────────────────────────┴────────────┴────────────────╯
  ┴
 

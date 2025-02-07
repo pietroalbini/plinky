@@ -1,4 +1,4 @@
-use crate::interner::{Interned, intern};
+use crate::interner::{intern, Interned};
 use crate::repr::relocations::Relocation;
 use crate::repr::symbols::views::{AllSymbols, SymbolsView};
 use crate::repr::symbols::{SymbolValue, Symbols};
@@ -66,7 +66,7 @@ impl Sections {
                 let name = section.name;
                 let SectionSlot::Present(old) = std::mem::replace(
                     &mut self.inner[id.0],
-                    SectionSlot::Removed(RemovedSection { id, name }),
+                    SectionSlot::Removed(RemovedSection { name }),
                 ) else {
                     unreachable!()
                 };
@@ -82,8 +82,15 @@ impl Sections {
         if let Some(symbols) = purge_symbols_from {
             let mut symbols_to_remove = Vec::new();
             for symbol in symbols.iter(&AllSymbols) {
-                let SymbolValue::SectionRelative { section, .. } = symbol.value() else {
-                    continue;
+                let section = match symbol.value() {
+                    SymbolValue::Section { section } => section,
+                    SymbolValue::SectionRelative { section, .. } => section,
+                    SymbolValue::SectionVirtualAddress { section, .. } => section,
+                    SymbolValue::Absolute { .. }
+                    | SymbolValue::SectionNotLoaded
+                    | SymbolValue::ExternallyDefined
+                    | SymbolValue::Undefined
+                    | SymbolValue::Null => continue,
                 };
                 if section == id {
                     symbols_to_remove.push(symbol.id());
@@ -120,16 +127,6 @@ impl Sections {
         self.inner.iter_mut().filter_map(|slot| match slot {
             SectionSlot::Present(section) => Some(section),
             SectionSlot::Removed(_) => None,
-            SectionSlot::Placeholder => None,
-        })
-    }
-
-    pub(crate) fn names_of_removed_sections(
-        &self,
-    ) -> impl Iterator<Item = (SectionId, Interned<String>)> + '_ {
-        self.inner.iter().filter_map(|slot| match slot {
-            SectionSlot::Present(_) => None,
-            SectionSlot::Removed(removed) => Some((removed.id, removed.name)),
             SectionSlot::Placeholder => None,
         })
     }
@@ -414,6 +411,5 @@ from!(impl From<NotesSection> for SectionContent::Notes);
 
 #[derive(Debug)]
 struct RemovedSection {
-    id: SectionId,
     name: Interned<String>,
 }

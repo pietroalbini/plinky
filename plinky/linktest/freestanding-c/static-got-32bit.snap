@@ -75,7 +75,7 @@ debug print: object after relocations are applied
  │   │  ╰─────────────────────────┴──────────╯
  │   ┴
  │
- │  section .text#0 (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
+ │  section .text (perms: rx) in mix of hello.o, syscall.write.o and syscall.exit.o
  │   │
  │   │  address: 0x401004
  │   │
@@ -96,12 +96,12 @@ debug print: object after relocations are applied
  │  │ <empty>                               │ none     │ <plinky>                                           │ local      │ <null>                            │
  │  │ <section .rodata>                     │ section  │ hello.o                                            │ local      │ .rodata                           │
  │  │ <section .text.__x86.get_pc_thunk.bx> │ section  │ hello.o                                            │ local      │ .text.__x86.get_pc_thunk.bx       │
- │  │ <section .text#0>                     │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text#0                           │
+ │  │ <section .text>                       │ section  │ mix of hello.o, syscall.write.o and syscall.exit.o │ local      │ .text                             │
  │  │ _GLOBAL_OFFSET_TABLE_                 │ none     │ <plinky>                                           │ local      │ .got.plt + 0x0                    │
  │  │ __x86.get_pc_thunk.bx                 │ function │ hello.o                                            │ local      │ .text.__x86.get_pc_thunk.bx + 0x0 │
- │  │ _start                                │ function │ hello.o                                            │ global     │ .text#0 + 0x0                     │
- │  │ exit                                  │ none     │ syscall.exit.o                                     │ global     │ .text#0 + 0x4e                    │
- │  │ write                                 │ none     │ syscall.write.o                                    │ global     │ .text#0 + 0x34                    │
+ │  │ _start                                │ function │ hello.o                                            │ global     │ .text + 0x0                       │
+ │  │ exit                                  │ none     │ syscall.exit.o                                     │ global     │ .text + 0x4e                      │
+ │  │ write                                 │ none     │ syscall.write.o                                    │ global     │ .text + 0x34                      │
  │  ╰───────────────────────────────────────┴──────────┴────────────────────────────────────────────────────┴────────────┴───────────────────────────────────╯
  ┴
 

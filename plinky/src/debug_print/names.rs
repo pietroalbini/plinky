@@ -17,7 +17,6 @@ impl Names {
                 .sections
                 .iter()
                 .map(|section| (section.id, section.name))
-                .chain(object.sections.names_of_removed_sections())
                 .map(|(id, name)| (id, name.resolve().to_string())),
         );
 

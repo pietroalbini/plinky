@@ -35,7 +35,7 @@ debug print: loaded object
  │   │  strings: .strtab
  │   ┴
  │
- │  section .text#0 (perms: rx) in foo.o
+ │  section .text (perms: rx) in foo.o
  │   │
  │   │  ╭────┬───╮
  │   │  │ 90 │ . │
@@ -54,7 +54,7 @@ debug print: loaded object
  │  │ Name          │ Type │ Source   │ Visibility      │ Value                    │
  │  ├───────────────┼──────┼──────────┼─────────────────┼──────────────────────────┤
  │  │ <empty>       │ none │ <plinky> │ local           │ <null>                   │
- │  │ _start        │ none │ foo.o    │ global          │ .text#0 + 0x0            │
+ │  │ _start        │ none │ foo.o    │ global          │ .text + 0x0              │
  │  │ sample_symbol │ none │ foo.o    │ global (hidden) │ .text.sample_group + 0x0 │
  │  ╰───────────────┴──────┴──────────┴─────────────────┴──────────────────────────╯
  │

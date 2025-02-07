@@ -129,9 +129,9 @@ debug print: calculated layout
  │  │ .strtab            │ 0x268       │ 0x33        │ -              │ -             │
  │  │ .symtab            │ 0x29b       │ 0x90        │ -              │ -             │
  │  │ <padding>          │ 0x32b       │ 0xcd5       │ -              │ -             │
- │  │ .rodata#0          │ 0x1000      │ 0x1c        │ 0x400000       │ 0x1c          │
+ │  │ .rodata            │ 0x1000      │ 0x1c        │ 0x400000       │ 0x1c          │
  │  │ <padding>          │ 0x101c      │ 0xfe4       │ -              │ -             │
- │  │ .text#0            │ 0x2000      │ 0x3a        │ 0x401000       │ 0x3a          │
+ │  │ .text              │ 0x2000      │ 0x3a        │ 0x401000       │ 0x3a          │
  │  │ <padding>          │ 0x203a      │ 0x2         │ -              │ -             │
  │  │ .note.gnu.property │ 0x203c      │ 0x28        │ 0x40103c       │ 0x28          │
  │  ╰────────────────────┴─────────────┴─────────────┴────────────────┴───────────────╯
@@ -140,8 +140,8 @@ debug print: calculated layout
  │  ╭──────────┬────────┬──────────────┬───────┬────────────────────╮
  │  │ Start    │ Align  │ Type         │ Perms │ Content            │
  │  ├──────────┼────────┼──────────────┼───────┼────────────────────┤
- │  │ 0x400000 │ 0x1000 │ program      │ R     │ .rodata#0          │
- │  │ 0x401000 │ 0x1000 │ program      │ RX    │ .text#0            │
+ │  │ 0x400000 │ 0x1000 │ program      │ R     │ .rodata            │
+ │  │ 0x401000 │ 0x1000 │ program      │ RX    │ .text              │
  │  │ -        │ 0x1    │ GNU stack    │ RW    │                    │
  │  │ 0x40103c │ 0x4    │ GNU property │ R     │ .note.gnu.property │
  │  │ 0x40103c │ 0x4    │ notes        │ R     │ .note.gnu.property │
@@ -176,7 +176,7 @@ debug print: object after relocations are applied
  │   │   ┴
  │   ┴
  │
- │  section .rodata#0 (perms: r) in mix of goodbye.o and hello.o
+ │  section .rodata (perms: r) in mix of goodbye.o and hello.o
  │   │
  │   │  address: 0x400000
  │   │
@@ -202,7 +202,7 @@ debug print: object after relocations are applied
  │   │  strings: .strtab
  │   ┴
  │
- │  section .text#0 (perms: rx) in mix of goodbye.o and hello.o
+ │  section .text (perms: rx) in mix of goodbye.o and hello.o
  │   │
  │   │  address: 0x401000
  │   │
@@ -215,18 +215,18 @@ debug print: object after relocations are applied
  │   ┴
  │
  │    Symbols:
- │  ╭─────────────────────┬─────────┬──────────────────────────────┬────────────┬─────────────────╮
- │  │ Name                │ Type    │ Source                       │ Visibility │ Value           │
- │  ├─────────────────────┼─────────┼──────────────────────────────┼────────────┼─────────────────┤
- │  │ <empty>             │ none    │ <plinky>                     │ local      │ <null>          │
- │  │ <section .rodata#0> │ section │ mix of goodbye.o and hello.o │ local      │ .rodata#0       │
- │  │ _start              │ none    │ hello.o                      │ global     │ .text#0 + 0x1f  │
- │  │ goodbye             │ none    │ goodbye.o                    │ global     │ .text#0 + 0x0   │
- │  │ len#0               │ none    │ goodbye.o                    │ local      │ 0xf             │
- │  │ len#1               │ none    │ hello.o                      │ local      │ 0xd             │
- │  │ msg#0               │ none    │ goodbye.o                    │ local      │ .rodata#0 + 0x0 │
- │  │ msg#1               │ none    │ hello.o                      │ local      │ .rodata#0 + 0xf │
- │  ╰─────────────────────┴─────────┴──────────────────────────────┴────────────┴─────────────────╯
+ │  ╭───────────────────┬─────────┬──────────────────────────────┬────────────┬───────────────╮
+ │  │ Name              │ Type    │ Source                       │ Visibility │ Value         │
+ │  ├───────────────────┼─────────┼──────────────────────────────┼────────────┼───────────────┤
+ │  │ <empty>           │ none    │ <plinky>                     │ local      │ <null>        │
+ │  │ <section .rodata> │ section │ mix of goodbye.o and hello.o │ local      │ .rodata       │
+ │  │ _start            │ none    │ hello.o                      │ global     │ .text + 0x1f  │
+ │  │ goodbye           │ none    │ goodbye.o                    │ global     │ .text + 0x0   │
+ │  │ len#0             │ none    │ goodbye.o                    │ local      │ 0xf           │
+ │  │ len#1             │ none    │ hello.o                      │ local      │ 0xd           │
+ │  │ msg#0             │ none    │ goodbye.o                    │ local      │ .rodata + 0x0 │
+ │  │ msg#1             │ none    │ hello.o                      │ local      │ .rodata + 0xf │
+ │  ╰───────────────────┴─────────┴──────────────────────────────┴────────────┴───────────────╯
  │
  │  inputs
  │   │

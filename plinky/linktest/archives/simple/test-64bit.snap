@@ -19,7 +19,7 @@ debug print: loaded object
  │   │  ╰──────────────────────────────────────────────┴─────────────────╯
  │   ┴
  │
- │  section .data#0 (perms: rw) in hello.o inside archive archived.a
+ │  section .data (perms: rw) in hello.o inside archive archived.a
  │   │
  │   │  ╭────────────────────────────────────────┬───────────────╮
  │   │  │ 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a │ Hello world!. │
@@ -42,7 +42,7 @@ debug print: loaded object
  │   │  strings: .strtab
  │   ┴
  │
- │  section .text#0 (perms: rx) in entry.o
+ │  section .text (perms: rx) in entry.o
  │   │
  │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
  │   │  │ b8 04 00 00 00 bb 01 00 00 00 b9 00 00 00 00 ba │ ................ │
@@ -59,14 +59,14 @@ debug print: loaded object
  │   ┴
  │
  │    Symbols:
- │  ╭───────────┬──────┬───────────────────────────────────┬────────────┬───────────────╮
- │  │ Name      │ Type │ Source                            │ Visibility │ Value         │
- │  ├───────────┼──────┼───────────────────────────────────┼────────────┼───────────────┤
- │  │ <empty>   │ none │ <plinky>                          │ local      │ <null>        │
- │  │ _start    │ none │ entry.o                           │ global     │ .text#0 + 0x0 │
- │  │ hello     │ none │ hello.o inside archive archived.a │ global     │ .data#0 + 0x0 │
- │  │ hello_len │ none │ hello.o inside archive archived.a │ global     │ 0xd           │
- │  ╰───────────┴──────┴───────────────────────────────────┴────────────┴───────────────╯
+ │  ╭───────────┬──────┬───────────────────────────────────┬────────────┬─────────────╮
+ │  │ Name      │ Type │ Source                            │ Visibility │ Value       │
+ │  ├───────────┼──────┼───────────────────────────────────┼────────────┼─────────────┤
+ │  │ <empty>   │ none │ <plinky>                          │ local      │ <null>      │
+ │  │ _start    │ none │ entry.o                           │ global     │ .text + 0x0 │
+ │  │ hello     │ none │ hello.o inside archive archived.a │ global     │ .data + 0x0 │
+ │  │ hello_len │ none │ hello.o inside archive archived.a │ global     │ 0xd         │
+ │  ╰───────────┴──────┴───────────────────────────────────┴────────────┴─────────────╯
  │
  │  inputs
  │   │

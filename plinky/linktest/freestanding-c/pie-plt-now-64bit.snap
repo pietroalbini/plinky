@@ -25,12 +25,12 @@ debug print: calculated layout
  │  │ .shstrtab          │ 0x90c       │ 0x98        │ -              │ -             │
  │  │ .strtab            │ 0x9a4       │ 0x33        │ -              │ -             │
  │  │ .symtab            │ 0x9d7       │ 0x90        │ -              │ -             │
- │  │ .comment#0         │ 0xa67       │ 0x22        │ -              │ -             │
+ │  │ .comment           │ 0xa67       │ 0x22        │ -              │ -             │
  │  │ <padding>          │ 0xa89       │ 0x577       │ -              │ -             │
  │  │ .rodata            │ 0x1000      │ 0xd         │ 0x1000         │ 0xd           │
  │  │ .eh_frame          │ 0x100d      │ 0x38        │ 0x100d         │ 0x38          │
  │  │ <padding>          │ 0x1045      │ 0xfbb       │ -              │ -             │
- │  │ .text#0            │ 0x2000      │ 0x42        │ 0x2000         │ 0x42          │
+ │  │ .text              │ 0x2000      │ 0x42        │ 0x2000         │ 0x42          │
  │  │ .plt               │ 0x2042      │ 0x30        │ 0x2042         │ 0x30          │
  │  │ <padding>          │ 0x2072      │ 0xf8e       │ -              │ -             │
  │  │ .got.plt           │ 0x3000      │ 0x28        │ 0x3000         │ 0x28          │
@@ -54,7 +54,7 @@ debug print: calculated layout
  │  │        │        │                │       │ .rela.plt          │
  │  │ 0x1000 │ 0x1000 │ program        │ R     │ .rodata            │
  │  │        │        │                │       │ .eh_frame          │
- │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text#0            │
+ │  │ 0x2000 │ 0x1000 │ program        │ RX    │ .text              │
  │  │        │        │                │       │ .plt               │
  │  │ 0x3000 │ 0x1000 │ program        │ RW    │ .got.plt           │
  │  │ 0x38c  │ 0x8    │ dynamic        │ R     │ .dynamic           │

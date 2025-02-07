@@ -29,6 +29,7 @@ pub(crate) struct Symbol {
     value: SymbolValue,
     #[get]
     needed_by_dynamic: bool,
+    #[get]
     exclude_from_tables: bool,
 }
 
@@ -37,11 +38,10 @@ impl Symbol {
         // To ensure invariants are upheld, only some specific kinds of symbol value conversions
         // can happen. When adding a new allowed conversion, make sure to uphold that:
         //
-        // - SymbolValue::Section must not be converted from or to, except into Poison.
+        // - SymbolValue::Section must not be converted from or to.
         match (&self.value, &value) {
             (SymbolValue::SectionRelative { .. }, SymbolValue::SectionRelative { .. }) => {}
             (SymbolValue::SectionRelative { .. }, SymbolValue::SectionVirtualAddress { .. }) => {}
-            (_, SymbolValue::Poison) => {}
             (from, to) => panic!("cannot convert from {from:?} to {to:?}"),
         }
 
@@ -58,10 +58,6 @@ impl Symbol {
 
     pub(crate) fn mark_exclude_from_tables(&mut self) {
         self.exclude_from_tables = true;
-    }
-
-    pub(crate) fn exclude_from_tables(&self) -> bool {
-        self.exclude_from_tables || matches!(self.value, SymbolValue::Poison)
     }
 
     pub(crate) fn resolve(
@@ -103,7 +99,6 @@ impl Symbol {
                 SymbolValue::ExternallyDefined => Ok(ResolvedSymbol::ExternallyDefined),
                 SymbolValue::SectionNotLoaded => Err(ResolveSymbolErrorKind::SectionNotLoaded),
                 SymbolValue::Null => Err(ResolveSymbolErrorKind::Null),
-                SymbolValue::Poison => panic!("resolving poisoned symbol"),
             }
         }
 
@@ -138,7 +133,6 @@ pub(crate) enum SymbolValue {
     SectionVirtualAddress { section: SectionId, memory_address: Address },
     SectionNotLoaded,
     ExternallyDefined,
-    Poison,
     Undefined,
     Null,
 }

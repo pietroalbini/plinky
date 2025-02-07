@@ -42,8 +42,7 @@ pub(super) fn run(object: &mut Object) {
             | SymbolValue::ExternallyDefined
             | SymbolValue::SectionNotLoaded
             | SymbolValue::Undefined
-            | SymbolValue::Null
-            | SymbolValue::Poison => None,
+            | SymbolValue::Null => None,
             SymbolValue::Section { section }
             | SymbolValue::SectionRelative { section, .. }
             | SymbolValue::SectionVirtualAddress { section, .. } => Some(section),

@@ -43,11 +43,12 @@ pub(super) fn run(
     }
 
     // Update all symbols pointing to deduplicated sections to point to the new locations.
+    let mut symbols_to_remove = Vec::new();
     for symbol in object.symbols.iter_mut(&AllSymbols) {
         let (section, offset) = match symbol.value() {
             SymbolValue::Section { section } => {
                 if deduplications.contains_key(&section) {
-                    symbol.set_value(SymbolValue::Poison);
+                    symbols_to_remove.push(symbol.id());
                 }
                 continue;
             }
@@ -59,8 +60,7 @@ pub(super) fn run(
             | SymbolValue::SectionNotLoaded
             | SymbolValue::ExternallyDefined
             | SymbolValue::Undefined
-            | SymbolValue::Null
-            | SymbolValue::Poison => continue,
+            | SymbolValue::Null => continue,
         };
 
         if let Some(deduplication) = deduplications.get(&section) {
@@ -73,6 +73,9 @@ pub(super) fn run(
                 return Err(RewriteError::InvalidOffsetInDeduplicatedSection { section, offset });
             }
         }
+    }
+    for symbol_id in symbols_to_remove {
+        object.symbols.remove(symbol_id);
     }
 
     Ok(())

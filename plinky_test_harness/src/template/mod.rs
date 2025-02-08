@@ -308,21 +308,33 @@ mod tests {
 
         ctx.add_function("upper", |name: String| -> _ { Value::String(name.to_uppercase()) });
         assert_resolve(&ctx, "${upper(name)}", "PIETRO");
-        assert_resolve_error(&ctx, "${upper()}", TemplateResolveError::FunctionCall {
-            name: "upper".into(),
-            err: FunctionCallError::TooFewArgs,
-        });
-        assert_resolve_error(&ctx, "${upper(name, name)}", TemplateResolveError::FunctionCall {
-            name: "upper".into(),
-            err: FunctionCallError::TooManyArgs,
-        });
-        assert_resolve_error(&ctx, "${upper(false)}", TemplateResolveError::FunctionCall {
-            name: "upper".into(),
-            err: FunctionCallError::InvalidArg {
-                position: 1,
-                err: ConversionError::BoolToStringUnsupported,
+        assert_resolve_error(
+            &ctx,
+            "${upper()}",
+            TemplateResolveError::FunctionCall {
+                name: "upper".into(),
+                err: FunctionCallError::TooFewArgs,
             },
-        });
+        );
+        assert_resolve_error(
+            &ctx,
+            "${upper(name, name)}",
+            TemplateResolveError::FunctionCall {
+                name: "upper".into(),
+                err: FunctionCallError::TooManyArgs,
+            },
+        );
+        assert_resolve_error(
+            &ctx,
+            "${upper(false)}",
+            TemplateResolveError::FunctionCall {
+                name: "upper".into(),
+                err: FunctionCallError::InvalidArg {
+                    position: 1,
+                    err: ConversionError::BoolToStringUnsupported,
+                },
+            },
+        );
         assert_resolve_error(
             &ctx,
             "${lower(name)}",

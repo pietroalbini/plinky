@@ -135,12 +135,8 @@ impl X86Codegen {
                 // relocations list because some processing might be needed when finishing to
                 // encode the instruction, depending on the relocation type.
                 let offset = self.offset();
-                self.relocations_to_add.push((offset, Relocation {
-                    type_,
-                    symbol,
-                    offset,
-                    addend: addend.into(),
-                }));
+                self.relocations_to_add
+                    .push((offset, Relocation { type_, symbol, offset, addend: addend.into() }));
 
                 // Placeholder, as it will be relocated later.
                 0i32.to_le_bytes()
@@ -294,18 +290,21 @@ mod tests {
             [0xFF, 0x35, 42, 0, 0, 0],
         );
 
-        encode(X86Arch::X86, X86Instruction::PushReference(X86Reference::Displacement(v(42))), [
-            0xFF, 0x35, 42, 0, 0, 0,
-        ]);
+        encode(
+            X86Arch::X86,
+            X86Instruction::PushReference(X86Reference::Displacement(v(42))),
+            [0xFF, 0x35, 42, 0, 0, 0],
+        );
         encode(
             X86Arch::X86_64,
             X86Instruction::PushReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x34, 0x25, 42, 0, 0, 0],
         );
 
-        encode_all(X86Instruction::PushReference(X86Reference::EbxPlus(v(42))), [
-            0xff, 0xb3, 42, 0, 0, 0,
-        ]);
+        encode_all(
+            X86Instruction::PushReference(X86Reference::EbxPlus(v(42))),
+            [0xff, 0xb3, 42, 0, 0, 0],
+        );
     }
 
     #[test]
@@ -321,18 +320,21 @@ mod tests {
             [0xFF, 0x25, 42, 0, 0, 0],
         );
 
-        encode(X86Arch::X86, X86Instruction::JumpReference(X86Reference::Displacement(v(42))), [
-            0xFF, 0x25, 42, 0, 0, 0,
-        ]);
+        encode(
+            X86Arch::X86,
+            X86Instruction::JumpReference(X86Reference::Displacement(v(42))),
+            [0xFF, 0x25, 42, 0, 0, 0],
+        );
         encode(
             X86Arch::X86_64,
             X86Instruction::JumpReference(X86Reference::Displacement(v(42))),
             [0xFF, 0x24, 0x25, 42, 0, 0, 0],
         );
 
-        encode_all(X86Instruction::JumpReference(X86Reference::EbxPlus(v(42))), [
-            0xff, 0xa3, 42, 0, 0, 0,
-        ]);
+        encode_all(
+            X86Instruction::JumpReference(X86Reference::EbxPlus(v(42))),
+            [0xff, 0xa3, 42, 0, 0, 0],
+        );
     }
 
     #[test]

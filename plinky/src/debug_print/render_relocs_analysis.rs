@@ -18,10 +18,13 @@ fn render_got(name: &str, names: &Names, got: &PlannedGot) -> Box<dyn Widget> {
         symbols.set_title("Symbols:");
         symbols.add_head(["Name", "Resolved at"]);
         for symbol in got.symbols() {
-            symbols.add_body([names.symbol(symbol.id), match symbol.resolved_at {
-                ResolvedAt::LinkTime => "link time",
-                ResolvedAt::RunTime => "runtime",
-            }]);
+            symbols.add_body([
+                names.symbol(symbol.id),
+                match symbol.resolved_at {
+                    ResolvedAt::LinkTime => "link time",
+                    ResolvedAt::RunTime => "runtime",
+                },
+            ]);
         }
         Box::new(symbols)
     } else {

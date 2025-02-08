@@ -45,9 +45,12 @@ pub(super) fn render_object(
             filter
                 .dynamic
                 .then(|| {
-                    render_symbols(object, &names, "Dynamic symbols:", &DynamicSymbolTable {
-                        class: object.env.class,
-                    })
+                    render_symbols(
+                        object,
+                        &names,
+                        "Dynamic symbols:",
+                        &DynamicSymbolTable { class: object.env.class },
+                    )
                 })
                 .flatten(),
         )

@@ -150,11 +150,10 @@ fn prepare_field_list(parsed: &Struct, is_elf32: bool) -> Result<Vec<Field>, Err
             }
         }
 
-        fields.insert(insert_at, Field {
-            name: &field.name,
-            field_ty: &field.ty,
-            trait_ty: trait_ty.clone(),
-        });
+        fields.insert(
+            insert_at,
+            Field { name: &field.name, field_ty: &field.ty, trait_ty: trait_ty.clone() },
+        );
     }
 
     Ok(fields)

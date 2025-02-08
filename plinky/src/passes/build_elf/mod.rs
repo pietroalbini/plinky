@@ -166,12 +166,15 @@ impl<'a> ElfBuilder<'a> {
 
         let mut sections = BTreeMap::new();
 
-        sections.insert(self.section_zero_id, ElfSection {
-            name: zero_section_name,
-            memory_address: 0,
-            part_of_group: false,
-            content: ElfSectionContent::Null,
-        });
+        sections.insert(
+            self.section_zero_id,
+            ElfSection {
+                name: zero_section_name,
+                memory_address: 0,
+                part_of_group: false,
+                content: ElfSectionContent::Null,
+            },
+        );
 
         while let Some(section) = self.object.sections.pop_first() {
             let content = match &section.content {
@@ -242,18 +245,21 @@ impl<'a> ElfBuilder<'a> {
                     .into_elf(),
             };
 
-            sections.insert(*self.section_ids.get(&section.id).unwrap(), ElfSection {
-                name: *section_names_map.get(&section.id).unwrap(),
-                memory_address: self
-                    .layout
-                    .metadata_of_section(&section.id)
-                    .memory
-                    .as_ref()
-                    .map(|m| m.address.extract())
-                    .unwrap_or(0),
-                part_of_group: false,
-                content,
-            });
+            sections.insert(
+                *self.section_ids.get(&section.id).unwrap(),
+                ElfSection {
+                    name: *section_names_map.get(&section.id).unwrap(),
+                    memory_address: self
+                        .layout
+                        .metadata_of_section(&section.id)
+                        .memory
+                        .as_ref()
+                        .map(|m| m.address.extract())
+                        .unwrap_or(0),
+                    part_of_group: false,
+                    content,
+                },
+            );
         }
 
         Ok(sections)

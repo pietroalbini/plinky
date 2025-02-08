@@ -1,13 +1,14 @@
 mod dynamic;
+pub(crate) mod gnu_hash;
 mod relocations;
 mod strings;
 mod symbols;
-pub(crate) mod gnu_hash;
 pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;
 use crate::interner::Interned;
 use crate::passes::build_elf::dynamic::build_dynamic_section;
+use crate::passes::build_elf::gnu_hash::create_gnu_hash;
 use crate::passes::build_elf::relocations::{RelaCreationError, create_relocations};
 use crate::passes::build_elf::strings::{BuiltStringsTable, create_strings};
 use crate::passes::build_elf::symbols::{BuiltSymbolsTable, create_symbols};
@@ -27,7 +28,6 @@ use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Address, ExtractNumber};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
-use crate::passes::build_elf::gnu_hash::create_gnu_hash;
 
 type SectionConversion = BTreeMap<SectionId, ElfSectionId>;
 

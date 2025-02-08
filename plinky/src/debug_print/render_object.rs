@@ -12,9 +12,9 @@ use crate::repr::symbols::views::{AllSymbols, DynamicSymbolTable, SymbolsView};
 use crate::repr::symbols::{SymbolType, SymbolValue, SymbolVisibility};
 use plinky_diagnostics::widgets::{HexDump, Table, Text, Widget, WidgetGroup};
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
+use plinky_elf::ElfDeduplication;
 use plinky_elf::render_elf::render_note;
 use plinky_elf::writer::layout::Layout;
-use plinky_elf::ElfDeduplication;
 
 pub(super) fn render_object(
     message: &str,
@@ -45,12 +45,9 @@ pub(super) fn render_object(
             filter
                 .dynamic
                 .then(|| {
-                    render_symbols(
-                        object,
-                        &names,
-                        "Dynamic symbols:",
-                        &DynamicSymbolTable { class: object.env.class },
-                    )
+                    render_symbols(object, &names, "Dynamic symbols:", &DynamicSymbolTable {
+                        class: object.env.class,
+                    })
                 })
                 .flatten(),
         )

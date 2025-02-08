@@ -5,7 +5,7 @@ use crate::repr::relocations::{Relocation, RelocationType};
 use crate::repr::sections::SectionContent;
 use crate::repr::symbols::{MissingGlobalSymbol, SymbolId, SymbolValue};
 use plinky_macros::{Display, Error};
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{BTreeMap, btree_map};
 
 pub(crate) fn run(object: &Object) -> Result<RelocsAnalysis, RelocsAnalysisError> {
     let mut analysis = RelocsAnalysis { got: None, got_plt: None };

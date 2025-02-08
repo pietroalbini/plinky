@@ -68,7 +68,7 @@ impl<'a> ObjectsReader<'a> {
         let mut names = Vec::new();
         match &input.value {
             CliInputValue::Path(p) => {
-                return Ok((p.clone(), LibraryName::Known(path_to_string(&p)?)))
+                return Ok((p.clone(), LibraryName::Known(path_to_string(&p)?)));
             }
             CliInputValue::Library(name) => {
                 if input.options.search_shared_objects {

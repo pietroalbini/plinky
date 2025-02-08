@@ -1,4 +1,4 @@
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
 use plinky_diagnostics::ObjectSpan;

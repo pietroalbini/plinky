@@ -1,7 +1,7 @@
 use crate::passes::relocate::RelocationErrorInner;
 use crate::repr::relocations::Relocation;
-use plinky_utils::ints::{ExtractNumber, Offset, OutOfBoundsError};
 use plinky_elf::ElfEndian;
+use plinky_utils::ints::{ExtractNumber, Offset, OutOfBoundsError};
 
 pub(super) struct ByteEditor<'a> {
     pub(super) endian: ElfEndian,

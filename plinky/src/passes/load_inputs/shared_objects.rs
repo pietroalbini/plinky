@@ -1,5 +1,5 @@
 use crate::cli::CliInputOptions;
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::passes::load_inputs::read_objects::LibraryName;
 use crate::repr::object::{GnuProperties, Input, InputSharedObject, Object};
 use crate::repr::symbols::views::AllSymbols;

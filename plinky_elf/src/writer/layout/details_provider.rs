@@ -1,6 +1,6 @@
 use crate::ids::ElfSectionId;
-use crate::writer::layout::Part;
 use crate::writer::LayoutError;
+use crate::writer::layout::Part;
 use crate::{ElfClass, ElfObject, ElfSection, ElfSectionContent, ElfSegmentType};
 
 pub trait LayoutDetailsProvider<S: Copy> {

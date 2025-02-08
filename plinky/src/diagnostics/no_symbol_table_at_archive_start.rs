@@ -1,6 +1,6 @@
 use plinky_diagnostics::widgets::{QuotedText, Text};
 use plinky_diagnostics::{Diagnostic, DiagnosticBuilder, DiagnosticKind, GatheredContext};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub(crate) struct NoSymbolNameAtArchiveStartDiagnostic {

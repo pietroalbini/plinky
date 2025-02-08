@@ -1,13 +1,13 @@
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::repr::object::Object;
 use crate::repr::sections::{DataSection, SectionContent, SectionId};
 use crate::repr::symbols::LoadSymbolsError;
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfDeduplication, ElfPermissions};
 use plinky_macros::{Display, Error};
 use plinky_utils::ints::{Length, Offset, OutOfBoundsError};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
-use plinky_diagnostics::ObjectSpan;
 
 pub(super) fn run(
     object: &mut Object,
@@ -104,21 +104,16 @@ fn deduplicate(
 
     object
         .sections
-        .builder(
-            &*name.resolve(),
-            DataSection {
-                perms,
-                deduplication: match split_rule {
-                    SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
-                    SplitRule::FixedSizeChunks { size } => {
-                        ElfDeduplication::FixedSizeChunks { size }
-                    }
-                },
-                bytes: merged,
-                relocations: Vec::new(),
-                inside_relro: false,
+        .builder(&*name.resolve(), DataSection {
+            perms,
+            deduplication: match split_rule {
+                SplitRule::ZeroTerminatedString => ElfDeduplication::ZeroTerminatedStrings,
+                SplitRule::FixedSizeChunks { size } => ElfDeduplication::FixedSizeChunks { size },
             },
-        )
+            bytes: merged,
+            relocations: Vec::new(),
+            inside_relro: false,
+        })
         .source(source.expect("no deduplicated sections"))
         .create_in_placeholder(merged_id);
 
@@ -211,10 +206,9 @@ mod tests {
     fn test_split_fixed_sized_chunks_ok() {
         assert_eq!(
             &[(0usize, &[1u8, 2, 3, 4] as &[u8]), (4, &[5, 6, 7, 8]), (8, &[9, 10, 11, 12])],
-            split(
-                SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
-                &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-            )
+            split(SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() }, &[
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+            ])
             .collect::<Result<Vec<_>, _>>()
             .unwrap()
             .as_slice()
@@ -223,10 +217,9 @@ mod tests {
 
     #[test]
     fn test_split_fixed_chunks_uneven() {
-        let mut split = split(
-            SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() },
-            &[1, 2, 3, 4, 5],
-        );
+        let mut split = split(SplitRule::FixedSizeChunks { size: NonZeroU64::new(4).unwrap() }, &[
+            1, 2, 3, 4, 5,
+        ]);
 
         assert_eq!(Some(Ok((0, &[1u8, 2, 3, 4] as &[u8]))), split.next());
         assert_eq!(

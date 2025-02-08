@@ -14,8 +14,8 @@ use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
+use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_macros::{Display, Error};
 
 pub(crate) fn link_driver(

@@ -1,6 +1,6 @@
 use crate::cli::{
-    parse, CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint,
-    DynamicLinker, HashStyle, Mode,
+    CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint, DynamicLinker,
+    HashStyle, Mode, parse,
 };
 use crate::debug_print::filters::ObjectsFilter;
 use std::collections::BTreeSet;
@@ -32,12 +32,9 @@ fn test_two_inputs() {
 #[test]
 fn test_output_flags() {
     assert_parse_multiple(
-        &[
-            &["input.o", "-obar"],
-            &["input.o", "-o", "bar"],
-            &["input.o", "--output=bar"],
-            &["input.o", "--output", "bar"],
-        ],
+        &[&["input.o", "-obar"], &["input.o", "-o", "bar"], &["input.o", "--output=bar"], &[
+            "input.o", "--output", "bar",
+        ]],
         Ok(CliOptions { output: "bar".into(), ..default_options_static() }),
     );
 }
@@ -49,10 +46,9 @@ fn test_multiple_output_flags() {
         Err(CliError::DuplicateFlag("-o".into())),
     );
     assert_parse_multiple(
-        &[
-            &["input.o", "--output=bar", "--output=baz"],
-            &["input.o", "--output", "bar", "--output", "baz"],
-        ],
+        &[&["input.o", "--output=bar", "--output=baz"], &[
+            "input.o", "--output", "bar", "--output", "baz",
+        ]],
         Err(CliError::DuplicateFlag("--output".into())),
     );
 }
@@ -60,12 +56,9 @@ fn test_multiple_output_flags() {
 #[test]
 fn test_entry_flags() {
     assert_parse_multiple(
-        &[
-            &["input.o", "-ebar"],
-            &["input.o", "-e", "bar"],
-            &["input.o", "--entry=bar"],
-            &["input.o", "--entry", "bar"],
-        ],
+        &[&["input.o", "-ebar"], &["input.o", "-e", "bar"], &["input.o", "--entry=bar"], &[
+            "input.o", "--entry", "bar",
+        ]],
         Ok(CliOptions { entry: Some("bar".into()), ..default_options_static() }),
     );
 }
@@ -301,11 +294,10 @@ fn test_soname_shared() {
 #[test]
 fn test_soname_static() {
     assert_parse_multiple(
-        &[
-            &["input.o", "-soname=hello.so"],
-            &["input.o", "-soname", "hello.so"],
-            &["input.o", "-hhello.so"],
-        ],
+        &[&["input.o", "-soname=hello.so"], &["input.o", "-soname", "hello.so"], &[
+            "input.o",
+            "-hhello.so",
+        ]],
         Err(CliError::UnsupportedSharedObjectName),
     );
 }
@@ -334,12 +326,11 @@ fn test_duplicate_soname() {
 #[test]
 fn test_search_paths() {
     assert_parse_multiple(
-        &[
-            &["input.o", "-Lbar"],
-            &["input.o", "-L", "bar"],
-            &["input.o", "--library-path=bar"],
-            &["input.o", "--library-path", "bar"],
-        ],
+        &[&["input.o", "-Lbar"], &["input.o", "-L", "bar"], &["input.o", "--library-path=bar"], &[
+            "input.o",
+            "--library-path",
+            "bar",
+        ]],
         Ok(CliOptions { search_paths: vec!["bar".into()], ..default_options_static() }),
     );
 }

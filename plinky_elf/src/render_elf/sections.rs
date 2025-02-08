@@ -420,19 +420,16 @@ fn render_section_dynamic(
                 continue;
             }
         };
-        table.add_body([
-            name.into(),
-            match value {
-                Value::Bytes(bytes) => format!("{bytes} bytes"),
-                Value::Addr(addr) => format!("address {addr:#x}"),
-                Value::StrOff(off) => {
-                    let string = strings.get(*off as _).unwrap_or("<missing>");
-                    format!("string {off:#x}: {string}")
-                }
-                Value::Str(string) => string,
-                Value::None => "-".to_string(),
-            },
-        ]);
+        table.add_body([name.into(), match value {
+            Value::Bytes(bytes) => format!("{bytes} bytes"),
+            Value::Addr(addr) => format!("address {addr:#x}"),
+            Value::StrOff(off) => {
+                let string = strings.get(*off as _).unwrap_or("<missing>");
+                format!("string {off:#x}: {string}")
+            }
+            Value::Str(string) => string,
+            Value::None => "-".to_string(),
+        }]);
     }
 
     vec![Box::new(info), Box::new(table)]

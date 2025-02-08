@@ -1,8 +1,8 @@
 use crate::interner::intern;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionContent;
-use crate::repr::symbols::views::AllSymbols;
 use crate::repr::symbols::SymbolValue;
+use crate::repr::symbols::views::AllSymbols;
 use plinky_utils::ints::ExtractNumber;
 use std::collections::HashSet;
 

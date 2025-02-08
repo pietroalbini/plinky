@@ -1,5 +1,5 @@
-use plinky_diagnostics::widgets::{Table, Text, Widget};
 use plinky_diagnostics::WidgetWriter;
+use plinky_diagnostics::widgets::{Table, Text, Widget};
 use plinky_elf::ElfReader;
 use std::error::Error;
 use std::fs::File;

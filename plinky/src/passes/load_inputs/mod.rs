@@ -1,9 +1,9 @@
 use crate::cli::CliOptions;
 use crate::interner::intern;
-use crate::passes::load_inputs::merge_elf::{merge_elf, MergeElfError};
+use crate::passes::load_inputs::merge_elf::{MergeElfError, merge_elf};
 use crate::passes::load_inputs::read_objects::{NextObject, ObjectsReader, ReadObjectsError};
 use crate::passes::load_inputs::section_groups::{SectionGroups, SectionGroupsForObject};
-use crate::passes::load_inputs::shared_objects::{load_shared_object, SharedObjectError};
+use crate::passes::load_inputs::shared_objects::{SharedObjectError, load_shared_object};
 use crate::passes::load_inputs::strings::Strings;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;

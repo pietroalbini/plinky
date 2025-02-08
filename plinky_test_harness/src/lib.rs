@@ -6,8 +6,8 @@ extern crate test;
 mod builtins;
 mod gather;
 mod steps;
-mod tests;
 pub mod template;
+mod tests;
 pub mod utils;
 
 pub use crate::gather::DefineSteps;

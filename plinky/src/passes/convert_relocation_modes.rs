@@ -53,22 +53,14 @@ pub(crate) fn run(object: &mut Object) -> Result<(), ConvertRelocationModesError
                             let addend: i32 = addend.extract().try_into().map_err(|_| {
                                 ConvertRelocationModesError::RelAddendMustBe32Bit(*addend)
                             })?;
-                            write_addend(
-                                &mut applies_to.bytes,
-                                relocation.offset,
-                                match endian {
-                                    ElfEndian::Little => addend.to_le_bytes(),
-                                },
-                            )?;
+                            write_addend(&mut applies_to.bytes, relocation.offset, match endian {
+                                ElfEndian::Little => addend.to_le_bytes(),
+                            })?;
                         }
                         AddendType::I64 => {
-                            write_addend(
-                                &mut applies_to.bytes,
-                                relocation.offset,
-                                match endian {
-                                    ElfEndian::Little => addend.extract().to_le_bytes(),
-                                },
-                            )?;
+                            write_addend(&mut applies_to.bytes, relocation.offset, match endian {
+                                ElfEndian::Little => addend.extract().to_le_bytes(),
+                            })?;
                         }
                     }
                     relocation.addend = RelocationAddend::Inline;

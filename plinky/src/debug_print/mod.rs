@@ -17,8 +17,8 @@ use crate::passes::gc_sections::RemovedSection;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use plinky_diagnostics::{Diagnostic, DiagnosticKind};
-use plinky_elf::writer::layout::Layout;
 use plinky_elf::ElfObject;
+use plinky_elf::writer::layout::Layout;
 use std::collections::BTreeSet;
 
 pub(crate) struct DebugCallbacks {

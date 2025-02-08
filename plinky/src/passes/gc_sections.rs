@@ -55,10 +55,7 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
     for section_id in all_sections {
         if !visitor.to_save.contains(&section_id) {
             let removed = object.sections.remove(section_id, Some(&mut object.symbols));
-            removed_sections.push(RemovedSection {
-                name: removed.name,
-                source: removed.source,
-            });
+            removed_sections.push(RemovedSection { name: removed.name, source: removed.source });
         }
     }
     removed_sections

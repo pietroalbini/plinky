@@ -46,22 +46,19 @@ pub(super) fn create_symbols(
     for (file, symbols_in_file) in local_by_source {
         if let Some(file) = file {
             let id = converter.allocate_id();
-            converter.symbols.insert(
-                id,
-                ElfSymbol {
-                    name: *converter
-                        .strings
-                        .symbol_file_names
-                        .get(&file)
-                        .expect("no string for the file"),
-                    binding: ElfSymbolBinding::Local,
-                    type_: ElfSymbolType::File,
-                    visibility: ElfSymbolVisibility::Default,
-                    definition: ElfSymbolDefinition::Absolute,
-                    value: 0,
-                    size: 0,
-                },
-            );
+            converter.symbols.insert(id, ElfSymbol {
+                name: *converter
+                    .strings
+                    .symbol_file_names
+                    .get(&file)
+                    .expect("no string for the file"),
+                binding: ElfSymbolBinding::Local,
+                type_: ElfSymbolType::File,
+                visibility: ElfSymbolVisibility::Default,
+                definition: ElfSymbolDefinition::Absolute,
+                value: 0,
+                size: 0,
+            });
         }
         for symbol in symbols_in_file {
             converter.convert(symbol);
@@ -97,65 +94,58 @@ struct Converter<'a> {
 impl Converter<'_> {
     fn convert(&mut self, symbol: &Symbol) {
         let id = self.allocate_id();
-        self.symbols.insert(
-            id,
-            ElfSymbol {
-                name: *self.strings.symbol_names.get(&symbol.id()).expect("no string for symbol"),
-                binding: match symbol.visibility() {
-                    SymbolVisibility::Local => ElfSymbolBinding::Local,
-                    SymbolVisibility::Global { weak: true, hidden: _ } => ElfSymbolBinding::Weak,
-                    SymbolVisibility::Global { weak: false, hidden: _ } => ElfSymbolBinding::Global,
-                },
-                visibility: match symbol.visibility() {
-                    SymbolVisibility::Local => ElfSymbolVisibility::Default,
-                    SymbolVisibility::Global { weak: _, hidden: false } => {
-                        ElfSymbolVisibility::Default
-                    }
-                    SymbolVisibility::Global { weak: _, hidden: true } => {
-                        ElfSymbolVisibility::Hidden
-                    }
-                },
-                type_: match symbol.type_() {
-                    SymbolType::NoType => ElfSymbolType::NoType,
-                    SymbolType::Function => ElfSymbolType::Function,
-                    SymbolType::Object => ElfSymbolType::Object,
-                    SymbolType::Section => ElfSymbolType::Section,
-                },
-                definition: match symbol.value() {
-                    SymbolValue::Absolute { .. } => ElfSymbolDefinition::Absolute,
-                    SymbolValue::Section { .. } => {
-                        panic!("section symbols should not reach this stage");
-                    }
-                    SymbolValue::SectionRelative { .. } => {
-                        panic!("section relative addresses should not reach this stage");
-                    }
-                    SymbolValue::SectionVirtualAddress { section, .. } => {
-                        ElfSymbolDefinition::Section(*self.section_ids.get(&section).unwrap())
-                    }
-                    SymbolValue::ExternallyDefined => ElfSymbolDefinition::Undefined,
-                    SymbolValue::SectionNotLoaded => ElfSymbolDefinition::Undefined,
-                    SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
-                    SymbolValue::Null => ElfSymbolDefinition::Undefined,
-                },
-                value: match symbol.value() {
-                    SymbolValue::Absolute { value } => value.extract(),
-                    SymbolValue::Section { .. } => {
-                        panic!("section symbols should not reach this stage");
-                    }
-                    SymbolValue::SectionRelative { .. } => {
-                        panic!("section relative addresses should not reach this stage");
-                    }
-                    SymbolValue::SectionVirtualAddress { memory_address, .. } => {
-                        memory_address.extract()
-                    }
-                    SymbolValue::ExternallyDefined => 0,
-                    SymbolValue::SectionNotLoaded => 0,
-                    SymbolValue::Undefined => 0,
-                    SymbolValue::Null => 0,
-                },
-                size: 0,
+        self.symbols.insert(id, ElfSymbol {
+            name: *self.strings.symbol_names.get(&symbol.id()).expect("no string for symbol"),
+            binding: match symbol.visibility() {
+                SymbolVisibility::Local => ElfSymbolBinding::Local,
+                SymbolVisibility::Global { weak: true, hidden: _ } => ElfSymbolBinding::Weak,
+                SymbolVisibility::Global { weak: false, hidden: _ } => ElfSymbolBinding::Global,
             },
-        );
+            visibility: match symbol.visibility() {
+                SymbolVisibility::Local => ElfSymbolVisibility::Default,
+                SymbolVisibility::Global { weak: _, hidden: false } => ElfSymbolVisibility::Default,
+                SymbolVisibility::Global { weak: _, hidden: true } => ElfSymbolVisibility::Hidden,
+            },
+            type_: match symbol.type_() {
+                SymbolType::NoType => ElfSymbolType::NoType,
+                SymbolType::Function => ElfSymbolType::Function,
+                SymbolType::Object => ElfSymbolType::Object,
+                SymbolType::Section => ElfSymbolType::Section,
+            },
+            definition: match symbol.value() {
+                SymbolValue::Absolute { .. } => ElfSymbolDefinition::Absolute,
+                SymbolValue::Section { .. } => {
+                    panic!("section symbols should not reach this stage");
+                }
+                SymbolValue::SectionRelative { .. } => {
+                    panic!("section relative addresses should not reach this stage");
+                }
+                SymbolValue::SectionVirtualAddress { section, .. } => {
+                    ElfSymbolDefinition::Section(*self.section_ids.get(&section).unwrap())
+                }
+                SymbolValue::ExternallyDefined => ElfSymbolDefinition::Undefined,
+                SymbolValue::SectionNotLoaded => ElfSymbolDefinition::Undefined,
+                SymbolValue::Undefined => ElfSymbolDefinition::Undefined,
+                SymbolValue::Null => ElfSymbolDefinition::Undefined,
+            },
+            value: match symbol.value() {
+                SymbolValue::Absolute { value } => value.extract(),
+                SymbolValue::Section { .. } => {
+                    panic!("section symbols should not reach this stage");
+                }
+                SymbolValue::SectionRelative { .. } => {
+                    panic!("section relative addresses should not reach this stage");
+                }
+                SymbolValue::SectionVirtualAddress { memory_address, .. } => {
+                    memory_address.extract()
+                }
+                SymbolValue::ExternallyDefined => 0,
+                SymbolValue::SectionNotLoaded => 0,
+                SymbolValue::Undefined => 0,
+                SymbolValue::Null => 0,
+            },
+            size: 0,
+        });
         self.conversion.insert(symbol.id(), id);
     }
 

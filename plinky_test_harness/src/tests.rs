@@ -1,7 +1,7 @@
+use crate::Step;
 use crate::builtins::register_builtins;
 use crate::template::{TemplateContext, Value};
 use crate::utils::RunAndSnapshot;
-use crate::Step;
 use anyhow::{Context, Error};
 use plinky_utils::create_temp_dir;
 use std::path::{Path, PathBuf};
@@ -85,11 +85,7 @@ pub struct TestContext<'a> {
 impl TestContext<'_> {
     pub fn maybe_relative_to_src(&self, path: impl AsRef<Path>) -> PathBuf {
         let path = path.as_ref();
-        if path.is_absolute() {
-            path.into()
-        } else {
-            self.src.join(path)
-        }
+        if path.is_absolute() { path.into() } else { self.src.join(path) }
     }
 
     pub fn run_and_snapshot(&self) -> RunAndSnapshot {

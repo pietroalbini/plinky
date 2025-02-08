@@ -22,10 +22,7 @@ impl Template {
         Parser::new(Lexer::new(&mut input)).parse()
     }
 
-    pub fn resolve(
-        &self,
-        context: &TemplateContext,
-    ) -> Result<String, TemplateResolveError> {
+    pub fn resolve(&self, context: &TemplateContext) -> Result<String, TemplateResolveError> {
         self.resolve_with(context, &ResolveHooks::new())
     }
 
@@ -111,11 +108,7 @@ impl Expression {
                 let if_true = if_true.resolve(context)?;
                 let if_false = if_false.resolve(context)?;
 
-                if condition.as_bool()? {
-                    Ok(if_true)
-                } else {
-                    Ok(if_false)
-                }
+                if condition.as_bool()? { Ok(if_true) } else { Ok(if_false) }
             }
 
             Expression::FunctionCall { name, params } => {
@@ -315,33 +308,21 @@ mod tests {
 
         ctx.add_function("upper", |name: String| -> _ { Value::String(name.to_uppercase()) });
         assert_resolve(&ctx, "${upper(name)}", "PIETRO");
-        assert_resolve_error(
-            &ctx,
-            "${upper()}",
-            TemplateResolveError::FunctionCall {
-                name: "upper".into(),
-                err: FunctionCallError::TooFewArgs,
+        assert_resolve_error(&ctx, "${upper()}", TemplateResolveError::FunctionCall {
+            name: "upper".into(),
+            err: FunctionCallError::TooFewArgs,
+        });
+        assert_resolve_error(&ctx, "${upper(name, name)}", TemplateResolveError::FunctionCall {
+            name: "upper".into(),
+            err: FunctionCallError::TooManyArgs,
+        });
+        assert_resolve_error(&ctx, "${upper(false)}", TemplateResolveError::FunctionCall {
+            name: "upper".into(),
+            err: FunctionCallError::InvalidArg {
+                position: 1,
+                err: ConversionError::BoolToStringUnsupported,
             },
-        );
-        assert_resolve_error(
-            &ctx,
-            "${upper(name, name)}",
-            TemplateResolveError::FunctionCall {
-                name: "upper".into(),
-                err: FunctionCallError::TooManyArgs,
-            },
-        );
-        assert_resolve_error(
-            &ctx,
-            "${upper(false)}",
-            TemplateResolveError::FunctionCall {
-                name: "upper".into(),
-                err: FunctionCallError::InvalidArg {
-                    position: 1,
-                    err: ConversionError::BoolToStringUnsupported,
-                },
-            },
-        );
+        });
         assert_resolve_error(
             &ctx,
             "${lower(name)}",

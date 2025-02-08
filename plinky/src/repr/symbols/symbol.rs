@@ -1,7 +1,7 @@
 use crate::diagnostics::undefined_symbol::UndefinedSymbolDiagnostic;
-use crate::interner::{intern, Interned};
+use crate::interner::{Interned, intern};
 use crate::repr::sections::SectionId;
-use crate::repr::symbols::{LoadSymbolsError, SymbolId, NULL_SYMBOL_ID};
+use crate::repr::symbols::{LoadSymbolsError, NULL_SYMBOL_ID, SymbolId};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::ElfSectionId;

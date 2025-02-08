@@ -21,11 +21,12 @@ use plinky_macros::{Display, Error};
 
 pub(crate) struct Linker {
     options: CliOptions,
+    object: Option<Object>,
 }
 
 impl Linker {
     pub(crate) fn new(options: CliOptions) -> Self {
-        Self { options }
+        Self { options, object: None }
     }
 
     pub(crate) fn run(
@@ -36,6 +37,9 @@ impl Linker {
         let result = self.run_inner(callbacks);
 
         diagnostic_context.add_owned(self.options);
+        if let Some(object) = self.object {
+            diagnostic_context.add_owned(object);
+        }
 
         result
     }
@@ -43,7 +47,9 @@ impl Linker {
     fn run_inner(&mut self, callbacks: &dyn LinkerCallbacks) -> Result<(), LinkerError> {
         let options = &self.options;
 
-        let mut object = passes::load_inputs::run(options)?;
+        self.object = Some(passes::load_inputs::run(options)?);
+        let mut object = self.object.as_mut().unwrap();
+
         passes::inject_symbol_table::run(&mut object);
         passes::inject_gnu_stack::run(&mut object);
         callbacks.on_inputs_loaded(&object);

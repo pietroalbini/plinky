@@ -7,7 +7,7 @@ use crate::repr::relocations::RelocationMode;
 use crate::repr::sections::Sections;
 use crate::repr::segments::Segments;
 use crate::repr::symbols::{SymbolId, Symbols};
-use plinky_diagnostics::ObjectSpan;
+use plinky_diagnostics::{DiagnosticContext, ObjectSpan};
 use plinky_elf::{ElfEnvironment, ElfMachine, ElfX86Features2, ElfX86Isa};
 
 #[derive(Debug)]
@@ -35,6 +35,8 @@ impl Object {
         }
     }
 }
+
+impl DiagnosticContext for Object {}
 
 #[derive(Debug)]
 pub(crate) struct Input {

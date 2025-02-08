@@ -8,6 +8,12 @@ no stdout present
 === stderr ===
 error: undefined symbol: custom_entrypoint
  │
+ │  help: the following symbols with a similar name exist:
+ │
+ │  ╭────────────────╮
+ │  │ cutom_etripoin │
+ │  ╰────────────────╯
+ │
  │  note: `custom_entrypoint` is the entry point of the executable
  │
  │  note: the entry point was customized with the `-e` flag

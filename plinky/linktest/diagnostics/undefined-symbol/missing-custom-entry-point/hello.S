@@ -6,3 +6,6 @@
 .section .text
 cutom_etripoin:
     nop
+
+unrelated:
+    nop

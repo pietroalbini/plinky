@@ -106,7 +106,9 @@ fn generate_error_provide(item: &Item) -> Result<TokenStream, Error> {
             any_provide = true;
             Ok(quote! {
                 {
-                    request.provide_ref::<plinky_diagnostics::Diagnostic>(#{ &diagnostic.access_ref });
+                    request.provide_ref::<dyn plinky_diagnostics::DiagnosticBuilder>(
+                        #{ &diagnostic.access_ref } as &dyn plinky_diagnostics::DiagnosticBuilder
+                    );
                 }
             })
         } else {

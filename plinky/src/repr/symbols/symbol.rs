@@ -1,8 +1,9 @@
+use crate::diagnostics::undefined_symbol::UndefinedSymbolDiagnostic;
 use crate::interner::{intern, Interned};
 use crate::repr::sections::SectionId;
 use crate::repr::symbols::{LoadSymbolsError, SymbolId, NULL_SYMBOL_ID};
 use crate::utils::address_resolver::{AddressResolutionError, AddressResolver};
-use plinky_diagnostics::{Diagnostic, ObjectSpan};
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::ids::ElfSectionId;
 use plinky_elf::{
     ElfSymbol, ElfSymbolBinding, ElfSymbolDefinition, ElfSymbolType, ElfSymbolVisibility,
@@ -72,8 +73,9 @@ impl Symbol {
         ) -> Result<ResolvedSymbol, ResolveSymbolErrorKind> {
             match &symbol.value {
                 SymbolValue::Undefined => {
-                    let diagnostic = crate::diagnostics::undefined_symbol::build(symbol.name());
-                    Err(ResolveSymbolErrorKind::Undefined(diagnostic))
+                    Err(ResolveSymbolErrorKind::Undefined(UndefinedSymbolDiagnostic {
+                        name: symbol.name(),
+                    }))
                 }
                 SymbolValue::Absolute { value } => {
                     assert!(offset == Offset::from(0));
@@ -327,7 +329,7 @@ pub(crate) enum ResolveSymbolErrorKind {
     #[display("the symbol is the null symbol")]
     Null,
     #[display("symbol is not defined")]
-    Undefined(#[diagnostic] Diagnostic),
+    Undefined(#[diagnostic] UndefinedSymbolDiagnostic),
     #[display("the symbol points to a section that was not loaded")]
     SectionNotLoaded,
     #[transparent]

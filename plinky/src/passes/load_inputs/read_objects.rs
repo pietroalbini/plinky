@@ -1,8 +1,9 @@
 use crate::cli::{CliInput, CliInputOptions, CliInputValue};
+use crate::diagnostics::no_symbol_table_at_archive_start::NoSymbolNameAtArchiveStartDiagnostic;
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
-use plinky_diagnostics::{Diagnostic, ObjectSpan};
+use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfReader, LoadError};
 use plinky_macros::{Display, Error};
 use std::collections::{HashSet, VecDeque};
@@ -172,7 +173,9 @@ impl<'a> PendingArchive<'a> {
     fn calculate_pending(&mut self, symbols: &Symbols) -> Result<(), ReadObjectsError> {
         let Some(symbol_table) = self.reader.symbol_table() else {
             return Err(ReadObjectsError::NoSymbolTableAtArchiveStart {
-                diagnostic: crate::diagnostics::no_symbol_table_at_archive_start::build(&self.path),
+                diagnostic: NoSymbolNameAtArchiveStartDiagnostic {
+                    archive_path: self.path.clone(),
+                },
                 path: self.path.clone(),
             });
         };
@@ -279,7 +282,7 @@ pub(crate) enum ReadObjectsError {
     NoSymbolTableAtArchiveStart {
         path: PathBuf,
         #[diagnostic]
-        diagnostic: Diagnostic,
+        diagnostic: NoSymbolNameAtArchiveStartDiagnostic,
     },
     #[display("file name is not UTF-8: {lossy}")]
     NonUtf8FileName { lossy: String },

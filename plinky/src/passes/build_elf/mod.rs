@@ -6,12 +6,13 @@ mod symbols;
 pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;
+use crate::diagnostics::WhileProcessingEntrypoint;
 use crate::interner::Interned;
 use crate::passes::build_elf::dynamic::build_dynamic_section;
 use crate::passes::build_elf::gnu_hash::create_gnu_hash;
-use crate::passes::build_elf::relocations::{RelaCreationError, create_relocations};
-use crate::passes::build_elf::strings::{BuiltStringsTable, create_strings};
-use crate::passes::build_elf::symbols::{BuiltSymbolsTable, create_symbols};
+use crate::passes::build_elf::relocations::{create_relocations, RelaCreationError};
+use crate::passes::build_elf::strings::{create_strings, BuiltStringsTable};
+use crate::passes::build_elf::symbols::{create_symbols, BuiltSymbolsTable};
 use crate::passes::build_elf::sysv_hash::create_sysv_hash;
 use crate::repr::object::Object;
 use crate::repr::sections::{SectionContent, SectionId};
@@ -118,7 +119,7 @@ impl<'a> ElfBuilder<'a> {
         let symbol = self.object.symbols.get(symbol_id);
         let resolved = symbol
             .resolve(&self.resolver, 0.into())
-            .map_err(ElfBuilderError::EntryPointResolution)?;
+            .map_err(|e| ElfBuilderError::EntryPointResolution(e, WhileProcessingEntrypoint))?;
 
         match resolved {
             ResolvedSymbol::Absolute(_) => {
@@ -325,7 +326,10 @@ impl StringsTableBuilder {
 #[derive(Debug, Error, Display)]
 pub(crate) enum ElfBuilderError {
     #[display("failed to resolve the entry point")]
-    EntryPointResolution(#[source] ResolveSymbolError),
+    EntryPointResolution(
+        #[source] ResolveSymbolError,
+        #[diagnostic_context] WhileProcessingEntrypoint,
+    ),
     #[display("entry point symbol {f0} is not an address")]
     EntryPointNotAnAddress(Interned<String>),
     #[display("entry point symbol {f0} is defined in a shared library")]

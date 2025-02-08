@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::parser::{Attributes, EnumVariantData, Item, Parser, StructFields, Type};
-use crate::utils::{generate_for_each_variant, generate_impl_for, ident};
+use crate::utils::{generate_for_each_variant, generate_impl_for, ident, UnifiedField};
 use plinky_macros_quote::quote;
 use proc_macro::{TokenStream, TokenTree};
 
@@ -80,54 +80,62 @@ fn generate_error_source(item: &Item) -> Result<TokenStream, Error> {
 }
 
 fn generate_error_provide(item: &Item) -> Result<TokenStream, Error> {
-    let mut any_provide = false;
     let body = generate_for_each_variant(item, |_span, attrs, fields| {
-        let mut diagnostic = None;
-        for field in fields {
-            if let Some(attr) = field.attrs.get("diagnostic")? {
-                attr.must_be_empty()?;
-                match diagnostic {
-                    None => diagnostic = Some(field),
-                    Some(_) => {
-                        return Err(Error::new("multiple #[diagnostic] attributes").span(attr.span));
+        let get_attribute = |name| -> Result<Option<&UnifiedField>, Error> {
+            let mut result = None;
+            for field in fields {
+                if let Some(attr) = field.attrs.get(name)? {
+                    attr.must_be_empty()?;
+
+                    if attrs.get("transparent")?.is_some() {
+                        return Err(Error::new(format!(
+                            "#[transparent] and #[{name}] are not compatible"
+                        ))
+                        .span(attr.span));
+                    } else if result.is_some() {
+                        return Err(Error::new(format!("multiple #[{name}] are not supported"))
+                            .span(attr.span));
                     }
+                    result = Some(field);
                 }
             }
-        }
+            Ok(result)
+        };
+
+        let diagnostic = get_attribute("diagnostic")?;
+        let diagnostic_context = get_attribute("diagnostic_context")?;
 
         if let Some(attr) = attrs.get("transparent")? {
-            if diagnostic.is_some() {
-                return Err(Error::new("#[transparent] with #[diagnostic] is not supported")
-                    .span(attr.span));
-            }
             let [field] = fields else {
                 return Err(Error::new("#[transparent] is only supported with exactly one field")
                     .span(attr.span));
             };
-            any_provide = true;
             Ok(quote!(#{ &field.access_ref }.provide(request)))
-        } else if let Some(diagnostic) = diagnostic {
-            any_provide = true;
-            Ok(quote! {
-                {
+        } else {
+            let mut provided = Vec::new();
+            if let Some(diagnostic) = diagnostic {
+                provided.push(quote! {
                     request.provide_ref::<dyn plinky_diagnostics::DiagnosticBuilder>(
                         #{ &diagnostic.access_ref } as &dyn plinky_diagnostics::DiagnosticBuilder
                     );
-                }
-            })
-        } else {
-            Ok(quote!({}))
+                });
+            }
+            if let Some(diagnostic_context) = diagnostic_context {
+                provided.push(quote! {
+                    request.provide_ref::<dyn plinky_diagnostics::DiagnosticContext>(
+                        #{ &diagnostic_context.access_ref } as &dyn plinky_diagnostics::DiagnosticContext
+                    );
+                });
+            }
+            Ok(quote!({ #provided }))
         }
     })?;
-    if any_provide {
-        Ok(quote! {
-            fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
-                #body
-            }
-        })
-    } else {
-        Ok(quote!())
-    }
+
+    Ok(quote! {
+        fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+            #body
+        }
+    })
 }
 
 fn generate_from_impls(item: &Item) -> Result<Vec<TokenStream>, Error> {

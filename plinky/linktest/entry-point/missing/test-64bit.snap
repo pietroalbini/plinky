@@ -19,3 +19,6 @@ debug print: loaded object
  ┴
 
 error: undefined symbol: _start
+ │
+ │  note: `_start` is the entry point of the executable
+ ┴

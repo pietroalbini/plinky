@@ -3,8 +3,8 @@
 
 use crate::debug_print::DebugCallbacks;
 use crate::linker::link_driver;
-use plinky_diagnostics::{DiagnosticBuilder, GatheredContext};
-use std::error::{Error, request_ref};
+use plinky_diagnostics::{DiagnosticBuilder, DiagnosticContext, GatheredContext};
+use std::error::{request_ref, Error};
 use std::process::ExitCode;
 
 mod arch;
@@ -28,12 +28,16 @@ fn app() -> Result<(), Box<dyn Error>> {
 
 fn render_error(err: Box<dyn Error>) -> ExitCode {
     let mut diagnostic_builder = None;
-    let diagnostic_context = GatheredContext::new();
+    let mut diagnostic_context = GatheredContext::new();
     let mut current: Option<&(dyn Error + 'static)> = Some(&*err);
     while let Some(current_err) = current {
         if let Some(extracted) = request_ref::<dyn DiagnosticBuilder>(current_err) {
-            diagnostic_builder = Some(extracted);
-            break;
+            if diagnostic_builder.is_none() {
+                diagnostic_builder = Some(extracted);
+            }
+        }
+        if let Some(extracted) = request_ref::<dyn DiagnosticContext>(current_err) {
+            diagnostic_context.add(extracted);
         }
         current = current_err.source();
     }

@@ -20,7 +20,7 @@ pub fn derive_raw_type(item: TokenStream) -> TokenStream {
     error::emit_compiler_error(derives::raw_type::derive(item))
 }
 
-#[proc_macro_derive(Error, attributes(source, from, transparent, diagnostic))]
+#[proc_macro_derive(Error, attributes(source, from, transparent, diagnostic, diagnostic_context))]
 pub fn derive_error(item: TokenStream) -> TokenStream {
     error::emit_compiler_error(derives::error::derive(item))
 }

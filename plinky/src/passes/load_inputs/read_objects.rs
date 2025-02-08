@@ -1,5 +1,5 @@
 use crate::cli::{CliInput, CliInputOptions, CliInputValue};
-use crate::diagnostics::no_symbol_table_at_archive_start::NoSymbolNameAtArchiveStartDiagnostic;
+use crate::diagnostics::builders::NoSymbolNameAtArchiveStartDiagnostic;
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};

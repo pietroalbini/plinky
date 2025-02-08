@@ -1,4 +1,4 @@
-use crate::diagnostics::undefined_symbol::UndefinedSymbolDiagnostic;
+use crate::diagnostics::builders::UndefinedSymbolDiagnostic;
 use crate::interner::{Interned, intern};
 use crate::repr::sections::SectionId;
 use crate::repr::symbols::{LoadSymbolsError, NULL_SYMBOL_ID, SymbolId};

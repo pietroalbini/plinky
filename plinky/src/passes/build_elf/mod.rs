@@ -6,7 +6,7 @@ mod symbols;
 pub(crate) mod sysv_hash;
 
 use crate::cli::Mode;
-use crate::diagnostics::WhileProcessingEntrypoint;
+use crate::diagnostics::contexts::WhileProcessingEntrypoint;
 use crate::interner::Interned;
 use crate::passes::build_elf::dynamic::build_dynamic_section;
 use crate::passes::build_elf::gnu_hash::create_gnu_hash;

@@ -1,9 +1,8 @@
 archs = ["x86_64"]
 
 [plinky.test]
-cmd = ["${asm.hello}"]
+cmd = ["${asm.hello}", "-e", "custom_entrypoint"]
 kind = "link-fail"
-debug-print = ["loaded-object=@symbols"]
 
 [asm.hello]
 source = "hello.S"

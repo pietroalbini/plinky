@@ -1,15 +1,15 @@
-use crate::cli::CliOptions;
+use crate::cli::{CliOptions, EntryPoint};
 use crate::interner::intern;
-use crate::passes::load_inputs::merge_elf::{MergeElfError, merge_elf};
+use crate::passes::load_inputs::merge_elf::{merge_elf, MergeElfError};
 use crate::passes::load_inputs::read_objects::{NextObject, ObjectsReader, ReadObjectsError};
 use crate::passes::load_inputs::section_groups::{SectionGroups, SectionGroupsForObject};
-use crate::passes::load_inputs::shared_objects::{SharedObjectError, load_shared_object};
+use crate::passes::load_inputs::shared_objects::{load_shared_object, SharedObjectError};
 use crate::passes::load_inputs::strings::Strings;
 use crate::repr::dynamic_entries::DynamicEntries;
 use crate::repr::object::Object;
 use crate::repr::sections::{SectionContent, Sections};
 use crate::repr::segments::Segments;
-use crate::repr::symbols::{LoadSymbolsError, Symbols, UpcomingSymbol};
+use crate::repr::symbols::{LoadSymbolsError, SymbolId, Symbols, UpcomingSymbol};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfEnvironment, LoadError};
 use plinky_macros::{Display, Error};
@@ -26,12 +26,7 @@ pub(crate) fn run(options: &CliOptions) -> Result<Object, LoadInputsError> {
     let mut reader = ObjectsReader::new(&options.search_paths, &options.inputs);
 
     let mut empty_symbols = Symbols::new().map_err(LoadInputsError::SymbolTableCreationFailed)?;
-    let entry_point = options
-        .entry
-        .as_ref()
-        .map(|entry| empty_symbols.add(UpcomingSymbol::GlobalUnknown { name: intern(entry) }))
-        .transpose()
-        .map_err(LoadInputsError::EntryInsertionFailed)?;
+    let entry_point = add_entry_point(&mut empty_symbols, options)?;
 
     let mut state = State::Empty {
         symbols: empty_symbols,
@@ -115,6 +110,23 @@ fn load_object(
         plinky_elf::ElfType::Executable => Err(LoadInputsError::ExecutableUnsupported(source)),
         plinky_elf::ElfType::Core => Err(LoadInputsError::CoreUnsupported(source)),
     }
+}
+
+fn add_entry_point(
+    symbols: &mut Symbols,
+    options: &CliOptions,
+) -> Result<Option<SymbolId>, LoadInputsError> {
+    let name = match &options.entry {
+        EntryPoint::None => return Ok(None),
+        EntryPoint::Default => intern("_start"),
+        EntryPoint::Custom(name) => *name,
+    };
+
+    Ok(Some(
+        symbols
+            .add(UpcomingSymbol::GlobalUnknown { name })
+            .map_err(LoadInputsError::EntryInsertionFailed)?,
+    ))
 }
 
 enum State {

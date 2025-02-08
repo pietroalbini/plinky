@@ -5,6 +5,8 @@ mod tests;
 
 pub(crate) use crate::cli::parser::parse;
 use crate::debug_print::filters::{ObjectsFilter, ObjectsFilterParseError};
+use crate::interner::Interned;
+use plinky_diagnostics::DiagnosticContext;
 use plinky_elf::render_elf::{RenderElfFilters, RenderElfFiltersParseError};
 use plinky_macros::{Display, Error};
 use std::collections::BTreeSet;
@@ -14,7 +16,7 @@ use std::path::PathBuf;
 pub(crate) struct CliOptions {
     pub(crate) inputs: Vec<CliInput>,
     pub(crate) output: PathBuf,
-    pub(crate) entry: Option<String>,
+    pub(crate) entry: EntryPoint,
     pub(crate) gc_sections: bool,
     pub(crate) debug_print: BTreeSet<DebugPrint>,
     pub(crate) executable_stack: bool,
@@ -25,6 +27,15 @@ pub(crate) struct CliOptions {
     pub(crate) shared_object_name: Option<String>,
     pub(crate) hash_style: HashStyle,
     pub(crate) mode: Mode,
+}
+
+impl DiagnosticContext for CliOptions {}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum EntryPoint {
+    None,
+    Default,
+    Custom(Interned<String>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

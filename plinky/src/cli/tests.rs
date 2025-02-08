@@ -1,8 +1,9 @@
 use crate::cli::{
-    CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint, DynamicLinker,
-    HashStyle, Mode, parse,
+    parse, CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint,
+    DynamicLinker, EntryPoint, HashStyle, Mode,
 };
 use crate::debug_print::filters::ObjectsFilter;
+use crate::interner::intern;
 use std::collections::BTreeSet;
 
 #[test]
@@ -66,7 +67,7 @@ fn test_entry_flags() {
             &["input.o", "--entry=bar"],
             &["input.o", "--entry", "bar"],
         ],
-        Ok(CliOptions { entry: Some("bar".into()), ..default_options_static() }),
+        Ok(CliOptions { entry: EntryPoint::Custom(intern("bar")), ..default_options_static() }),
     );
 }
 
@@ -565,7 +566,7 @@ fn default_options_static() -> CliOptions {
     CliOptions {
         inputs: vec![i("input.o").path()],
         output: "a.out".into(),
-        entry: Some("_start".into()),
+        entry: EntryPoint::Default,
         gc_sections: false,
         debug_print: BTreeSet::new(),
         executable_stack: false,
@@ -588,5 +589,5 @@ fn default_options_pie() -> CliOptions {
 }
 
 fn default_options_shared() -> CliOptions {
-    CliOptions { mode: Mode::SharedLibrary, entry: None, ..default_options_static() }
+    CliOptions { mode: Mode::SharedLibrary, entry: EntryPoint::None, ..default_options_static() }
 }

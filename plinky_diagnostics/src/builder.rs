@@ -9,7 +9,7 @@ pub trait DiagnosticBuilder {
 pub trait DiagnosticContext: Any {}
 
 pub struct GatheredContext<'a> {
-    inner: HashMap<TypeId, &'a dyn DiagnosticContext>,
+    inner: HashMap<TypeId, ContextValue<'a>>,
 }
 
 impl<'a> GatheredContext<'a> {
@@ -17,9 +17,16 @@ impl<'a> GatheredContext<'a> {
         Self { inner: HashMap::new() }
     }
 
-    pub fn add(&mut self, ctx: &'a dyn DiagnosticContext) {
+    pub fn add_ref(&mut self, ctx: &'a dyn DiagnosticContext) {
         let id = ctx.type_id();
-        if self.inner.insert(id, ctx).is_some() {
+        if self.inner.insert(id, ContextValue::Ref(ctx)).is_some() {
+            panic!("the same type was added twice to the context");
+        }
+    }
+
+    pub fn add_owned<T: DiagnosticContext>(&mut self, ctx: T) {
+        let id = ctx.type_id();
+        if self.inner.insert(id, ContextValue::Box(Box::new(ctx))).is_some() {
             panic!("the same type was added twice to the context");
         }
     }
@@ -30,7 +37,10 @@ impl<'a> GatheredContext<'a> {
 
     pub fn maybe<T: DiagnosticContext>(&self) -> Option<&T> {
         let id = TypeId::of::<T>();
-        let any = *self.inner.get(&id)? as &dyn Any;
+        let any = match self.inner.get(&id)? {
+            ContextValue::Ref(r) => *r as &dyn Any,
+            ContextValue::Box(b) => &**b as &dyn Any,
+        };
         Some(any.downcast_ref().expect("we already checked the type"))
     }
 
@@ -40,4 +50,15 @@ impl<'a> GatheredContext<'a> {
             None => panic!("missing required context {}", type_name::<T>()),
         }
     }
+}
+
+impl GatheredContext<'static> {
+    pub fn remove_static_lifetime<'a>(self) -> GatheredContext<'a> {
+        self
+    }
+}
+
+enum ContextValue<'a> {
+    Ref(&'a dyn DiagnosticContext),
+    Box(Box<dyn DiagnosticContext>),
 }

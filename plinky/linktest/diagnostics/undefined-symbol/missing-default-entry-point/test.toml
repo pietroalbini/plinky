@@ -1,0 +1,8 @@
+archs = ["x86_64"]
+
+[plinky.test]
+cmd = ["${asm.hello}"]
+kind = "link-fail"
+
+[asm.hello]
+source = "hello.S"

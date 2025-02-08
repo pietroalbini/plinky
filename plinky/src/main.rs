@@ -2,7 +2,7 @@
 #![feature(array_windows)]
 
 use crate::debug_print::DebugCallbacks;
-use crate::linker::link_driver;
+use crate::linker::Linker;
 use plinky_diagnostics::{DiagnosticBuilder, DiagnosticContext, GatheredContext};
 use std::error::{request_ref, Error};
 use std::process::ExitCode;
@@ -17,18 +17,18 @@ mod passes;
 mod repr;
 mod utils;
 
-fn app() -> Result<(), Box<dyn Error>> {
+fn app(diagnostic_context: &mut GatheredContext<'static>) -> Result<(), Box<dyn Error>> {
     let options = cli::parse(std::env::args().skip(1))?;
 
     let callbacks = DebugCallbacks { print: options.debug_print.clone() };
-    link_driver(&options, &callbacks)?;
+    Linker::new(options).run(&callbacks, diagnostic_context)?;
 
     Ok(())
 }
 
-fn render_error(err: Box<dyn Error>) -> ExitCode {
+fn render_error(diagnostic_context: GatheredContext<'static>, err: Box<dyn Error>) -> ExitCode {
+    let mut diagnostic_context = diagnostic_context.remove_static_lifetime();
     let mut diagnostic_builder = None;
-    let mut diagnostic_context = GatheredContext::new();
     let mut current: Option<&(dyn Error + 'static)> = Some(&*err);
     while let Some(current_err) = current {
         if let Some(extracted) = request_ref::<dyn DiagnosticBuilder>(current_err) {
@@ -37,7 +37,7 @@ fn render_error(err: Box<dyn Error>) -> ExitCode {
             }
         }
         if let Some(extracted) = request_ref::<dyn DiagnosticContext>(current_err) {
-            diagnostic_context.add(extracted);
+            diagnostic_context.add_ref(extracted);
         }
         current = current_err.source();
     }
@@ -55,12 +55,15 @@ fn render_error(err: Box<dyn Error>) -> ExitCode {
         }
     }
 
+    drop(diagnostic_context);
+
     ExitCode::FAILURE
 }
 
 fn main() -> ExitCode {
-    match app() {
+    let mut ctx = GatheredContext::new();
+    match app(&mut ctx) {
         Ok(()) => ExitCode::SUCCESS,
-        Err(err) => render_error(err),
+        Err(err) => render_error(ctx, err),
     }
 }

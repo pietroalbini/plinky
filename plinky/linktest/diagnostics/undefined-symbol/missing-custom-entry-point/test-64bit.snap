@@ -1,0 +1,14 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: undefined symbol: custom_entrypoint
+ │
+ │  note: `custom_entrypoint` is the entry point of the executable
+ │
+ │  note: the entry point was customized with the `-e` flag
+ ┴

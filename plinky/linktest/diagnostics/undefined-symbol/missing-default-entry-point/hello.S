@@ -1,8 +1,8 @@
 .intel_syntax noprefix
 .file "hello.S"
 
-.global custom_entry
+.global strat
 
 .section .text
-custom_entry:
+strat:
     nop

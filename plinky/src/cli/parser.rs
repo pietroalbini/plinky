@@ -1,12 +1,12 @@
 use crate::cli::lexer::{CliLexer, CliToken};
 use crate::cli::{
-    CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint, DynamicLinker,
-    HashStyle, Mode,
+    CliError, CliInput, CliInputOptions, CliInputValue, CliOptions, DebugPrint, DynamicLinker, EntryPoint, HashStyle, Mode
 };
 use crate::debug_print::filters::ObjectsFilter;
 use plinky_elf::render_elf::RenderElfFilters;
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use crate::interner::intern;
 
 // GNU ld loves to be inconsistent, and thus some long flags are prefixed with a single dash
 // rather than a double dash. To ensure we still parse the CLI correctly, we have a list of
@@ -203,9 +203,12 @@ pub(crate) fn parse<S: Into<String>, I: Iterator<Item = S>>(
 
         entry: match mode {
             Mode::PositionDependent | Mode::PositionIndependent => {
-                Some(entry.unwrap_or("_start").into())
+                match entry {
+                    Some(custom) => EntryPoint::Custom(intern(custom)),
+                    None => EntryPoint::Default,
+                }
             }
-            Mode::SharedLibrary => None,
+            Mode::SharedLibrary => EntryPoint::None,
         },
 
         dynamic_linker: match dynamic_linker {

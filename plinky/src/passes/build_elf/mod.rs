@@ -33,7 +33,7 @@ use std::num::NonZeroU64;
 type SectionConversion = BTreeMap<SectionId, ElfSectionId>;
 
 pub(crate) fn run(
-    object: Object,
+    object: &Object,
     layout: &Layout<SectionId>,
     resolver: &AddressResolver<'_>,
 ) -> Result<(ElfObject, SectionConversion), ElfBuilderError> {
@@ -51,7 +51,7 @@ pub(crate) fn run(
 }
 
 struct ElfBuilder<'a> {
-    object: Object,
+    object: &'a Object,
     layout: &'a Layout<SectionId>,
     resolver: &'a AddressResolver<'a>,
 
@@ -177,7 +177,7 @@ impl<'a> ElfBuilder<'a> {
             },
         );
 
-        while let Some(section) = self.object.sections.pop_first() {
+        for section in self.object.sections.iter() {
             let content = match &section.content {
                 SectionContent::Data(data) => ElfSectionContent::Program(ElfProgramSection {
                     perms: data.perms,

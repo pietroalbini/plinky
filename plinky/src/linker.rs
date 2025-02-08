@@ -14,8 +14,8 @@ use crate::passes::write_to_disk::WriteToDiskError;
 use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::utils::address_resolver::AddressResolver;
-use plinky_elf::ElfObject;
 use plinky_elf::writer::layout::{Layout, LayoutError};
+use plinky_elf::ElfObject;
 use plinky_macros::{Display, Error};
 
 pub(crate) fn link_driver(
@@ -63,7 +63,7 @@ pub(crate) fn link_driver(
     passes::convert_relocation_modes::run(&mut object)?;
     passes::replace_section_relative_symbols::replace(&mut object, &resolver)?;
 
-    let (elf, conversion_map) = passes::build_elf::run(object, &layout, &resolver)?;
+    let (elf, conversion_map) = passes::build_elf::run(&object, &layout, &resolver)?;
     callbacks.on_elf_built(&elf);
 
     let layout = layout.convert_ids(&conversion_map);

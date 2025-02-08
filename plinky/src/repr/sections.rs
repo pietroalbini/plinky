@@ -104,17 +104,6 @@ impl Sections {
         old
     }
 
-    pub(crate) fn pop_first(&mut self) -> Option<Section> {
-        loop {
-            match self.inner.pop_front() {
-                Some(SectionSlot::Present(section)) => return Some(section),
-                Some(SectionSlot::Removed(_)) => continue,
-                Some(SectionSlot::Placeholder) => continue,
-                None => return None,
-            }
-        }
-    }
-
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Section> {
         self.inner.iter().filter_map(|slot| match slot {
             SectionSlot::Present(section) => Some(section),

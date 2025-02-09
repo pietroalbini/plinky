@@ -1,0 +1,13 @@
+[package]
+name = "plinky_pkg_config"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+plinky_macros.workspace = true
+
+[dev-dependencies]
+plinky_utils.workspace = true
+
+[lints]
+workspace = true

@@ -6,21 +6,10 @@ use std::str::Chars;
 pub(crate) enum Token {
     Text(String),
     Variable(String),
+    Whitespace(String),
     Equals,
     Colon,
     NewLine,
-}
-
-impl Token {
-    fn trim_when_adjacent_to_text(&self) -> bool {
-        match self {
-            Token::Text(_) => false,
-            Token::Variable(_) => false,
-            Token::Equals => true,
-            Token::Colon => true,
-            Token::NewLine => true,
-        }
-    }
 }
 
 pub(crate) struct Lexer<'a> {
@@ -53,14 +42,14 @@ impl<'a> Lexer<'a> {
                 }
             } else if c == '=' {
                 self.flush_text();
-                self.push(Token::Equals);
+                self.result.push(Token::Equals);
             } else if c == ':' {
                 self.flush_text();
-                self.push(Token::Colon);
+                self.result.push(Token::Colon);
             } else if c == '\n' || c == '\r' {
                 self.flush_text();
                 self.maybe_consume_second_newline(c);
-                self.push(Token::NewLine);
+                self.result.push(Token::NewLine);
             } else if c == '$' {
                 match self.input.next() {
                     Some('{') => {
@@ -69,7 +58,7 @@ impl<'a> Lexer<'a> {
                         loop {
                             match self.input.next() {
                                 Some('}') => {
-                                    self.push(Token::Variable(name));
+                                    self.result.push(Token::Variable(name));
                                     break;
                                 }
                                 Some(c) if is_valid_identifier(c) => name.push(c),
@@ -98,6 +87,14 @@ impl<'a> Lexer<'a> {
                         }
                     }
                 }
+            } else if c == ' ' || c == '\t' {
+                self.flush_text();
+                // Whitespace is collected into a separate token so that the parser can trim.
+                let mut whitespace = c.to_string();
+                while let Some(' '| '\t') = self.input.peek() {
+                    whitespace.push(self.input.next().unwrap());
+                }
+                self.result.push(Token::Whitespace(whitespace));
             } else {
                 self.text_buffer.push(c);
             }
@@ -115,25 +112,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn push(&mut self, token: Token) {
-        if token.trim_when_adjacent_to_text() {
-            if let Some(Token::Text(last_text)) = self.result.last_mut() {
-                *last_text = last_text.trim_end_matches(' ').to_string();
-            }
-        }
-
-        self.result.push(token);
-    }
-
     fn flush_text(&mut self) {
-        let mut text = self.text_buffer.as_str();
-
-        if self.result.last().map(|t| t.trim_when_adjacent_to_text()).unwrap_or(true) {
-            text = text.trim_start_matches(' ');
-        }
-
-        if !text.is_empty() {
-            self.push(Token::Text(text.to_string()));
+        if !self.text_buffer.is_empty() {
+            self.result.push(Token::Text(self.text_buffer.clone()));
         }
         self.text_buffer.clear();
     }
@@ -163,22 +144,22 @@ mod tests {
 
     #[test]
     fn test_single_text() {
-        assert_lex("Hello world!", &[t("Hello world!")]);
+        assert_lex("Hello world!", &[t("Hello"), w(" "), t("world!")]);
     }
 
     #[test]
     fn test_key_value() {
         assert_lex("key=value", &[t("key"), Equals, t("value")]);
-        assert_lex("key = value", &[t("key"), Equals, t("value")]);
+        assert_lex("key = value", &[t("key"), w(" "), Equals, w(" "), t("value")]);
         assert_lex("key:value", &[t("key"), Colon, t("value")]);
-        assert_lex("key : value", &[t("key"), Colon, t("value")]);
+        assert_lex("key : value", &[t("key"), w(" "), Colon, w(" "), t("value")]);
     }
 
     #[test]
     fn test_adjacent_symbols() {
         assert_lex(":=", &[Colon, Equals]);
-        assert_lex(" : = ", &[Colon, Equals]);
-        assert_lex("foo : = bar", &[t("foo"), Colon, Equals, t("bar")]);
+        assert_lex(" : = ", &[w(" "), Colon, w(" "), Equals, w(" ")]);
+        assert_lex("foo : = bar", &[t("foo"), w(" "), Colon, w(" "), Equals, w(" "), t("bar")]);
     }
 
     #[test]
@@ -198,7 +179,7 @@ mod tests {
     #[test]
     fn test_variable() {
         assert_lex("${foo}", &[v("foo")]);
-        assert_lex("${foo} ${bar}", &[v("foo"), t(" "), v("bar")]);
+        assert_lex("${foo} ${bar}", &[v("foo"), w(" "), v("bar")]);
         assert_lex_error("${foo bar}", LexError::InvalidVariableChar(' '));
         assert_lex_error("${foo-bar}", LexError::InvalidVariableChar('-'));
         assert_lex_error("${foo", LexError::MissingCloseVariable);
@@ -206,12 +187,12 @@ mod tests {
 
     #[test]
     fn test_comments() {
-        assert_lex("foo # bar\nbaz", &[t("foo"), NewLine, t("baz")]);
+        assert_lex("foo # bar\nbaz", &[t("foo"), w(" "), NewLine, t("baz")]);
     }
 
     #[test]
     fn test_escaped_comment() {
-        assert_lex("foo \\# bar", &[t("foo # bar")]);
+        assert_lex("foo \\# bar", &[t("foo"), w(" "), t("#"), w(" "), t("bar")]);
     }
 
     #[test]
@@ -249,5 +230,9 @@ mod tests {
 
     fn v(name: &str) -> Token {
         Variable(name.into())
+    }
+
+    fn w(whitespace: &str) -> Token {
+        Whitespace(whitespace.into())
     }
 }

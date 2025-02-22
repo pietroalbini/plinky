@@ -1,0 +1,13 @@
+# Ensure that we don't OOM the system if there is a malicious file.
+
+a = ${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}${b}
+b = ${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}${c}
+c = ${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}${d}
+d = ${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}${e}
+e = ${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}${f}
+f = ${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}${g}
+g = ${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}${h}
+h = ${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}${i}
+i = Hello world!
+
+Name: ${a}

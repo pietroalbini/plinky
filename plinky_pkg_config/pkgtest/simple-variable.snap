@@ -1,0 +1,8 @@
+---
+source: plinky_pkg_config/pkgtest/harness.rs
+expression: rendered
+---
+Successfully parsed the file!
+
+Name: libhello
+Description: Library providing hello in a cute way.

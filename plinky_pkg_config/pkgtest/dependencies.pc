@@ -1,0 +1,6 @@
+filename = lib${soname}.so
+soname = ${libname}.0
+libname = hello
+
+Name: ${libname}
+Description: Library contained in ${filename}

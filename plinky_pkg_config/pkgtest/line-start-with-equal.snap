@@ -1,0 +1,7 @@
+---
+source: plinky_pkg_config/pkgtest/harness.rs
+expression: rendered
+---
+Failed to parse the file:
+
+error: expected directive or variable name, found =

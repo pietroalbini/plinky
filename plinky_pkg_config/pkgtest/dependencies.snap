@@ -1,0 +1,8 @@
+---
+source: plinky_pkg_config/pkgtest/harness.rs
+expression: rendered
+---
+Successfully parsed the file!
+
+Name: hello
+Description: Library contained in libhello.0.so

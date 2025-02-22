@@ -144,6 +144,8 @@ version = "0.0.0"
 name = "plinky_pkg_config"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "insta",
  "plinky_macros",
  "plinky_utils",
 ]

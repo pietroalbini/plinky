@@ -3,10 +3,17 @@ name = "plinky_pkg_config"
 version = "0.1.0"
 edition = "2024"
 
+[[test]]
+name = "pkgtest"
+path = "pkgtest/harness.rs"
+harness = false
+
 [dependencies]
 plinky_macros.workspace = true
 
 [dev-dependencies]
+anyhow.workspace = true
+insta.workspace = true
 plinky_utils.workspace = true
 
 [lints]

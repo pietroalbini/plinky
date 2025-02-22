@@ -1,4 +1,5 @@
 use plinky_macros::{Display, Error};
+use std::fmt::Display;
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -10,6 +11,19 @@ pub(crate) enum Token {
     Equals,
     Colon,
     NewLine,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::Text(text) => write!(f, "{text:?}"),
+            Token::Variable(var) => write!(f, "${{{var}}}"),
+            Token::Whitespace(_) => f.write_str("whitespace"),
+            Token::Equals => f.write_str("="),
+            Token::Colon => f.write_str(":"),
+            Token::NewLine => f.write_str("newline"),
+        }
+    }
 }
 
 pub(crate) struct Lexer<'a> {
@@ -91,7 +105,7 @@ impl<'a> Lexer<'a> {
                 self.flush_text();
                 // Whitespace is collected into a separate token so that the parser can trim.
                 let mut whitespace = c.to_string();
-                while let Some(' '| '\t') = self.input.peek() {
+                while let Some(' ' | '\t') = self.input.peek() {
                     whitespace.push(self.input.next().unwrap());
                 }
                 self.result.push(Token::Whitespace(whitespace));

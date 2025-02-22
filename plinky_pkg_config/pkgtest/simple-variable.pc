@@ -1,0 +1,4 @@
+foo = hello
+
+Name: lib${foo}
+Description: Library providing ${foo} in a cute way.

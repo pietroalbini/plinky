@@ -10,6 +10,9 @@ pub(crate) enum Token {
     Whitespace(String),
     Equals,
     Colon,
+    SingleQuote,
+    DoubleQuote,
+    Backslash,
     NewLine,
 }
 
@@ -21,6 +24,9 @@ impl Display for Token {
             Token::Whitespace(_) => f.write_str("whitespace"),
             Token::Equals => f.write_str("="),
             Token::Colon => f.write_str(":"),
+            Token::SingleQuote => f.write_str("'"),
+            Token::DoubleQuote => f.write_str("\""),
+            Token::Backslash => f.write_str("\\"),
             Token::NewLine => f.write_str("newline"),
         }
     }
@@ -52,7 +58,10 @@ impl<'a> Lexer<'a> {
                         self.maybe_consume_second_newline(c);
                     }
                     // In any other case, include the \ verbatim.
-                    Some(_) | None => self.text_buffer.push('\\'),
+                    Some(_) | None => {
+                        self.flush_text();
+                        self.result.push(Token::Backslash);
+                    },
                 }
             } else if c == '=' {
                 self.flush_text();
@@ -60,6 +69,12 @@ impl<'a> Lexer<'a> {
             } else if c == ':' {
                 self.flush_text();
                 self.result.push(Token::Colon);
+            } else if c == '\'' {
+                self.flush_text();
+                self.result.push(Token::SingleQuote);
+            } else if c == '"' {
+                self.flush_text();
+                self.result.push(Token::DoubleQuote);
             } else if c == '\n' || c == '\r' {
                 self.flush_text();
                 self.maybe_consume_second_newline(c);
@@ -171,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_adjacent_symbols() {
-        assert_lex(":=", &[Colon, Equals]);
+        assert_lex(":=\"'\\", &[Colon, Equals, DoubleQuote, SingleQuote, Backslash]);
         assert_lex(" : = ", &[w(" "), Colon, w(" "), Equals, w(" ")]);
         assert_lex("foo : = bar", &[t("foo"), w(" "), Colon, w(" "), Equals, w(" "), t("bar")]);
     }
@@ -218,8 +233,8 @@ mod tests {
 
     #[test]
     fn test_escape_non_escapable() {
-        assert_lex("foo\\bar", &[t("foo\\bar")]);
-        assert_lex("foo\\${bar}", &[t("foo\\"), v("bar")]);
+        assert_lex("foo\\bar", &[t("foo"), Backslash, t("bar")]);
+        assert_lex("foo\\${bar}", &[t("foo"), Backslash, v("bar")]);
     }
 
     #[track_caller]

@@ -76,6 +76,8 @@ impl Parser {
     }
 
     fn resolve_variables(&mut self) -> Result<BTreeMap<String, String>, ParseError> {
+        // TODO: default variables???
+
         let mut result = BTreeMap::new();
 
         // First try to resolve variables in a loop until there are no variables that can be
@@ -183,6 +185,9 @@ impl Parser {
             template.components.push(match self.next_token() {
                 Some(Token::Colon) => TemplateComponent::TextStatic(":"),
                 Some(Token::Equals) => TemplateComponent::TextStatic("="),
+                Some(Token::SingleQuote) => TemplateComponent::TextStatic("'"),
+                Some(Token::DoubleQuote) => TemplateComponent::TextStatic("\""),
+                Some(Token::Backslash) => TemplateComponent::TextStatic("\\"),
                 Some(Token::Text(text)) => TemplateComponent::Text(text),
                 Some(Token::Variable(var)) => TemplateComponent::Variable(var),
                 Some(Token::Whitespace(whitespace)) => {

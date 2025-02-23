@@ -3,6 +3,7 @@
 mod discover;
 mod lexer;
 mod parser;
+mod template;
 mod types;
 
 pub use crate::discover::{discover, PkgConfigEnv};

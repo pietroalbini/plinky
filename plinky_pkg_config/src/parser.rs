@@ -1,11 +1,10 @@
 use crate::lexer::{is_valid_identifier, LexError, Lexer, Token};
+use crate::template::{resolve_variables, Template, TemplateComponent};
 use crate::PkgConfig;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
 use std::iter::Peekable;
 use std::mem::take;
-
-const MAX_TEMPLATE_SIZE: usize = 1024 * 1024 * 64; // 64MB 
 
 pub(crate) struct Parser {
     tokens: Peekable<std::vec::IntoIter<Token>>,
@@ -57,7 +56,7 @@ impl Parser {
                 }
             }
         }
-        let vars = self.resolve_variables()?;
+        let vars = resolve_variables(&mut self.variables)?;
         Ok(resolve!(
             &vars,
             PkgConfig {
@@ -73,46 +72,6 @@ impl Parser {
                 libs_private,
             }
         ))
-    }
-
-    fn resolve_variables(&mut self) -> Result<BTreeMap<String, String>, ParseError> {
-        // TODO: default variables???
-
-        let mut result = BTreeMap::new();
-
-        // First try to resolve variables in a loop until there are no variables that can be
-        // resolved. This handles a variable depending on another variable without having a graph.
-        loop {
-            let mut this_cycle = 0;
-            let mut to_remove = Vec::new();
-
-            for (name, template) in self.variables.iter() {
-                match template.resolve(&result, WhileResolving::Variable(name.clone())) {
-                    Ok(resolved) => {
-                        result.insert(name.clone(), resolved);
-                        to_remove.push(name.clone());
-                        this_cycle += 1;
-                    },
-                    // Errors we ignore:
-                    Err(ParseError::UndefinedVariable(_, _)) => {},
-                    Err(err) => return Err(err),
-                }
-            }
-            for name in to_remove {
-                self.variables.remove(&name);
-            }
-
-            if this_cycle == 0 {
-                break;
-            }
-        }
-
-        // Then resolve the remaining variables without suppressing any error.
-        while let Some((name, template)) = self.variables.pop_first() {
-            result.insert(name.clone(), template.resolve(&result, WhileResolving::Variable(name))?);
-        }
-
-        Ok(result)
     }
 
     fn parse_line(&mut self) -> Result<(), ParseError> {
@@ -218,42 +177,6 @@ impl Parser {
     fn next_token(&mut self) -> Option<Token> {
         self.tokens.next()
     }
-}
-
-struct Template {
-    components: Vec<TemplateComponent>,
-}
-
-impl Template {
-    fn resolve(
-        &self,
-        variables: &BTreeMap<String, String>,
-        while_resolving: WhileResolving,
-    ) -> Result<String, ParseError> {
-        let mut output = String::new();
-        for component in &self.components {
-            let new = match component {
-                TemplateComponent::Text(text) => &*text,
-                TemplateComponent::TextStatic(text) => *text,
-                TemplateComponent::Variable(var) => {
-                    &*variables.get(var).ok_or_else(|| {
-                        ParseError::UndefinedVariable(var.clone(), while_resolving.clone())
-                    })?
-                }
-            };
-            if output.len() + new.len() > MAX_TEMPLATE_SIZE {
-                return Err(ParseError::ContentTooLarge(while_resolving.clone()));
-            }
-            output.push_str(new);
-        }
-        Ok(output)
-    }
-}
-
-enum TemplateComponent {
-    Text(String),
-    TextStatic(&'static str),
-    Variable(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Display, Clone)]

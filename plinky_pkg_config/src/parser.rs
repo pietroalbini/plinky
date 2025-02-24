@@ -178,7 +178,7 @@ impl Parser {
                 Some(Token::Text(text)) => TemplateComponent::Text(text),
                 Some(Token::Variable(var)) => TemplateComponent::Variable(var),
                 Some(Token::Whitespace(whitespace)) => {
-                    pending_whitespace.push_str(&whitespace);
+                    pending_whitespace.push(whitespace);
                     continue;
                 }
                 Some(Token::NewLine) => unreachable!(),
@@ -193,22 +193,45 @@ impl Parser {
         let mut result = Vec::new();
         let mut current = Template::new();
         let mut quote = QuoteMode::None;
+        let mut escaped_iterations: u8 = 0;
 
-        // TODO: implement backslash to escape
-
-        loop {
+        while self.tokens.peek() != Some(&Token::NewLine) {
             match self.next_token() {
                 Some(Token::SingleQuote) => match quote {
-                    QuoteMode::None => quote = QuoteMode::Single,
+                    QuoteMode::None if escaped_iterations == 0 => quote = QuoteMode::Single,
                     QuoteMode::Single => quote = QuoteMode::None,
-                    QuoteMode::Double => current.push(TemplateComponent::TextStatic("'")),
+                    _ => current.push(TemplateComponent::TextStatic("'")),
                 },
                 Some(Token::DoubleQuote) => match quote {
-                    QuoteMode::None => quote = QuoteMode::Double,
+                    QuoteMode::None if escaped_iterations == 0 => quote = QuoteMode::Double,
                     QuoteMode::Double => quote = QuoteMode::None,
-                    QuoteMode::Single => current.push(TemplateComponent::TextStatic("\"")),
+                    _ => current.push(TemplateComponent::TextStatic("\"")),
                 },
-                Some(Token::Backslash) => current.push(TemplateComponent::TextStatic("\\")),
+                Some(Token::Backslash) => {
+                    if escaped_iterations > 0 {
+                        current.push(TemplateComponent::TextStatic("\\"));
+                    } else {
+                        if quote.is_quoted() {
+                            // Inside of a quote we must always include the \ except when it's used
+                            // to prevent closing the quote itself. Handling this in the code
+                            // responsible for quoting would be too complex, so we handle those
+                            // specific cases here.
+                            match (quote, self.tokens.peek()) {
+                                (QuoteMode::Single, Some(Token::SingleQuote)) => {
+                                    self.next_token();
+                                    current.push(TemplateComponent::TextStatic("'"));
+                                }
+                                (QuoteMode::Double, Some(Token::DoubleQuote)) => {
+                                    self.next_token();
+                                    current.push(TemplateComponent::TextStatic("\""));
+                                }
+                                _ => current.push(TemplateComponent::TextStatic("\\")),
+                            }
+                        } else {
+                            escaped_iterations = 2; // Keep the escape valid for the next token too.
+                        }
+                    }
+                }
 
                 Some(Token::Colon) => current.push(TemplateComponent::TextStatic(":")),
                 Some(Token::Equals) => current.push(TemplateComponent::TextStatic("=")),
@@ -216,8 +239,8 @@ impl Parser {
                 Some(Token::Text(text)) => current.push(TemplateComponent::Text(text)),
                 Some(Token::Variable(var)) => current.push(TemplateComponent::Variable(var)),
                 Some(Token::Whitespace(whitespace)) => {
-                    if quote.is_quoted() {
-                        current.push(TemplateComponent::Text(whitespace));
+                    if quote.is_quoted() || escaped_iterations > 0 {
+                        current.push(TemplateComponent::Text(whitespace.to_string()));
                     } else {
                         if !current.is_empty() {
                             result.push(take(&mut current));
@@ -228,6 +251,7 @@ impl Parser {
                 Some(Token::NewLine) => break,
                 None => break, // EOF
             }
+            escaped_iterations = escaped_iterations.saturating_sub(1);
         }
 
         if quote.is_quoted() {
@@ -258,6 +282,7 @@ impl Parser {
     }
 }
 
+#[derive(Clone, Copy)]
 enum QuoteMode {
     None,
     Single,

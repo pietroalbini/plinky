@@ -1,0 +1,3 @@
+Name: libhello
+Libs: hello\"world
+Libs.private: hello\'world

@@ -7,7 +7,7 @@ use std::str::Chars;
 pub(crate) enum Token {
     Text(String),
     Variable(String),
-    Whitespace(String),
+    Whitespace(char),
     Equals,
     Colon,
     SingleQuote,
@@ -118,12 +118,7 @@ impl<'a> Lexer<'a> {
                 }
             } else if c == ' ' || c == '\t' {
                 self.flush_text();
-                // Whitespace is collected into a separate token so that the parser can trim.
-                let mut whitespace = c.to_string();
-                while let Some(' ' | '\t') = self.input.peek() {
-                    whitespace.push(self.input.next().unwrap());
-                }
-                self.result.push(Token::Whitespace(whitespace));
+                self.result.push(Token::Whitespace(c));
             } else {
                 self.text_buffer.push(c);
             }
@@ -173,22 +168,22 @@ mod tests {
 
     #[test]
     fn test_single_text() {
-        assert_lex("Hello world!", &[t("Hello"), w(" "), t("world!")]);
+        assert_lex("Hello world!", &[t("Hello"), w(' '), t("world!")]);
     }
 
     #[test]
     fn test_key_value() {
         assert_lex("key=value", &[t("key"), Equals, t("value")]);
-        assert_lex("key = value", &[t("key"), w(" "), Equals, w(" "), t("value")]);
+        assert_lex("key = value", &[t("key"), w(' '), Equals, w(' '), t("value")]);
         assert_lex("key:value", &[t("key"), Colon, t("value")]);
-        assert_lex("key : value", &[t("key"), w(" "), Colon, w(" "), t("value")]);
+        assert_lex("key : value", &[t("key"), w(' '), Colon, w(' '), t("value")]);
     }
 
     #[test]
     fn test_adjacent_symbols() {
         assert_lex(":=\"'\\", &[Colon, Equals, DoubleQuote, SingleQuote, Backslash]);
-        assert_lex(" : = ", &[w(" "), Colon, w(" "), Equals, w(" ")]);
-        assert_lex("foo : = bar", &[t("foo"), w(" "), Colon, w(" "), Equals, w(" "), t("bar")]);
+        assert_lex(" : = ", &[w(' '), Colon, w(' '), Equals, w(' ')]);
+        assert_lex("foo : = bar", &[t("foo"), w(' '), Colon, w(' '), Equals, w(' '), t("bar")]);
     }
 
     #[test]
@@ -208,7 +203,7 @@ mod tests {
     #[test]
     fn test_variable() {
         assert_lex("${foo}", &[v("foo")]);
-        assert_lex("${foo} ${bar}", &[v("foo"), w(" "), v("bar")]);
+        assert_lex("${foo} ${bar}", &[v("foo"), w(' '), v("bar")]);
         assert_lex_error("${foo bar}", LexError::InvalidVariableChar(' '));
         assert_lex_error("${foo-bar}", LexError::InvalidVariableChar('-'));
         assert_lex_error("${foo", LexError::MissingCloseVariable);
@@ -216,12 +211,12 @@ mod tests {
 
     #[test]
     fn test_comments() {
-        assert_lex("foo # bar\nbaz", &[t("foo"), w(" "), NewLine, t("baz")]);
+        assert_lex("foo # bar\nbaz", &[t("foo"), w(' '), NewLine, t("baz")]);
     }
 
     #[test]
     fn test_escaped_comment() {
-        assert_lex("foo \\# bar", &[t("foo"), w(" "), t("#"), w(" "), t("bar")]);
+        assert_lex("foo \\# bar", &[t("foo"), w(' '), t("#"), w(' '), t("bar")]);
     }
 
     #[test]
@@ -261,7 +256,7 @@ mod tests {
         Variable(name.into())
     }
 
-    fn w(whitespace: &str) -> Token {
-        Whitespace(whitespace.into())
+    fn w(whitespace: char) -> Token {
+        Whitespace(whitespace)
     }
 }

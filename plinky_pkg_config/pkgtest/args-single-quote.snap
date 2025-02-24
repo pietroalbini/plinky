@@ -1,0 +1,8 @@
+---
+source: plinky_pkg_config/pkgtest/harness.rs
+expression: rendered
+---
+Successfully parsed the file!
+
+Name: libhello
+Libs: -lfoo\ bar normal a\ \ \ lot\ \ of\ \ \ \ \ whitespace

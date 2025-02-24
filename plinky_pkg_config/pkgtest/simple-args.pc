@@ -1,0 +1,2 @@
+Name: hello
+Libs: -Ifoo/bar -lhello

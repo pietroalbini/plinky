@@ -9,6 +9,7 @@ use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use test::{test_main, ShouldPanic, TestDesc, TestDescAndFn, TestFn, TestName, TestType};
+use plinky_utils::posix_shell_quote;
 
 fn test(path: PathBuf) -> Result<(), Error> {
     let rendered = match PkgConfig::parse(&read_to_string(&path)?) {
@@ -27,22 +28,39 @@ fn test(path: PathBuf) -> Result<(), Error> {
             } = parsed;
 
             let mut output = "Successfully parsed the file!\n\n".to_string();
-            let mut push = |name: &str, slot: Option<String>| {
+
+            let mut push_str = |name: &str, slot: Option<String>| {
                 if let Some(value) = slot {
                     output.push_str(&format!("{name}: {value}\n"));
                 }
             };
+            push_str("Name", name);
+            push_str("Description", description);
+            push_str("URL", url);
+            push_str("Version", version);
+            push_str("Requires", requires);
+            push_str("Requires.private", requires_private);
+            push_str("Conflicts", conflicts);
 
-            push("Name", name);
-            push("Description", description);
-            push("URL", url);
-            push("Version", version);
-            push("Requires", requires);
-            push("Requires.private", requires_private);
-            push("Conflicts", conflicts);
-            push("CFlags", cflags);
-            push("Libs", libs);
-            push("Libs.private", libs_private);
+            let mut push_args = |name: &str, slot: Option<Vec<String>>| {
+                if let Some(value) = slot {
+                    output.push_str(name);
+                    output.push_str(": ");
+                    let mut first = true;
+                    for arg in value {
+                        if first {
+                            first = false;
+                        } else {
+                            output.push(' ');
+                        }
+                        output.push_str(&posix_shell_quote(&arg));
+                    }
+                    output.push('\n');
+                }
+            };
+            push_args("CFlags", cflags);
+            push_args("Libs", libs);
+            push_args("Libs.private", libs_private);
 
             output
         }

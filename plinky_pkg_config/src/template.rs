@@ -17,7 +17,7 @@ pub(crate) fn resolve_variables(
         let mut to_remove = Vec::new();
 
         for (name, template) in templates.iter() {
-            match template.resolve(&result, WhileResolving::Variable(name.clone())) {
+            match template.resolve(&result, &WhileResolving::Variable(name.clone())) {
                 Ok(resolved) => {
                     result.insert(name.clone(), resolved);
                     to_remove.push(name.clone());
@@ -39,22 +39,54 @@ pub(crate) fn resolve_variables(
 
     // Then resolve the remaining variables without suppressing any error.
     while let Some((name, template)) = templates.pop_first() {
-        result.insert(name.clone(), template.resolve(&result, WhileResolving::Variable(name))?);
+        result.insert(name.clone(), template.resolve(&result, &WhileResolving::Variable(name))?);
     }
 
     Ok(result)
 }
 
 pub(crate) struct Template {
-    pub(crate) components: Vec<TemplateComponent>,
+    components: Vec<TemplateComponent>,
 }
 
 impl Template {
-    pub(crate) fn resolve(
+    pub(crate) fn new() -> Self {
+        Self { components: Vec::new() }
+    }
+
+    pub(crate) fn push(&mut self, component: TemplateComponent) {
+        self.components.push(component);
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.components.is_empty()
+    }
+}
+
+impl Default for Template {
+    fn default() -> Self {
+        Template::new()
+    }
+}
+
+pub(crate) trait Resolvable {
+    type Output;
+
+    fn resolve(
         &self,
         variables: &BTreeMap<String, String>,
-        while_resolving: WhileResolving,
-    ) -> Result<String, ParseError> {
+        while_resolving: &WhileResolving,
+    ) -> Result<Self::Output, ParseError>;
+}
+
+impl Resolvable for Template {
+    type Output = String;
+
+    fn resolve(
+        &self,
+        variables: &BTreeMap<String, String>,
+        while_resolving: &WhileResolving,
+    ) -> Result<Self::Output, ParseError> {
         let mut output = String::new();
         for component in &self.components {
             let new = match component {
@@ -70,6 +102,18 @@ impl Template {
             output.push_str(new);
         }
         Ok(output)
+    }
+}
+
+impl<T: Resolvable> Resolvable for Vec<T> {
+    type Output = Vec<T::Output>;
+
+    fn resolve(
+        &self,
+        variables: &BTreeMap<String, String>,
+        while_resolving: &WhileResolving,
+    ) -> Result<Self::Output, ParseError> {
+        self.iter().map(|resolvable| resolvable.resolve(variables, while_resolving)).collect()
     }
 }
 

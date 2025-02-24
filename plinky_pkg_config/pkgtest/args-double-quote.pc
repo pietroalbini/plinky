@@ -1,0 +1,2 @@
+Name: libhello
+Libs: "-lfoo bar" "normal" "a   lot  of     whitespace"

@@ -1,0 +1,4 @@
+include=/this/path/has a space/in/it
+
+Name: hello
+Libs: -I${include}

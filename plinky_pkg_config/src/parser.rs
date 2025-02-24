@@ -1,5 +1,5 @@
 use crate::lexer::{is_valid_identifier, LexError, Lexer, Token};
-use crate::template::{resolve_variables, Template, TemplateComponent};
+use crate::template::{resolve_variables, Resolvable, Template, TemplateComponent};
 use crate::PkgConfig;
 use plinky_macros::{Display, Error};
 use std::collections::BTreeMap;
@@ -17,9 +17,9 @@ pub(crate) struct Parser {
     requires: Option<Template>,
     requires_private: Option<Template>,
     conflicts: Option<Template>,
-    cflags: Option<Template>,
-    libs: Option<Template>,
-    libs_private: Option<Template>,
+    cflags: Option<Vec<Template>>,
+    libs: Option<Vec<Template>>,
+    libs_private: Option<Vec<Template>>,
 }
 
 impl Parser {
@@ -50,7 +50,7 @@ impl Parser {
                 $ty {
                     $(
                         $field: self.$field.map(|f|
-                            f.resolve($resolved, WhileResolving::Field(stringify!($field)))
+                            f.resolve($resolved, &WhileResolving::Field(stringify!($field)))
                         ).transpose()?,
                     )*
                 }
@@ -87,26 +87,54 @@ impl Parser {
 
         match self.next_token() {
             Some(Token::Colon) => {
-                self.skip_whitespace();
-                let value = self.parse_template()?;
-
-                let storage = match key.as_str() {
-                    "Name" => &mut self.name,
-                    "Description" => &mut self.description,
-                    "URL" => &mut self.url,
-                    "Version" => &mut self.version,
-                    "Requires" => &mut self.requires,
-                    "Requires.private" => &mut self.requires_private,
-                    "Conflicts" => &mut self.conflicts,
-                    "Cflags" => &mut self.cflags,
-                    "Libs" => &mut self.libs,
-                    "Libs.private" => &mut self.libs_private,
+                let field: Field = match key.as_str() {
+                    "Name" => StringField::Name.into(),
+                    "Description" => StringField::Description.into(),
+                    "URL" => StringField::Url.into(),
+                    "Version" => StringField::Version.into(),
+                    "Requires" => StringField::Requires.into(),
+                    "Requires.private" => StringField::RequiresPrivate.into(),
+                    "Conflicts" => StringField::Conflicts.into(),
+                    "Cflags" => ArgsField::CFlags.into(),
+                    "Libs" => ArgsField::Libs.into(),
+                    "Libs.private" => ArgsField::LibsPrivate.into(),
                     _ => return Err(ParseError::UnknownField(key)),
                 };
-                if storage.is_some() {
-                    return Err(ParseError::DuplicateField(key));
+
+                match field {
+                    Field::String(field) => {
+                        self.skip_whitespace();
+                        let value = self.parse_template()?;
+
+                        let storage = match field {
+                            StringField::Name => &mut self.name,
+                            StringField::Description => &mut self.description,
+                            StringField::Url => &mut self.url,
+                            StringField::Version => &mut self.version,
+                            StringField::Requires => &mut self.requires,
+                            StringField::RequiresPrivate => &mut self.requires_private,
+                            StringField::Conflicts => &mut self.conflicts,
+                        };
+                        if storage.is_some() {
+                            return Err(ParseError::DuplicateField(key));
+                        }
+                        *storage = Some(value);
+                    }
+                    Field::Args(field) => {
+                        self.skip_whitespace();
+                        let value = self.parse_args()?;
+
+                        let storage = match field {
+                            ArgsField::CFlags => &mut self.cflags,
+                            ArgsField::Libs => &mut self.libs,
+                            ArgsField::LibsPrivate => &mut self.libs_private,
+                        };
+                        if storage.is_some() {
+                            return Err(ParseError::DuplicateField(key));
+                        }
+                        *storage = Some(value);
+                    }
                 }
-                *storage = Some(value);
             }
             Some(Token::Equals) => {
                 self.skip_whitespace();
@@ -133,15 +161,15 @@ impl Parser {
     }
 
     fn parse_template(&mut self) -> Result<Template, ParseError> {
-        let mut template = Template { components: Vec::new() };
+        let mut template = Template::new();
         let mut pending_whitespace = String::new();
 
         while self.tokens.peek() != Some(&Token::NewLine) {
             if !pending_whitespace.is_empty() {
-                template.components.push(TemplateComponent::Text(take(&mut pending_whitespace)));
+                template.push(TemplateComponent::Text(take(&mut pending_whitespace)));
             }
 
-            template.components.push(match self.next_token() {
+            template.push(match self.next_token() {
                 Some(Token::Colon) => TemplateComponent::TextStatic(":"),
                 Some(Token::Equals) => TemplateComponent::TextStatic("="),
                 Some(Token::SingleQuote) => TemplateComponent::TextStatic("'"),
@@ -161,6 +189,57 @@ impl Parser {
         Ok(template)
     }
 
+    fn parse_args(&mut self) -> Result<Vec<Template>, ParseError> {
+        let mut result = Vec::new();
+        let mut current = Template::new();
+        let mut quote = QuoteMode::None;
+
+        // TODO: implement backslash to escape
+
+        loop {
+            match self.next_token() {
+                Some(Token::SingleQuote) => match quote {
+                    QuoteMode::None => quote = QuoteMode::Single,
+                    QuoteMode::Single => quote = QuoteMode::None,
+                    QuoteMode::Double => current.push(TemplateComponent::TextStatic("'")),
+                },
+                Some(Token::DoubleQuote) => match quote {
+                    QuoteMode::None => quote = QuoteMode::Double,
+                    QuoteMode::Double => quote = QuoteMode::None,
+                    QuoteMode::Single => current.push(TemplateComponent::TextStatic("\"")),
+                },
+                Some(Token::Backslash) => current.push(TemplateComponent::TextStatic("\\")),
+
+                Some(Token::Colon) => current.push(TemplateComponent::TextStatic(":")),
+                Some(Token::Equals) => current.push(TemplateComponent::TextStatic("=")),
+
+                Some(Token::Text(text)) => current.push(TemplateComponent::Text(text)),
+                Some(Token::Variable(var)) => current.push(TemplateComponent::Variable(var)),
+                Some(Token::Whitespace(whitespace)) => {
+                    if quote.is_quoted() {
+                        current.push(TemplateComponent::Text(whitespace));
+                    } else {
+                        if !current.is_empty() {
+                            result.push(take(&mut current));
+                        }
+                    }
+                }
+
+                Some(Token::NewLine) => break,
+                None => break, // EOF
+            }
+        }
+
+        if quote.is_quoted() {
+            return Err(ParseError::UnterminatedQuote);
+        }
+
+        if !current.is_empty() {
+            result.push(current);
+        }
+        Ok(result)
+    }
+
     fn skip_whitespace(&mut self) {
         while let Some(Token::Whitespace(_)) = self.tokens.peek() {
             self.next_token();
@@ -177,6 +256,55 @@ impl Parser {
     fn next_token(&mut self) -> Option<Token> {
         self.tokens.next()
     }
+}
+
+enum QuoteMode {
+    None,
+    Single,
+    Double,
+}
+
+impl QuoteMode {
+    fn is_quoted(&self) -> bool {
+        match self {
+            QuoteMode::None => false,
+            QuoteMode::Single => true,
+            QuoteMode::Double => true,
+        }
+    }
+}
+
+enum Field {
+    String(StringField),
+    Args(ArgsField),
+}
+
+impl From<StringField> for Field {
+    fn from(value: StringField) -> Self {
+        Field::String(value)
+    }
+}
+
+impl From<ArgsField> for Field {
+    fn from(value: ArgsField) -> Self {
+        Field::Args(value)
+    }
+}
+
+enum StringField {
+    Name,
+    Description,
+    Url,
+    Version,
+    Requires,
+    RequiresPrivate,
+    Conflicts,
+}
+
+enum ArgsField {
+    CFlags,
+    Libs,
+    LibsPrivate,
 }
 
 #[derive(Debug, PartialEq, Eq, Display, Clone)]
@@ -207,4 +335,6 @@ pub enum ParseError {
     UnknownField(String),
     #[display("duplicate field {f0}")]
     DuplicateField(String),
+    #[display("unterminated quote")]
+    UnterminatedQuote,
 }

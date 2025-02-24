@@ -1,0 +1,8 @@
+---
+source: plinky_pkg_config/pkgtest/harness.rs
+expression: rendered
+---
+Successfully parsed the file!
+
+Name: hello
+Libs: -I/this/path/has\ a\ space/in/it

@@ -9,9 +9,9 @@ pub struct PkgConfig {
     pub requires: Option<String>,
     pub requires_private: Option<String>,
     pub conflicts: Option<String>,
-    pub cflags: Option<String>,
-    pub libs: Option<String>,
-    pub libs_private: Option<String>,
+    pub cflags: Option<Vec<String>>,
+    pub libs: Option<Vec<String>>,
+    pub libs_private: Option<Vec<String>>,
 }
 
 impl PkgConfig {

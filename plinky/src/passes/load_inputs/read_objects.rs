@@ -1,7 +1,8 @@
-use crate::cli::{CliInput, CliInputOptions, CliInputValue};
+use crate::cli::{CliInput, CliInputOptions};
 use crate::diagnostics::builders::NoSymbolNameAtArchiveStartDiagnostic;
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
+use crate::utils::resolve_cli_input::{resolve_cli_input, ResolveCliInputError};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::ObjectSpan;
 use plinky_elf::{ElfReader, LoadError};
@@ -37,24 +38,26 @@ impl<'a> ObjectsReader<'a> {
             let input = &self.remaining_inputs[0];
             self.remaining_inputs = &self.remaining_inputs[1..];
 
-            let (path, library_name) = self.resolve_input(input)?;
+            let resolved = resolve_cli_input(&self.search_paths, input)?;
 
             let mut r = BufReader::new(
-                File::open(&path).map_err(|e| ReadObjectsError::OpenFailed(path.clone(), e))?,
+                File::open(&resolved.path)
+                    .map_err(|e| ReadObjectsError::OpenFailed(resolved.path.clone(), e))?,
             );
-            match FileType::from_magic_number(&path, &mut r)? {
+            match FileType::from_magic_number(&resolved.path, &mut r)? {
                 FileType::Elf => {
                     return Ok(Some(NextObject {
-                        source: ObjectSpan::new_file(&path),
-                        library_name,
-                        reader: ElfReader::new_owned(Box::new(r))
-                            .map_err(|e| ReadObjectsError::FileParseFailed(path.clone(), e))?,
+                        source: ObjectSpan::new_file(&resolved.path),
+                        library_name: LibraryName::Known(resolved.library_name),
+                        reader: ElfReader::new_owned(Box::new(r)).map_err(|e| {
+                            ReadObjectsError::FileParseFailed(resolved.path.clone(), e)
+                        })?,
                         options: input.options.clone(),
                     }));
                 }
                 FileType::Ar => {
                     if let Some(archive) =
-                        PendingArchive::new(path.clone(), r, symbols, &input.options)?
+                        PendingArchive::new(resolved.path.clone(), r, symbols, &input.options)?
                     {
                         self.current_archive = Some(archive);
                     }
@@ -62,56 +65,6 @@ impl<'a> ObjectsReader<'a> {
                 }
             }
         }
-    }
-
-    fn resolve_input(&self, input: &CliInput) -> Result<(PathBuf, LibraryName), ReadObjectsError> {
-        let mut names = Vec::new();
-        match &input.value {
-            CliInputValue::Path(p) => {
-                return Ok((p.clone(), LibraryName::Known(path_to_string(&p)?)));
-            }
-            CliInputValue::Library(name) => {
-                if input.options.search_shared_objects {
-                    names.push(format!("lib{name}.so"));
-                }
-                names.push(format!("lib{name}.a"));
-            }
-            CliInputValue::LibraryVerbatim(verbatim) => names.push(verbatim.clone()),
-        }
-
-        // This is a closure to only run it lazily.
-        let library_for_error = || match &input.value {
-            CliInputValue::Path(_) => unreachable!(),
-            CliInputValue::Library(name) => name.clone(),
-            CliInputValue::LibraryVerbatim(verbatim) => format!(":{verbatim}"),
-        };
-
-        for search_path in self.search_paths {
-            for name in &names {
-                let path = search_path.join(name);
-                match std::fs::metadata(&path) {
-                    Ok(_) => {
-                        return Ok((
-                            path,
-                            // When a library is linked with -l, the library path that will be
-                            // included in DT_NEEDED won't be the real path of the library, but
-                            // just the file name (assuming the library doesn't have DT_SONAME).
-                            LibraryName::Known(name.into()),
-                        ));
-                    }
-                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => continue,
-                    Err(err) => {
-                        return Err(ReadObjectsError::OpenLibraryCandidate {
-                            library: library_for_error(),
-                            path,
-                            err,
-                        });
-                    }
-                }
-            }
-        }
-
-        Err(ReadObjectsError::MissingLibrary(library_for_error()))
     }
 
     fn next_from_archive(
@@ -221,13 +174,6 @@ impl<'a> PendingArchive<'a> {
     }
 }
 
-fn path_to_string(path: &Path) -> Result<String, ReadObjectsError> {
-    Ok(path
-        .to_str()
-        .ok_or_else(|| ReadObjectsError::NonUtf8FileName { lossy: path.to_string_lossy().into() })?
-        .to_string())
-}
-
 enum FileType {
     Elf,
     Ar,
@@ -284,15 +230,6 @@ pub(crate) enum ReadObjectsError {
         #[diagnostic]
         diagnostic: NoSymbolNameAtArchiveStartDiagnostic,
     },
-    #[display("file name is not UTF-8: {lossy}")]
-    NonUtf8FileName { lossy: String },
-    #[display("failed to open path while searching for library {library}: {path:?}")]
-    OpenLibraryCandidate {
-        library: String,
-        path: PathBuf,
-        #[source]
-        err: std::io::Error,
-    },
-    #[display("missing library {f0}")]
-    MissingLibrary(String),
+    #[transparent]
+    ResolveCliInput(ResolveCliInputError),
 }

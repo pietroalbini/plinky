@@ -1,0 +1,2 @@
+Name: libexample
+Libs: -L. -lexample

@@ -1,0 +1,18 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: undefined symbol: missing
+ │
+ │  note: could not check if these libraries contained the symbol:
+ │
+ │  ╭──────────────┬────────────────────────────────────────┬─────────────────────────────────────────────────────────╮
+ │  │ Package name │ pkg-config file                        │ Error message                                           │
+ │  ├──────────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
+ │  │ libbadflags  │ dir.pkg_config_badflags/libbadflags.pc │ invalid Libs field: flag --unsupported is not supported │
+ │  ╰──────────────┴────────────────────────────────────────┴─────────────────────────────────────────────────────────╯
+ ┴

@@ -62,6 +62,17 @@ impl<'reader, 'src> ElfDynamicReader<'reader, 'src> {
         Ok(self.needed_libraries.as_ref().unwrap())
     }
 
+    pub fn has_symbol(&mut self, name: &str) -> Result<bool, ReadDynamicError> {
+        // TODO: implement this by looking into the hash map
+        let symbols = self.symbols()?;
+        for symbol in symbols {
+            if symbol.name == name {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     pub fn symbols(&mut self) -> Result<&[ElfSymbolInDynamic], ReadDynamicError> {
         if self.symbols.is_none() {
             let content_entry_len = self.dynamic.symbol_entry_size.get()?;

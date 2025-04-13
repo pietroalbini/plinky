@@ -1,0 +1,31 @@
+archs = ["x86_64"]
+
+[plinky.found_archive]
+cmd = ["${asm.hello}"]
+kind = "link-fail"
+link-env = { PKG_CONFIG_PATH = "${dir.pkg_config}" }
+auxiliary-files = ["${ar.libexample}"]
+
+[plinky.found_dynamic]
+cmd = ["${asm.hello}"]
+kind = "link-fail"
+link-env = { PKG_CONFIG_PATH = "${dir.pkg_config}" }
+auxiliary-files = ["${ld.libexample}"]
+
+[dir.pkg_config]
+files = ["libexample.pc"]
+
+[ar.libexample]
+output = "libexample.a"
+content = ["${asm.libexample}"]
+
+[ld.libexample]
+output = "libexample.so"
+content = ["${asm.libexample}"]
+shared-library = true
+
+[asm.libexample]
+source = "libexample.S"
+
+[asm.hello]
+source = "hello.S"

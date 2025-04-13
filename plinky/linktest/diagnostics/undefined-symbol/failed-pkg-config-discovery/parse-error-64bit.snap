@@ -10,9 +10,9 @@ error: undefined symbol: missing
  │
  │  note: could not check if these libraries contained the symbol:
  │
- │  ╭──────────────┬───────────────────────────┬─────────────────╮
- │  │ Package name │ pkg-config file           │ Error message   │
- │  ├──────────────┼───────────────────────────┼─────────────────┤
- │  │ libmean      │ dir.pkg_config/libmean.pc │ unknown field > │
- │  ╰──────────────┴───────────────────────────┴─────────────────╯
+ │  ╭──────────────┬────────────────────────────────┬─────────────────╮
+ │  │ Package name │ pkg-config file                │ Error message   │
+ │  ├──────────────┼────────────────────────────────┼─────────────────┤
+ │  │ libmean      │ dir.pkg_config_mean/libmean.pc │ unknown field > │
+ │  ╰──────────────┴────────────────────────────────┴─────────────────╯
  ┴

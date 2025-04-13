@@ -18,6 +18,8 @@ struct PlinkyStep {
     link_env: BTreeMap<String, Template>,
     #[serde(default)]
     run_env: BTreeMap<String, Template>,
+    #[serde(default)]
+    auxiliary_files: Vec<Template>,
 }
 
 impl Step for PlinkyStep {
@@ -51,6 +53,7 @@ impl Step for PlinkyStep {
             .chain(self.cmd.iter().cloned())
             .chain(self.link_env.values().cloned())
             .chain(self.run_env.values().cloned())
+            .chain(self.auxiliary_files.iter().cloned())
             .collect()
     }
 
@@ -78,6 +81,9 @@ impl PlinkyStep {
         }
         for (key, value) in &self.link_env {
             command.env(key, value.resolve_with(&*ctx.template, &hooks)?);
+        }
+        for file in &self.auxiliary_files {
+            file.resolve_with(&*ctx.template, &hooks)?;
         }
 
         // In NixOS, the default linker is just a stub that errors out (since you are not supposed

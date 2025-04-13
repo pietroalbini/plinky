@@ -1,0 +1,18 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: undefined symbol: libexample_init
+ │
+ │  note: could not check if these libraries contained the symbol:
+ │
+ │  ╭──────────────┬──────────────────────────────┬────────────────────────────╮
+ │  │ Package name │ pkg-config file              │ Error message              │
+ │  ├──────────────┼──────────────────────────────┼────────────────────────────┤
+ │  │ libexample   │ dir.pkg_config/libexample.pc │ missing library libexample │
+ │  ╰──────────────┴──────────────────────────────┴────────────────────────────╯
+ ┴

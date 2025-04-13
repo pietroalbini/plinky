@@ -64,6 +64,7 @@ fn path_to_string(path: &Path) -> Result<String, ResolveCliInputError> {
         .to_string())
 }
 
+#[derive(Debug)]
 pub(crate) struct ResolvedInput {
     pub(crate) path: PathBuf,
     pub(crate) library_name: String,

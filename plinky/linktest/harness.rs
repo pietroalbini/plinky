@@ -1,4 +1,4 @@
-use anyhow::{Error, anyhow, bail};
+use anyhow::{anyhow, bail, Error};
 use plinky_test_harness::template::{ResolveHooks, Template, Value};
 use plinky_test_harness::utils::RunAndSnapshot;
 use plinky_test_harness::{Step, TestContext};
@@ -14,6 +14,8 @@ struct PlinkyStep {
     kind: Template,
     #[serde(default)]
     debug_print: Vec<String>,
+    #[serde(default)]
+    link_env: BTreeMap<String, Template>,
     #[serde(default)]
     run_env: BTreeMap<String, Template>,
 }
@@ -47,6 +49,7 @@ impl Step for PlinkyStep {
     fn templates(&self) -> Vec<Template> {
         once(self.kind.clone())
             .chain(self.cmd.iter().cloned())
+            .chain(self.link_env.values().cloned())
             .chain(self.run_env.values().cloned())
             .collect()
     }
@@ -72,6 +75,9 @@ impl PlinkyStep {
         command.current_dir(&dest).args(&cmd).env("RUST_BACKTRACE", "1");
         for debug_print in &self.debug_print {
             command.args(["--debug-print", debug_print]);
+        }
+        for (key, value) in &self.link_env {
+            command.env(key, value.resolve_with(&*ctx.template, &hooks)?);
         }
 
         // In NixOS, the default linker is just a stub that errors out (since you are not supposed

@@ -18,6 +18,7 @@ harness = false
 plinky_ar.workspace = true
 plinky_diagnostics.workspace = true
 plinky_macros.workspace = true
+plinky_pkg_config.workspace = true
 plinky_elf.workspace = true
 plinky_utils.workspace = true
 

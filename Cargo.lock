@@ -93,6 +93,7 @@ dependencies = [
  "plinky_diagnostics",
  "plinky_elf",
  "plinky_macros",
+ "plinky_pkg_config",
  "plinky_test_harness",
  "plinky_utils",
  "serde",

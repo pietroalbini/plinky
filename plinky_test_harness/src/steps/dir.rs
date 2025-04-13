@@ -17,7 +17,7 @@ impl Step for DirStep {
 
         for template in &self.files {
             let resolved = template.resolve(&*ctx.template)?;
-            std::fs::copy(&resolved, dest.join(file_name(&resolved)))?;
+            std::fs::copy(ctx.maybe_relative_to_src(&resolved), dest.join(file_name(&resolved)))?;
         }
 
         ctx.template.set_variable(ctx.step_name, Value::Path(dest));

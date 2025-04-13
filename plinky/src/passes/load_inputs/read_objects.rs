@@ -2,6 +2,7 @@ use crate::cli::{CliInput, CliInputOptions};
 use crate::diagnostics::builders::NoSymbolNameAtArchiveStartDiagnostic;
 use crate::interner::intern;
 use crate::repr::symbols::{SymbolValue, Symbols};
+use crate::utils::file_type::{FileType, FileTypeError};
 use crate::utils::resolve_cli_input::{resolve_cli_input, ResolveCliInputError};
 use plinky_ar::{ArFile, ArMemberId, ArReadError, ArReader};
 use plinky_diagnostics::ObjectSpan;
@@ -9,8 +10,8 @@ use plinky_elf::{ElfReader, LoadError};
 use plinky_macros::{Display, Error};
 use std::collections::{HashSet, VecDeque};
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read};
-use std::path::{Path, PathBuf};
+use std::io::{BufReader, Cursor};
+use std::path::PathBuf;
 
 pub(super) struct ObjectsReader<'a> {
     search_paths: &'a [PathBuf],
@@ -174,30 +175,6 @@ impl<'a> PendingArchive<'a> {
     }
 }
 
-enum FileType {
-    Elf,
-    Ar,
-}
-
-impl FileType {
-    fn from_magic_number(
-        path: &Path,
-        reader: &mut BufReader<File>,
-    ) -> Result<Self, ReadObjectsError> {
-        let io_err = |e| ReadObjectsError::MagicNumberReadFailed(path.into(), e);
-
-        let mut magic = [0; 8];
-        reader.read_exact(&mut magic).map_err(io_err)?;
-        reader.seek_relative(-(magic.len() as i64)).map_err(io_err)?;
-
-        match &magic {
-            [0x7F, b'E', b'L', b'F', ..] => Ok(FileType::Elf),
-            b"!<arch>\n" => Ok(FileType::Ar),
-            _ => Err(ReadObjectsError::UnsupportedFileType),
-        }
-    }
-}
-
 pub(super) struct NextObject {
     pub(super) reader: ElfReader<'static>,
     pub(super) library_name: LibraryName,
@@ -214,22 +191,20 @@ pub(super) enum LibraryName {
 pub(crate) enum ReadObjectsError {
     #[display("failed to open {f0:?}")]
     OpenFailed(PathBuf, #[source] std::io::Error),
-    #[display("failed to read the magic number to detect the file type of {f0:?}")]
-    MagicNumberReadFailed(PathBuf, #[source] std::io::Error),
     #[display("failed to extract the next file from the archive {f0:?}")]
     ExtractFailed(PathBuf, #[source] ArReadError),
     #[display("failed to parse archive member {f0} of {f1:?}")]
     ArchiveFileParseFailed(String, PathBuf, #[source] LoadError),
     #[display("failed to parse {f0:?}")]
     FileParseFailed(PathBuf, #[source] LoadError),
-    #[display("unsupported file type")]
-    UnsupportedFileType,
     #[display("the first member of the archive {path:?} is not a symbol table")]
     NoSymbolTableAtArchiveStart {
         path: PathBuf,
         #[diagnostic]
         diagnostic: NoSymbolNameAtArchiveStartDiagnostic,
     },
+    #[transparent]
+    FileType(FileTypeError),
     #[transparent]
     ResolveCliInput(ResolveCliInputError),
 }

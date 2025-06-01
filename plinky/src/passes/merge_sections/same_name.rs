@@ -44,9 +44,10 @@ pub(super) fn run(
         let interned_source = intern(source.clone());
 
         let mut offset = Offset::from(0);
+        let mut is_retain = false;
         for old in sections {
-            let SectionContent::Data(old_data) = object.sections.remove(old.id, None).content
-            else {
+            let old_section = object.sections.remove(old.id, None);
+            let SectionContent::Data(old_data) = old_section.content else {
                 panic!("only data sections should reach here");
             };
 
@@ -54,6 +55,10 @@ pub(super) fn run(
             for mut relocation in old_data.relocations {
                 relocation.offset = relocation.offset.add(offset)?;
                 data.relocations.push(relocation);
+            }
+
+            if old_section.retain {
+                is_retain = true;
             }
 
             merged.insert(old.id, SameNameMerge { target: id, offset, span: interned_source });
@@ -64,6 +69,7 @@ pub(super) fn run(
             .sections
             .builder(key.name.resolve().as_str(), data)
             .source(source)
+            .retain(is_retain)
             .create_in_placeholder(id);
     }
 

@@ -15,8 +15,8 @@ use crate::repr::object::Object;
 use crate::repr::sections::SectionId;
 use crate::utils::address_resolver::AddressResolver;
 use plinky_diagnostics::GatheredContext;
-use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_elf::ElfObject;
+use plinky_elf::writer::layout::{Layout, LayoutError};
 use plinky_macros::{Display, Error};
 
 pub(crate) struct Linker {
@@ -56,12 +56,12 @@ impl Linker {
 
         passes::mark_shared_library_symbols::run(&mut object);
 
+        passes::merge_sections::run(&mut object)?;
+
         if options.gc_sections {
             let removed = passes::gc_sections::run(&mut object);
             callbacks.on_sections_removed_by_gc(&object, &removed);
         }
-
-        passes::merge_sections::run(&mut object)?;
 
         let relocs_analysis = passes::analyze_relocations::run(&object)?;
         callbacks.on_relocations_analyzed(&object, &relocs_analysis);

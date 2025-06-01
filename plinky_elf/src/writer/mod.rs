@@ -103,9 +103,11 @@ impl<'a> Writer<'a> {
             version: 1,
             abi: match self.object.env.abi {
                 ElfABI::SystemV => 0,
+                ElfABI::Gnu => 3,
             },
             abi_version: match self.object.env.abi {
                 ElfABI::SystemV => 0,
+                ElfABI::Gnu => 0,
             },
             padding: RawPadding,
         })

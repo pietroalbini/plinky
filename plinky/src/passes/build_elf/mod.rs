@@ -174,6 +174,7 @@ impl<'a> ElfBuilder<'a> {
                 memory_address: 0,
                 part_of_group: false,
                 content: ElfSectionContent::Null,
+                retain: false,
             },
         );
 
@@ -258,6 +259,7 @@ impl<'a> ElfBuilder<'a> {
                         .map(|m| m.address.extract())
                         .unwrap_or(0),
                     part_of_group: false,
+                    retain: section.retain,
                     content,
                 },
             );

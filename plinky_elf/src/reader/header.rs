@@ -27,6 +27,7 @@ pub(crate) fn read_header(cursor: &mut ReadCursor<'_>) -> Result<ReadHeader, Loa
     };
     let abi = match (identification.abi, identification.abi_version) {
         (0, 0) => ElfABI::SystemV,
+        (3, 0) => ElfABI::Gnu,
         (0, version) => return Err(LoadError::BadAbiVersion(ElfABI::SystemV, version)),
         (abi, _) => return Err(LoadError::BadAbi(abi)),
     };

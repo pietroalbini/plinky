@@ -21,6 +21,7 @@ pub(super) fn render_meta(object: &ElfObject) -> impl Widget + use<> {
         "ABI",
         match object.env.abi {
             ElfABI::SystemV => "System V",
+            ElfABI::Gnu => "GNU",
         },
     ]);
     table.add_body([

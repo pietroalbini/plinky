@@ -40,7 +40,7 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
             SectionContent::Data(data) if data.perms.read => {}
             SectionContent::Uninitialized(uninit) if uninit.perms.read => {}
             _ => {
-                visitor.to_save.insert(section.id);
+                visitor.queue.insert(section.id);
             }
         }
 

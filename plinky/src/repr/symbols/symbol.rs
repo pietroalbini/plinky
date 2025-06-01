@@ -75,6 +75,7 @@ impl Symbol {
                 SymbolValue::Undefined => {
                     Err(ResolveSymbolErrorKind::Undefined(UndefinedSymbolDiagnostic {
                         name: symbol.name(),
+                        expected_visibility: symbol.visibility(),
                     }))
                 }
                 SymbolValue::Absolute { value } => {
@@ -124,7 +125,7 @@ pub(crate) enum SymbolType {
     Section,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SymbolVisibility {
     Local,
     Global { weak: bool, hidden: bool },

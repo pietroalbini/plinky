@@ -1,5 +1,5 @@
 use crate::passes::build_elf::gnu_hash::{GnuHashResult, GnuHasher};
-use crate::repr::symbols::Symbol;
+use crate::repr::symbols::{Symbol, SymbolValue};
 use plinky_elf::ElfClass;
 use plinky_macros::Display;
 use std::fmt::{Debug, Display};
@@ -72,5 +72,22 @@ fn gnu_hash_sorting_key(symbol: &Symbol, hasher: &GnuHasher) -> (u32, u32) {
         // hashed items together by bucket. This is needed by the GNU Hash format.
         GnuHashResult::NotHashed => (0, 0),
         GnuHashResult::Hashed { bucket, .. } => (1, bucket),
+    }
+}
+
+#[derive(Clone, Copy, Debug, Display)]
+#[display("defined symbols")]
+pub(crate) struct DefinedSymbols;
+
+impl SymbolsView for DefinedSymbols {
+    fn filter(&self, symbol: &Symbol) -> bool {
+        match symbol.value() {
+            SymbolValue::Absolute { .. }
+            | SymbolValue::Section { .. }
+            | SymbolValue::SectionRelative { .. }
+            | SymbolValue::SectionVirtualAddress { .. }
+            | SymbolValue::ExternallyDefined => true,
+            SymbolValue::SectionNotLoaded | SymbolValue::Undefined | SymbolValue::Null => false,
+        }
     }
 }

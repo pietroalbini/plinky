@@ -1,0 +1,18 @@
+---
+source: plinky_test_harness/src/utils.rs
+---
+linking exited with exit status: 1
+
+no stdout present
+
+=== stderr ===
+error: undefined symbol: _start
+ │
+ │  help: a symbol with the same name exists, but it's local
+ │
+ │  note: the linker is looking for a global symbol
+ │
+ │  note: `_start` is the entry point of the executable
+ │
+ │  note: this is the default entry point for the platform, pass `-e <name> to customize it
+ ┴

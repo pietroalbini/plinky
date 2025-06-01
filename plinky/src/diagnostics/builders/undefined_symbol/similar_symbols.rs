@@ -1,9 +1,8 @@
 use crate::diagnostics::builders::UndefinedSymbolDiagnostic;
 use crate::repr::object::Object;
-use crate::repr::symbols::views::AllSymbols;
-use crate::repr::symbols::SymbolValue;
-use plinky_diagnostics::widgets::{Table, Text, Widget};
+use crate::repr::symbols::views::DefinedSymbols;
 use plinky_diagnostics::GatheredContext;
+use plinky_diagnostics::widgets::{Table, Text, Widget};
 use plinky_utils::jaro_similarity;
 
 pub(super) fn generate(
@@ -14,14 +13,9 @@ pub(super) fn generate(
 
     let undefined_name = diagnostic.name.resolve();
     let mut candidates = Vec::new();
-    for symbol in object.symbols.iter(&AllSymbols) {
-        match symbol.value() {
-            SymbolValue::Absolute { .. }
-            | SymbolValue::Section { .. }
-            | SymbolValue::SectionRelative { .. }
-            | SymbolValue::SectionVirtualAddress { .. }
-            | SymbolValue::ExternallyDefined => {}
-            SymbolValue::SectionNotLoaded | SymbolValue::Undefined | SymbolValue::Null => continue,
+    for symbol in object.symbols.iter(&DefinedSymbols) {
+        if symbol.visibility() != diagnostic.expected_visibility {
+            continue;
         }
 
         let symbol_name = symbol.name().resolve();

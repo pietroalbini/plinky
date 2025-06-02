@@ -124,7 +124,6 @@ fn read_section_inner(
         }
     };
 
-    // TODO: limit it only to ELFOSABI_GNU
     let is_retain = header.flags.gnu_retain;
 
     Ok(ElfSection {

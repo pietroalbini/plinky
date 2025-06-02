@@ -154,7 +154,7 @@ impl Attribute {
             .span(self.span))
     }
 
-    pub(crate) fn get_parenthesis_one_expr(&self) -> Result<&str, Error> {
+    pub(crate) fn get_parenthesis_one_expr(&self) -> Result<&TokenStream, Error> {
         if let AttributeContent::ParenthesisList(list) = &self.content {
             if let [AttributeValue::Expr(expr)] = list.as_slice() {
                 return Ok(expr);
@@ -174,6 +174,6 @@ pub(crate) enum AttributeContent {
 
 #[derive(Debug, Clone)]
 pub(crate) enum AttributeValue {
-    Expr(String),
+    Expr(TokenStream),
     String(String),
 }

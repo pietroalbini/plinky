@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::parser::utils::{IterationOutcome, TokenTreeExt};
 use crate::parser::{Attribute, AttributeContent, AttributeValue, Attributes, Parser};
-use proc_macro::{Delimiter, Span, TokenTree};
+use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 
 impl Parser {
     pub(super) fn parse_attributes(&mut self) -> Result<Attributes, Error> {
@@ -71,14 +71,14 @@ impl Parser {
     fn parse_attribute_value(&mut self) -> Result<AttributeValue, Error> {
         Ok(match self.next()? {
             TokenTree::Literal(literal) => {
-                let literal = literal.to_string();
-                if let Some(string) = literal.strip_prefix('"').and_then(|l| l.strip_suffix('"')) {
+                let string = literal.to_string();
+                if let Some(string) = string.strip_prefix('"').and_then(|l| l.strip_suffix('"')) {
                     AttributeValue::String(string.to_string())
                 } else {
-                    AttributeValue::Expr(literal.to_string())
+                    AttributeValue::Expr(TokenStream::from(TokenTree::Literal(literal)))
                 }
             }
-            other => AttributeValue::Expr(other.to_string()),
+            other => AttributeValue::Expr(TokenStream::from(other)),
         })
     }
 }

@@ -72,6 +72,7 @@ pub struct RawSectionHeaderFlags {
     pub group: bool,
     /// `SHF_GNU_RETAIN`
     #[bit(21)]
+    #[bitfield_only_on_abi(Gnu)]
     pub gnu_retain: bool,
 }
 

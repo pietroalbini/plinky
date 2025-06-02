@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::parser::{Attributes, Ident, Item, Parser, Struct, StructFields};
-use crate::utils::{generate_impl_for, ident, literal};
+use crate::utils::{generate_impl_for, literal};
 use plinky_macros_quote::quote;
 use plinky_utils::quote::Quote;
 use proc_macro::TokenStream;
@@ -46,7 +46,7 @@ fn bitfield_type_repr(struct_: &Struct) -> Result<TokenStream, Error> {
         return Err(Error::new("missing attribute bitfield_repr"));
     };
 
-    Ok(quote! { type Repr = #{ ident(repr) }; })
+    Ok(quote! { type Repr = #repr; })
 }
 
 fn bitfield_fn_read(fields: &RWFields) -> TokenStream {
@@ -54,15 +54,15 @@ fn bitfield_fn_read(fields: &RWFields) -> TokenStream {
         RWFields::None => quote!(Self),
         RWFields::TupleLike(fields) => {
             let mut parts = Vec::new();
-            for bit in fields {
-                parts.push(quote!(reader.bit(#bit),));
+            for RWField { bit, condition } in fields {
+                parts.push(quote!(if #condition { reader.bit(#bit) } else { false },));
             }
             quote!(Self(#parts))
         }
         RWFields::StructLike(fields) => {
             let mut parts = Vec::new();
-            for (name, bit) in fields {
-                parts.push(quote!(#name: reader.bit(#bit),));
+            for (name, RWField { bit, condition }) in fields {
+                parts.push(quote!(#name: if #condition { reader.bit(#bit) } else { false },));
             }
             quote!(Self { #parts })
         }
@@ -83,13 +83,21 @@ fn bitfield_fn_write(fields: &RWFields) -> TokenStream {
     match fields {
         RWFields::None => {}
         RWFields::TupleLike(fields) => {
-            for (idx, bit) in fields.iter().enumerate() {
-                setters.push(quote! { writer.set_bit(#bit, self.#{ literal(idx) }); });
+            for (idx, RWField { bit, condition }) in fields.iter().enumerate() {
+                setters.push(quote! {
+                    if #condition {
+                        writer.set_bit(#bit, self.#{ literal(idx) });
+                    }
+                });
             }
         }
         RWFields::StructLike(fields) => {
-            for (name, bit) in fields.iter() {
-                setters.push(quote! { writer.set_bit(#bit, self.#name); });
+            for (name, RWField { bit, condition }) in fields.iter() {
+                setters.push(quote! {
+                    if #condition {
+                        writer.set_bit(#bit, self.#name);
+                    }
+                });
             }
         }
     }
@@ -142,7 +150,7 @@ fn display_fn_fmt(fields: &RWFields) -> TokenStream {
     match fields {
         RWFields::None => {}
         RWFields::TupleLike(fields) => {
-            for (idx, bit) in fields.iter().enumerate() {
+            for (idx, RWField { bit, .. }) in fields.iter().enumerate() {
                 writes.push(quote! {
                     if self.#{ literal(idx) } {
                         if !first {
@@ -187,7 +195,12 @@ fn generate_rwfields(struct_: &Struct) -> Result<RWFields, Error> {
             fields
                 .iter()
                 .enumerate()
-                .map(|(idx, field)| calculator.index_of(&field.attrs, idx))
+                .map(|(idx, field)| {
+                    Ok(RWField {
+                        bit: calculator.index_of(&field.attrs, idx)?,
+                        condition: generate_condition(&field.attrs)?,
+                    })
+                })
                 .collect::<Result<_, _>>()?,
         ),
         StructFields::StructLike(fields) => RWFields::StructLike(
@@ -195,11 +208,26 @@ fn generate_rwfields(struct_: &Struct) -> Result<RWFields, Error> {
                 .iter()
                 .enumerate()
                 .map(|(idx, field)| {
-                    Ok((field.name.clone(), calculator.index_of(&field.attrs, idx)?))
+                    Ok((
+                        field.name.clone(),
+                        RWField {
+                            bit: calculator.index_of(&field.attrs, idx)?,
+                            condition: generate_condition(&field.attrs)?,
+                        },
+                    ))
                 })
                 .collect::<Result<_, _>>()?,
         ),
     })
+}
+
+fn generate_condition(attrs: &Attributes) -> Result<TokenStream, Error> {
+    if let Some(attr) = attrs.get("bitfield_only_on_api")? {
+        let variant = attr.get_parenthesis_one_expr()?;
+        Ok(quote!(ctx.os_abi == plinky_utils::OsAbi::#variant))
+    } else {
+        Ok(quote!(true))
+    }
 }
 
 struct BitCalculator {
@@ -230,6 +258,7 @@ impl BitCalculator {
         if let Some(attr) = attrs.get("bit")? {
             Ok(Some(
                 attr.get_parenthesis_one_expr()?
+                    .to_string()
                     .parse()
                     .map_err(|_| Error::new("failed to parse bit").span(attr.span))?,
             ))
@@ -241,8 +270,13 @@ impl BitCalculator {
 
 enum RWFields {
     None,
-    TupleLike(Vec<BitIndex>),
-    StructLike(Vec<(Ident, BitIndex)>),
+    TupleLike(Vec<RWField>),
+    StructLike(Vec<(Ident, RWField)>),
+}
+
+struct RWField {
+    bit: BitIndex,
+    condition: TokenStream,
 }
 
 #[derive(Clone)]

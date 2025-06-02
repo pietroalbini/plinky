@@ -1,8 +1,7 @@
 use crate::errors::LoadError;
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{
-    ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
-    ElfPLTRelocationsMode,
+    ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1, ElfPLTRelocationsMode,
 };
 use plinky_utils::Bits;
 use plinky_utils::bitfields::Bitfield;
@@ -62,11 +61,13 @@ pub(crate) fn read_directives(
             23 => ElfDynamicDirective::JumpRel { address: value },
             24 => ElfDynamicDirective::BindNow,
             30 => ElfDynamicDirective::Flags(
-                ElfDynamicFlags::read(value).map_err(LoadError::DynamicFlags)?,
+                ElfDynamicFlags::read(value, reader.parent_cursor.raw_type_ctx().into())
+                    .map_err(LoadError::DynamicFlags)?,
             ),
             0x6ffffef5 => ElfDynamicDirective::GnuHash { address: value },
             0x6ffffffb => ElfDynamicDirective::Flags1(
-                ElfDynamicFlags1::read(value).map_err(LoadError::DynamicFlags1)?,
+                ElfDynamicFlags1::read(value, reader.parent_cursor.raw_type_ctx().into())
+                    .map_err(LoadError::DynamicFlags1)?,
             ),
             _ => ElfDynamicDirective::Unknown { tag, value },
         });

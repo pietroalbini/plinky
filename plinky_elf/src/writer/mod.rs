@@ -575,8 +575,12 @@ impl<'a> Writer<'a> {
                 ElfDynamicDirective::RelocationsWillModifyText => (22, 0),
                 ElfDynamicDirective::JumpRel { address } => (23, *address),
                 ElfDynamicDirective::BindNow => (24, 0),
-                ElfDynamicDirective::Flags(flags) => (30, Bitfield::write(flags)),
-                ElfDynamicDirective::Flags1(flags) => (0x6ffffffb, Bitfield::write(flags)),
+                ElfDynamicDirective::Flags(flags) => {
+                    (30, Bitfield::write(flags, self.raw_ctx.into()))
+                }
+                ElfDynamicDirective::Flags1(flags) => {
+                    (0x6ffffffb, Bitfield::write(flags, self.raw_ctx.into()))
+                }
                 ElfDynamicDirective::Unknown { tag, value } => (*tag, *value),
             };
             match self.object.env.class {
@@ -636,11 +640,11 @@ impl<'a> Writer<'a> {
                         let tmp;
                         let (type_, data): (u32, &[u8]) = match property {
                             ElfGnuProperty::X86Features2Used(features2) => {
-                                tmp = Bitfield::write(features2).to_le_bytes();
+                                tmp = Bitfield::write(features2, self.raw_ctx.into()).to_le_bytes();
                                 (0xc0010001, &tmp)
                             }
                             ElfGnuProperty::X86IsaUsed(isa) => {
-                                tmp = Bitfield::write(isa).to_le_bytes();
+                                tmp = Bitfield::write(isa, self.raw_ctx.into()).to_le_bytes();
                                 (0xc0010002, &tmp)
                             }
                             ElfGnuProperty::Unknown(unknown) => (unknown.type_, &unknown.data),

@@ -68,7 +68,7 @@ fn bitfield_fn_read(fields: &Fields) -> TokenStream {
     };
 
     quote! {
-        fn read(raw: Self::Repr) -> Result<Self, plinky_utils::bitfields::BitfieldReadError> {
+        fn read(raw: Self::Repr, ctx: plinky_utils::bitfields::BitfieldContext) -> Result<Self, plinky_utils::bitfields::BitfieldReadError> {
             let mut reader = plinky_utils::bitfields::BitfieldReader::new(raw);
             let result = #result;
             reader.check_for_unknown_bits()?;
@@ -94,7 +94,7 @@ fn bitfield_fn_write(fields: &Fields) -> TokenStream {
     }
 
     quote! {
-        fn write(&self) -> Self::Repr {
+        fn write(&self, ctx: plinky_utils::bitfields::BitfieldContext) -> Self::Repr {
             let mut writer = plinky_utils::bitfields::BitfieldWriter::new();
             #setters
             writer.value()

@@ -79,7 +79,7 @@ fn read_gnu_property(
             0xc0010001 => {
                 let mut cursor = reader.cursor_for(data);
                 properties.push(ElfGnuProperty::X86Features2Used(
-                    ElfX86Features2::read(cursor.read_raw()?)
+                    ElfX86Features2::read(cursor.read_raw()?, cursor.raw_type_ctx().into())
                         .map_err(LoadError::X86Features2Used)?,
                 ));
             }
@@ -87,7 +87,8 @@ fn read_gnu_property(
             0xc0010002 => {
                 let mut cursor = reader.cursor_for(data);
                 properties.push(ElfGnuProperty::X86IsaUsed(
-                    ElfX86Isa::read(cursor.read_raw()?).map_err(LoadError::X86IsaUsed)?,
+                    ElfX86Isa::read(cursor.read_raw()?, cursor.raw_type_ctx().into())
+                        .map_err(LoadError::X86IsaUsed)?,
                 ));
             }
             _ => {

@@ -66,7 +66,7 @@ impl<T: Bitfield + Copy> AndOrState<T> {
         match (&self, other) {
             (_, None) | (AndOrState::Missing, _) => *self = AndOrState::Missing,
             (AndOrState::Initial, Some(initial)) => *self = AndOrState::Present(initial),
-            (AndOrState::Present(old), Some(new)) => *self = AndOrState::Present(old.or(new)),
+            (AndOrState::Present(old), Some(new)) => *self = AndOrState::Present(old.or(&new)),
         }
     }
 

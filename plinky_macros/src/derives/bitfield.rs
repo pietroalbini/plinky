@@ -18,6 +18,10 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
             #{ bitfield_type_repr(&parsed)? }
             #{ bitfield_fn_read(&fields) }
             #{ bitfield_fn_write(&fields) }
+            #{ bitfield_fn_empty(&fields) }
+            #{ bitfield_fn_is_empty(&fields)}
+            #{ bitfield_fn_binop(&fields, quote!(or), quote!(||))}
+            #{ bitfield_fn_binop(&fields, quote!(and), quote!(&&))}
         },
     ));
 
@@ -94,6 +98,81 @@ fn bitfield_fn_write(fields: &Fields) -> TokenStream {
             let mut writer = plinky_utils::bitfields::BitfieldWriter::new();
             #setters
             writer.value()
+        }
+    }
+}
+
+fn bitfield_fn_empty(fields: &Fields) -> TokenStream {
+    let value = match fields {
+        Fields::None => quote!(),
+        Fields::TupleLike(items) => {
+            let mut parts = Vec::new();
+            for _ in 0..items.len() {
+                parts.push(quote!(false,));
+            }
+            quote!((#parts))
+        }
+        Fields::StructLike(items) => {
+            let mut parts = Vec::new();
+            for (name, _) in items {
+                parts.push(quote!(#name: false,));
+            }
+            quote!({#parts})
+        }
+    };
+
+    quote! {
+        fn empty() -> Self {
+            Self #value
+        }
+    }
+}
+
+fn bitfield_fn_is_empty(fields: &Fields) -> TokenStream {
+    let mut comparisons = Vec::new();
+    match fields {
+        Fields::None => {}
+        Fields::TupleLike(items) => {
+            for idx in 0..items.len() {
+                comparisons.push(quote!(&& !self.#{ literal(idx) }));
+            }
+        }
+        Fields::StructLike(items) => {
+            for (name, _) in items {
+                comparisons.push(quote!(&& !self.#name));
+            }
+        },
+    }
+
+    quote! {
+        fn is_empty(&self) -> bool {
+            true #comparisons
+        }
+    }
+}
+
+fn bitfield_fn_binop(fields: &Fields, method: TokenStream, op: TokenStream) -> TokenStream {
+    let value = match fields {
+        Fields::None => quote!(),
+        Fields::TupleLike(items) => {
+            let mut parts = Vec::new();
+            for idx in 0..items.len() {
+                parts.push(quote!(self.#{ literal(idx) } #op other.#{ literal(idx) },));
+            }
+            quote!((#parts))
+        }
+        Fields::StructLike(items) => {
+            let mut parts = Vec::new();
+            for (name, _) in items {
+                parts.push(quote!(#name: self.#name #op other.#name,));
+            }
+            quote!({#parts})
+        }
+    };
+
+    quote! {
+        fn #method(&self, other: &Self) -> Self {
+            Self #value
         }
     }
 }

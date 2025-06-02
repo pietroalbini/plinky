@@ -10,19 +10,11 @@ pub trait Bitfield: Sized {
     fn read(raw: Self::Repr) -> Result<Self, BitfieldReadError>;
     fn write(&self) -> Self::Repr;
 
-    fn empty() -> Self {
-        Self::read(Self::Repr::empty()).expect("failed to parse empty bitfield")
-    }
+    fn empty() -> Self;
+    fn is_empty(&self) -> bool;
 
-    fn is_empty(&self) -> bool {
-        self.write() == Self::Repr::empty()
-    }
-
-    fn or(&self, other: Self) -> Self {
-        let lhs_raw = self.write();
-        let rhs_raw = other.write();
-        Self::read((&lhs_raw).or(&rhs_raw)).unwrap()
-    }
+    fn or(&self, other: &Self) -> Self;
+    fn and(&self, other: &Self) -> Self;
 }
 
 impl<T> RawType for T

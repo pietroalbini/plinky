@@ -2,7 +2,8 @@ use crate::errors::LoadError;
 use crate::ids::ElfSymbolId;
 use crate::raw::{RawRel, RawRela};
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
-use crate::{ElfClass, ElfRel, ElfRelTable, ElfRela, ElfRelaTable, ElfRelocationType};
+use crate::{ElfRel, ElfRelTable, ElfRela, ElfRelaTable, ElfRelocationType};
+use plinky_utils::Bits;
 
 pub(super) fn read_rel(
     reader: &mut SectionReader<'_, '_>,
@@ -50,8 +51,8 @@ fn symbol_and_relocation_type(
     meta: &dyn SectionMetadata,
     info: u64,
 ) -> (ElfSymbolId, ElfRelocationType) {
-    let (index, type_) = match reader.parent_cursor.class {
-        ElfClass::Elf32 => (
+    let (index, type_) = match reader.parent_cursor.bits() {
+        Bits::Bits32 => (
             (info >> 8) as u32,
             match info & 0xF {
                 0 => ElfRelocationType::X86_None,
@@ -69,7 +70,7 @@ fn symbol_and_relocation_type(
                 other => ElfRelocationType::Unknown(other as _),
             },
         ),
-        ElfClass::Elf64 => (
+        Bits::Bits64 => (
             (info >> 32) as u32,
             match info & 0xFFFF_FFFF {
                 0 => ElfRelocationType::X86_64_None,

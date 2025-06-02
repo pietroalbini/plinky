@@ -3,9 +3,10 @@ use crate::raw::RawNoteHeader;
 use crate::reader::ReadCursor;
 use crate::reader::sections::SectionReader;
 use crate::{
-    ElfClass, ElfGnuProperty, ElfNote, ElfNotesTable, ElfUnknownGnuProperty, ElfUnknownNote,
-    ElfX86Features2, ElfX86Isa,
+    ElfGnuProperty, ElfNote, ElfNotesTable, ElfUnknownGnuProperty, ElfUnknownNote, ElfX86Features2,
+    ElfX86Isa,
 };
+use plinky_utils::Bits;
 use plinky_utils::bitfields::Bitfield;
 use std::error::Error;
 
@@ -68,9 +69,9 @@ fn read_gnu_property(
         };
         let data_len: u32 = cursor.read_raw()?;
         let data = cursor.read_vec(data_len.into())?;
-        cursor.align_with_padding(match cursor.class {
-            ElfClass::Elf32 => 4,
-            ElfClass::Elf64 => 8,
+        cursor.align_with_padding(match cursor.bits() {
+            Bits::Bits32 => 4,
+            Bits::Bits64 => 8,
         })?;
 
         match type_ {

@@ -1,6 +1,7 @@
 use crate::raw::RawGnuHashHeader;
 use crate::reader::sections::{SectionMetadata, SectionReader};
-use crate::{ElfClass, ElfGnuHash, LoadError};
+use crate::{ElfGnuHash, LoadError};
+use plinky_utils::Bits;
 
 pub(super) fn read(
     reader: &mut SectionReader<'_, '_>,
@@ -19,9 +20,9 @@ pub(super) fn read(
     };
 
     for _ in 0..gnu_hash_header.bloom_count {
-        gnu_hash.bloom.push(match reader.parent_cursor.class {
-            ElfClass::Elf32 => cursor.read_raw::<u32>()?.into(),
-            ElfClass::Elf64 => cursor.read_raw::<u64>()?,
+        gnu_hash.bloom.push(match reader.parent_cursor.bits() {
+            Bits::Bits32 => cursor.read_raw::<u32>()?.into(),
+            Bits::Bits64=> cursor.read_raw::<u64>()?,
         });
     }
 

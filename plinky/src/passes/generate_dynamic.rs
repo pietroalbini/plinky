@@ -98,7 +98,7 @@ pub(crate) fn run(
     });
 
     object.segments.add(Segment {
-        align: <u64 as RawTypeAsPointerSize>::size(object.env.class) as _,
+        align: <u64 as RawTypeAsPointerSize>::size(object.env.class.into()) as _,
         type_: SegmentType::Dynamic,
         perms: ElfPermissions::R,
         content: vec![SegmentContent::Section(dynamic)],

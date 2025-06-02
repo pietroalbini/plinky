@@ -103,6 +103,7 @@ pub enum ElfSectionContent {
 
 impl ElfSectionContent {
     pub fn content_size(&self, bits: ElfClass) -> usize {
+        let bits: Bits = bits.into();
         match self {
             ElfSectionContent::Null => 0,
             ElfSectionContent::Program(p) => p.raw.len(),
@@ -187,7 +188,7 @@ impl ElfNote {
             ElfNote::GnuProperties(properties) => properties
                 .iter()
                 .map(|p| {
-                    let mut len = u32::size(class) * 2 + p.value_len(class);
+                    let mut len = u32::size(class.into()) * 2 + p.value_len(class);
                     let align_to = match class {
                         ElfClass::Elf32 => 4,
                         ElfClass::Elf64 => 8,
@@ -213,8 +214,8 @@ pub enum ElfGnuProperty {
 impl ElfGnuProperty {
     fn value_len(&self, class: ElfClass) -> usize {
         match self {
-            ElfGnuProperty::X86Features2Used(_) => ElfX86Features2::size(class),
-            ElfGnuProperty::X86IsaUsed(_) => ElfX86Isa::size(class),
+            ElfGnuProperty::X86Features2Used(_) => ElfX86Features2::size(class.into()),
+            ElfGnuProperty::X86IsaUsed(_) => ElfX86Isa::size(class.into()),
             ElfGnuProperty::Unknown(unknown) => unknown.data.len(),
         }
     }

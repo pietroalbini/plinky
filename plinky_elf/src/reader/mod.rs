@@ -12,9 +12,14 @@ use crate::raw::RawSectionHeader;
 use crate::reader::cursor::ReadCursor;
 use crate::reader::header::read_header;
 use crate::reader::sections::read_section;
-use crate::{ElfClass, ElfEndian, ElfEnvironment, ElfObject, ElfSegment, ElfType};
+use crate::{ElfEnvironment, ElfObject, ElfSegment, ElfType};
+use plinky_utils::raw_types::RawTypeContext;
+use plinky_utils::{Bits, Endian};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
+
+const HEADER_PARSE_CONFIG: RawTypeContext =
+    RawTypeContext { bits: Bits::Bits32, endian: Endian::Little };
 
 pub struct ElfReader<'src> {
     cursor: ReadCursor<'src>,
@@ -30,13 +35,13 @@ pub struct ElfReader<'src> {
 impl<'src> ElfReader<'src> {
     pub fn new<'a>(reader: &'a mut dyn ReadSeek) -> Result<ElfReader<'a>, LoadError> {
         // Default to elf32 LE for the header, it will be switched automatically.
-        let cursor = ReadCursor::new(reader, ElfClass::Elf32, ElfEndian::Little);
+        let cursor = ReadCursor::new(reader, HEADER_PARSE_CONFIG);
         Self::new_inner(cursor)
     }
 
     pub fn new_owned(reader: Box<dyn ReadSeek>) -> Result<ElfReader<'static>, LoadError> {
         // Default to elf32 LE for the header, it will be switched automatically.
-        let cursor = ReadCursor::new_owned(reader, ElfClass::Elf32, ElfEndian::Little);
+        let cursor = ReadCursor::new_owned(reader, HEADER_PARSE_CONFIG);
         Self::new_inner(cursor)
     }
 

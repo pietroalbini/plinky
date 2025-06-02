@@ -24,7 +24,7 @@ impl SectionReader<'_, '_> {
 
     pub(super) fn cursor_for(&self, data: Vec<u8>) -> ReadCursor<'static> {
         let reader = std::io::Cursor::new(data);
-        ReadCursor::new_owned(Box::new(reader), self.parent_cursor.class, self.parent_cursor.endian)
+        ReadCursor::new_owned(Box::new(reader), self.parent_cursor.raw_type_ctx())
     }
 
     pub(super) fn entries(&mut self) -> Result<Vec<ReadCursor<'static>>, LoadError> {

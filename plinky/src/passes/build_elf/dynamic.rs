@@ -5,6 +5,7 @@ use crate::repr::sections::{DynamicSection, SectionId, UpcomingStringId};
 use plinky_elf::raw::{RawRel, RawRela, RawSymbol};
 use plinky_elf::writer::layout::PartMemory;
 use plinky_elf::{ElfDynamic, ElfDynamicDirective, ElfPLTRelocationsMode, ElfSectionContent};
+use plinky_utils::Bits;
 use plinky_utils::ints::ExtractNumber;
 use plinky_utils::raw_types::RawType;
 
@@ -12,7 +13,7 @@ pub(super) fn build_dynamic_section(
     builder: &mut ElfBuilder,
     dynamic: &DynamicSection,
 ) -> ElfSectionContent {
-    let bits = builder.object.env.class;
+    let bits: Bits = builder.object.env.class.into();
 
     let mut string_table_id = None;
     for entry in builder.object.dynamic_entries.iter() {

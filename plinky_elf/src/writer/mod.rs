@@ -20,7 +20,7 @@ use crate::{
 };
 use plinky_utils::bitfields::Bitfield;
 use plinky_utils::ints::ExtractNumber;
-use plinky_utils::raw_types::{RawPadding, RawType};
+use plinky_utils::raw_types::{RawPadding, RawType, RawTypeContext};
 use std::collections::BTreeMap;
 use std::io::Write;
 
@@ -38,6 +38,7 @@ pub struct Writer<'a> {
     writer: WriteCounter<'a>,
     layout: Layout<ElfSectionId>,
     object: &'a ElfObject,
+    raw_ctx: RawTypeContext,
 }
 
 impl<'a> Writer<'a> {
@@ -46,7 +47,15 @@ impl<'a> Writer<'a> {
         object: &'a ElfObject,
         layout: Layout<ElfSectionId>,
     ) -> Result<Self, WriteError> {
-        Ok(Self { writer: WriteCounter::new(writer), layout, object })
+        Ok(Self {
+            writer: WriteCounter::new(writer),
+            layout,
+            object,
+            raw_ctx: RawTypeContext {
+                bits: object.env.class.into(),
+                endian: object.env.endian.into(),
+            },
+        })
     }
 
     pub fn write(mut self) -> Result<(), WriteError> {
@@ -285,10 +294,10 @@ impl<'a> Writer<'a> {
                         ..
                     }) => 1,
                     ElfSectionContent::SymbolTable(_) => {
-                        RawSymbol::size(self.object.env.class) as _
+                        RawSymbol::size(self.object.env.class.into()) as _
                     }
-                    ElfSectionContent::Rel(_) => RawRel::size(self.object.env.class) as _,
-                    ElfSectionContent::Rela(_) => RawRela::size(self.object.env.class) as _,
+                    ElfSectionContent::Rel(_) => RawRel::size(self.object.env.class.into()) as _,
+                    ElfSectionContent::Rela(_) => RawRela::size(self.object.env.class.into()) as _,
                     _ => 0,
                 },
             })?;
@@ -692,11 +701,11 @@ impl<'a> Writer<'a> {
     }
 
     fn raw_type_size<T: RawType>(&self) -> u16 {
-        T::size(self.object.env.class) as _
+        T::size(self.object.env.class.into()) as _
     }
 
     fn write_raw<T: RawType>(&mut self, value: T) -> Result<(), WriteError> {
-        value.write(self.object.env.class, self.object.env.endian, &mut self.writer)?;
+        value.write(self.raw_ctx, &mut self.writer)?;
         Ok(())
     }
 }

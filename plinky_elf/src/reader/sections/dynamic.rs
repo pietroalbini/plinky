@@ -1,9 +1,10 @@
 use crate::errors::LoadError;
 use crate::reader::sections::reader::{SectionMetadata, SectionReader};
 use crate::{
-    ElfClass, ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
+    ElfDynamic, ElfDynamicDirective, ElfDynamicFlags, ElfDynamicFlags1,
     ElfPLTRelocationsMode,
 };
+use plinky_utils::Bits;
 use plinky_utils::bitfields::Bitfield;
 
 pub(super) fn read(
@@ -21,9 +22,9 @@ pub(crate) fn read_directives(
     let mut directives = Vec::new();
     let mut stop = false;
     while !stop {
-        let (tag, value): (u64, u64) = match cursor.class {
-            ElfClass::Elf32 => (cursor.read_raw::<i32>()? as _, cursor.read_raw::<u32>()? as _),
-            ElfClass::Elf64 => (cursor.read_raw()?, cursor.read_raw()?),
+        let (tag, value): (u64, u64) = match cursor.bits() {
+            Bits::Bits32 => (cursor.read_raw::<i32>()? as _, cursor.read_raw::<u32>()? as _),
+            Bits::Bits64 => (cursor.read_raw()?, cursor.read_raw()?),
         };
         directives.push(match tag {
             0 => {

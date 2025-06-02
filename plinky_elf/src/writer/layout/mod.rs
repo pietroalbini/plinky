@@ -18,6 +18,7 @@ use plinky_utils::ints::Offset;
 use plinky_utils::ints::OutOfBoundsError;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
 use std::collections::BTreeMap;
+use plinky_utils::Bits;
 
 #[derive(Debug)]
 pub struct Layout<S> {
@@ -174,34 +175,34 @@ impl<S: Ord + Eq + Clone + Copy> LayoutBuilder<'_, S> {
 }
 
 fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> Length {
-    let class = details.class();
+    let bits: Bits = details.class().into();
     match part {
-        Part::Header => RawIdentification::size(class) + RawHeader::size(class),
+        Part::Header => RawIdentification::size(bits) + RawHeader::size(bits),
 
-        Part::SectionHeaders => RawSectionHeader::size(class) * details.sections_count(),
-        Part::ProgramHeaders => RawProgramHeader::size(class) * details.segments_count(),
+        Part::SectionHeaders => RawSectionHeader::size(bits) * details.sections_count(),
+        Part::ProgramHeaders => RawProgramHeader::size(bits) * details.segments_count(),
 
         Part::ProgramSection(id) => details.program_section_len(id),
         Part::UninitializedSection(id) => details.uninitialized_section_len(id),
         Part::StringTable(id) => details.string_table_len(id),
 
-        Part::SymbolTable(id) => RawSymbol::size(class) * details.symbols_in_table_count(id),
-        Part::Rel(id) => RawRel::size(class) * details.relocations_in_table_count(id),
-        Part::Rela(id) => RawRela::size(class) * details.relocations_in_table_count(id),
+        Part::SymbolTable(id) => RawSymbol::size(bits) * details.symbols_in_table_count(id),
+        Part::Rel(id) => RawRel::size(bits) * details.relocations_in_table_count(id),
+        Part::Rela(id) => RawRela::size(bits) * details.relocations_in_table_count(id),
 
         Part::Hash(id) => {
             let hash = details.hash_details(id);
-            RawHashHeader::size(class)
-                + hash.buckets * u32::size(class)
-                + hash.chain * u32::size(class)
+            RawHashHeader::size(bits)
+                + hash.buckets * u32::size(bits)
+                + hash.chain * u32::size(bits)
         }
 
         Part::GnuHash(id) => {
             let gnu_hash = details.gnu_hash_details(id);
-            RawGnuHashHeader::size(class)
-                + gnu_hash.bloom * <u64 as RawTypeAsPointerSize>::size(class)
-                + gnu_hash.buckets * u32::size(class)
-                + gnu_hash.chain * u32::size(class)
+            RawGnuHashHeader::size(bits)
+                + gnu_hash.bloom * <u64 as RawTypeAsPointerSize>::size(bits)
+                + gnu_hash.buckets * u32::size(bits)
+                + gnu_hash.chain * u32::size(bits)
         }
 
         Part::Note(id) => {
@@ -211,7 +212,7 @@ fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> L
                 .note_details(id)
                 .iter()
                 .map(|note| {
-                    RawNoteHeader::size(class)
+                    RawNoteHeader::size(bits)
                         + align(note.name_len + 1 /* Null terminator */)
                         + align(note.value_len)
                 })
@@ -219,10 +220,10 @@ fn part_len<S: Copy>(details: &dyn LayoutDetailsProvider<S>, part: Part<S>) -> L
         }
 
         Part::Group(id) => {
-            RawGroupFlags::size(class) + u32::size(class) * details.sections_in_group_count(id)
+            RawGroupFlags::size(bits) + u32::size(bits) * details.sections_in_group_count(id)
         }
         Part::Dynamic(id) => {
-            <u64 as RawTypeAsPointerSize>::size(class) * 2 * details.dynamic_directives_count(id)
+            <u64 as RawTypeAsPointerSize>::size(bits) * 2 * details.dynamic_directives_count(id)
         }
 
         Part::Padding { len, .. } => len,

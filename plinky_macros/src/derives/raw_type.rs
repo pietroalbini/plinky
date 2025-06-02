@@ -41,8 +41,7 @@ fn fn_size(fields: &[Field<'_>]) -> TokenStream {
     }
 
     quote! {
-        fn size(bits: impl Into<plinky_utils::Bits>) -> usize {
-            let bits = bits.into();
+        fn size(bits: plinky_utils::Bits) -> usize {
             0 #addends
         }
     }
@@ -55,7 +54,7 @@ fn fn_read(fields32: &[Field<'_>], fields64: &[Field<'_>]) -> TokenStream {
             setters.push(quote! {
                 #name: plinky_utils::raw_types::RawReadError::wrap_field::<Self, _>(
                     stringify!(#name),
-                    <#field_ty as #trait_ty>::read(bits, endian, reader)
+                    <#field_ty as #trait_ty>::read(ctx, reader)
                 )?,
             });
         }
@@ -66,14 +65,10 @@ fn fn_read(fields32: &[Field<'_>], fields64: &[Field<'_>]) -> TokenStream {
 
     quote! {
         fn read(
-            bits: impl Into<plinky_utils::Bits>,
-            endian: impl Into<plinky_utils::Endian>,
+            ctx: plinky_utils::raw_types::RawTypeContext,
             reader: &mut dyn std::io::Read,
         ) -> Result<Self, plinky_utils::raw_types::RawReadError> {
-            let bits = bits.into();
-            let endian = endian.into();
-
-            match bits {
+            match ctx.bits {
                 plinky_utils::Bits::Bits32 => #{ render(fields32) },
                 plinky_utils::Bits::Bits64 => #{ render(fields64) },
             }
@@ -88,7 +83,7 @@ fn fn_write(fields32: &[Field<'_>], fields64: &[Field<'_>]) -> TokenStream {
             writes.push(quote! {
                 plinky_utils::raw_types::RawWriteError::wrap_field::<Self, _>(
                     stringify!(#name),
-                    <#field_ty as #trait_ty>::write(&self.#name, bits, endian, writer)
+                    <#field_ty as #trait_ty>::write(&self.#name, ctx, writer)
                 )?;
             });
         }
@@ -98,14 +93,10 @@ fn fn_write(fields32: &[Field<'_>], fields64: &[Field<'_>]) -> TokenStream {
     quote! {
         fn write(
             &self,
-            bits: impl Into<plinky_utils::Bits>,
-            endian: impl Into<plinky_utils::Endian>,
+            ctx: plinky_utils::raw_types::RawTypeContext,
             writer: &mut dyn std::io::Write,
         ) -> Result<(), plinky_utils::raw_types::RawWriteError> {
-            let bits = bits.into();
-            let endian = endian.into();
-
-            match bits {
+            match ctx.bits {
                 plinky_utils::Bits::Bits32 => #{ render(fields32) },
                 plinky_utils::Bits::Bits64 => #{ render(fields64) },
             }

@@ -1,21 +1,21 @@
 use crate::errors::LoadError;
 use crate::{ElfClass, ElfEndian};
-use plinky_utils::raw_types::RawType;
+use plinky_utils::Bits;
+use plinky_utils::raw_types::{RawType, RawTypeContext};
 use std::io::{Read, Seek, SeekFrom};
 
 pub(super) struct ReadCursor<'a> {
     reader: InnerReader<'a>,
-    pub(super) class: ElfClass,
-    pub(super) endian: ElfEndian,
+    raw_ctx: RawTypeContext,
 }
 
 impl<'a> ReadCursor<'a> {
-    pub(super) fn new(reader: &'a mut dyn ReadSeek, class: ElfClass, endian: ElfEndian) -> Self {
-        Self { reader: InnerReader::Borrowed(reader), class, endian }
+    pub(super) fn new(reader: &'a mut dyn ReadSeek, raw_ctx: RawTypeContext) -> Self {
+        Self { reader: InnerReader::Borrowed(reader), raw_ctx }
     }
 
-    pub(super) fn new_owned(reader: Box<dyn ReadSeek>, class: ElfClass, endian: ElfEndian) -> Self {
-        Self { reader: InnerReader::Owned(reader), class, endian }
+    pub(super) fn new_owned(reader: Box<dyn ReadSeek>, raw_ctx: RawTypeContext) -> Self {
+        Self { reader: InnerReader::Owned(reader), raw_ctx }
     }
 
     pub(super) fn seek_to(&mut self, position: u64) -> Result<(), LoadError> {
@@ -35,7 +35,7 @@ impl<'a> ReadCursor<'a> {
     }
 
     pub(super) fn read_raw<T: RawType>(&mut self) -> Result<T, LoadError> {
-        Ok(T::read(self.class, self.endian, self)?)
+        Ok(T::read(self.raw_ctx, self)?)
     }
 
     pub(super) fn align_with_padding(&mut self, align: u64) -> Result<(), LoadError> {
@@ -50,6 +50,22 @@ impl<'a> ReadCursor<'a> {
 
     pub(super) fn current_position(&mut self) -> Result<u64, LoadError> {
         Ok(self.reader.get().stream_position()?)
+    }
+
+    pub(super) fn bits(&self) -> Bits {
+        self.raw_ctx.bits
+    }
+
+    pub(super) fn set_class(&mut self, class: ElfClass) {
+        self.raw_ctx.bits = class.into();
+    }
+
+    pub(super) fn set_endian(&mut self, endian: ElfEndian) {
+        self.raw_ctx.endian = endian.into();
+    }
+
+    pub(super) fn raw_type_ctx(&self) -> RawTypeContext {
+        self.raw_ctx
     }
 }
 

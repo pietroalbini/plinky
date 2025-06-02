@@ -1,6 +1,6 @@
-use plinky_utils::raw_types::{RawReadError, RawType, RawWriteError};
-use plinky_utils::{Bits, Endian};
-use std::io::Read;
+use plinky_utils::Bits;
+use plinky_utils::raw_types::{RawReadError, RawType, RawTypeContext, RawWriteError};
+use std::io::{Read, Write};
 
 pub(crate) struct RawString<const LEN: usize> {
     pub(crate) value: String,
@@ -11,15 +11,11 @@ impl<const LEN: usize> RawType for RawString<LEN> {
         Self { value: " ".repeat(LEN) }
     }
 
-    fn size(_bits: impl Into<Bits>) -> usize {
+    fn size(_bits: Bits) -> usize {
         LEN
     }
 
-    fn read(
-        _bits: impl Into<Bits>,
-        _endian: impl Into<Endian>,
-        reader: &mut dyn Read,
-    ) -> Result<Self, RawReadError> {
+    fn read(_ctx: RawTypeContext, reader: &mut dyn Read) -> Result<Self, RawReadError> {
         let mut buf = [0; LEN];
         reader.read_exact(&mut buf).map_err(RawReadError::io::<Self>)?;
         Ok(Self {
@@ -29,12 +25,7 @@ impl<const LEN: usize> RawType for RawString<LEN> {
         })
     }
 
-    fn write(
-        &self,
-        _bits: impl Into<Bits>,
-        _endian: impl Into<Endian>,
-        _writer: &mut dyn std::io::Write,
-    ) -> Result<(), RawWriteError> {
+    fn write(&self, _ctx: RawTypeContext, _writer: &mut dyn Write) -> Result<(), RawWriteError> {
         unimplemented!();
     }
 }
@@ -48,17 +39,12 @@ impl<const LEN: usize, const RADIX: u32> RawType for RawStringAsU64<LEN, RADIX> 
         Self { value: 0 }
     }
 
-    fn size(bits: impl Into<Bits>) -> usize {
+    fn size(bits: Bits) -> usize {
         RawString::<LEN>::size(bits)
     }
 
-    fn read(
-        bits: impl Into<Bits>,
-        endian: impl Into<Endian>,
-        reader: &mut dyn Read,
-    ) -> Result<Self, RawReadError> {
-        let string =
-            RawReadError::wrap_type::<Self, _>(RawString::<LEN>::read(bits, endian, reader))?;
+    fn read(ctx: RawTypeContext, reader: &mut dyn Read) -> Result<Self, RawReadError> {
+        let string = RawReadError::wrap_type::<Self, _>(RawString::<LEN>::read(ctx, reader))?;
         let string = string.value.trim_end_matches(' ');
         if string.is_empty() {
             Ok(Self { value: 0 })
@@ -71,12 +57,7 @@ impl<const LEN: usize, const RADIX: u32> RawType for RawStringAsU64<LEN, RADIX> 
         }
     }
 
-    fn write(
-        &self,
-        _bits: impl Into<Bits>,
-        _endian: impl Into<Endian>,
-        _writer: &mut dyn std::io::Write,
-    ) -> Result<(), RawWriteError> {
+    fn write(&self, _ctx: RawTypeContext, _writer: &mut dyn Write) -> Result<(), RawWriteError> {
         unimplemented!();
     }
 }

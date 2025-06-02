@@ -26,3 +26,9 @@ pub enum Endian {
     Big,
     Little,
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum OsAbi {
+    SystemV,
+    Gnu,
+}

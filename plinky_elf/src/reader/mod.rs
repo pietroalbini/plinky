@@ -14,12 +14,12 @@ use crate::reader::header::read_header;
 use crate::reader::sections::read_section;
 use crate::{ElfEnvironment, ElfObject, ElfSegment, ElfType};
 use plinky_utils::raw_types::RawTypeContext;
-use plinky_utils::{Bits, Endian};
+use plinky_utils::{Bits, Endian, OsAbi};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 const HEADER_PARSE_CONFIG: RawTypeContext =
-    RawTypeContext { bits: Bits::Bits32, endian: Endian::Little };
+    RawTypeContext { bits: Bits::Bits32, endian: Endian::Little, os_abi: OsAbi::SystemV };
 
 pub struct ElfReader<'src> {
     cursor: ReadCursor<'src>,

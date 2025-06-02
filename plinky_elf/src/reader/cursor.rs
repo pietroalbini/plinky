@@ -1,5 +1,5 @@
 use crate::errors::LoadError;
-use crate::{ElfClass, ElfEndian};
+use crate::{ElfABI, ElfClass, ElfEndian};
 use plinky_utils::Bits;
 use plinky_utils::raw_types::{RawType, RawTypeContext};
 use std::io::{Read, Seek, SeekFrom};
@@ -62,6 +62,10 @@ impl<'a> ReadCursor<'a> {
 
     pub(super) fn set_endian(&mut self, endian: ElfEndian) {
         self.raw_ctx.endian = endian.into();
+    }
+
+    pub(super) fn set_os_abi(&mut self, abi: ElfABI) {
+        self.raw_ctx.os_abi = abi.into();
     }
 
     pub(super) fn raw_type_ctx(&self) -> RawTypeContext {

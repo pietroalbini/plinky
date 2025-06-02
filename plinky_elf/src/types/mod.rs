@@ -6,7 +6,7 @@ use crate::ids::{ElfSectionId, ElfStringId, ElfSymbolId};
 use crate::raw::{RawGnuHashHeader, RawGroupFlags, RawHashHeader, RawRel, RawRela, RawSymbol};
 use plinky_macros::Bitfield;
 use plinky_utils::raw_types::{RawType, RawTypeAsPointerSize};
-use plinky_utils::{Bits, Endian};
+use plinky_utils::{Bits, Endian, OsAbi};
 use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
@@ -46,6 +46,15 @@ impl From<ElfClass> for Bits {
 pub enum ElfABI {
     SystemV,
     Gnu,
+}
+
+impl From<ElfABI> for OsAbi {
+    fn from(value: ElfABI) -> Self {
+        match value {
+            ElfABI::SystemV => OsAbi::SystemV,
+            ElfABI::Gnu => OsAbi::Gnu,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

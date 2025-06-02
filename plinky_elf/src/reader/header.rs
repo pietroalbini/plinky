@@ -34,6 +34,8 @@ pub(crate) fn read_header(cursor: &mut ReadCursor<'_>) -> Result<ReadHeader, Loa
 
     cursor.set_class(class);
     cursor.set_endian(endian);
+    cursor.set_os_abi(abi);
+
     let header: RawHeader = cursor.read_raw()?;
     if header.version != 1 {
         return Err(LoadError::BadVersion(header.version));

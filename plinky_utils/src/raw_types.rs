@@ -1,16 +1,17 @@
 use crate::bitfields::BitfieldReadError;
-use crate::{Bits, Endian};
+use crate::{Bits, Endian, OsAbi};
 use std::io::{Read, Write};
 
 #[derive(Debug, Clone, Copy)]
 pub struct RawTypeContext {
     pub bits: Bits,
     pub endian: Endian,
+    pub os_abi: OsAbi,
 }
 
 impl RawTypeContext {
-    pub fn new(bits: impl Into<Bits>, endian: impl Into<Endian>) -> Self {
-        Self { bits: bits.into(), endian: endian.into() }
+    pub fn new(bits: impl Into<Bits>, endian: impl Into<Endian>, os_abi: impl Into<OsAbi>) -> Self {
+        Self { bits: bits.into(), endian: endian.into(), os_abi: os_abi.into() }
     }
 }
 

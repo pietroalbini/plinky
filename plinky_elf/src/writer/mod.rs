@@ -54,6 +54,7 @@ impl<'a> Writer<'a> {
             raw_ctx: RawTypeContext {
                 bits: object.env.class.into(),
                 endian: object.env.endian.into(),
+                os_abi: object.env.abi.into(),
             },
         })
     }

@@ -23,5 +23,14 @@ name:
 surname:
     .asciz "Albini"
 
+.section .rodata.retained,"aR"
+    .asciz "I want to be retained"
+
+.section .rodata.retained_same_name,"a",%progbits
+    .asciz "I also happen to be retained because I have the same name"
+
+.section .rodata.retained_same_name,"aR",%progbits
+    .asciz "I really want to be retained"
+
 .section .comment,"MS",@progbits,1
     .asciz "Sample comment"

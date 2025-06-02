@@ -47,6 +47,7 @@ impl Sections {
             name: intern(name),
             content: content.into(),
             source: ObjectSpan::new_synthetic(),
+            retain: false,
         }
     }
 
@@ -131,11 +132,17 @@ pub(crate) struct SectionBuilder<'a> {
     name: Interned<String>,
     content: SectionContent,
     source: ObjectSpan,
+    retain: bool,
 }
 
 impl SectionBuilder<'_> {
     pub(crate) fn source(mut self, source: ObjectSpan) -> Self {
         self.source = source;
+        self
+    }
+
+    pub(crate) fn retain(mut self, retain: bool) -> Self {
+        self.retain = retain;
         self
     }
 
@@ -146,6 +153,7 @@ impl SectionBuilder<'_> {
             name: self.name,
             source: self.source,
             content: self.content,
+            retain: self.retain,
             _prevent_creation: (),
         }));
         id
@@ -163,6 +171,7 @@ impl SectionBuilder<'_> {
                     name: self.name,
                     source: self.source,
                     content: self.content,
+                    retain: self.retain,
                     _prevent_creation: (),
                 });
                 placeholder
@@ -188,6 +197,7 @@ pub(crate) struct Section {
     pub(crate) name: Interned<String>,
     pub(crate) source: ObjectSpan,
     pub(crate) content: SectionContent,
+    pub (crate) retain: bool,
     _prevent_creation: (),
 }
 

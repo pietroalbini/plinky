@@ -8,7 +8,7 @@ no stdout present
 === stderr ===
 debug print: loaded object
  │
- │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
+ │  class: Elf64, endian: Little, abi: Gnu, machine: X86_64
  │
  │  section .comment#0 (no perms) in foo.o
  │   │
@@ -33,6 +33,32 @@ debug print: loaded object
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 50 69 65 74 72 6f 00 │ Pietro. │
  │   │  ╰──────────────────────┴─────────╯
+ │   ┴
+ │
+ │  section .rodata.retained (perms: r) in foo.o
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 49 20 77 61 6e 74 20 74 6f 20 62 65 20 72 65 74 │ I want to be ret │
+ │   │  │ 61 69 6e 65 64 00                               │ ained.           │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ │   ┴
+ │
+ │  section .rodata.retained_same_name#0 (perms: r) in foo.o
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 49 20 61 6c 73 6f 20 68 61 70 70 65 6e 20 74 6f │ I also happen to │
+ │   │  │ 20 62 65 20 72 65 74 61 69 6e 65 64 20 62 65 63 │  be retained bec │
+ │   │  │ 61 75 73 65 20 49 20 68 61 76 65 20 74 68 65 20 │ ause I have the  │
+ │   │  │ 73 61 6d 65 20 6e 61 6d 65 00                   │ same name.       │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ │   ┴
+ │
+ │  section .rodata.retained_same_name#1 (perms: r) in foo.o
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 49 20 72 65 61 6c 6c 79 20 77 61 6e 74 20 74 6f │ I really want to │
+ │   │  │ 20 62 65 20 72 65 74 61 69 6e 65 64 00          │  be retained.    │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │  section .rodata.surname (perms: r) in foo.o
@@ -140,7 +166,7 @@ debug print: garbage collector outcome
 
 debug print: object after relocations are applied
  │
- │  class: Elf64, endian: Little, abi: SystemV, machine: X86_64
+ │  class: Elf64, endian: Little, abi: Gnu, machine: X86_64
  │
  │  section .comment (no perms) in mix of foo.o and <plinky>
  │   │
@@ -174,6 +200,30 @@ debug print: object after relocations are applied
  │   │  ╭──────────────────────┬─────────╮
  │   │  │ 50 69 65 74 72 6f 00 │ Pietro. │
  │   │  ╰──────────────────────┴─────────╯
+ │   ┴
+ │
+ │  section .rodata.retained (perms: r) in foo.o
+ │   │
+ │   │  address: 0x400007
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 49 20 77 61 6e 74 20 74 6f 20 62 65 20 72 65 74 │ I want to be ret │
+ │   │  │ 61 69 6e 65 64 00                               │ ained.           │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
+ │   ┴
+ │
+ │  section .rodata.retained_same_name (perms: r) in mix of foo.o and foo.o
+ │   │
+ │   │  address: 0x40001d
+ │   │
+ │   │  ╭─────────────────────────────────────────────────┬──────────────────╮
+ │   │  │ 49 20 61 6c 73 6f 20 68 61 70 70 65 6e 20 74 6f │ I also happen to │
+ │   │  │ 20 62 65 20 72 65 74 61 69 6e 65 64 20 62 65 63 │  be retained bec │
+ │   │  │ 61 75 73 65 20 49 20 68 61 76 65 20 74 68 65 20 │ ause I have the  │
+ │   │  │ 73 61 6d 65 20 6e 61 6d 65 00 49 20 72 65 61 6c │ same name.I real │
+ │   │  │ 6c 79 20 77 61 6e 74 20 74 6f 20 62 65 20 72 65 │ ly want to be re │
+ │   │  │ 74 61 69 6e 65 64 00                            │ tained.          │
+ │   │  ╰─────────────────────────────────────────────────┴──────────────────╯
  │   ┴
  │
  │  section names section .shstrtab in <plinky>

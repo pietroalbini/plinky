@@ -124,11 +124,15 @@ fn read_section_inner(
         }
     };
 
+    // TODO: limit it only to ELFOSABI_GNU
+    let is_retain = header.flags.gnu_retain;
+
     Ok(ElfSection {
         name: ElfStringId { section: section_names_table, offset: header.name_offset },
         memory_address: header.memory_address,
         part_of_group: header.flags.group,
         content,
+        retain: is_retain,
     })
 }
 

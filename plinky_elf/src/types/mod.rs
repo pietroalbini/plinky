@@ -45,6 +45,7 @@ impl From<ElfClass> for Bits {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElfABI {
     SystemV,
+    Gnu,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +81,7 @@ pub struct ElfSection {
     pub memory_address: u64,
     pub part_of_group: bool,
     pub content: ElfSectionContent,
+    pub retain: bool,
 }
 
 #[derive(Debug)]

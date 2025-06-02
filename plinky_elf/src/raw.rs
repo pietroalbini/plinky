@@ -70,6 +70,9 @@ pub struct RawSectionHeaderFlags {
     pub info_link: bool,
     #[bit(9)]
     pub group: bool,
+    /// `SHF_GNU_RETAIN`
+    #[bit(21)]
+    pub gnu_retain: bool,
 }
 
 #[derive(RawType)]

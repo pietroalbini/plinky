@@ -39,11 +39,11 @@ pub(super) fn merge_elf(
             ElfSectionContent::Null => {}
             ElfSectionContent::Program(program) => {
                 section_placeholders.insert(section_id, object.sections.reserve_placeholder());
-                program_sections.push((section_id, section.name, program))
+                program_sections.push((section_id, section.name, section.retain, program))
             }
             ElfSectionContent::Uninitialized(uninit) => {
                 section_placeholders.insert(section_id, object.sections.reserve_placeholder());
-                uninitialized_sections.push((section_id, section.name, uninit));
+                uninitialized_sections.push((section_id, section.name, section.retain, uninit));
             }
             ElfSectionContent::SymbolTable(table) => {
                 if table.dynsym {
@@ -142,7 +142,7 @@ pub(super) fn merge_elf(
         )?;
     }
 
-    for (id, name, uninit) in uninitialized_sections {
+    for (id, name, retain, uninit) in uninitialized_sections {
         if section_groups.should_skip_section(id) {
             continue;
         }
@@ -155,10 +155,11 @@ pub(super) fn merge_elf(
                 UninitializedSection { perms: uninit.perms, len: uninit.len.into() },
             )
             .source(source.clone())
+            .retain(retain)
             .create_in_placeholder(placeholder);
     }
 
-    for (id, name, program) in program_sections {
+    for (id, name, retain, program) in program_sections {
         if section_groups.should_skip_section(id) {
             continue;
         }
@@ -188,6 +189,7 @@ pub(super) fn merge_elf(
                 },
             )
             .source(source.clone())
+            .retain(retain)
             .create_in_placeholder(placeholder);
     }
 

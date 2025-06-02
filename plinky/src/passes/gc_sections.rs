@@ -33,15 +33,20 @@ pub(crate) fn run(object: &mut Object) -> Vec<RemovedSection> {
         visitor.add(symbol.id());
     }
 
-    // Mark all sections that will not be allocated in memory to be saved, as checking the
-    // relocations from the entry point is not accurate for that.
     for section in object.sections.iter() {
+        // Mark all sections that will not be allocated in memory to be saved, as checking the
+        // relocations from the entry point is not accurate for that.
         match &section.content {
             SectionContent::Data(data) if data.perms.read => {}
             SectionContent::Uninitialized(uninit) if uninit.perms.read => {}
             _ => {
-                visitor.to_save.insert(section.id);
+                visitor.queue.insert(section.id);
             }
+        }
+
+        // Mark all retained (`#[used(linker)`, `__attribute__((retain))`) section as saved.
+        if section.retain {
+            visitor.queue.insert(section.id);
         }
     }
 

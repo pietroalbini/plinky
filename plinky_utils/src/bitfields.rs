@@ -17,6 +17,12 @@ pub trait Bitfield: Sized {
     fn is_empty(&self) -> bool {
         self.write() == Self::Repr::empty()
     }
+
+    fn or(&self, other: Self) -> Self {
+        let lhs_raw = self.write();
+        let rhs_raw = other.write();
+        Self::read((&lhs_raw).or(&rhs_raw)).unwrap()
+    }
 }
 
 impl<T> RawType for T
@@ -134,6 +140,7 @@ pub trait BitfieldRepr: PartialEq {
 
     fn invert(&self) -> Self;
     fn and(&self, rhs: &Self) -> Self;
+    fn or(&self, rhs: &Self) -> Self;
 }
 
 macro_rules! impl_bitfieldrepr_for {
@@ -161,6 +168,10 @@ macro_rules! impl_bitfieldrepr_for {
 
                 fn and(&self, rhs: &Self) -> Self {
                     *self & *rhs
+                }
+
+                fn or(&self, rhs: &Self) -> Self {
+                    *self | *rhs
                 }
 
                 fn invert(&self) -> Self {

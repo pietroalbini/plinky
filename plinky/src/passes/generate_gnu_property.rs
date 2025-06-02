@@ -2,7 +2,7 @@ use crate::repr::object::{GnuProperties, Object};
 use crate::repr::sections::NotesSection;
 use crate::repr::segments::{Segment, SegmentContent, SegmentType};
 use plinky_elf::{ElfGnuProperty, ElfNote, ElfPermissions};
-use std::ops::BitOr;
+use plinky_utils::bitfields::Bitfield;
 
 pub(crate) fn run(object: &mut Object) {
     // There are multiple algorithms to merge properties, depending on the numeric representation
@@ -61,12 +61,12 @@ enum AndOrState<T> {
     Missing,
 }
 
-impl<T: BitOr<T, Output = T> + Copy> AndOrState<T> {
+impl<T: Bitfield + Copy> AndOrState<T> {
     fn merge(&mut self, other: Option<T>) {
         match (&self, other) {
             (_, None) | (AndOrState::Missing, _) => *self = AndOrState::Missing,
             (AndOrState::Initial, Some(initial)) => *self = AndOrState::Present(initial),
-            (AndOrState::Present(old), Some(new)) => *self = AndOrState::Present(*old | new),
+            (AndOrState::Present(old), Some(new)) => *self = AndOrState::Present(old.or(new)),
         }
     }
 

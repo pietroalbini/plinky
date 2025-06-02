@@ -31,9 +31,6 @@ pub(crate) fn derive(tokens: TokenStream) -> Result<TokenStream, Error> {
         ));
     };
 
-    impls.push(generate_binop_impl(&parsed, "std::ops::BitOr", "bitor"));
-    impls.push(generate_binop_impl(&parsed, "std::ops::BitAnd", "bitand"));
-
     Ok(quote! { #impls })
 }
 
@@ -164,27 +161,6 @@ fn generate_fields(struct_: &Struct) -> Result<Fields, Error> {
                 .collect::<Result<_, _>>()?,
         ),
     })
-}
-
-fn generate_binop_impl(struct_: &Struct, op: &str, method: &str) -> TokenStream {
-    let trait_for = format!("{op}<Self>");
-    let op: TokenStream = op.parse().unwrap();
-    let method: TokenStream = method.parse().unwrap();
-    generate_impl_for(
-        &Item::Struct(struct_.clone()),
-        Some(&trait_for),
-        quote! {
-            type Output = Self;
-
-            fn #method(self, other: Self) -> Self {
-                let self_repr = plinky_utils::bitfields::Bitfield::write(&self);
-                let other_repr = plinky_utils::bitfields::Bitfield::write(&other);
-                plinky_utils::bitfields::Bitfield::read(
-                    #op::#method(self_repr, other_repr)
-                ).unwrap()
-            }
-        },
-    )
 }
 
 struct BitCalculator {
